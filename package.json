@@ -1,0 +1,65 @@
+{
+  "name": "@vercel/edge-config",
+  "version": "0.1.0-canary.0",
+  "description": "Fast Storage for your Edge Functions",
+  "repository": "vercel/edge-config",
+  "main": "./dist/index.cjs",
+  "type": "module",
+  "exports": {
+    "import": "./dist/index.mjs",
+    "require": "./dist/index.cjs"
+  },
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "license": "MIT",
+  "engines": {
+    "node": ">=12.13"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "test": "npm run test-nodejs && npm run test-edge",
+    "test-nodejs": "jest --env node",
+    "test-edge": "jest --env @edge-runtime/jest-environment",
+    "build": "scripts/build.js",
+    "prepublishOnly": "npm run build",
+    "eslint-check": "eslint --max-warnings=0 .",
+    "prettier-check": "prettier --check .",
+    "type-check": "tsc --noEmit",
+    "precommit": "lint-staged",
+    "prepare": "husky install"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "setupFiles": [
+      "<rootDir>/jest/setup.js"
+    ]
+  },
+  "prettier": "@vercel/style-guide/prettier",
+  "lint-staged": {
+    "*": [
+      "prettier --ignore-unknown --write"
+    ],
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --max-warnings=0 --fix"
+    ]
+  },
+  "devDependencies": {
+    "@babel/core": "7.18.6",
+    "@edge-runtime/jest-environment": "1.1.0-beta.6",
+    "@types/jest": "27.0.1",
+    "@types/node": "18.0.3",
+    "@vercel/style-guide": "3.0.0",
+    "eslint": "8.12.0",
+    "husky": "7.0.2",
+    "jest": "27.1.1",
+    "jest-fetch-mock": "3.0.3",
+    "lint-staged": "11.1.2",
+    "prettier": "2.6.2",
+    "ts-jest": "27.0.5",
+    "typescript": "4.6.3"
+  }
+}

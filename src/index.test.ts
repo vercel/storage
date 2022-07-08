@@ -11,7 +11,7 @@ describe('default Edge Config', () => {
   describe('test conditions', () => {
     it('should have an env var called VERCEL_EDGE_CONFIG', () => {
       expect(baseUrl).toEqual(
-        'https://vercel-edge-config.com/edgeConfigId1/secret1',
+        'https://vercel-edge-config.com/edge-config/edgeConfigId1/secret1',
       );
     });
   });
@@ -158,7 +158,7 @@ describe('default Edge Config', () => {
 // "default Edge Config" tests above anyhow
 describe('createEdgeConfig', () => {
   const modifiedBaseUrl =
-    'https://vercel-edge-config.com/edgeConfigId2/secret2';
+    'https://vercel-edge-config.com/edge-config/edgeConfigId2/secret2';
   let edgeConfig: EdgeConfig;
 
   beforeEach(() => {

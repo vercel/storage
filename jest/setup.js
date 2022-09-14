@@ -1,4 +1,4 @@
 require('jest-fetch-mock').enableMocks();
 
 process.env.VERCEL_EDGE_CONFIG =
-  'https://vercel-edge-config.com/edge-config/edgeConfigId1/secret1';
+  'edge-config://token-1@edge-config.vercel.com/ecfg-1';

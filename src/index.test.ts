@@ -1,17 +1,24 @@
 import fetchMock from 'jest-fetch-mock';
-import { get, has, digest, createEdgeConfig, type EdgeConfig } from './index';
+import {
+  get,
+  has,
+  digest,
+  createEdgeConfigClient,
+  type EdgeConfig,
+} from './index';
 
 beforeEach(() => {
   fetchMock.resetMocks();
 });
 
-const baseUrl = process.env.VERCEL_EDGE_CONFIG as string;
+const connectionString = process.env.VERCEL_EDGE_CONFIG as string;
+const baseUrl = 'https://edge-config.vercel.com/v1/config/ecfg-1';
 
 describe('default Edge Config', () => {
   describe('test conditions', () => {
     it('should have an env var called VERCEL_EDGE_CONFIG', () => {
-      expect(baseUrl).toEqual(
-        'https://vercel-edge-config.com/edge-config/edgeConfigId1/secret1',
+      expect(connectionString).toEqual(
+        'edge-config://token-1@edge-config.vercel.com/ecfg-1',
       );
     });
   });
@@ -22,7 +29,9 @@ describe('default Edge Config', () => {
     await expect(get('foo')).resolves.toEqual('bar');
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`);
+    expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`, {
+      headers: { Authorization: 'Bearer token-1' },
+    });
   });
 
   describe('get(key)', () => {
@@ -33,7 +42,9 @@ describe('default Edge Config', () => {
         await expect(get('foo')).resolves.toEqual('bar');
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`);
+        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`, {
+          headers: { Authorization: 'Bearer token-1' },
+        });
       });
     });
 
@@ -44,7 +55,9 @@ describe('default Edge Config', () => {
         await expect(get('foo')).resolves.toEqual(undefined);
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`);
+        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`, {
+          headers: { Authorization: 'Bearer token-1' },
+        });
       });
     });
 
@@ -57,7 +70,9 @@ describe('default Edge Config', () => {
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`);
+        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`, {
+          headers: { Authorization: 'Bearer token-1' },
+        });
       });
     });
 
@@ -70,7 +85,9 @@ describe('default Edge Config', () => {
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`);
+        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`, {
+          headers: { Authorization: 'Bearer token-1' },
+        });
       });
     });
   });
@@ -85,6 +102,7 @@ describe('default Edge Config', () => {
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`, {
           method: 'HEAD',
+          headers: { Authorization: 'Bearer token-1' },
         });
       });
     });
@@ -98,6 +116,7 @@ describe('default Edge Config', () => {
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`, {
           method: 'HEAD',
+          headers: { Authorization: 'Bearer token-1' },
         });
       });
     });
@@ -111,7 +130,9 @@ describe('default Edge Config', () => {
         await expect(digest()).resolves.toEqual('awe1');
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest`);
+        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest`, {
+          headers: { Authorization: 'Bearer token-1' },
+        });
       });
     });
 
@@ -124,7 +145,9 @@ describe('default Edge Config', () => {
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest`);
+        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest`, {
+          headers: { Authorization: 'Bearer token-1' },
+        });
       });
 
       it('should throw an Unexpected error on 404', async () => {
@@ -135,7 +158,9 @@ describe('default Edge Config', () => {
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest`);
+        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest`, {
+          headers: { Authorization: 'Bearer token-1' },
+        });
       });
     });
 
@@ -148,7 +173,9 @@ describe('default Edge Config', () => {
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest`);
+        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest`, {
+          headers: { Authorization: 'Bearer token-1' },
+        });
       });
     });
   });
@@ -157,22 +184,23 @@ describe('default Edge Config', () => {
 // these test the happy path only, as the cases are tested through the
 // "default Edge Config" tests above anyhow
 describe('createEdgeConfig', () => {
-  const modifiedBaseUrl =
-    'https://vercel-edge-config.com/edge-config/edgeConfigId2/secret2';
+  const modifiedConnectionString =
+    'edge-config://token-2@edge-config.vercel.com/ecfg-2';
+  const modifiedBaseUrl = 'https://edge-config.vercel.com/v1/config/ecfg-2';
   let edgeConfig: EdgeConfig;
 
   beforeEach(() => {
-    edgeConfig = createEdgeConfig(modifiedBaseUrl);
+    edgeConfig = createEdgeConfigClient(modifiedConnectionString);
   });
 
   it('should be a function', () => {
-    expect(typeof createEdgeConfig).toBe('function');
+    expect(typeof createEdgeConfigClient).toBe('function');
   });
 
   describe('when called without a baseUrl', () => {
     it('should throw', () => {
-      expect(() => createEdgeConfig(undefined)).toThrowError(
-        '@vercel/edge-data: No URL provided',
+      expect(() => createEdgeConfigClient(undefined)).toThrowError(
+        '@vercel/edge-data: No connection string provided',
       );
     });
   });
@@ -185,7 +213,9 @@ describe('createEdgeConfig', () => {
         await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${modifiedBaseUrl}/item/foo`);
+        expect(fetchMock).toHaveBeenCalledWith(`${modifiedBaseUrl}/item/foo`, {
+          headers: { Authorization: 'Bearer token-2' },
+        });
       });
     });
   });
@@ -200,6 +230,7 @@ describe('createEdgeConfig', () => {
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${modifiedBaseUrl}/item/foo`, {
           method: 'HEAD',
+          headers: { Authorization: 'Bearer token-2' },
         });
       });
     });
@@ -213,7 +244,9 @@ describe('createEdgeConfig', () => {
         await expect(edgeConfig.digest()).resolves.toEqual('awe1');
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${modifiedBaseUrl}/digest`);
+        expect(fetchMock).toHaveBeenCalledWith(`${modifiedBaseUrl}/digest`, {
+          headers: { Authorization: 'Bearer token-2' },
+        });
       });
     });
   });

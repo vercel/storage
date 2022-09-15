@@ -3,9 +3,11 @@
 ![CI](https://github.com/vercel/edge-config/workflows/CI/badge.svg)
 ![Edge Runtime Compatible](https://img.shields.io/badge/edge--runtime-%E2%9C%94%20compatible-black)
 
-Use this package to easily read Edge Config items.
+A client that leds you read Edge Config.
 
 ## Examples
+
+You can use the methods below to read your Edge Config given you have its Connection String stored in an Environment Variable called `process.env.VERCEL_EDGE_CONFIG`.
 
 ### Reading a value
 
@@ -33,27 +35,28 @@ Throws on network errors.
 
 By default `@vercel/edge-config` will read from the Edge Config stored in `process.env.VERCEL_EDGE_CONFIG`.
 
-The exported `get`, `has` and `digest` functions are bound to this default Edge Config.
+The exported `get`, `has` and `digest` functions are bound to this default Edge Config Client.
 
 ### Reading a value from a specific Edge Config
 
-You can use `createEdgeConfig()` to read values from Edge Configs other than the default one.
+You can use `createEdgeConfigClient(connectionString)` to read values from Edge Configs other than the default one.
 
 ```js
-import { createEdgeConfig } from '@vercel/edge-config';
-const edgeConfig = createEdgeConfig(process.env.ANOTHER_EDGE_CONFIG_URL);
+import { createEdgeConfigClient } from '@vercel/edge-config';
+const edgeConfig = createEdgeConfigClient(process.env.ANOTHER_EDGE_CONFIG);
 await edgeConfig.get('someKey');
 ```
 
-The `createEdgeConfig` function connnects to a any Edge Config based on the provided URL.
+The `createEdgeConfigClient` function connnects to a any Edge Config based on the provided Connection String.
 
-It returns the same `get`, `has` and `exists` functions as the default Edge Config exports.
+It returns the same `get`, `has` and `exists` functions as the default Edge Config Client exports.
 
 ## Features
 
-- Works in [Node.js](https://nodejs.org) and in the browser
-- If a value does not exist, `undefined` is returned
--
+- Works in [Edge Runtime](https://edge-runtime.vercel.sh/), [Node.js](https://nodejs.org) and in the browser
+
+## Error Handling
+
 - An error is thrown in case of a network error
 - An error is thrown in case of an unexpected response
 
@@ -72,9 +75,7 @@ export default (req) => {
   return new Response(`someKey contains value "${value})"`);
 };
 
-export const config = {
-  runtime: 'experimental-edge',
-};
+export const config = { runtime: 'experimental-edge' };
 ```
 
 ## Caught a Bug?

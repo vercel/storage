@@ -1,20 +1,20 @@
 {
   "name": "@vercel/edge-config",
   "version": "0.1.0-canary.0",
-  "description": "Fast Storage for your Edge Functions",
+  "description": "",
   "repository": "vercel/edge-config",
   "main": "./dist/index.cjs",
   "type": "module",
   "exports": {
-    "import": "./dist/index.mjs",
+    "import": "./dist/index.js",
     "require": "./dist/index.cjs"
   },
-  "module": "./dist/index.mjs",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "sideEffects": false,
   "license": "MIT",
   "engines": {
-    "node": ">=12.13"
+    "node": ">=14.6"
   },
   "files": [
     "dist"
@@ -23,7 +23,7 @@
     "test": "npm run test-nodejs && npm run test-edge",
     "test-nodejs": "jest --env node",
     "test-edge": "jest --env @edge-runtime/jest-environment",
-    "build": "scripts/build.js",
+    "build": "tsup",
     "prepublishOnly": "npm run build",
     "eslint-check": "eslint --max-warnings=0 .",
     "prettier-check": "prettier --check .",
@@ -48,18 +48,19 @@
     ]
   },
   "devDependencies": {
-    "@babel/core": "7.18.6",
-    "@edge-runtime/jest-environment": "1.1.0-beta.6",
-    "@types/jest": "27.0.1",
-    "@types/node": "18.0.3",
+    "@babel/core": "7.19.1",
+    "@edge-runtime/jest-environment": "1.1.0-beta.31",
+    "@types/jest": "29.0.2",
+    "@types/node": "18.7.18",
     "@vercel/style-guide": "3.0.0",
-    "eslint": "8.12.0",
-    "husky": "7.0.2",
-    "jest": "27.1.1",
+    "eslint": "8.23.1",
+    "husky": "8.0.1",
+    "jest": "29.0.3",
     "jest-fetch-mock": "3.0.3",
-    "lint-staged": "11.1.2",
-    "prettier": "2.6.2",
-    "ts-jest": "27.0.5",
-    "typescript": "4.6.3"
+    "lint-staged": "13.0.3",
+    "prettier": "2.7.1",
+    "ts-jest": "29.0.1",
+    "tsup": "6.2.3",
+    "typescript": "4.8.3"
   }
 }

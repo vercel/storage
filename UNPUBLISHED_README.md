@@ -49,7 +49,7 @@ await edgeConfig.get('someKey');
 
 The `createEdgeConfigClient` function connnects to a any Edge Config based on the provided Connection String.
 
-It returns the same `get`, `has` and `exists` functions as the default Edge Config Client exports.
+It returns the same `get`, `has` and `digest` functions as the default Edge Config Client exports.
 
 ## Features
 

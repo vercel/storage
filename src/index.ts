@@ -58,7 +58,7 @@ function getLocalEdgeConfig(edgeConfigId: string): EmbeddedEdgeConfig | null {
 /**
  * Edge Config
  */
-export interface EdgeConfig {
+export interface EdgeConfigClient {
   get: <T extends EdgeConfigItemValue>(key: string) => Promise<T | undefined>;
   has: (key: string) => Promise<boolean>;
   digest: () => Promise<string>;
@@ -66,7 +66,7 @@ export interface EdgeConfig {
 
 export function createEdgeConfigClient(
   connectionString: string | undefined,
-): EdgeConfig {
+): EdgeConfigClient {
   if (!connectionString)
     throw new Error('@vercel/edge-data: No connection string provided');
 
@@ -136,15 +136,30 @@ export function createEdgeConfigClient(
   };
 }
 
-const defaultEdgeConfig = createEdgeConfigClient(
-  process.env.VERCEL_EDGE_CONFIG,
-);
+let defaultEdgeConfigClient: EdgeConfigClient;
 
-export const get: typeof defaultEdgeConfig.get =
-  defaultEdgeConfig.get.bind(defaultEdgeConfig);
+// lazy init fn so the default edge config does not throw in case
+// process.env.VERCEL_EDGE_CONFIG is not defined and its methods are never used.
+function init() {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (!defaultEdgeConfigClient) {
+    defaultEdgeConfigClient = createEdgeConfigClient(
+      process.env.VERCEL_EDGE_CONFIG,
+    );
+  }
+}
 
-export const has: typeof defaultEdgeConfig.has =
-  defaultEdgeConfig.has.bind(defaultEdgeConfig);
+export const get: EdgeConfigClient['get'] = (...args) => {
+  init();
+  return defaultEdgeConfigClient.get(...args);
+};
 
-export const digest: typeof defaultEdgeConfig.digest =
-  defaultEdgeConfig.digest.bind(defaultEdgeConfig);
+export const has: EdgeConfigClient['has'] = (...args) => {
+  init();
+  return defaultEdgeConfigClient.has(...args);
+};
+
+export const digest: EdgeConfigClient['digest'] = (...args) => {
+  init();
+  return defaultEdgeConfigClient.digest(...args);
+};

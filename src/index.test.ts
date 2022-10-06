@@ -4,7 +4,7 @@ import {
   has,
   digest,
   createEdgeConfigClient,
-  type EdgeConfig,
+  type EdgeConfigClient,
 } from './index';
 import type { EmbeddedEdgeConfig } from './types';
 
@@ -193,7 +193,7 @@ describe('createEdgeConfig', () => {
     const modifiedConnectionString =
       'edge-config://token-2@edge-config.vercel.com/ecfg-2';
     const modifiedBaseUrl = 'https://edge-config.vercel.com/v1/config/ecfg-2';
-    let edgeConfig: EdgeConfig;
+    let edgeConfig: EdgeConfigClient;
 
     beforeEach(() => {
       edgeConfig = createEdgeConfigClient(modifiedConnectionString);

@@ -1,10 +1,20 @@
-export type EdgeConfigItemValue =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string | number]: EdgeConfigItemValue }
-  | EdgeConfigItemValue[];
+import type { EdgeConfigItemValue, EmbeddedEdgeConfig } from './types';
+
+export type { EdgeConfigItemValue } from './types';
+
+declare global {
+  /* eslint-disable camelcase */
+  const __non_webpack_require__: NodeRequire | undefined;
+  const __webpack_require__: NodeRequire | undefined;
+  /* eslint-enable camelcase */
+}
+
+function hasOwnProperty<X, Y extends PropertyKey>(
+  obj: X,
+  prop: Y,
+): obj is X & Record<Y, unknown> {
+  return Object.prototype.hasOwnProperty.call(obj, prop);
+}
 
 /**
  * Parse the edgeConfigId and token from an Edge Config Connection String.
@@ -26,13 +36,32 @@ function matchEdgeConfigConnectionString(
     : null;
 }
 
+function getLocalEdgeConfig(edgeConfigId: string): EmbeddedEdgeConfig | null {
+  // only try to read from lambda layer if called from a deployed serverless fn
+  if (!process.env.AWS_LAMBDA_FUNCTION_NAME) return null;
+
+  const embeddedEdgeConfigPath = `/opt/edge-configs/${edgeConfigId}.json`;
+  try {
+    // https://github.com/webpack/webpack/issues/4175
+    /* eslint-disable camelcase */
+    const requireFunc =
+      typeof __webpack_require__ === 'function' &&
+      typeof __non_webpack_require__ === 'function'
+        ? __non_webpack_require__
+        : require;
+    /* eslint-enable camelcase */
+    return requireFunc(embeddedEdgeConfigPath) as EmbeddedEdgeConfig;
+  } catch {
+    return null;
+  }
+}
 /**
  * Edge Config
  */
 export interface EdgeConfig {
   get: <T extends EdgeConfigItemValue>(key: string) => Promise<T | undefined>;
   has: (key: string) => Promise<boolean>;
-  digest: () => Promise<{ digest: string }>;
+  digest: () => Promise<string>;
 }
 
 export function createEdgeConfigClient(
@@ -48,8 +77,25 @@ export function createEdgeConfigClient(
   const url = `https://edge-config.vercel.com/v1/config/${connection.edgeConfigId}`;
   const headers = { Authorization: `Bearer ${connection.token}` };
 
+  const localEdgeConfig = getLocalEdgeConfig(connection.edgeConfigId);
+  if (localEdgeConfig) {
+    return {
+      get<T extends EdgeConfigItemValue>(key: string): Promise<T | undefined> {
+        return Promise.resolve(localEdgeConfig.items[key] as T);
+      },
+      has(key) {
+        return Promise.resolve(hasOwnProperty(localEdgeConfig.items, key));
+      },
+      digest() {
+        return Promise.resolve(localEdgeConfig.digest);
+      },
+    };
+  }
+
   return {
-    get<T extends EdgeConfigItemValue>(key: string): Promise<T | undefined> {
+    async get<T extends EdgeConfigItemValue>(
+      key: string,
+    ): Promise<T | undefined> {
       return fetch(`${url}/item/${key}`, { headers }).then<
         T | undefined,
         undefined
@@ -64,7 +110,7 @@ export function createEdgeConfigClient(
         },
       );
     },
-    has(key) {
+    async has(key) {
       return fetch(`${url}/item/${key}`, { method: 'HEAD', headers }).then(
         (res) => {
           if (res.status === 404) return false;
@@ -76,11 +122,11 @@ export function createEdgeConfigClient(
         },
       );
     },
-    digest() {
+    async digest() {
       return fetch(`${url}/digest`, { headers }).then(
         (res) => {
           if (!res.ok) throw new Error('@vercel/edge-data: Unexpected error');
-          return res.json();
+          return res.json().then((data: { digest: string }) => data.digest);
         },
         () => {
           throw new Error('@vercel/edge-data: Network error');

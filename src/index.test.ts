@@ -6,6 +6,11 @@ import {
   createEdgeConfigClient,
   type EdgeConfig,
 } from './index';
+import type { EmbeddedEdgeConfig } from './types';
+
+declare global {
+  const EdgeRuntime: string | undefined;
+}
 
 beforeEach(() => {
   fetchMock.resetMocks();
@@ -125,7 +130,7 @@ describe('default Edge Config', () => {
   describe('digest()', () => {
     describe('when the request succeeds', () => {
       it('should return the digest', async () => {
-        fetchMock.mockResponse(JSON.stringify('awe1'));
+        fetchMock.mockResponse(JSON.stringify({ digest: 'awe1' }));
 
         await expect(digest()).resolves.toEqual('awe1');
 
@@ -184,70 +189,151 @@ describe('default Edge Config', () => {
 // these test the happy path only, as the cases are tested through the
 // "default Edge Config" tests above anyhow
 describe('createEdgeConfig', () => {
-  const modifiedConnectionString =
-    'edge-config://token-2@edge-config.vercel.com/ecfg-2';
-  const modifiedBaseUrl = 'https://edge-config.vercel.com/v1/config/ecfg-2';
-  let edgeConfig: EdgeConfig;
+  describe('when running without lambda layer or via edge function', () => {
+    const modifiedConnectionString =
+      'edge-config://token-2@edge-config.vercel.com/ecfg-2';
+    const modifiedBaseUrl = 'https://edge-config.vercel.com/v1/config/ecfg-2';
+    let edgeConfig: EdgeConfig;
 
-  beforeEach(() => {
-    edgeConfig = createEdgeConfigClient(modifiedConnectionString);
-  });
-
-  it('should be a function', () => {
-    expect(typeof createEdgeConfigClient).toBe('function');
-  });
-
-  describe('when called without a baseUrl', () => {
-    it('should throw', () => {
-      expect(() => createEdgeConfigClient(undefined)).toThrowError(
-        '@vercel/edge-data: No connection string provided',
-      );
+    beforeEach(() => {
+      edgeConfig = createEdgeConfigClient(modifiedConnectionString);
     });
-  });
 
-  describe('get', () => {
-    describe('when item exists', () => {
-      it('should fetch using information from the passed token', async () => {
-        fetchMock.mockResponse(JSON.stringify('bar'));
+    it('should be a function', () => {
+      expect(typeof createEdgeConfigClient).toBe('function');
+    });
 
-        await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
+    describe('when called without a baseUrl', () => {
+      it('should throw', () => {
+        expect(() => createEdgeConfigClient(undefined)).toThrowError(
+          '@vercel/edge-data: No connection string provided',
+        );
+      });
+    });
 
-        expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${modifiedBaseUrl}/item/foo`, {
-          headers: { Authorization: 'Bearer token-2' },
+    describe('get', () => {
+      describe('when item exists', () => {
+        it('should fetch using information from the passed token', async () => {
+          fetchMock.mockResponse(JSON.stringify('bar'));
+
+          await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
+
+          expect(fetchMock).toHaveBeenCalledTimes(1);
+          expect(fetchMock).toHaveBeenCalledWith(
+            `${modifiedBaseUrl}/item/foo`,
+            {
+              headers: { Authorization: 'Bearer token-2' },
+            },
+          );
+        });
+      });
+    });
+
+    describe('has(key)', () => {
+      describe('when item exists', () => {
+        it('should return true', async () => {
+          fetchMock.mockResponse('');
+
+          await expect(edgeConfig.has('foo')).resolves.toEqual(true);
+
+          expect(fetchMock).toHaveBeenCalledTimes(1);
+          expect(fetchMock).toHaveBeenCalledWith(
+            `${modifiedBaseUrl}/item/foo`,
+            {
+              method: 'HEAD',
+              headers: { Authorization: 'Bearer token-2' },
+            },
+          );
+        });
+      });
+    });
+
+    describe('digest()', () => {
+      describe('when the request succeeds', () => {
+        it('should return the digest', async () => {
+          fetchMock.mockResponse(JSON.stringify({ digest: 'awe1' }));
+
+          await expect(edgeConfig.digest()).resolves.toEqual('awe1');
+
+          expect(fetchMock).toHaveBeenCalledTimes(1);
+          expect(fetchMock).toHaveBeenCalledWith(`${modifiedBaseUrl}/digest`, {
+            headers: { Authorization: 'Bearer token-2' },
+          });
         });
       });
     });
   });
 
-  describe('has(key)', () => {
-    describe('when item exists', () => {
-      it('should return true', async () => {
-        fetchMock.mockResponse('');
+  if (typeof EdgeRuntime !== 'string') {
+    describe('when running with lambda layer on serverless function', () => {
+      beforeAll(() => {
+        process.env.AWS_LAMBDA_FUNCTION_NAME = 'some-value';
+        //@ts-expect-error This function exists when called from a webpack bundle
+        global.__webpack_require__ = () => void 0;
+        //@ts-expect-error This function exists when called from a webpack bundle
+        global.__non_webpack_require__ = jest.fn();
+      });
+      afterAll(() => {
+        delete process.env.AWS_LAMBDA_FUNCTION_NAME;
+      });
 
-        await expect(edgeConfig.has('foo')).resolves.toEqual(true);
+      const embeddedEdgeConfig: EmbeddedEdgeConfig = {
+        digest: 'awe1',
+        items: {
+          foo: 'bar',
+        },
+      };
 
-        expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${modifiedBaseUrl}/item/foo`, {
-          method: 'HEAD',
-          headers: { Authorization: 'Bearer token-2' },
+      beforeEach(() => {
+        //@ts-expect-error This function exists when called from a webpack bundle
+        (global.__non_webpack_require__ as jest.Mock).mockReturnValueOnce(
+          embeddedEdgeConfig,
+        );
+      });
+
+      describe('get(key)', () => {
+        describe('when item exists', () => {
+          it('should return the value', async () => {
+            const edgeConfig = createEdgeConfigClient(connectionString);
+            await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
+            expect(fetchMock).toHaveBeenCalledTimes(0);
+          });
+        });
+
+        describe('when the item does not exist', () => {
+          it('should return undefined', async () => {
+            const edgeConfig = createEdgeConfigClient(connectionString);
+            await expect(edgeConfig.get('baz')).resolves.toEqual(undefined);
+            expect(fetchMock).toHaveBeenCalledTimes(0);
+          });
+        });
+      });
+
+      describe('has(key)', () => {
+        describe('when item exists', () => {
+          it('should return true', async () => {
+            const edgeConfig = createEdgeConfigClient(connectionString);
+            await expect(edgeConfig.has('foo')).resolves.toEqual(true);
+            expect(fetchMock).toHaveBeenCalledTimes(0);
+          });
+        });
+
+        describe('when the item does not exist', () => {
+          it('should return false', async () => {
+            const edgeConfig = createEdgeConfigClient(connectionString);
+            await expect(edgeConfig.has('baz')).resolves.toEqual(false);
+            expect(fetchMock).toHaveBeenCalledTimes(0);
+          });
+        });
+      });
+
+      describe('digest()', () => {
+        it('should return the digest', async () => {
+          const edgeConfig = createEdgeConfigClient(connectionString);
+          await expect(edgeConfig.digest()).resolves.toEqual('awe1');
+          expect(fetchMock).toHaveBeenCalledTimes(0);
         });
       });
     });
-  });
-
-  describe('digest()', () => {
-    describe('when the request succeeds', () => {
-      it('should return the digest', async () => {
-        fetchMock.mockResponse(JSON.stringify('awe1'));
-
-        await expect(edgeConfig.digest()).resolves.toEqual('awe1');
-
-        expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${modifiedBaseUrl}/digest`, {
-          headers: { Authorization: 'Bearer token-2' },
-        });
-      });
-    });
-  });
+  }
 });

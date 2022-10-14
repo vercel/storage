@@ -281,6 +281,7 @@ describe('createEdgeConfig', () => {
         digest: 'awe1',
         items: {
           foo: 'bar',
+          someArray: [],
         },
       };
 
@@ -296,6 +297,18 @@ describe('createEdgeConfig', () => {
           it('should return the value', async () => {
             const edgeConfig = createEdgeConfigClient(connectionString);
             await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
+            expect(fetchMock).toHaveBeenCalledTimes(0);
+          });
+
+          it('should not be able to modify the value for the next get', async () => {
+            const edgeConfig = createEdgeConfigClient(connectionString);
+            const someArray = await edgeConfig.get<string[]>('someArray');
+            expect(someArray).toEqual([]);
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            someArray!.push('intruder');
+            // the pushed value on the old return value may not make it onto the
+            // next get
+            await expect(edgeConfig.get('someArray')).resolves.toEqual([]);
             expect(fetchMock).toHaveBeenCalledTimes(0);
           });
         });

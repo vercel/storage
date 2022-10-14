@@ -24,6 +24,17 @@ function assertIsDefined<T>(val: T): asserts val is NonNullable<T> {
   }
 }
 
+// clones the value so the JSON does not get modified
+ 
+function clone<T>(value: T): T {
+  // only available since node v17.0.0
+  if (typeof structuredClone === 'function') return structuredClone<T>(value);
+
+  // poor man's polyfill for structuredClone
+  if (value === undefined) return value;
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
 /**
  * Parse the edgeConfigId and token from an Edge Config Connection String.
  *
@@ -103,7 +114,7 @@ export function createEdgeConfigClient(
           key: string,
         ): Promise<T | undefined> {
           assertIsDefined(localEdgeConfig); // always defined, but make ts happy
-          return Promise.resolve(localEdgeConfig.items[key] as T);
+          return Promise.resolve(clone(localEdgeConfig.items[key]) as T);
         },
         has(key) {
           assertIsDefined(localEdgeConfig); // always defined, but make ts happy

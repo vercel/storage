@@ -7,7 +7,7 @@ A client that lets you read Edge Config.
 
 ## Examples
 
-You can use the methods below to read your Edge Config given you have its Connection String stored in an Environment Variable called `process.env.VERCEL_EDGE_CONFIG`.
+You can use the methods below to read your Edge Config given you have its Connection String stored in an Environment Variable called `process.env.EDGE_CONFIG`.
 
 ### Reading a value
 
@@ -33,7 +33,7 @@ Throws on network errors.
 
 ### Default behaviour
 
-By default `@vercel/edge-config` will read from the Edge Config stored in `process.env.VERCEL_EDGE_CONFIG`.
+By default `@vercel/edge-config` will read from the Edge Config stored in `process.env.EDGE_CONFIG`.
 
 The exported `get`, `has` and `digest` functions are bound to this default Edge Config Client.
 

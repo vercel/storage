@@ -16,19 +16,19 @@ beforeEach(() => {
   fetchMock.resetMocks();
 });
 
-const connectionString = process.env.VERCEL_EDGE_CONFIG as string;
+const connectionString = process.env.EDGE_CONFIG as string;
 const baseUrl = 'https://edge-config.vercel.com/v1/config/ecfg-1';
 
 describe('default Edge Config', () => {
   describe('test conditions', () => {
-    it('should have an env var called VERCEL_EDGE_CONFIG', () => {
+    it('should have an env var called EDGE_CONFIG', () => {
       expect(connectionString).toEqual(
         'edge-config://token-1@edge-config.vercel.com/ecfg-1',
       );
     });
   });
 
-  it('should fetch an item from the Edge Config specified by process.env.VERCEL_EDGE_CONFIG', async () => {
+  it('should fetch an item from the Edge Config specified by process.env.EDGE_CONFIG', async () => {
     fetchMock.mockResponse(JSON.stringify('bar'));
 
     await expect(get('foo')).resolves.toEqual('bar');

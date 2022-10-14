@@ -22,10 +22,10 @@ function hasOwnProperty<X, Y extends PropertyKey>(
 /**
  * Throws if a value is undefined or null
  */
-function assertIsDefined<T>(val: T): asserts val is NonNullable<T> {
-  if (val === undefined || val === null) {
+function assertIsDefined<T>(value: T): asserts value is NonNullable<T> {
+  if (value === undefined || value === null) {
     throw new Error(
-      `Expected 'val' to be defined, but received ${String(val)}`,
+      `Expected value to be defined, but received ${String(value)}`,
     );
   }
 }

@@ -16,6 +16,14 @@ function hasOwnProperty<X, Y extends PropertyKey>(
   return Object.prototype.hasOwnProperty.call(obj, prop);
 }
 
+function assertIsDefined<T>(val: T): asserts val is NonNullable<T> {
+  if (val === undefined || val === null) {
+    throw new Error(
+      `Expected 'val' to be defined, but received ${String(val)}`,
+    );
+  }
+}
+
 /**
  * Parse the edgeConfigId and token from an Edge Config Connection String.
  *
@@ -37,9 +45,6 @@ function matchEdgeConfigConnectionString(
 }
 
 function getLocalEdgeConfig(edgeConfigId: string): EmbeddedEdgeConfig | null {
-  // only try to read from lambda layer if called from a deployed serverless fn
-  if (!process.env.AWS_LAMBDA_FUNCTION_NAME) return null;
-
   const embeddedEdgeConfigPath = `/opt/edge-configs/${edgeConfigId}.json`;
   try {
     // https://github.com/webpack/webpack/issues/4175
@@ -64,6 +69,11 @@ export interface EdgeConfigClient {
   digest: () => Promise<string>;
 }
 
+// although the require() / __non_webpack_require__ functions themselves have
+// a cache, we want to skip even invoking require() again, so we "cache" the
+// edge config in the global module scope
+let localEdgeConfig: EmbeddedEdgeConfig | null;
+
 export function createEdgeConfigClient(
   connectionString: string | undefined,
 ): EdgeConfigClient {
@@ -77,19 +87,34 @@ export function createEdgeConfigClient(
   const url = `https://edge-config.vercel.com/v1/config/${connection.edgeConfigId}`;
   const headers = { Authorization: `Bearer ${connection.token}` };
 
-  const localEdgeConfig = getLocalEdgeConfig(connection.edgeConfigId);
-  if (localEdgeConfig) {
-    return {
-      get<T extends EdgeConfigItemValue>(key: string): Promise<T | undefined> {
-        return Promise.resolve(localEdgeConfig.items[key] as T);
-      },
-      has(key) {
-        return Promise.resolve(hasOwnProperty(localEdgeConfig.items, key));
-      },
-      digest() {
-        return Promise.resolve(localEdgeConfig.digest);
-      },
-    };
+  // only try to read from lambda layer if called from a deployed serverless fn
+  if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    // load unless it is loaded already
+    // the lambda function restarts on config changes, so we can "cache"
+    // this in the global module scope
+    if (!localEdgeConfig) {
+      localEdgeConfig = getLocalEdgeConfig(connection.edgeConfigId);
+    }
+
+    // return api which uses the local edge config if one exists
+    if (localEdgeConfig) {
+      return {
+        get<T extends EdgeConfigItemValue>(
+          key: string,
+        ): Promise<T | undefined> {
+          assertIsDefined(localEdgeConfig); // always defined, but make ts happy
+          return Promise.resolve(localEdgeConfig.items[key] as T);
+        },
+        has(key) {
+          assertIsDefined(localEdgeConfig); // always defined, but make ts happy
+          return Promise.resolve(hasOwnProperty(localEdgeConfig.items, key));
+        },
+        digest() {
+          assertIsDefined(localEdgeConfig); // always defined, but make ts happy
+          return Promise.resolve(localEdgeConfig.digest);
+        },
+      };
+    }
   }
 
   return {

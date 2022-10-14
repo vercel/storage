@@ -9,6 +9,9 @@ declare global {
   /* eslint-enable camelcase */
 }
 
+/**
+ * Checks if an object has a property
+ */
 function hasOwnProperty<X, Y extends PropertyKey>(
   obj: X,
   prop: Y,
@@ -16,6 +19,9 @@ function hasOwnProperty<X, Y extends PropertyKey>(
   return Object.prototype.hasOwnProperty.call(obj, prop);
 }
 
+/**
+ * Throws if a value is undefined or null
+ */
 function assertIsDefined<T>(val: T): asserts val is NonNullable<T> {
   if (val === undefined || val === null) {
     throw new Error(
@@ -24,8 +30,9 @@ function assertIsDefined<T>(val: T): asserts val is NonNullable<T> {
   }
 }
 
-// clones the value so the JSON does not get modified
- 
+/**
+ * Creates a deep clone of an object.
+ */
 function clone<T>(value: T): T {
   // only available since node v17.0.0
   if (typeof structuredClone === 'function') return structuredClone<T>(value);
@@ -55,6 +62,9 @@ function matchEdgeConfigConnectionString(
     : null;
 }
 
+/**
+ * Reads an Edge Config from the local file system
+ */
 function getLocalEdgeConfig(edgeConfigId: string): EmbeddedEdgeConfig | null {
   const embeddedEdgeConfigPath = `/opt/edge-configs/${edgeConfigId}.json`;
   try {
@@ -71,8 +81,9 @@ function getLocalEdgeConfig(edgeConfigId: string): EmbeddedEdgeConfig | null {
     return null;
   }
 }
+
 /**
- * Edge Config
+ * Edge Config Client
  */
 export interface EdgeConfigClient {
   get: <T extends EdgeConfigItemValue>(key: string) => Promise<T | undefined>;
@@ -85,6 +96,9 @@ export interface EdgeConfigClient {
 // edge config in the global module scope
 let localEdgeConfig: EmbeddedEdgeConfig | null;
 
+/**
+ * Creates a deep clone of an object.
+ */
 export function createEdgeConfigClient(
   connectionString: string | undefined,
 ): EdgeConfigClient {

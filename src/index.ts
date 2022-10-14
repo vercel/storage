@@ -71,12 +71,13 @@ function getLocalEdgeConfig(edgeConfigId: string): EmbeddedEdgeConfig | null {
     // https://github.com/webpack/webpack/issues/4175
     /* eslint-disable camelcase */
     const requireFunc =
-      typeof __webpack_require__ === 'function' &&
-      typeof __non_webpack_require__ === 'function'
+      typeof __webpack_require__ === 'function'
         ? __non_webpack_require__
         : require;
     /* eslint-enable camelcase */
-    return requireFunc(embeddedEdgeConfigPath) as EmbeddedEdgeConfig;
+    return requireFunc
+      ? (requireFunc(embeddedEdgeConfigPath) as EmbeddedEdgeConfig)
+      : null;
   } catch {
     return null;
   }

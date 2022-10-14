@@ -129,6 +129,11 @@ export function createEdgeConfigClient(
           key: string,
         ): Promise<T | undefined> {
           assertIsDefined(localEdgeConfig); // always defined, but make ts happy
+
+          // We need to return a clone of the value so users can't modify
+          // our original value, and so the reference changes.
+          //
+          // This makes it consistent with the real API.
           return Promise.resolve(clone(localEdgeConfig.items[key]) as T);
         },
         has(key) {

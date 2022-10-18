@@ -4,7 +4,7 @@ import {
   has,
   digest,
   createEdgeConfigClient,
-  type EdgeConfig,
+  type EdgeConfigClient,
 } from './index';
 import type { EmbeddedEdgeConfig } from './types';
 
@@ -16,19 +16,19 @@ beforeEach(() => {
   fetchMock.resetMocks();
 });
 
-const connectionString = process.env.VERCEL_EDGE_CONFIG as string;
+const connectionString = process.env.EDGE_CONFIG as string;
 const baseUrl = 'https://edge-config.vercel.com/v1/config/ecfg-1';
 
 describe('default Edge Config', () => {
   describe('test conditions', () => {
-    it('should have an env var called VERCEL_EDGE_CONFIG', () => {
+    it('should have an env var called EDGE_CONFIG', () => {
       expect(connectionString).toEqual(
         'edge-config://token-1@edge-config.vercel.com/ecfg-1',
       );
     });
   });
 
-  it('should fetch an item from the Edge Config specified by process.env.VERCEL_EDGE_CONFIG', async () => {
+  it('should fetch an item from the Edge Config specified by process.env.EDGE_CONFIG', async () => {
     fetchMock.mockResponse(JSON.stringify('bar'));
 
     await expect(get('foo')).resolves.toEqual('bar');
@@ -193,7 +193,7 @@ describe('createEdgeConfig', () => {
     const modifiedConnectionString =
       'edge-config://token-2@edge-config.vercel.com/ecfg-2';
     const modifiedBaseUrl = 'https://edge-config.vercel.com/v1/config/ecfg-2';
-    let edgeConfig: EdgeConfig;
+    let edgeConfig: EdgeConfigClient;
 
     beforeEach(() => {
       edgeConfig = createEdgeConfigClient(modifiedConnectionString);
@@ -281,6 +281,7 @@ describe('createEdgeConfig', () => {
         digest: 'awe1',
         items: {
           foo: 'bar',
+          someArray: [],
         },
       };
 
@@ -296,6 +297,18 @@ describe('createEdgeConfig', () => {
           it('should return the value', async () => {
             const edgeConfig = createEdgeConfigClient(connectionString);
             await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
+            expect(fetchMock).toHaveBeenCalledTimes(0);
+          });
+
+          it('should not be able to modify the value for the next get', async () => {
+            const edgeConfig = createEdgeConfigClient(connectionString);
+            const someArray = await edgeConfig.get<string[]>('someArray');
+            expect(someArray).toEqual([]);
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            someArray!.push('intruder');
+            // the pushed value on the old return value may not make it onto the
+            // next get
+            await expect(edgeConfig.get('someArray')).resolves.toEqual([]);
             expect(fetchMock).toHaveBeenCalledTimes(0);
           });
         });

@@ -9,11 +9,37 @@ declare global {
   /* eslint-enable camelcase */
 }
 
+/**
+ * Checks if an object has a property
+ */
 function hasOwnProperty<X, Y extends PropertyKey>(
   obj: X,
   prop: Y,
 ): obj is X & Record<Y, unknown> {
   return Object.prototype.hasOwnProperty.call(obj, prop);
+}
+
+/**
+ * Throws if a value is undefined or null
+ */
+function assertIsDefined<T>(value: T): asserts value is NonNullable<T> {
+  if (value === undefined || value === null) {
+    throw new Error(
+      `Expected value to be defined, but received ${String(value)}`,
+    );
+  }
+}
+
+/**
+ * Creates a deep clone of an object.
+ */
+function clone<T>(value: T): T {
+  // only available since node v17.0.0
+  if (typeof structuredClone === 'function') return structuredClone<T>(value);
+
+  // poor man's polyfill for structuredClone
+  if (value === undefined) return value;
+  return JSON.parse(JSON.stringify(value)) as T;
 }
 
 /**
@@ -36,37 +62,47 @@ function matchEdgeConfigConnectionString(
     : null;
 }
 
+/**
+ * Reads an Edge Config from the local file system
+ */
 function getLocalEdgeConfig(edgeConfigId: string): EmbeddedEdgeConfig | null {
-  // only try to read from lambda layer if called from a deployed serverless fn
-  if (!process.env.AWS_LAMBDA_FUNCTION_NAME) return null;
-
   const embeddedEdgeConfigPath = `/opt/edge-configs/${edgeConfigId}.json`;
   try {
     // https://github.com/webpack/webpack/issues/4175
     /* eslint-disable camelcase */
     const requireFunc =
-      typeof __webpack_require__ === 'function' &&
-      typeof __non_webpack_require__ === 'function'
+      typeof __webpack_require__ === 'function'
         ? __non_webpack_require__
         : require;
     /* eslint-enable camelcase */
-    return requireFunc(embeddedEdgeConfigPath) as EmbeddedEdgeConfig;
+    return requireFunc
+      ? (requireFunc(embeddedEdgeConfigPath) as EmbeddedEdgeConfig)
+      : null;
   } catch {
     return null;
   }
 }
+
 /**
- * Edge Config
+ * Edge Config Client
  */
-export interface EdgeConfig {
+export interface EdgeConfigClient {
   get: <T extends EdgeConfigItemValue>(key: string) => Promise<T | undefined>;
   has: (key: string) => Promise<boolean>;
   digest: () => Promise<string>;
 }
 
+// although the require() / __non_webpack_require__ functions themselves have
+// a cache, we want to skip even invoking require() again, so we "cache" the
+// edge config in the global module scope
+let localEdgeConfig: EmbeddedEdgeConfig | null;
+
+/**
+ * Creates a deep clone of an object.
+ */
 export function createEdgeConfigClient(
   connectionString: string | undefined,
-): EdgeConfig {
+): EdgeConfigClient {
   if (!connectionString)
     throw new Error('@vercel/edge-data: No connection string provided');
 
@@ -77,19 +113,39 @@ export function createEdgeConfigClient(
   const url = `https://edge-config.vercel.com/v1/config/${connection.edgeConfigId}`;
   const headers = { Authorization: `Bearer ${connection.token}` };
 
-  const localEdgeConfig = getLocalEdgeConfig(connection.edgeConfigId);
-  if (localEdgeConfig) {
-    return {
-      get<T extends EdgeConfigItemValue>(key: string): Promise<T | undefined> {
-        return Promise.resolve(localEdgeConfig.items[key] as T);
-      },
-      has(key) {
-        return Promise.resolve(hasOwnProperty(localEdgeConfig.items, key));
-      },
-      digest() {
-        return Promise.resolve(localEdgeConfig.digest);
-      },
-    };
+  // only try to read from lambda layer if called from a deployed serverless fn
+  if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    // load unless it is loaded already
+    // the lambda function restarts on config changes, so we can "cache"
+    // this in the global module scope
+    if (!localEdgeConfig) {
+      localEdgeConfig = getLocalEdgeConfig(connection.edgeConfigId);
+    }
+
+    // return api which uses the local edge config if one exists
+    if (localEdgeConfig) {
+      return {
+        get<T extends EdgeConfigItemValue>(
+          key: string,
+        ): Promise<T | undefined> {
+          assertIsDefined(localEdgeConfig); // always defined, but make ts happy
+
+          // We need to return a clone of the value so users can't modify
+          // our original value, and so the reference changes.
+          //
+          // This makes it consistent with the real API.
+          return Promise.resolve(clone(localEdgeConfig.items[key]) as T);
+        },
+        has(key) {
+          assertIsDefined(localEdgeConfig); // always defined, but make ts happy
+          return Promise.resolve(hasOwnProperty(localEdgeConfig.items, key));
+        },
+        digest() {
+          assertIsDefined(localEdgeConfig); // always defined, but make ts happy
+          return Promise.resolve(localEdgeConfig.digest);
+        },
+      };
+    }
   }
 
   return {
@@ -136,15 +192,28 @@ export function createEdgeConfigClient(
   };
 }
 
-const defaultEdgeConfig = createEdgeConfigClient(
-  process.env.VERCEL_EDGE_CONFIG,
-);
+let defaultEdgeConfigClient: EdgeConfigClient;
 
-export const get: typeof defaultEdgeConfig.get =
-  defaultEdgeConfig.get.bind(defaultEdgeConfig);
+// lazy init fn so the default edge config does not throw in case
+// process.env.EDGE_CONFIG is not defined and its methods are never used.
+function init() {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (!defaultEdgeConfigClient) {
+    defaultEdgeConfigClient = createEdgeConfigClient(process.env.EDGE_CONFIG);
+  }
+}
 
-export const has: typeof defaultEdgeConfig.has =
-  defaultEdgeConfig.has.bind(defaultEdgeConfig);
+export const get: EdgeConfigClient['get'] = (...args) => {
+  init();
+  return defaultEdgeConfigClient.get(...args);
+};
 
-export const digest: typeof defaultEdgeConfig.digest =
-  defaultEdgeConfig.digest.bind(defaultEdgeConfig);
+export const has: EdgeConfigClient['has'] = (...args) => {
+  init();
+  return defaultEdgeConfigClient.has(...args);
+};
+
+export const digest: EdgeConfigClient['digest'] = (...args) => {
+  init();
+  return defaultEdgeConfigClient.digest(...args);
+};

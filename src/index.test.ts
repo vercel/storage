@@ -56,9 +56,27 @@ describe('default Edge Config', () => {
 
     describe('when the item does not exist', () => {
       it('should return undefined', async () => {
-        fetchMock.mockResponse('', { status: 404 });
+        fetchMock.mockResponse('', {
+          status: 404,
+          headers: { 'x-edge-config-digest': 'fake' },
+        });
 
         await expect(get('foo')).resolves.toEqual(undefined);
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`, {
+          headers: { Authorization: 'Bearer token-1' },
+        });
+      });
+    });
+
+    describe('when the edge config does not exist', () => {
+      it('should return undefined', async () => {
+        fetchMock.mockResponse('', { status: 404 });
+
+        await expect(get('foo')).rejects.toThrowError(
+          '@vercel/edge-config: Edge Config does not exist',
+        );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`, {
@@ -177,9 +195,28 @@ describe('default Edge Config', () => {
 
     describe('when the item does not exist', () => {
       it('should return false', async () => {
-        fetchMock.mockResponse('', { status: 404 });
+        fetchMock.mockResponse('', {
+          status: 404,
+          headers: { 'x-edge-config-digest': 'fake' },
+        });
 
         await expect(has('foo')).resolves.toEqual(false);
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`, {
+          method: 'HEAD',
+          headers: { Authorization: 'Bearer token-1' },
+        });
+      });
+    });
+
+    describe('when the edge config does not exist', () => {
+      it('should return false', async () => {
+        fetchMock.mockResponse('', { status: 404 });
+
+        await expect(has('foo')).rejects.toThrowError(
+          '@vercel/edge-config: Edge Config does not exist',
+        );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`, {

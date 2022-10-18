@@ -29,7 +29,9 @@
     "prettier-check": "prettier --check .",
     "type-check": "tsc --noEmit",
     "precommit": "lint-staged",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "release": "pnpm build && changeset publish",
+    "version-packages": "changeset version"
   },
   "jest": {
     "preset": "ts-jest",

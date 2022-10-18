@@ -1,3 +1,4 @@
+import { URLSearchParams } from 'url';
 import type { EdgeConfigItemValue, EmbeddedEdgeConfig } from './types';
 
 export type { EdgeConfigItemValue } from './types';
@@ -19,6 +20,14 @@ function hasOwnProperty<X, Y extends PropertyKey>(
   return Object.prototype.hasOwnProperty.call(obj, prop);
 }
 
+function pick<T, K extends keyof T>(obj: T, keys: K[]): Pick<T, K> {
+  const ret: Partial<T> = {};
+  keys.forEach((key) => {
+    ret[key] = obj[key];
+  });
+  return ret as Pick<T, K>;
+}
+
 /**
  * Throws if a value is undefined or null
  */
@@ -26,6 +35,20 @@ function assertIsDefined<T>(value: T): asserts value is NonNullable<T> {
   if (value === undefined || value === null) {
     throw new Error(
       `Expected value to be defined, but received ${String(value)}`,
+    );
+  }
+}
+
+function assertIsKey(key: unknown): asserts key is string {
+  if (typeof key !== 'string') {
+    throw new Error('@vercel/edge-config: Expected key to be a string');
+  }
+}
+
+function assertIsKeys(keys: unknown): asserts keys is string[] {
+  if (!Array.isArray(keys) || keys.some((key) => typeof key !== 'string')) {
+    throw new Error(
+      '@vercel/edge-config: Expected keys to be an array of string',
     );
   }
 }
@@ -88,6 +111,9 @@ function getLocalEdgeConfig(edgeConfigId: string): EmbeddedEdgeConfig | null {
  */
 export interface EdgeConfigClient {
   get: <T extends EdgeConfigItemValue>(key: string) => Promise<T | undefined>;
+  getAll: <T extends Record<string, EdgeConfigItemValue>>(
+    keys?: (keyof T)[],
+  ) => Promise<T | undefined>;
   has: (key: string) => Promise<boolean>;
   digest: () => Promise<string>;
 }
@@ -104,11 +130,11 @@ export function createEdgeConfigClient(
   connectionString: string | undefined,
 ): EdgeConfigClient {
   if (!connectionString)
-    throw new Error('@vercel/edge-data: No connection string provided');
+    throw new Error('@vercel/edge-config: No connection string provided');
 
   const connection = matchEdgeConfigConnectionString(connectionString);
   if (!connection)
-    throw new Error('@vercel/edge-data: Invalid connection string provided');
+    throw new Error('@vercel/edge-config: Invalid connection string provided');
 
   const url = `https://edge-config.vercel.com/v1/config/${connection.edgeConfigId}`;
   const headers = { Authorization: `Bearer ${connection.token}` };
@@ -129,6 +155,7 @@ export function createEdgeConfigClient(
           key: string,
         ): Promise<T | undefined> {
           assertIsDefined(localEdgeConfig); // always defined, but make ts happy
+          assertIsKey(key);
 
           // We need to return a clone of the value so users can't modify
           // our original value, and so the reference changes.
@@ -136,8 +163,19 @@ export function createEdgeConfigClient(
           // This makes it consistent with the real API.
           return Promise.resolve(clone(localEdgeConfig.items[key]) as T);
         },
+        async getAll<T extends Record<string, EdgeConfigItemValue>>(
+          keys?: (keyof T)[],
+        ): Promise<T | undefined> {
+          assertIsDefined(localEdgeConfig);
+          assertIsKeys(keys);
+
+          return Array.isArray(keys)
+            ? Promise.resolve(clone(pick(localEdgeConfig.items, keys)) as T)
+            : Promise.resolve(clone(localEdgeConfig.items) as T);
+        },
         has(key) {
           assertIsDefined(localEdgeConfig); // always defined, but make ts happy
+          assertIsKey(key);
           return Promise.resolve(hasOwnProperty(localEdgeConfig.items, key));
         },
         digest() {
@@ -152,6 +190,7 @@ export function createEdgeConfigClient(
     async get<T extends EdgeConfigItemValue>(
       key: string,
     ): Promise<T | undefined> {
+      assertIsKey(key);
       return fetch(`${url}/item/${key}`, { headers }).then<
         T | undefined,
         undefined
@@ -159,33 +198,62 @@ export function createEdgeConfigClient(
         async (res) => {
           if (res.status === 404) return undefined;
           if (res.ok) return res.json();
-          throw new Error('@vercel/edge-data: Unexpected error');
+          throw new Error('@vercel/edge-config: Unexpected error');
         },
         () => {
-          throw new Error('@vercel/edge-data: Network error');
+          throw new Error('@vercel/edge-config: Network error');
         },
       );
     },
     async has(key) {
+      assertIsKey(key);
       return fetch(`${url}/item/${key}`, { method: 'HEAD', headers }).then(
         (res) => {
           if (res.status === 404) return false;
           if (res.ok) return true;
-          throw new Error('@vercel/edge-data: Unexpected error');
+          throw new Error('@vercel/edge-config: Unexpected error');
         },
         () => {
-          throw new Error('@vercel/edge-data: Network error');
+          throw new Error('@vercel/edge-config: Network error');
+        },
+      );
+    },
+    async getAll<T extends Record<string, EdgeConfigItemValue>>(
+      keys?: (keyof T)[],
+    ): Promise<T | undefined> {
+      if (Array.isArray(keys)) assertIsKeys(keys);
+
+      const search = Array.isArray(keys)
+        ? new URLSearchParams(
+            keys.map((key) => ['key', key] as [string, string]),
+          ).toString()
+        : null;
+
+      // empty search keys array was given,
+      // so skip the request and return an empty object
+      if (search === '') return Promise.resolve({} as T);
+
+      return fetch(`${url}/items${search === null ? '' : `?${search}`}`, {
+        headers,
+      }).then<T | undefined, undefined>(
+        async (res) => {
+          if (res.status === 404) return undefined;
+          if (res.ok) return res.json();
+          throw new Error('@vercel/edge-config: Unexpected error');
+        },
+        () => {
+          throw new Error('@vercel/edge-config: Network error');
         },
       );
     },
     async digest() {
       return fetch(`${url}/digest`, { headers }).then(
         (res) => {
-          if (!res.ok) throw new Error('@vercel/edge-data: Unexpected error');
+          if (!res.ok) throw new Error('@vercel/edge-config: Unexpected error');
           return res.json().then((data: { digest: string }) => data.digest);
         },
         () => {
-          throw new Error('@vercel/edge-data: Network error');
+          throw new Error('@vercel/edge-config: Network error');
         },
       );
     },
@@ -206,6 +274,11 @@ function init() {
 export const get: EdgeConfigClient['get'] = (...args) => {
   init();
   return defaultEdgeConfigClient.get(...args);
+};
+
+export const getAll: EdgeConfigClient['getAll'] = (...args) => {
+  init();
+  return defaultEdgeConfigClient.getAll(...args);
 };
 
 export const has: EdgeConfigClient['has'] = (...args) => {

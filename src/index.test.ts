@@ -5,6 +5,7 @@ import {
   digest,
   createEdgeConfigClient,
   type EdgeConfigClient,
+  getAll,
 } from './index';
 import type { EmbeddedEdgeConfig } from './types';
 
@@ -71,7 +72,7 @@ describe('default Edge Config', () => {
         fetchMock.mockReject();
 
         await expect(get('foo')).rejects.toThrowError(
-          '@vercel/edge-data: Network error',
+          '@vercel/edge-config: Network error',
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -86,11 +87,73 @@ describe('default Edge Config', () => {
         fetchMock.mockResponse('', { status: 500 });
 
         await expect(get('foo')).rejects.toThrowError(
-          '@vercel/edge-data: Unexpected error',
+          '@vercel/edge-config: Unexpected error',
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`, {
+          headers: { Authorization: 'Bearer token-1' },
+        });
+      });
+    });
+  });
+
+  describe('getAll(keys)', () => {
+    describe('when called without keys', () => {
+      it('should return all items', async () => {
+        fetchMock.mockResponse(JSON.stringify({ foo: 'foo1' }));
+
+        await expect(getAll()).resolves.toEqual({ foo: 'foo1' });
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items`, {
+          headers: { Authorization: 'Bearer token-1' },
+        });
+      });
+    });
+
+    describe('when called with keys', () => {
+      it('should return the selected items', async () => {
+        fetchMock.mockResponse(JSON.stringify({ foo: 'foo1', bar: 'bar1' }));
+
+        await expect(getAll(['foo', 'bar'])).resolves.toEqual({
+          foo: 'foo1',
+          bar: 'bar1',
+        });
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock).toHaveBeenCalledWith(
+          `${baseUrl}/items?key=foo&key=bar`,
+          { headers: { Authorization: 'Bearer token-1' } },
+        );
+      });
+    });
+
+    describe('when the network fails', () => {
+      it('should throw a Network error', async () => {
+        fetchMock.mockReject();
+
+        await expect(getAll()).rejects.toThrowError(
+          '@vercel/edge-config: Network error',
+        );
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items`, {
+          headers: { Authorization: 'Bearer token-1' },
+        });
+      });
+    });
+
+    describe('when an unexpected status code is returned', () => {
+      it('should throw a Unexpected error on 500', async () => {
+        fetchMock.mockResponse('', { status: 500 });
+
+        await expect(getAll()).rejects.toThrowError(
+          '@vercel/edge-config: Unexpected error',
+        );
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items`, {
           headers: { Authorization: 'Bearer token-1' },
         });
       });
@@ -146,7 +209,7 @@ describe('default Edge Config', () => {
         fetchMock.mockResponse('', { status: 500 });
 
         await expect(digest()).rejects.toThrowError(
-          '@vercel/edge-data: Unexpected error',
+          '@vercel/edge-config: Unexpected error',
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -159,7 +222,7 @@ describe('default Edge Config', () => {
         fetchMock.mockResponse('', { status: 404 });
 
         await expect(digest()).rejects.toThrowError(
-          '@vercel/edge-data: Unexpected error',
+          '@vercel/edge-config: Unexpected error',
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -174,7 +237,7 @@ describe('default Edge Config', () => {
         fetchMock.mockReject();
 
         await expect(digest()).rejects.toThrowError(
-          '@vercel/edge-data: Network error',
+          '@vercel/edge-config: Network error',
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -206,7 +269,7 @@ describe('createEdgeConfig', () => {
     describe('when called without a baseUrl', () => {
       it('should throw', () => {
         expect(() => createEdgeConfigClient(undefined)).toThrowError(
-          '@vercel/edge-data: No connection string provided',
+          '@vercel/edge-config: No connection string provided',
         );
       });
     });

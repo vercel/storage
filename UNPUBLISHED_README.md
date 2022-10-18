@@ -31,11 +31,31 @@ Returns `true` if the key exists.
 Returns `false` if the key does not exist.
 Throws on network errors.
 
+### Reading all items
+
+```js
+import { getAll } from '@vercel/edge-config';
+await getAll();
+```
+
+Returns all Edge Config items.
+Throws on network errors.
+
+### Reading items in batch
+
+```js
+import { getAll } from '@vercel/edge-config';
+await getAll(['keyA', 'keyB']);
+```
+
+Returns selected Edge Config items.
+Throws on network errors.
+
 ### Default behaviour
 
 By default `@vercel/edge-config` will read from the Edge Config stored in `process.env.EDGE_CONFIG`.
 
-The exported `get`, `has` and `digest` functions are bound to this default Edge Config Client.
+The exported `get`, `getAll`, `has` and `digest` functions are bound to this default Edge Config Client.
 
 ### Reading a value from a specific Edge Config
 
@@ -49,7 +69,7 @@ await edgeConfig.get('someKey');
 
 The `createEdgeConfigClient` function connnects to a any Edge Config based on the provided Connection String.
 
-It returns the same `get`, `has` and `digest` functions as the default Edge Config Client exports.
+It returns the same `get`, `getAll`, `has` and `digest` functions as the default Edge Config Client exports.
 
 ## Features
 

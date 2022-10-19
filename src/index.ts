@@ -123,6 +123,12 @@ export interface EdgeConfigClient {
 // edge config in the global module scope
 let localEdgeConfig: EmbeddedEdgeConfig | null;
 
+function unauthorizedError() {
+  return new Error(
+    '@vercel/edge-config: Unauthorized or Edge Config does not exist',
+  );
+}
+
 /**
  * Creates a deep clone of an object.
  */
@@ -196,14 +202,8 @@ export function createEdgeConfigClient(
         undefined
       >(
         async (res) => {
-          if (res.status === 404) {
-            // if the x-edge-config-digest header is present, it means
-            // the edge config exists, but the item does not
-            if (res.headers.has('x-edge-config-digest')) return undefined;
-            // if the x-edge-config-digest header is not present, it means
-            // the edge config itself does not exist
-            throw new Error('@vercel/edge-config: Edge Config does not exist');
-          }
+          if (res.status === 401) throw unauthorizedError();
+          if (res.status === 404) return undefined;
           if (res.ok) return res.json();
           throw new Error('@vercel/edge-config: Unexpected error');
         },
@@ -216,14 +216,8 @@ export function createEdgeConfigClient(
       assertIsKey(key);
       return fetch(`${url}/item/${key}`, { method: 'HEAD', headers }).then(
         (res) => {
-          if (res.status === 404) {
-            // if the x-edge-config-digest header is present, it means
-            // the edge config exists, but the item does not
-            if (res.headers.has('x-edge-config-digest')) return false;
-            // if the x-edge-config-digest header is not present, it means
-            // the edge config itself does not exist
-            throw new Error('@vercel/edge-config: Edge Config does not exist');
-          }
+          if (res.status === 401) throw unauthorizedError();
+          if (res.status === 404) return false;
           if (res.ok) return true;
           throw new Error('@vercel/edge-config: Unexpected error');
         },
@@ -251,12 +245,10 @@ export function createEdgeConfigClient(
         headers,
       }).then<T | undefined, undefined>(
         async (res) => {
-          if (res.status === 404) {
-            // the /items endpoint will never return 404, so
-            // the 404 can only mean the Edge Config itself does not exist
-            throw new Error('@vercel/edge-config: Edge Config does not exist');
-          }
+          if (res.status === 401) throw unauthorizedError();
           if (res.ok) return res.json();
+          // the /items endpoint will never return 404,
+          // so res.ok fails and we throw Unexpected error in case that happens
           throw new Error('@vercel/edge-config: Unexpected error');
         },
         () => {

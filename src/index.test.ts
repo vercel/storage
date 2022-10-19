@@ -72,10 +72,10 @@ describe('default Edge Config', () => {
 
     describe('when the edge config does not exist', () => {
       it('should return undefined', async () => {
-        fetchMock.mockResponse('', { status: 404 });
+        fetchMock.mockResponse('', { status: 401 });
 
         await expect(get('foo')).rejects.toThrowError(
-          '@vercel/edge-config: Edge Config does not exist',
+          '@vercel/edge-config: Unauthorized or Edge Config does not exist',
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -212,10 +212,10 @@ describe('default Edge Config', () => {
 
     describe('when the edge config does not exist', () => {
       it('should return false', async () => {
-        fetchMock.mockResponse('', { status: 404 });
+        fetchMock.mockResponse('', { status: 401 });
 
         await expect(has('foo')).rejects.toThrowError(
-          '@vercel/edge-config: Edge Config does not exist',
+          '@vercel/edge-config: Unauthorized or Edge Config does not exist',
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);

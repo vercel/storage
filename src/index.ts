@@ -53,6 +53,13 @@ function assertIsKeys(keys: unknown): asserts keys is string[] {
   }
 }
 
+const ERRORS = {
+  UNEXPECTED: '@vercel/edge-config: Unexpected error',
+  UNAUTHORIZED: '@vercel/edge-config: Unauthorized',
+  NETWORK: '@vercel/edge-config: Network error',
+  EDGE_CONFIG_NOT_FOUND: '@vercel/edge-config: Edge Config not found',
+};
+
 /**
  * Creates a deep clone of an object.
  */
@@ -196,19 +203,21 @@ export function createEdgeConfigClient(
         undefined
       >(
         async (res) => {
+          if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
           if (res.status === 404) {
             // if the x-edge-config-digest header is present, it means
             // the edge config exists, but the item does not
             if (res.headers.has('x-edge-config-digest')) return undefined;
             // if the x-edge-config-digest header is not present, it means
             // the edge config itself does not exist
-            throw new Error('@vercel/edge-config: Edge Config does not exist');
+            throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
           }
           if (res.ok) return res.json();
-          throw new Error('@vercel/edge-config: Unexpected error');
+
+          throw new Error(ERRORS.UNEXPECTED);
         },
         () => {
-          throw new Error('@vercel/edge-config: Network error');
+          throw new Error(ERRORS.NETWORK);
         },
       );
     },
@@ -216,19 +225,20 @@ export function createEdgeConfigClient(
       assertIsKey(key);
       return fetch(`${url}/item/${key}`, { method: 'HEAD', headers }).then(
         (res) => {
+          if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
           if (res.status === 404) {
             // if the x-edge-config-digest header is present, it means
             // the edge config exists, but the item does not
             if (res.headers.has('x-edge-config-digest')) return false;
             // if the x-edge-config-digest header is not present, it means
             // the edge config itself does not exist
-            throw new Error('@vercel/edge-config: Edge Config does not exist');
+            throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
           }
           if (res.ok) return true;
-          throw new Error('@vercel/edge-config: Unexpected error');
+          throw new Error(ERRORS.UNEXPECTED);
         },
         () => {
-          throw new Error('@vercel/edge-config: Network error');
+          throw new Error(ERRORS.NETWORK);
         },
       );
     },
@@ -251,27 +261,26 @@ export function createEdgeConfigClient(
         headers,
       }).then<T | undefined, undefined>(
         async (res) => {
-          if (res.status === 404) {
-            // the /items endpoint will never return 404, so
-            // the 404 can only mean the Edge Config itself does not exist
-            throw new Error('@vercel/edge-config: Edge Config does not exist');
-          }
+          if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
+          // the /items endpoint never returns 404, so if we get a 404
+          // it means the edge config itself did not exist
+          if (res.status === 404) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
           if (res.ok) return res.json();
-          throw new Error('@vercel/edge-config: Unexpected error');
+          throw new Error(ERRORS.UNEXPECTED);
         },
         () => {
-          throw new Error('@vercel/edge-config: Network error');
+          throw new Error(ERRORS.NETWORK);
         },
       );
     },
     async digest() {
       return fetch(`${url}/digest`, { headers }).then(
         (res) => {
-          if (!res.ok) throw new Error('@vercel/edge-config: Unexpected error');
+          if (!res.ok) throw new Error(ERRORS.UNEXPECTED);
           return res.json().then((data: { digest: string }) => data.digest);
         },
         () => {
-          throw new Error('@vercel/edge-config: Network error');
+          throw new Error(ERRORS.NETWORK);
         },
       );
     },

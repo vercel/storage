@@ -18,7 +18,7 @@ await get('someKey');
 
 Returns the value if the key exists.
 Returns `undefined` if the key does not exist.
-Throws on network errors.
+Throws on invalid tokens, deleted edge configs or network errors.
 
 ### Checking if a key exists
 
@@ -29,7 +29,7 @@ await has('someKey');
 
 Returns `true` if the key exists.
 Returns `false` if the key does not exist.
-Throws on network errors.
+Throws on invalid tokens, deleted edge configs or network errors.
 
 ### Reading all items
 
@@ -39,7 +39,7 @@ await getAll();
 ```
 
 Returns all Edge Config items.
-Throws on network errors.
+Throws on invalid tokens, deleted edge configs or network errors.
 
 ### Reading items in batch
 
@@ -49,7 +49,7 @@ await getAll(['keyA', 'keyB']);
 ```
 
 Returns selected Edge Config items.
-Throws on network errors.
+Throws on invalid tokens, deleted edge configs or network errors.
 
 ### Default behaviour
 

@@ -56,10 +56,21 @@ describe('default Edge Config', () => {
 
     describe('when the item does not exist', () => {
       it('should return undefined', async () => {
-        fetchMock.mockResponse('', {
-          status: 404,
-          headers: { 'x-edge-config-digest': 'fake' },
-        });
+        fetchMock.mockResponse(
+          JSON.stringify({
+            error: {
+              code: 'not_found',
+              message: 'Could not find the edge config item',
+            },
+          }),
+          {
+            status: 404,
+            headers: {
+              'content-type': 'application/json',
+              'x-edge-config-digest': 'fake',
+            },
+          },
+        );
 
         await expect(get('foo')).resolves.toEqual(undefined);
 
@@ -72,10 +83,18 @@ describe('default Edge Config', () => {
 
     describe('when the edge config does not exist', () => {
       it('should return undefined', async () => {
-        fetchMock.mockResponse('', { status: 401 });
+        fetchMock.mockResponse(
+          JSON.stringify({
+            error: {
+              code: 'not_found',
+              message: 'Could not find the edge config',
+            },
+          }),
+          { status: 404, headers: { 'content-type': 'application/json' } },
+        );
 
         await expect(get('foo')).rejects.toThrowError(
-          '@vercel/edge-config: Unauthorized or Edge Config does not exist',
+          '@vercel/edge-config: Edge Config not found',
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -147,6 +166,30 @@ describe('default Edge Config', () => {
       });
     });
 
+    describe('when the edge config does not exist', () => {
+      it('should throw', async () => {
+        fetchMock.mockResponse(
+          JSON.stringify({
+            error: {
+              code: 'not_found',
+              message: 'Could not find the edge config',
+            },
+          }),
+          { status: 404, headers: { 'content-type': 'application/json' } },
+        );
+
+        await expect(getAll(['foo', 'bar'])).rejects.toThrowError(
+          '@vercel/edge-config: Edge Config not found',
+        );
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock).toHaveBeenCalledWith(
+          `${baseUrl}/items?key=foo&key=bar`,
+          { headers: { Authorization: 'Bearer token-1' } },
+        );
+      });
+    });
+
     describe('when the network fails', () => {
       it('should throw a Network error', async () => {
         fetchMock.mockReject();
@@ -195,10 +238,21 @@ describe('default Edge Config', () => {
 
     describe('when the item does not exist', () => {
       it('should return false', async () => {
-        fetchMock.mockResponse('', {
-          status: 404,
-          headers: { 'x-edge-config-digest': 'fake' },
-        });
+        fetchMock.mockResponse(
+          JSON.stringify({
+            error: {
+              code: 'not_found',
+              message: 'Could not find the edge config item',
+            },
+          }),
+          {
+            status: 404,
+            headers: {
+              'content-type': 'application/json',
+              'x-edge-config-digest': 'fake',
+            },
+          },
+        );
 
         await expect(has('foo')).resolves.toEqual(false);
 
@@ -212,10 +266,18 @@ describe('default Edge Config', () => {
 
     describe('when the edge config does not exist', () => {
       it('should return false', async () => {
-        fetchMock.mockResponse('', { status: 401 });
+        fetchMock.mockResponse(
+          JSON.stringify({
+            error: {
+              code: 'not_found',
+              message: 'Could not find the edge config',
+            },
+          }),
+          { status: 404, headers: { 'content-type': 'application/json' } },
+        );
 
         await expect(has('foo')).rejects.toThrowError(
-          '@vercel/edge-config: Unauthorized or Edge Config does not exist',
+          '@vercel/edge-config: Edge Config not found',
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);

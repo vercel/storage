@@ -262,10 +262,10 @@ export function createEdgeConfigClient(
       }).then<T | undefined, undefined>(
         async (res) => {
           if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
+          // the /items endpoint never returns 404, so if we get a 404
+          // it means the edge config itself did not exist
           if (res.status === 404) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
           if (res.ok) return res.json();
-          // the /items endpoint will never return 404,
-          // so res.ok fails and we throw Unexpected error in case that happens
           throw new Error(ERRORS.UNEXPECTED);
         },
         () => {

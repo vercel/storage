@@ -1,4 +1,5 @@
 import fetchMock from 'jest-fetch-mock';
+import type { EmbeddedEdgeConfig } from './types';
 import {
   get,
   has,
@@ -7,18 +8,18 @@ import {
   type EdgeConfigClient,
   getAll,
 } from './index';
-import type { EmbeddedEdgeConfig } from './types';
 
 declare global {
   const EdgeRuntime: string | undefined;
 }
 
+const connectionString = process.env.EDGE_CONFIG;
+const baseUrl = 'https://edge-config.vercel.com/v1/config/ecfg-1';
+
+// eslint-disable-next-line jest/require-top-level-describe
 beforeEach(() => {
   fetchMock.resetMocks();
 });
-
-const connectionString = process.env.EDGE_CONFIG as string;
-const baseUrl = 'https://edge-config.vercel.com/v1/config/ecfg-1';
 
 describe('default Edge Config', () => {
   describe('test conditions', () => {
@@ -93,7 +94,7 @@ describe('default Edge Config', () => {
           { status: 404, headers: { 'content-type': 'application/json' } },
         );
 
-        await expect(get('foo')).rejects.toThrowError(
+        await expect(get('foo')).rejects.toThrow(
           '@vercel/edge-config: Edge Config not found',
         );
 
@@ -108,7 +109,7 @@ describe('default Edge Config', () => {
       it('should throw a Network error', async () => {
         fetchMock.mockReject();
 
-        await expect(get('foo')).rejects.toThrowError(
+        await expect(get('foo')).rejects.toThrow(
           '@vercel/edge-config: Network error',
         );
 
@@ -123,7 +124,7 @@ describe('default Edge Config', () => {
       it('should throw a Unexpected error on 500', async () => {
         fetchMock.mockResponse('', { status: 500 });
 
-        await expect(get('foo')).rejects.toThrowError(
+        await expect(get('foo')).rejects.toThrow(
           '@vercel/edge-config: Unexpected error',
         );
 
@@ -178,7 +179,7 @@ describe('default Edge Config', () => {
           { status: 404, headers: { 'content-type': 'application/json' } },
         );
 
-        await expect(getAll(['foo', 'bar'])).rejects.toThrowError(
+        await expect(getAll(['foo', 'bar'])).rejects.toThrow(
           '@vercel/edge-config: Edge Config not found',
         );
 
@@ -194,7 +195,7 @@ describe('default Edge Config', () => {
       it('should throw a Network error', async () => {
         fetchMock.mockReject();
 
-        await expect(getAll()).rejects.toThrowError(
+        await expect(getAll()).rejects.toThrow(
           '@vercel/edge-config: Network error',
         );
 
@@ -209,7 +210,7 @@ describe('default Edge Config', () => {
       it('should throw a Unexpected error on 500', async () => {
         fetchMock.mockResponse('', { status: 500 });
 
-        await expect(getAll()).rejects.toThrowError(
+        await expect(getAll()).rejects.toThrow(
           '@vercel/edge-config: Unexpected error',
         );
 
@@ -276,7 +277,7 @@ describe('default Edge Config', () => {
           { status: 404, headers: { 'content-type': 'application/json' } },
         );
 
-        await expect(has('foo')).rejects.toThrowError(
+        await expect(has('foo')).rejects.toThrow(
           '@vercel/edge-config: Edge Config not found',
         );
 
@@ -307,7 +308,7 @@ describe('default Edge Config', () => {
       it('should throw an Unexpected error on 500', async () => {
         fetchMock.mockResponse('', { status: 500 });
 
-        await expect(digest()).rejects.toThrowError(
+        await expect(digest()).rejects.toThrow(
           '@vercel/edge-config: Unexpected error',
         );
 
@@ -320,7 +321,7 @@ describe('default Edge Config', () => {
       it('should throw an Unexpected error on 404', async () => {
         fetchMock.mockResponse('', { status: 404 });
 
-        await expect(digest()).rejects.toThrowError(
+        await expect(digest()).rejects.toThrow(
           '@vercel/edge-config: Unexpected error',
         );
 
@@ -335,7 +336,7 @@ describe('default Edge Config', () => {
       it('should throw a Network error', async () => {
         fetchMock.mockReject();
 
-        await expect(digest()).rejects.toThrowError(
+        await expect(digest()).rejects.toThrow(
           '@vercel/edge-config: Network error',
         );
 
@@ -367,7 +368,7 @@ describe('createEdgeConfig', () => {
 
     describe('when called without a baseUrl', () => {
       it('should throw', () => {
-        expect(() => createEdgeConfigClient(undefined)).toThrowError(
+        expect(() => createEdgeConfigClient(undefined)).toThrow(
           '@vercel/edge-config: No connection string provided',
         );
       });
@@ -431,7 +432,7 @@ describe('createEdgeConfig', () => {
       beforeAll(() => {
         process.env.AWS_LAMBDA_FUNCTION_NAME = 'some-value';
         //@ts-expect-error This function exists when called from a webpack bundle
-        global.__webpack_require__ = () => void 0;
+        global.__webpack_require__ = (): void => void 0;
         //@ts-expect-error This function exists when called from a webpack bundle
         global.__non_webpack_require__ = jest.fn();
       });

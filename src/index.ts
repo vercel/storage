@@ -1,4 +1,3 @@
-import { URLSearchParams } from 'url';
 import type { EdgeConfigItemValue, EmbeddedEdgeConfig } from './types';
 
 export type { EdgeConfigItemValue } from './types';
@@ -180,12 +179,12 @@ export function createEdgeConfigClient(
             ? Promise.resolve(clone(pick(localEdgeConfig.items, keys)) as T)
             : Promise.resolve(clone(localEdgeConfig.items) as T);
         },
-        has(key) {
+        has(key): Promise<boolean> {
           assertIsDefined(localEdgeConfig); // always defined, but make ts happy
           assertIsKey(key);
           return Promise.resolve(hasOwnProperty(localEdgeConfig.items, key));
         },
-        digest() {
+        digest(): Promise<string> {
           assertIsDefined(localEdgeConfig); // always defined, but make ts happy
           return Promise.resolve(localEdgeConfig.digest);
         },
@@ -221,7 +220,7 @@ export function createEdgeConfigClient(
         },
       );
     },
-    async has(key) {
+    async has(key): Promise<boolean> {
       assertIsKey(key);
       return fetch(`${url}/item/${key}`, { method: 'HEAD', headers }).then(
         (res) => {
@@ -273,7 +272,7 @@ export function createEdgeConfigClient(
         },
       );
     },
-    async digest() {
+    async digest(): Promise<string> {
       return fetch(`${url}/digest`, { headers }).then(
         (res) => {
           if (!res.ok) throw new Error(ERRORS.UNEXPECTED);
@@ -291,7 +290,7 @@ let defaultEdgeConfigClient: EdgeConfigClient;
 
 // lazy init fn so the default edge config does not throw in case
 // process.env.EDGE_CONFIG is not defined and its methods are never used.
-function init() {
+function init(): void {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!defaultEdgeConfigClient) {
     defaultEdgeConfigClient = createEdgeConfigClient(process.env.EDGE_CONFIG);

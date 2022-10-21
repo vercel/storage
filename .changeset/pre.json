@@ -4,5 +4,10 @@
   "initialVersions": {
     "@vercel/edge-config": "0.2.0"
   },
-  "changesets": ["dirty-eyes-remain", "hip-melons-attend", "nine-rats-think"]
+  "changesets": [
+    "dirty-eyes-remain",
+    "hip-melons-attend",
+    "nine-rats-think",
+    "shy-tomatoes-kneel"
+  ]
 }

@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.1.0-canary.3
+
+### Patch Changes
+
+- 5aabd54: make package publicly available again
+
 ## 0.1.0-canary.2
 
 ### Minor Changes

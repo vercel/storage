@@ -3,44 +3,27 @@
   "version": "0.1.0-canary.3",
   "description": "",
   "repository": "vercel/edge-config",
-  "main": "./dist/index.cjs",
-  "type": "module",
-  "exports": {
-    "import": "./dist/index.js",
-    "require": "./dist/index.cjs"
-  },
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "sideEffects": false,
   "license": "MIT",
-  "engines": {
-    "node": ">=14.6"
-  },
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],
   "scripts": {
-    "test": "pnpm run test-nodejs && pnpm run test-edge",
-    "test-nodejs": "jest --env node",
-    "test-edge": "jest --env @edge-runtime/jest-environment",
     "build": "tsup",
-    "prepublishOnly": "pnpm run build",
     "eslint-check": "eslint --max-warnings=0 .",
-    "prettier-check": "prettier --check .",
-    "type-check": "tsc --noEmit",
     "precommit": "lint-staged",
     "prepare": "husky install",
+    "prepublishOnly": "pnpm run build",
+    "prettier-check": "prettier --check .",
     "release": "pnpm build && changeset publish",
+    "test": "pnpm run test-nodejs && pnpm run test-edge",
+    "test-edge": "jest --env @edge-runtime/jest-environment",
+    "test-nodejs": "jest --env node",
+    "type-check": "tsc --noEmit",
     "version-packages": "changeset version"
   },
-  "jest": {
-    "preset": "ts-jest",
-    "testEnvironment": "node",
-    "setupFiles": [
-      "<rootDir>/jest/setup.js"
-    ]
-  },
-  "prettier": "@vercel/style-guide/prettier",
   "lint-staged": {
     "*": [
       "prettier --ignore-unknown --write"
@@ -48,6 +31,14 @@
     "*.{js,jsx,ts,tsx}": [
       "eslint --max-warnings=0 --fix"
     ]
+  },
+  "prettier": "@vercel/style-guide/prettier",
+  "jest": {
+    "preset": "ts-jest",
+    "setupFiles": [
+      "<rootDir>/jest/setup.js"
+    ],
+    "testEnvironment": "node"
   },
   "devDependencies": {
     "@babel/core": "7.19.1",
@@ -65,5 +56,8 @@
     "ts-jest": "29.0.1",
     "tsup": "6.2.3",
     "typescript": "4.8.3"
+  },
+  "engines": {
+    "node": ">=14.6"
   }
 }

@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.1.0-canary.4
+
+### Minor Changes
+
+- b614218: drop esm support
+
 ## 0.1.0-canary.3
 
 ### Patch Changes

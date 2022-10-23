@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.1.0-canary.8
+
+### Patch Changes
+
+- 7cb351a: replace dynamic import with fs
+
 ## 0.1.0-canary.7
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.1.0-canary.9
+
+### Patch Changes
+
+- 9bf7828: avoid build time warning aboud Node.js module being loaded when used in Next.js
+
 ## 0.1.0-canary.8
 
 ### Patch Changes

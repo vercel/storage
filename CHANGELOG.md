@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.1.0-canary.10
+
+### Patch Changes
+
+- 85fb6ac: silence dependency expression warning
+
 ## 0.1.0-canary.9
 
 ### Patch Changes

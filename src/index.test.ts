@@ -429,30 +429,21 @@ describe('createEdgeConfig', () => {
 
   if (typeof EdgeRuntime !== 'string') {
     describe('when running with lambda layer on serverless function', () => {
-      beforeAll(() => {
-        process.env.AWS_LAMBDA_FUNCTION_NAME = 'some-value';
-        //@ts-expect-error This function exists when called from a webpack bundle
-        global.__webpack_require__ = (): void => void 0;
-        //@ts-expect-error This function exists when called from a webpack bundle
-        global.__non_webpack_require__ = jest.fn();
-      });
-      afterAll(() => {
-        delete process.env.AWS_LAMBDA_FUNCTION_NAME;
-      });
-
       const embeddedEdgeConfig: EmbeddedEdgeConfig = {
         digest: 'awe1',
-        items: {
-          foo: 'bar',
-          someArray: [],
-        },
+        items: { foo: 'bar', someArray: [] },
       };
 
-      beforeEach(() => {
-        //@ts-expect-error This function exists when called from a webpack bundle
-        (global.__non_webpack_require__ as jest.Mock).mockReturnValueOnce(
-          embeddedEdgeConfig,
-        );
+      beforeAll(() => {
+        process.env.AWS_LAMBDA_FUNCTION_NAME = 'some-value';
+        jest.mock(`/opt/edge-configs/ecfg-1.json`, () => embeddedEdgeConfig, {
+          // file does not actually exist, so we use a virtual mock
+          virtual: true,
+        });
+      });
+
+      afterAll(() => {
+        delete process.env.AWS_LAMBDA_FUNCTION_NAME;
       });
 
       describe('get(key)', () => {

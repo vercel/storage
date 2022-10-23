@@ -6,11 +6,7 @@
   "license": "MIT",
   "sideEffects": false,
   "type": "module",
-  "exports": {
-    "import": "./dist/index.js",
-    "require": "./dist/index.cjs"
-  },
-  "main": "./dist/index.cjs",
+  "exports": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [

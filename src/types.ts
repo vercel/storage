@@ -1,12 +1,5 @@
-export type EdgeConfigItemValue =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string | number]: EdgeConfigItemValue }
-  | EdgeConfigItemValue[];
-
 export interface EmbeddedEdgeConfig {
   digest: string;
-  items: Record<string, EdgeConfigItemValue>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  items: Record<string, any>;
 }

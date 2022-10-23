@@ -85,7 +85,9 @@ async function getLocalEdgeConfig(
   edgeConfigId: string,
 ): Promise<EmbeddedEdgeConfig | null> {
   const embeddedEdgeConfigPath = `/opt/edge-configs/${edgeConfigId}.json`;
-  return import(embeddedEdgeConfigPath).catch(
+  // the webpackIgnore: true comment below gets dropped by esbuild,
+  // but we add it back in manually using the onSuccess callback
+  return import(/* webpackIgnore: true */ embeddedEdgeConfigPath).catch(
     () => null,
   ) as Promise<EmbeddedEdgeConfig | null>;
 }

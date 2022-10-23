@@ -1,5 +1,12 @@
 # @vercel/edge-config
 
+## 0.1.0-canary.6
+
+### Patch Changes
+
+- a048274: export esm
+- a048274: use dynamic import
+
 ## 0.1.0-canary.5
 
 ### Patch Changes

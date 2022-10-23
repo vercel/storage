@@ -1,5 +1,15 @@
 # @vercel/edge-config
 
+## 0.1.0-canary.7
+
+### Minor Changes
+
+- 888b861: drop cjs support
+
+### Patch Changes
+
+- 888b861: fix dynamic import by adding webpackIgnore comment
+
 ## 0.1.0-canary.6
 
 ### Patch Changes

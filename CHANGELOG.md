@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.1.0-canary.5
+
+### Patch Changes
+
+- 311fedd: loosen edge config item value type to be "any"
+
 ## 0.1.0-canary.4
 
 ### Minor Changes

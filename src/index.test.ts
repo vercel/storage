@@ -9,10 +9,6 @@ import {
   getAll,
 } from './index';
 
-declare global {
-  const EdgeRuntime: string | undefined;
-}
-
 const connectionString = process.env.EDGE_CONFIG;
 const baseUrl = 'https://edge-config.vercel.com/v1/config/ecfg-1';
 
@@ -436,9 +432,16 @@ describe('createEdgeConfig', () => {
 
       beforeAll(() => {
         process.env.AWS_LAMBDA_FUNCTION_NAME = 'some-value';
-        jest.mock(`/opt/edge-configs/ecfg-1.json`, () => embeddedEdgeConfig, {
-          // file does not actually exist, so we use a virtual mock
-          virtual: true,
+
+        // mock fs for test
+        jest.mock('fs', () => {
+          return {
+            promises: {
+              readFile: (): Promise<string> => {
+                return Promise.resolve(JSON.stringify(embeddedEdgeConfig));
+              },
+            },
+          };
         });
       });
 

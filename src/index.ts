@@ -4,6 +4,7 @@ declare global {
   /* eslint-disable camelcase */
   const __non_webpack_require__: NodeRequire | undefined;
   const __webpack_require__: NodeRequire | undefined;
+  const EdgeRuntime: string | undefined;
   /* eslint-enable camelcase */
 }
 
@@ -84,12 +85,20 @@ function matchEdgeConfigConnectionString(
 async function getLocalEdgeConfig(
   edgeConfigId: string,
 ): Promise<EmbeddedEdgeConfig | null> {
-  const embeddedEdgeConfigPath = `/opt/edge-configs/${edgeConfigId}.json`;
-  // the webpackIgnore: true comment below gets dropped by esbuild,
-  // but we add it back in manually using the onSuccess callback
-  return import(/* webpackIgnore: true */ embeddedEdgeConfigPath).catch(
-    () => null,
-  ) as Promise<EmbeddedEdgeConfig | null>;
+  // skip in Edge Runtime, as it has no fs
+  if (typeof EdgeRuntime === 'string') return null;
+
+  // eslint-disable-next-line unicorn/prefer-node-protocol
+  const fs = await import('fs');
+  try {
+    const content = await fs.promises.readFile(
+      `/opt/edge-configs/${edgeConfigId}.json`,
+      'utf-8',
+    );
+    return JSON.parse(content) as EmbeddedEdgeConfig;
+  } catch {
+    return null;
+  }
 }
 
 /**

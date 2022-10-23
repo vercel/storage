@@ -1,6 +1,4 @@
-import type { EdgeConfigItemValue, EmbeddedEdgeConfig } from './types';
-
-export type { EdgeConfigItemValue } from './types';
+import type { EmbeddedEdgeConfig } from './types';
 
 declare global {
   /* eslint-disable camelcase */
@@ -116,10 +114,10 @@ function getLocalEdgeConfig(edgeConfigId: string): EmbeddedEdgeConfig | null {
  * Edge Config Client
  */
 export interface EdgeConfigClient {
-  get: <T extends EdgeConfigItemValue>(key: string) => Promise<T | undefined>;
-  getAll: <T extends Record<string, EdgeConfigItemValue>>(
-    keys?: (keyof T)[],
-  ) => Promise<T | undefined>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  get: <T = any>(key: string) => Promise<T | undefined>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getAll: <T = any>(keys?: (keyof T)[]) => Promise<T | undefined>;
   has: (key: string) => Promise<boolean>;
   digest: () => Promise<string>;
 }
@@ -157,9 +155,8 @@ export function createEdgeConfigClient(
     // return api which uses the local edge config if one exists
     if (localEdgeConfig) {
       return {
-        get<T extends EdgeConfigItemValue>(
-          key: string,
-        ): Promise<T | undefined> {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        async get<T = any>(key: string): Promise<T | undefined> {
           assertIsDefined(localEdgeConfig); // always defined, but make ts happy
           assertIsKey(key);
 
@@ -169,9 +166,8 @@ export function createEdgeConfigClient(
           // This makes it consistent with the real API.
           return Promise.resolve(clone(localEdgeConfig.items[key]) as T);
         },
-        async getAll<T extends Record<string, EdgeConfigItemValue>>(
-          keys?: (keyof T)[],
-        ): Promise<T | undefined> {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        async getAll<T = any>(keys?: (keyof T)[]): Promise<T | undefined> {
           assertIsDefined(localEdgeConfig);
           assertIsKeys(keys);
 
@@ -193,9 +189,8 @@ export function createEdgeConfigClient(
   }
 
   return {
-    async get<T extends EdgeConfigItemValue>(
-      key: string,
-    ): Promise<T | undefined> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async get<T = any>(key: string): Promise<T | undefined> {
       assertIsKey(key);
       return fetch(`${url}/item/${key}`, { headers }).then<
         T | undefined,
@@ -241,9 +236,8 @@ export function createEdgeConfigClient(
         },
       );
     },
-    async getAll<T extends Record<string, EdgeConfigItemValue>>(
-      keys?: (keyof T)[],
-    ): Promise<T | undefined> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async getAll<T = any>(keys?: (keyof T)[]): Promise<T | undefined> {
       if (Array.isArray(keys)) assertIsKeys(keys);
 
       const search = Array.isArray(keys)

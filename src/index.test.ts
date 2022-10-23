@@ -434,12 +434,10 @@ describe('createEdgeConfig', () => {
         process.env.AWS_LAMBDA_FUNCTION_NAME = 'some-value';
 
         // mock fs for test
-        jest.mock('fs', () => {
+        jest.mock('fs/promises', () => {
           return {
-            promises: {
-              readFile: (): Promise<string> => {
-                return Promise.resolve(JSON.stringify(embeddedEdgeConfig));
-              },
+            readFile: (): Promise<string> => {
+              return Promise.resolve(JSON.stringify(embeddedEdgeConfig));
             },
           };
         });

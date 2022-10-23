@@ -88,10 +88,20 @@ async function getLocalEdgeConfig(
   // skip in Edge Runtime, as it has no fs
   if (typeof EdgeRuntime === 'string') return null;
 
-  // eslint-disable-next-line unicorn/prefer-node-protocol
-  const fs = await import('fs');
+  // import "fs/promises"
+  const fs = (await import(
+    // Joining here avoids this warning:
+    //   A Node.js module is loaded ('fs/promises' at line 1) which is not
+    //   upported in the Edge Runtime
+    //
+    // This is fine as this code never runs inside of EdgeRuntime due to the
+    // check above
+    ['fs', 'promises'].join('/')
+    // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+  )) as typeof import('fs/promises');
+
   try {
-    const content = await fs.promises.readFile(
+    const content = await fs.readFile(
       `/opt/edge-configs/${edgeConfigId}.json`,
       'utf-8',
     );

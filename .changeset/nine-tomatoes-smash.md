@@ -1,5 +1,5 @@
 ---
-'@vercel/edge-config': major
+'@vercel/edge-config': minor
 ---
 
 drop cjs support

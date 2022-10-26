@@ -56,8 +56,8 @@ describe('default Edge Config', () => {
         fetchMock.mockResponse(
           JSON.stringify({
             error: {
-              code: 'not_found',
-              message: 'Could not find the edge config item',
+              code: 'edge_config_item_not_found',
+              message: 'Could not find the edge config item: foo',
             },
           }),
           {
@@ -83,8 +83,8 @@ describe('default Edge Config', () => {
         fetchMock.mockResponse(
           JSON.stringify({
             error: {
-              code: 'not_found',
-              message: 'Could not find the edge config',
+              code: 'edge_config_not_found',
+              message: 'Could not find the edge config: ecfg-1',
             },
           }),
           { status: 404, headers: { 'content-type': 'application/json' } },
@@ -168,8 +168,8 @@ describe('default Edge Config', () => {
         fetchMock.mockResponse(
           JSON.stringify({
             error: {
-              code: 'not_found',
-              message: 'Could not find the edge config',
+              code: 'edge_config_not_found',
+              message: 'Could not find the edge config: ecfg-1',
             },
           }),
           { status: 404, headers: { 'content-type': 'application/json' } },
@@ -238,8 +238,8 @@ describe('default Edge Config', () => {
         fetchMock.mockResponse(
           JSON.stringify({
             error: {
-              code: 'not_found',
-              message: 'Could not find the edge config item',
+              code: 'edge_config_item_not_found',
+              message: 'Could not find the edge config item: foo',
             },
           }),
           {
@@ -266,8 +266,8 @@ describe('default Edge Config', () => {
         fetchMock.mockResponse(
           JSON.stringify({
             error: {
-              code: 'not_found',
-              message: 'Could not find the edge config',
+              code: 'edge_config_not_found',
+              message: 'Could not find the edge config: ecfg-1',
             },
           }),
           { status: 404, headers: { 'content-type': 'application/json' } },

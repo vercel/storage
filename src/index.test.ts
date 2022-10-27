@@ -4,7 +4,7 @@ import {
   get,
   has,
   digest,
-  createEdgeConfigClient,
+  createClient,
   type EdgeConfigClient,
   getAll,
 } from './index';
@@ -355,16 +355,16 @@ describe('createEdgeConfig', () => {
     let edgeConfig: EdgeConfigClient;
 
     beforeEach(() => {
-      edgeConfig = createEdgeConfigClient(modifiedConnectionString);
+      edgeConfig = createClient(modifiedConnectionString);
     });
 
     it('should be a function', () => {
-      expect(typeof createEdgeConfigClient).toBe('function');
+      expect(typeof createClient).toBe('function');
     });
 
     describe('when called without a baseUrl', () => {
       it('should throw', () => {
-        expect(() => createEdgeConfigClient(undefined)).toThrow(
+        expect(() => createClient(undefined)).toThrow(
           '@vercel/edge-config: No connection string provided',
         );
       });
@@ -460,7 +460,7 @@ describe('createEdgeConfig', () => {
       describe('get(key)', () => {
         describe('when item exists', () => {
           it('should return the value', async () => {
-            const edgeConfig = createEdgeConfigClient(connectionString);
+            const edgeConfig = createClient(connectionString);
             await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
             expect(fetchMock).toHaveBeenCalledTimes(0);
             expect(fs.readFile).toHaveBeenCalledTimes(1);
@@ -471,7 +471,7 @@ describe('createEdgeConfig', () => {
           });
 
           it('should not be able to modify the value for the next get', async () => {
-            const edgeConfig = createEdgeConfigClient(connectionString);
+            const edgeConfig = createClient(connectionString);
             const someArray = await edgeConfig.get<string[]>('someArray');
             expect(someArray).toEqual([]);
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -490,7 +490,7 @@ describe('createEdgeConfig', () => {
 
         describe('when the item does not exist', () => {
           it('should return undefined', async () => {
-            const edgeConfig = createEdgeConfigClient(connectionString);
+            const edgeConfig = createClient(connectionString);
             await expect(edgeConfig.get('baz')).resolves.toEqual(undefined);
             expect(fetchMock).toHaveBeenCalledTimes(0);
             expect(fs.readFile).toHaveBeenCalledTimes(1);
@@ -505,7 +505,7 @@ describe('createEdgeConfig', () => {
       describe('has(key)', () => {
         describe('when item exists', () => {
           it('should return true', async () => {
-            const edgeConfig = createEdgeConfigClient(connectionString);
+            const edgeConfig = createClient(connectionString);
             await expect(edgeConfig.has('foo')).resolves.toEqual(true);
             expect(fetchMock).toHaveBeenCalledTimes(0);
             expect(fs.readFile).toHaveBeenCalledTimes(1);
@@ -518,7 +518,7 @@ describe('createEdgeConfig', () => {
 
         describe('when the item does not exist', () => {
           it('should return false', async () => {
-            const edgeConfig = createEdgeConfigClient(connectionString);
+            const edgeConfig = createClient(connectionString);
             await expect(edgeConfig.has('baz')).resolves.toEqual(false);
             expect(fetchMock).toHaveBeenCalledTimes(0);
             expect(fs.readFile).toHaveBeenCalledTimes(1);
@@ -532,7 +532,7 @@ describe('createEdgeConfig', () => {
 
       describe('digest()', () => {
         it('should return the digest', async () => {
-          const edgeConfig = createEdgeConfigClient(connectionString);
+          const edgeConfig = createClient(connectionString);
           await expect(edgeConfig.digest()).resolves.toEqual('awe1');
           expect(fetchMock).toHaveBeenCalledTimes(0);
           expect(fs.readFile).toHaveBeenCalledTimes(1);

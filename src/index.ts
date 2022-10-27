@@ -126,7 +126,7 @@ export interface EdgeConfigClient {
 /**
  * Creates a deep clone of an object.
  */
-export function createEdgeConfigClient(
+export function createClient(
   connectionString: string | undefined,
 ): EdgeConfigClient {
   if (!connectionString)
@@ -298,7 +298,7 @@ let defaultEdgeConfigClient: EdgeConfigClient;
 function init(): void {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!defaultEdgeConfigClient) {
-    defaultEdgeConfigClient = createEdgeConfigClient(process.env.EDGE_CONFIG);
+    defaultEdgeConfigClient = createClient(process.env.EDGE_CONFIG);
   }
 }
 

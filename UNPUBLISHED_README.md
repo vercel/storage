@@ -59,15 +59,15 @@ The exported `get`, `getAll`, `has` and `digest` functions are bound to this def
 
 ### Reading a value from a specific Edge Config
 
-You can use `createEdgeConfigClient(connectionString)` to read values from Edge Configs other than the default one.
+You can use `createClient(connectionString)` to read values from Edge Configs other than the default one.
 
 ```js
-import { createEdgeConfigClient } from '@vercel/edge-config';
-const edgeConfig = createEdgeConfigClient(process.env.ANOTHER_EDGE_CONFIG);
+import { createClient } from '@vercel/edge-config';
+const edgeConfig = createClient(process.env.ANOTHER_EDGE_CONFIG);
 await edgeConfig.get('someKey');
 ```
 
-The `createEdgeConfigClient` function connnects to a any Edge Config based on the provided Connection String.
+The `createClient` function connects to a any Edge Config based on the provided Connection String.
 
 It returns the same `get`, `getAll`, `has` and `digest` functions as the default Edge Config Client exports.
 

@@ -67,7 +67,7 @@ const edgeConfig = createClient(process.env.ANOTHER_EDGE_CONFIG);
 await edgeConfig.get('someKey');
 ```
 
-The `createClient` function connnects to a any Edge Config based on the provided Connection String.
+The `createClient` function connects to a any Edge Config based on the provided Connection String.
 
 It returns the same `get`, `getAll`, `has` and `digest` functions as the default Edge Config Client exports.
 

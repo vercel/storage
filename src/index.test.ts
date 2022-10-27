@@ -430,21 +430,31 @@ describe('createEdgeConfig', () => {
         items: { foo: 'bar', someArray: [] },
       };
 
-      beforeAll(() => {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+      let fs: typeof import('fs/promises');
+
+      beforeAll(async () => {
         process.env.AWS_LAMBDA_FUNCTION_NAME = 'some-value';
 
         // mock fs for test
         jest.mock('fs/promises', () => {
           return {
-            readFile: (): Promise<string> => {
+            readFile: jest.fn((): Promise<string> => {
               return Promise.resolve(JSON.stringify(embeddedEdgeConfig));
-            },
+            }),
           };
         });
+
+        // eslint-disable-next-line unicorn/prefer-node-protocol
+        fs = await import('fs/promises');
       });
 
       afterAll(() => {
         delete process.env.AWS_LAMBDA_FUNCTION_NAME;
+      });
+
+      beforeEach(() => {
+        (fs.readFile as jest.Mock).mockClear();
       });
 
       describe('get(key)', () => {
@@ -453,6 +463,11 @@ describe('createEdgeConfig', () => {
             const edgeConfig = createEdgeConfigClient(connectionString);
             await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
             expect(fetchMock).toHaveBeenCalledTimes(0);
+            expect(fs.readFile).toHaveBeenCalledTimes(1);
+            expect(fs.readFile).toHaveBeenCalledWith(
+              '/opt/edge-config/ecfg-1.json',
+              'utf-8',
+            );
           });
 
           it('should not be able to modify the value for the next get', async () => {
@@ -465,6 +480,11 @@ describe('createEdgeConfig', () => {
             // next get
             await expect(edgeConfig.get('someArray')).resolves.toEqual([]);
             expect(fetchMock).toHaveBeenCalledTimes(0);
+            expect(fs.readFile).toHaveBeenCalledTimes(1);
+            expect(fs.readFile).toHaveBeenCalledWith(
+              '/opt/edge-config/ecfg-1.json',
+              'utf-8',
+            );
           });
         });
 
@@ -473,6 +493,11 @@ describe('createEdgeConfig', () => {
             const edgeConfig = createEdgeConfigClient(connectionString);
             await expect(edgeConfig.get('baz')).resolves.toEqual(undefined);
             expect(fetchMock).toHaveBeenCalledTimes(0);
+            expect(fs.readFile).toHaveBeenCalledTimes(1);
+            expect(fs.readFile).toHaveBeenCalledWith(
+              '/opt/edge-config/ecfg-1.json',
+              'utf-8',
+            );
           });
         });
       });
@@ -483,6 +508,11 @@ describe('createEdgeConfig', () => {
             const edgeConfig = createEdgeConfigClient(connectionString);
             await expect(edgeConfig.has('foo')).resolves.toEqual(true);
             expect(fetchMock).toHaveBeenCalledTimes(0);
+            expect(fs.readFile).toHaveBeenCalledTimes(1);
+            expect(fs.readFile).toHaveBeenCalledWith(
+              '/opt/edge-config/ecfg-1.json',
+              'utf-8',
+            );
           });
         });
 
@@ -491,6 +521,11 @@ describe('createEdgeConfig', () => {
             const edgeConfig = createEdgeConfigClient(connectionString);
             await expect(edgeConfig.has('baz')).resolves.toEqual(false);
             expect(fetchMock).toHaveBeenCalledTimes(0);
+            expect(fs.readFile).toHaveBeenCalledTimes(1);
+            expect(fs.readFile).toHaveBeenCalledWith(
+              '/opt/edge-config/ecfg-1.json',
+              'utf-8',
+            );
           });
         });
       });
@@ -500,6 +535,11 @@ describe('createEdgeConfig', () => {
           const edgeConfig = createEdgeConfigClient(connectionString);
           await expect(edgeConfig.digest()).resolves.toEqual('awe1');
           expect(fetchMock).toHaveBeenCalledTimes(0);
+          expect(fs.readFile).toHaveBeenCalledTimes(1);
+          expect(fs.readFile).toHaveBeenCalledWith(
+            '/opt/edge-config/ecfg-1.json',
+            'utf-8',
+          );
         });
       });
     });

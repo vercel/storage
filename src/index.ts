@@ -102,7 +102,7 @@ async function getLocalEdgeConfig(
 
   try {
     const content = await fs.readFile(
-      `/opt/edge-configs/${edgeConfigId}.json`,
+      `/opt/edge-config/${edgeConfigId}.json`,
       'utf-8',
     );
     return JSON.parse(content) as EmbeddedEdgeConfig;

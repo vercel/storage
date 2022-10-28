@@ -10,7 +10,7 @@ import {
 } from './index';
 
 const connectionString = process.env.EDGE_CONFIG;
-const baseUrl = 'https://edge-config.vercel.com/v1/config/ecfg-1';
+const baseUrl = 'https://edge-config.vercel.com/config/ecfg-1';
 
 // eslint-disable-next-line jest/require-top-level-describe
 beforeEach(() => {
@@ -21,7 +21,7 @@ describe('default Edge Config', () => {
   describe('test conditions', () => {
     it('should have an env var called EDGE_CONFIG', () => {
       expect(connectionString).toEqual(
-        'edge-config://token-1@edge-config.vercel.com/ecfg-1',
+        'https://edge-config.vercel.com/config/ecfg-1?token=token-1',
       );
     });
   });
@@ -32,7 +32,7 @@ describe('default Edge Config', () => {
     await expect(get('foo')).resolves.toEqual('bar');
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`, {
+    expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo?version=1`, {
       headers: { Authorization: 'Bearer token-1' },
     });
   });
@@ -45,9 +45,10 @@ describe('default Edge Config', () => {
         await expect(get('foo')).resolves.toEqual('bar');
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`, {
-          headers: { Authorization: 'Bearer token-1' },
-        });
+        expect(fetchMock).toHaveBeenCalledWith(
+          `${baseUrl}/item/foo?version=1`,
+          { headers: { Authorization: 'Bearer token-1' } },
+        );
       });
     });
 
@@ -72,9 +73,10 @@ describe('default Edge Config', () => {
         await expect(get('foo')).resolves.toEqual(undefined);
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`, {
-          headers: { Authorization: 'Bearer token-1' },
-        });
+        expect(fetchMock).toHaveBeenCalledWith(
+          `${baseUrl}/item/foo?version=1`,
+          { headers: { Authorization: 'Bearer token-1' } },
+        );
       });
     });
 
@@ -95,9 +97,12 @@ describe('default Edge Config', () => {
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`, {
-          headers: { Authorization: 'Bearer token-1' },
-        });
+        expect(fetchMock).toHaveBeenCalledWith(
+          `${baseUrl}/item/foo?version=1`,
+          {
+            headers: { Authorization: 'Bearer token-1' },
+          },
+        );
       });
     });
 
@@ -110,9 +115,12 @@ describe('default Edge Config', () => {
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`, {
-          headers: { Authorization: 'Bearer token-1' },
-        });
+        expect(fetchMock).toHaveBeenCalledWith(
+          `${baseUrl}/item/foo?version=1`,
+          {
+            headers: { Authorization: 'Bearer token-1' },
+          },
+        );
       });
     });
 
@@ -125,9 +133,12 @@ describe('default Edge Config', () => {
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`, {
-          headers: { Authorization: 'Bearer token-1' },
-        });
+        expect(fetchMock).toHaveBeenCalledWith(
+          `${baseUrl}/item/foo?version=1`,
+          {
+            headers: { Authorization: 'Bearer token-1' },
+          },
+        );
       });
     });
   });
@@ -140,7 +151,7 @@ describe('default Edge Config', () => {
         await expect(getAll()).resolves.toEqual({ foo: 'foo1' });
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items`, {
+        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items?version=1`, {
           headers: { Authorization: 'Bearer token-1' },
         });
       });
@@ -157,7 +168,7 @@ describe('default Edge Config', () => {
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(
-          `${baseUrl}/items?key=foo&key=bar`,
+          `${baseUrl}/items?version=1&key=foo&key=bar`,
           { headers: { Authorization: 'Bearer token-1' } },
         );
       });
@@ -181,7 +192,7 @@ describe('default Edge Config', () => {
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(
-          `${baseUrl}/items?key=foo&key=bar`,
+          `${baseUrl}/items?version=1&key=foo&key=bar`,
           { headers: { Authorization: 'Bearer token-1' } },
         );
       });
@@ -196,7 +207,7 @@ describe('default Edge Config', () => {
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items`, {
+        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items?version=1`, {
           headers: { Authorization: 'Bearer token-1' },
         });
       });
@@ -211,7 +222,7 @@ describe('default Edge Config', () => {
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items`, {
+        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items?version=1`, {
           headers: { Authorization: 'Bearer token-1' },
         });
       });
@@ -226,10 +237,13 @@ describe('default Edge Config', () => {
         await expect(has('foo')).resolves.toEqual(true);
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`, {
-          method: 'HEAD',
-          headers: { Authorization: 'Bearer token-1' },
-        });
+        expect(fetchMock).toHaveBeenCalledWith(
+          `${baseUrl}/item/foo?version=1`,
+          {
+            method: 'HEAD',
+            headers: { Authorization: 'Bearer token-1' },
+          },
+        );
       });
     });
 
@@ -254,10 +268,13 @@ describe('default Edge Config', () => {
         await expect(has('foo')).resolves.toEqual(false);
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`, {
-          method: 'HEAD',
-          headers: { Authorization: 'Bearer token-1' },
-        });
+        expect(fetchMock).toHaveBeenCalledWith(
+          `${baseUrl}/item/foo?version=1`,
+          {
+            method: 'HEAD',
+            headers: { Authorization: 'Bearer token-1' },
+          },
+        );
       });
     });
 
@@ -278,15 +295,18 @@ describe('default Edge Config', () => {
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo`, {
-          method: 'HEAD',
-          headers: { Authorization: 'Bearer token-1' },
-        });
+        expect(fetchMock).toHaveBeenCalledWith(
+          `${baseUrl}/item/foo?version=1`,
+          {
+            method: 'HEAD',
+            headers: { Authorization: 'Bearer token-1' },
+          },
+        );
       });
     });
   });
 
-  describe('digest()', () => {
+  describe('/()', () => {
     describe('when the request succeeds', () => {
       it('should return the digest', async () => {
         fetchMock.mockResponse(JSON.stringify({ digest: 'awe1' }));
@@ -294,7 +314,7 @@ describe('default Edge Config', () => {
         await expect(digest()).resolves.toEqual('awe1');
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest`, {
+        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest?version=1`, {
           headers: { Authorization: 'Bearer token-1' },
         });
       });
@@ -309,7 +329,7 @@ describe('default Edge Config', () => {
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest`, {
+        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest?version=1`, {
           headers: { Authorization: 'Bearer token-1' },
         });
       });
@@ -322,7 +342,7 @@ describe('default Edge Config', () => {
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest`, {
+        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest?version=1`, {
           headers: { Authorization: 'Bearer token-1' },
         });
       });
@@ -337,7 +357,7 @@ describe('default Edge Config', () => {
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest`, {
+        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest?version=1`, {
           headers: { Authorization: 'Bearer token-1' },
         });
       });
@@ -350,8 +370,8 @@ describe('default Edge Config', () => {
 describe('createEdgeConfig', () => {
   describe('when running without lambda layer or via edge function', () => {
     const modifiedConnectionString =
-      'edge-config://token-2@edge-config.vercel.com/ecfg-2';
-    const modifiedBaseUrl = 'https://edge-config.vercel.com/v1/config/ecfg-2';
+      'https://edge-config.vercel.com/config/ecfg-2?token=token-2';
+    const modifiedBaseUrl = 'https://edge-config.vercel.com/config/ecfg-2';
     let edgeConfig: EdgeConfigClient;
 
     beforeEach(() => {
@@ -379,7 +399,7 @@ describe('createEdgeConfig', () => {
 
           expect(fetchMock).toHaveBeenCalledTimes(1);
           expect(fetchMock).toHaveBeenCalledWith(
-            `${modifiedBaseUrl}/item/foo`,
+            `${modifiedBaseUrl}/item/foo?version=1`,
             {
               headers: { Authorization: 'Bearer token-2' },
             },
@@ -397,7 +417,7 @@ describe('createEdgeConfig', () => {
 
           expect(fetchMock).toHaveBeenCalledTimes(1);
           expect(fetchMock).toHaveBeenCalledWith(
-            `${modifiedBaseUrl}/item/foo`,
+            `${modifiedBaseUrl}/item/foo?version=1`,
             {
               method: 'HEAD',
               headers: { Authorization: 'Bearer token-2' },
@@ -415,9 +435,12 @@ describe('createEdgeConfig', () => {
           await expect(edgeConfig.digest()).resolves.toEqual('awe1');
 
           expect(fetchMock).toHaveBeenCalledTimes(1);
-          expect(fetchMock).toHaveBeenCalledWith(`${modifiedBaseUrl}/digest`, {
-            headers: { Authorization: 'Bearer token-2' },
-          });
+          expect(fetchMock).toHaveBeenCalledWith(
+            `${modifiedBaseUrl}/digest?version=1`,
+            {
+              headers: { Authorization: 'Bearer token-2' },
+            },
+          );
         });
       });
     });

@@ -3,7 +3,8 @@
   "compilerOptions": {
     "target": "ES2019",
     "moduleResolution": "node",
-    "module": "ES2020"
+    "module": "ES2020",
+    "types": ["@edge-runtime/types", "jest"]
   },
   "include": ["src/"]
 }

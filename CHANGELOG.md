@@ -1,5 +1,16 @@
 # @vercel/edge-config
 
+## 0.1.0-canary.11
+
+### Minor Changes
+
+- 578d34a: pass version via search param
+- 81bfed2: renamedcreateEdgeConfigClient to createClient
+
+### Patch Changes
+
+- 99ac8af: access edge config via renamed folder
+
 ## 0.1.0-canary.10
 
 ### Patch Changes

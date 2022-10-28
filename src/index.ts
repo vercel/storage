@@ -4,7 +4,6 @@ declare global {
   /* eslint-disable camelcase */
   const __non_webpack_require__: NodeRequire | undefined;
   const __webpack_require__: NodeRequire | undefined;
-  const EdgeRuntime: string | undefined;
   /* eslint-enable camelcase */
 }
 
@@ -63,20 +62,32 @@ function clone<T>(value: T): T {
  * Parse the edgeConfigId and token from an Edge Config Connection String.
  *
  * Edge Config Connection Strings look like this:
- * edge-config://<token>\@edge-config.vercel.com/<edgeConfigId>
+ * https://edge-config.vercel.com/config/<edgeConfigId>?token=<token>
  *
  * @param text - A potential Edge Config Connection String
  * @returns The edgeConfgId and token parsed from the given text or null if
  * the given text was not a valid Edge Config Connection String.
  */
-function matchEdgeConfigConnectionString(
+export function matchEdgeConfigConnectionString(
   text: string,
 ): { edgeConfigId: string; token: string } | null {
-  const pattern = `^edge-config:\\/\\/(?<token>[\\w-]+)@edge-config\\.vercel\\.com\\/(?<edgeConfigId>[\\w-]+)$`;
-  const match = new RegExp(pattern, 'i').exec(text);
-  return match
-    ? (match.groups as { edgeConfigId: string; token: string })
-    : null;
+  // defined outside of matchEdgeConfigConnectionString
+  // so it can be reused across tests
+  const pattern = new URLPattern({
+    protocol: 'https',
+    hostname: 'edge-config.vercel.com',
+    pathname: '/config/:edgeConfigId/:path*',
+  });
+
+  const match = pattern.exec(text);
+  if (!match || !match.pathname.groups.edgeConfigId) return null;
+  const token = new URLSearchParams(match.search.groups[0]).get('token');
+  if (!token || token === '') return null;
+
+  return {
+    edgeConfigId: match.pathname.groups.edgeConfigId,
+    token,
+  };
 }
 
 /**
@@ -136,7 +147,8 @@ export function createClient(
   if (!connection)
     throw new Error('@vercel/edge-config: Invalid connection string provided');
 
-  const url = `https://edge-config.vercel.com/v1/config/${connection.edgeConfigId}`;
+  const url = `https://edge-config.vercel.com/config/${connection.edgeConfigId}`;
+  const version = '1'; // version of the edge config read access api we talk to
   const headers = { Authorization: `Bearer ${connection.token}` };
 
   /**
@@ -169,10 +181,9 @@ export function createClient(
       }
 
       assertIsKey(key);
-      return fetch(`${url}/item/${key}`, { headers }).then<
-        T | undefined,
-        undefined
-      >(
+      return fetch(`${url}/item/${key}?version=${version}`, {
+        headers,
+      }).then<T | undefined, undefined>(
         async (res) => {
           if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
           if (res.status === 404) {
@@ -205,7 +216,10 @@ export function createClient(
       }
 
       assertIsKey(key);
-      return fetch(`${url}/item/${key}`, { method: 'HEAD', headers }).then(
+      return fetch(`${url}/item/${key}?version=${version}`, {
+        method: 'HEAD',
+        headers,
+      }).then(
         (res) => {
           if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
           if (res.status === 404) {
@@ -252,9 +266,10 @@ export function createClient(
       // so skip the request and return an empty object
       if (search === '') return Promise.resolve({} as T);
 
-      return fetch(`${url}/items${search === null ? '' : `?${search}`}`, {
-        headers,
-      }).then<T | undefined, undefined>(
+      return fetch(
+        `${url}/items?version=${version}${search === null ? '' : `&${search}`}`,
+        { headers },
+      ).then<T | undefined, undefined>(
         async (res) => {
           if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
           // the /items endpoint never returns 404, so if we get a 404
@@ -278,7 +293,7 @@ export function createClient(
         }
       }
 
-      return fetch(`${url}/digest`, { headers }).then(
+      return fetch(`${url}/digest?version=1`, { headers }).then(
         (res) => {
           if (!res.ok) throw new Error(ERRORS.UNEXPECTED);
           return res.json().then((data: { digest: string }) => data.digest);

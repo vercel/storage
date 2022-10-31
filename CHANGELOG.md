@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.1.0-canary.12
+
+### Patch Changes
+
+- 0c78c58: use URL instead of URLPattern to support node
+
 ## 0.1.0-canary.11
 
 ### Minor Changes

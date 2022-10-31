@@ -71,20 +71,6 @@ function clone<T>(value: T): T {
 export function matchEdgeConfigConnectionString(
   text: string,
 ): { edgeConfigId: string; token: string } | null {
-  // TODO we'd need to ship a polyfill for URLPattern for this to be
-  // usable inside of node
-  //
-  // const pattern = new URLPattern({
-  //   protocol: 'https',
-  //   hostname: 'edge-config.vercel.com',
-  //   pathname: '/config/:edgeConfigId/:path*',
-  // });
-
-  // const match = pattern.exec(text);
-  // if (!match || !match.pathname.groups.edgeConfigId) return null;
-  // const token = new URLSearchParams(match.search.groups[0]).get('token');
-  // if (!token || token === '') return null;
-
   const url = new URL(text);
   if (url.host !== 'edge-config.vercel.com') return null;
   if (url.protocol !== 'https:') return null;

@@ -62,7 +62,7 @@ function clone<T>(value: T): T {
  * Parse the edgeConfigId and token from an Edge Config Connection String.
  *
  * Edge Config Connection Strings look like this:
- * https://edge-config.vercel.com/config/<edgeConfigId>?token=<token>
+ * https://edge-config.vercel.com/<edgeConfigId>?token=<token>
  *
  * @param text - A potential Edge Config Connection String
  * @returns The edgeConfgId and token parsed from the given text or null if
@@ -74,9 +74,9 @@ export function matchEdgeConfigConnectionString(
   const url = new URL(text);
   if (url.host !== 'edge-config.vercel.com') return null;
   if (url.protocol !== 'https:') return null;
-  if (!url.pathname.startsWith('/config/ecfg')) return null;
+  if (!url.pathname.startsWith('/ecfg')) return null;
 
-  const edgeConfigId = url.pathname.split('/')[2];
+  const edgeConfigId = url.pathname.split('/')[1];
   if (!edgeConfigId) return null;
 
   const token = url.searchParams.get('token');
@@ -142,7 +142,7 @@ export function createClient(
   if (!connection)
     throw new Error('@vercel/edge-config: Invalid connection string provided');
 
-  const url = `https://edge-config.vercel.com/config/${connection.edgeConfigId}`;
+  const url = `https://edge-config.vercel.com/${connection.edgeConfigId}`;
   const version = '1'; // version of the edge config read access api we talk to
   const headers = { Authorization: `Bearer ${connection.token}` };
 

@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.1.0-canary.13
+
+### Minor Changes
+
+- 667c121: drop /config
+
 ## 0.1.0-canary.12
 
 ### Patch Changes

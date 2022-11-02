@@ -10,7 +10,7 @@ import {
 } from './index';
 
 const connectionString = process.env.EDGE_CONFIG;
-const baseUrl = 'https://edge-config.vercel.com/config/ecfg-1';
+const baseUrl = 'https://edge-config.vercel.com/ecfg-1';
 
 // eslint-disable-next-line jest/require-top-level-describe
 beforeEach(() => {
@@ -21,7 +21,7 @@ describe('default Edge Config', () => {
   describe('test conditions', () => {
     it('should have an env var called EDGE_CONFIG', () => {
       expect(connectionString).toEqual(
-        'https://edge-config.vercel.com/config/ecfg-1?token=token-1',
+        'https://edge-config.vercel.com/ecfg-1?token=token-1',
       );
     });
   });
@@ -306,7 +306,7 @@ describe('default Edge Config', () => {
     });
   });
 
-  describe('/()', () => {
+  describe('/', () => {
     describe('when the request succeeds', () => {
       it('should return the digest', async () => {
         fetchMock.mockResponse(JSON.stringify({ digest: 'awe1' }));
@@ -370,8 +370,8 @@ describe('default Edge Config', () => {
 describe('createEdgeConfig', () => {
   describe('when running without lambda layer or via edge function', () => {
     const modifiedConnectionString =
-      'https://edge-config.vercel.com/config/ecfg-2?token=token-2';
-    const modifiedBaseUrl = 'https://edge-config.vercel.com/config/ecfg-2';
+      'https://edge-config.vercel.com/ecfg-2?token=token-2';
+    const modifiedBaseUrl = 'https://edge-config.vercel.com/ecfg-2';
     let edgeConfig: EdgeConfigClient;
 
     beforeEach(() => {

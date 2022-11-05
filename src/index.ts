@@ -291,7 +291,7 @@ export function createClient(
       return fetch(`${url}/digest?version=1`, { headers }).then(
         (res) => {
           if (!res.ok) throw new Error(ERRORS.UNEXPECTED);
-          return res.json().then((data: { digest: string }) => data.digest);
+          return res.json() as Promise<string>;
         },
         () => {
           throw new Error(ERRORS.NETWORK);

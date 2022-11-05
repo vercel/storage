@@ -309,7 +309,7 @@ describe('default Edge Config', () => {
   describe('/', () => {
     describe('when the request succeeds', () => {
       it('should return the digest', async () => {
-        fetchMock.mockResponse(JSON.stringify({ digest: 'awe1' }));
+        fetchMock.mockResponse(JSON.stringify('awe1'));
 
         await expect(digest()).resolves.toEqual('awe1');
 
@@ -430,7 +430,7 @@ describe('createEdgeConfig', () => {
     describe('digest()', () => {
       describe('when the request succeeds', () => {
         it('should return the digest', async () => {
-          fetchMock.mockResponse(JSON.stringify({ digest: 'awe1' }));
+          fetchMock.mockResponse(JSON.stringify('awe1'));
 
           await expect(edgeConfig.digest()).resolves.toEqual('awe1');
 

@@ -21,21 +21,19 @@ export default defineConfig({
   // So we silence that warning by adding a /* webpackIgnore: true */
   // comment onto the completed build output.
   //
+  // We only need to do this for the node bundles, since the workaround is only
+  // used there. It is not used in edge bundles, so they don't need to apply it.
+  //
   // This should now make the library usable without any warnings at all.
   onSuccess: async () => {
-    // replace in esm bundle
+    // replace in node cjs & esm bundles
     const esmNodePath = './dist/index.node.js';
     const cjsNodePath = './dist/index.node.cjs';
-    const esmEdgePath = './dist/index.edge.js';
-    const cjsEdgePath = './dist/index.edge.cjs';
 
-    const [esmNodeContent, cjsNodeContent, esmEdgeContent, cjsEdgeContent] =
-      await Promise.all([
-        fs.readFile(esmNodePath, 'utf-8'),
-        fs.readFile(cjsNodePath, 'utf-8'),
-        fs.readFile(esmEdgePath, 'utf-8'),
-        fs.readFile(cjsEdgePath, 'utf-8'),
-      ]);
+    const [esmNodeContent, cjsNodeContent] = await Promise.all([
+      fs.readFile(esmNodePath, 'utf-8'),
+      fs.readFile(cjsNodePath, 'utf-8'),
+    ]);
 
     await Promise.all([
       // replace in node esm bundle
@@ -48,18 +46,6 @@ export default defineConfig({
       fs.writeFile(
         cjsNodePath,
         cjsNodeContent.replace('require(', 'require(/* webpackIgnore: true */'),
-      ),
-
-      // replace in edge cjs bundle
-      fs.writeFile(
-        esmEdgePath,
-        esmEdgeContent.replace('import(', 'import(/* webpackIgnore: true */'),
-      ),
-
-      // replace in edge cjs bundle
-      fs.writeFile(
-        cjsNodePath,
-        cjsEdgeContent.replace('require(', 'require(/* webpackIgnore: true */'),
       ),
     ]);
   },

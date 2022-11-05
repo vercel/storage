@@ -7,12 +7,18 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
-    "import": "./dist/index.js",
-    "require": "./dist/index.cjs"
+    "node": {
+      "import": "./dist/index.node.js",
+      "require": "./dist/index.node.cjs"
+    },
+    "default": {
+      "import": "./dist/index.edge.js",
+      "require": "./dist/index.edge.cjs"
+    }
   },
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/index.edge.cjs",
+  "module": "./dist/index.edge.js",
+  "types": "./dist/index.edge.d.ts",
   "files": [
     "dist"
   ],

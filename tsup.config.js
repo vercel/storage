@@ -3,7 +3,7 @@ import { defineConfig } from 'tsup';
 
 // eslint-disable-next-line import/no-default-export
 export default defineConfig({
-  entry: ['src/index.ts'],
+  entry: ['src/index.node.ts', 'src/index.edge.ts'],
   format: ['esm', 'cjs'],
   splitting: true,
   sourcemap: false,
@@ -24,25 +24,42 @@ export default defineConfig({
   // This should now make the library usable without any warnings at all.
   onSuccess: async () => {
     // replace in esm bundle
-    const esmPath = './dist/index.js';
-    const cjsPath = './dist/index.cjs';
+    const esmNodePath = './dist/index.node.js';
+    const cjsNodePath = './dist/index.node.cjs';
+    const esmEdgePath = './dist/index.edge.js';
+    const cjsEdgePath = './dist/index.edge.cjs';
 
-    const [esmContent, cjsContent] = await Promise.all([
-      fs.readFile(esmPath, 'utf-8'),
-      fs.readFile(cjsPath, 'utf-8'),
-    ]);
+    const [esmNodeContent, cjsNodeContent, esmEdgeContent, cjsEdgeContent] =
+      await Promise.all([
+        fs.readFile(esmNodePath, 'utf-8'),
+        fs.readFile(cjsNodePath, 'utf-8'),
+        fs.readFile(esmEdgePath, 'utf-8'),
+        fs.readFile(cjsEdgePath, 'utf-8'),
+      ]);
 
     await Promise.all([
-      // replace in esm bundle
+      // replace in node esm bundle
       fs.writeFile(
-        esmPath,
-        esmContent.replace('import(', 'import(/* webpackIgnore: true */'),
+        esmNodePath,
+        esmNodeContent.replace('import(', 'import(/* webpackIgnore: true */'),
       ),
 
-      // replace in cjs bundle
+      // replace in node cjs bundle
       fs.writeFile(
-        cjsPath,
-        cjsContent.replace('require(', 'require(/* webpackIgnore: true */'),
+        cjsNodePath,
+        cjsNodeContent.replace('require(', 'require(/* webpackIgnore: true */'),
+      ),
+
+      // replace in edge cjs bundle
+      fs.writeFile(
+        esmEdgePath,
+        esmEdgeContent.replace('import(', 'import(/* webpackIgnore: true */'),
+      ),
+
+      // replace in edge cjs bundle
+      fs.writeFile(
+        cjsNodePath,
+        cjsEdgeContent.replace('require(', 'require(/* webpackIgnore: true */'),
       ),
     ]);
   },

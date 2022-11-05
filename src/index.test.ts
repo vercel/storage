@@ -7,7 +7,7 @@ import {
   createClient,
   type EdgeConfigClient,
   getAll,
-} from './index';
+} from './index.node';
 
 const connectionString = process.env.EDGE_CONFIG;
 const baseUrl = 'https://edge-config.vercel.com/ecfg-1';

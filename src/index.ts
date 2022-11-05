@@ -159,7 +159,10 @@ export function createClient(
   return {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async get<T = any>(key: string): Promise<T | undefined> {
-      if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
+      if (
+        typeof EdgeRuntime !== 'string' &&
+        process.env.AWS_LAMBDA_FUNCTION_NAME
+      ) {
         if (localEdgeConfig === undefined) {
           localEdgeConfig = await getLocalEdgeConfig(connection.edgeConfigId);
         }
@@ -199,7 +202,10 @@ export function createClient(
       );
     },
     async has(key): Promise<boolean> {
-      if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
+      if (
+        typeof EdgeRuntime !== 'string' &&
+        process.env.AWS_LAMBDA_FUNCTION_NAME
+      ) {
         if (localEdgeConfig === undefined) {
           localEdgeConfig = await getLocalEdgeConfig(connection.edgeConfigId);
         }
@@ -235,7 +241,10 @@ export function createClient(
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async getAll<T = any>(keys?: (keyof T)[]): Promise<T | undefined> {
-      if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
+      if (
+        typeof EdgeRuntime !== 'string' &&
+        process.env.AWS_LAMBDA_FUNCTION_NAME
+      ) {
         if (localEdgeConfig === undefined) {
           localEdgeConfig = await getLocalEdgeConfig(connection.edgeConfigId);
         }
@@ -279,7 +288,10 @@ export function createClient(
       );
     },
     async digest(): Promise<string> {
-      if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
+      if (
+        typeof EdgeRuntime !== 'string' &&
+        process.env.AWS_LAMBDA_FUNCTION_NAME
+      ) {
         if (localEdgeConfig === undefined) {
           localEdgeConfig = await getLocalEdgeConfig(connection.edgeConfigId);
         }

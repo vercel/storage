@@ -1,5 +1,12 @@
 # @vercel/edge-config
 
+## 0.1.0-canary.14
+
+### Patch Changes
+
+- f5a7354: fix digest response body parsing as it has changed upstream
+- 0e79aa3: renames matchEdgeConfigConnectionString to parseConnectionString
+
 ## 0.1.0-canary.13
 
 ### Minor Changes

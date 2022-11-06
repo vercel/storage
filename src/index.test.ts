@@ -7,6 +7,7 @@ import {
   createClient,
   type EdgeConfigClient,
   getAll,
+  parseConnectionString,
 } from './index';
 
 const connectionString = process.env.EDGE_CONFIG;
@@ -15,6 +16,31 @@ const baseUrl = 'https://edge-config.vercel.com/ecfg-1';
 // eslint-disable-next-line jest/require-top-level-describe
 beforeEach(() => {
   fetchMock.resetMocks();
+});
+
+describe('parseConnectionString', () => {
+  it('should return null when an invalid Connection String is given', () => {
+    expect(parseConnectionString('foo')).toBeNull();
+  });
+
+  it('should return null when the given Connection String has no token', () => {
+    expect(
+      parseConnectionString(
+        'https://edge-config.vercel.com/ecfg_cljia81u2q1gappdgptj881dwwtc',
+      ),
+    ).toBeNull();
+  });
+
+  it('should return the id and token when a valid Connection String is given', () => {
+    expect(
+      parseConnectionString(
+        'https://edge-config.vercel.com/ecfg_cljia81u2q1gappdgptj881dwwtc?token=00000000-0000-0000-0000-000000000000',
+      ),
+    ).toEqual({
+      id: 'ecfg_cljia81u2q1gappdgptj881dwwtc',
+      token: '00000000-0000-0000-0000-000000000000',
+    });
+  });
 });
 
 describe('default Edge Config', () => {

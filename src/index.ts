@@ -65,24 +65,28 @@ function clone<T>(value: T): T {
  * https://edge-config.vercel.com/<edgeConfigId>?token=<token>
  *
  * @param text - A potential Edge Config Connection String
- * @returns The edgeConfgId and token parsed from the given text or null if
+ * @returns The id and token parsed from the given Connection String or null if
  * the given text was not a valid Edge Config Connection String.
  */
-export function matchEdgeConfigConnectionString(
+export function parseConnectionString(
   text: string,
-): { edgeConfigId: string; token: string } | null {
-  const url = new URL(text);
-  if (url.host !== 'edge-config.vercel.com') return null;
-  if (url.protocol !== 'https:') return null;
-  if (!url.pathname.startsWith('/ecfg')) return null;
+): { id: string; token: string } | null {
+  try {
+    const url = new URL(text);
+    if (url.host !== 'edge-config.vercel.com') return null;
+    if (url.protocol !== 'https:') return null;
+    if (!url.pathname.startsWith('/ecfg')) return null;
 
-  const edgeConfigId = url.pathname.split('/')[1];
-  if (!edgeConfigId) return null;
+    const id = url.pathname.split('/')[1];
+    if (!id) return null;
 
-  const token = url.searchParams.get('token');
-  if (!token || token === '') return null;
+    const token = url.searchParams.get('token');
+    if (!token || token === '') return null;
 
-  return { edgeConfigId, token };
+    return { id, token };
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -138,11 +142,11 @@ export function createClient(
   if (!connectionString)
     throw new Error('@vercel/edge-config: No connection string provided');
 
-  const connection = matchEdgeConfigConnectionString(connectionString);
+  const connection = parseConnectionString(connectionString);
   if (!connection)
     throw new Error('@vercel/edge-config: Invalid connection string provided');
 
-  const url = `https://edge-config.vercel.com/${connection.edgeConfigId}`;
+  const url = `https://edge-config.vercel.com/${connection.id}`;
   const version = '1'; // version of the edge config read access api we talk to
   const headers = { Authorization: `Bearer ${connection.token}` };
 
@@ -164,7 +168,7 @@ export function createClient(
         process.env.AWS_LAMBDA_FUNCTION_NAME
       ) {
         if (localEdgeConfig === undefined) {
-          localEdgeConfig = await getLocalEdgeConfig(connection.edgeConfigId);
+          localEdgeConfig = await getLocalEdgeConfig(connection.id);
         }
 
         if (localEdgeConfig) {
@@ -207,7 +211,7 @@ export function createClient(
         process.env.AWS_LAMBDA_FUNCTION_NAME
       ) {
         if (localEdgeConfig === undefined) {
-          localEdgeConfig = await getLocalEdgeConfig(connection.edgeConfigId);
+          localEdgeConfig = await getLocalEdgeConfig(connection.id);
         }
 
         if (localEdgeConfig) {
@@ -246,7 +250,7 @@ export function createClient(
         process.env.AWS_LAMBDA_FUNCTION_NAME
       ) {
         if (localEdgeConfig === undefined) {
-          localEdgeConfig = await getLocalEdgeConfig(connection.edgeConfigId);
+          localEdgeConfig = await getLocalEdgeConfig(connection.id);
         }
 
         if (localEdgeConfig) {
@@ -293,7 +297,7 @@ export function createClient(
         process.env.AWS_LAMBDA_FUNCTION_NAME
       ) {
         if (localEdgeConfig === undefined) {
-          localEdgeConfig = await getLocalEdgeConfig(connection.edgeConfigId);
+          localEdgeConfig = await getLocalEdgeConfig(connection.id);
         }
         if (localEdgeConfig) {
           return Promise.resolve(localEdgeConfig.digest);

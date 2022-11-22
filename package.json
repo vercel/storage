@@ -1,8 +1,13 @@
 {
   "name": "@vercel/edge-config",
   "version": "0.1.0-canary.14",
-  "description": "",
-  "repository": "vercel/edge-config",
+  "description": "Ultra-low latency data at the edge",
+  "homepage": "https://vercel.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vercel/vercel.git",
+    "directory": "packages/edge-config"
+  },
   "license": "MIT",
   "sideEffects": false,
   "type": "module",

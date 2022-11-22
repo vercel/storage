@@ -1,7 +1,7 @@
 {
   "name": "@vercel/edge-config",
   "version": "0.1.0-canary.14",
-  "description": "",
+  "description": "Ultra-low latency data at the edge",
   "homepage": "https://vercel.com",
   "repository": {
     "type": "git",

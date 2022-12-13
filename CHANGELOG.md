@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.1.0-canary.16
+
+### Patch Changes
+
+- d0c55ee: add descriptive README
+
 ## 0.1.0-canary.15
 
 ### Patch Changes

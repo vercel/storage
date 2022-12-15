@@ -2,6 +2,9 @@
 
 ## 0.1.0
 
+If you were already on 0.1.0-canary.15 there are no breaking changes for you.
+This is an identical version, just without the canary tag.
+
 ### Minor Changes
 
 - 578d34a: pass version via search param

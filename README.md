@@ -95,7 +95,7 @@ export default (req) => {
   return new Response(`someKey contains value "${value})"`);
 };
 
-export const config = { runtime: 'experimental-edge' };
+export const config = { runtime: 'edge' };
 ```
 
 ## Caught a Bug?

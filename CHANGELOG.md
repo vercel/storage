@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.1.1
+
+### Patch Changes
+
+- b870314: support calling getAll() without any arguments
+
 ## 0.1.0
 
 If you were already on 0.1.0-canary.15 there are no breaking changes for you.

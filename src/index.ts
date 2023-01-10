@@ -254,11 +254,12 @@ export function createClient(
         }
 
         if (localEdgeConfig) {
-          assertIsKeys(keys);
+          if (keys === undefined) {
+            return Promise.resolve(clone(localEdgeConfig.items) as T);
+          }
 
-          return Array.isArray(keys)
-            ? Promise.resolve(clone(pick(localEdgeConfig.items, keys)) as T)
-            : Promise.resolve(clone(localEdgeConfig.items) as T);
+          assertIsKeys(keys);
+          return Promise.resolve(clone(pick(localEdgeConfig.items, keys)) as T);
         }
       }
 

@@ -1,4 +1,4 @@
-import type { EmbeddedEdgeConfig } from './types';
+import type { EdgeConfigValue, EmbeddedEdgeConfig } from './types';
 
 declare global {
   /* eslint-disable camelcase */
@@ -125,10 +125,15 @@ async function getLocalEdgeConfig(
  * Edge Config Client
  */
 export interface EdgeConfigClient {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  get: <T = any>(key: string) => Promise<T | undefined>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getAll: <T = any>(keys?: (keyof T)[]) => Promise<T | undefined>;
+  get: <T extends EdgeConfigValue = EdgeConfigValue>(
+    key: string,
+  ) => Promise<T | undefined>;
+  getAll: <
+    T extends EdgeConfigValue = EdgeConfigValue,
+    K extends string = string,
+  >(
+    keys?: K[],
+  ) => Promise<Partial<Record<K, T>> | undefined>;
   has: (key: string) => Promise<boolean>;
   digest: () => Promise<string>;
 }
@@ -161,8 +166,9 @@ export function createClient(
   let localEdgeConfig: EmbeddedEdgeConfig | null | undefined;
 
   return {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async get<T = any>(key: string): Promise<T | undefined> {
+    async get<T extends EdgeConfigValue = EdgeConfigValue>(
+      key: string,
+    ): Promise<T | undefined> {
       if (
         typeof EdgeRuntime !== 'string' &&
         process.env.AWS_LAMBDA_FUNCTION_NAME
@@ -243,8 +249,10 @@ export function createClient(
         },
       );
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async getAll<T = any>(keys?: (keyof T)[]): Promise<T | undefined> {
+    async getAll<
+      T extends EdgeConfigValue = EdgeConfigValue,
+      K extends string = string,
+    >(keys?: K[]): Promise<Partial<Record<K, T>> | undefined> {
       if (
         typeof EdgeRuntime !== 'string' &&
         process.env.AWS_LAMBDA_FUNCTION_NAME
@@ -255,11 +263,15 @@ export function createClient(
 
         if (localEdgeConfig) {
           if (keys === undefined) {
-            return Promise.resolve(clone(localEdgeConfig.items) as T);
+            return Promise.resolve(
+              clone(localEdgeConfig.items) as Partial<Record<K, T>>,
+            );
           }
 
           assertIsKeys(keys);
-          return Promise.resolve(clone(pick(localEdgeConfig.items, keys)) as T);
+          return Promise.resolve(
+            clone(pick(localEdgeConfig.items as Record<string, T>, keys)),
+          );
         }
       }
 
@@ -273,12 +285,12 @@ export function createClient(
 
       // empty search keys array was given,
       // so skip the request and return an empty object
-      if (search === '') return Promise.resolve({} as T);
+      if (search === '') return Promise.resolve({} as Partial<Record<K, T>>);
 
       return fetch(
         `${url}/items?version=${version}${search === null ? '' : `&${search}`}`,
         { headers },
-      ).then<T | undefined, undefined>(
+      ).then<Partial<Record<K, T>> | undefined, undefined>(
         async (res) => {
           if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
           // the /items endpoint never returns 404, so if we get a 404

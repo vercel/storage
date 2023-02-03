@@ -1,0 +1,8 @@
+{
+  "mode": "pre",
+  "tag": "bundling",
+  "initialVersions": {
+    "@vercel/edge-config": "0.1.1"
+  },
+  "changesets": []
+}

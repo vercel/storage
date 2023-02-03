@@ -1,115 +1,24 @@
+import fs from 'node:fs/promises';
+import {
+  assertIsKey,
+  assertIsKeys,
+  clone,
+  ERRORS,
+  hasOwnProperty,
+  parseConnectionString,
+  pick,
+} from './shared';
 import type { EmbeddedEdgeConfig } from './types';
 
-declare global {
-  /* eslint-disable camelcase */
-  const __non_webpack_require__: NodeRequire | undefined;
-  const __webpack_require__: NodeRequire | undefined;
-  /* eslint-enable camelcase */
-}
+export { parseConnectionString };
 
 /**
- * Checks if an object has a property
+ * Reads an Edge Config from the local file system.
+ * This is used at runtime on serverless functions.
  */
-function hasOwnProperty<X, Y extends PropertyKey>(
-  obj: X,
-  prop: Y,
-): obj is X & Record<Y, unknown> {
-  return Object.prototype.hasOwnProperty.call(obj, prop);
-}
-
-function pick<T, K extends keyof T>(obj: T, keys: K[]): Pick<T, K> {
-  const ret: Partial<T> = {};
-  keys.forEach((key) => {
-    ret[key] = obj[key];
-  });
-  return ret as Pick<T, K>;
-}
-
-function assertIsKey(key: unknown): asserts key is string {
-  if (typeof key !== 'string') {
-    throw new Error('@vercel/edge-config: Expected key to be a string');
-  }
-}
-
-function assertIsKeys(keys: unknown): asserts keys is string[] {
-  if (!Array.isArray(keys) || keys.some((key) => typeof key !== 'string')) {
-    throw new Error(
-      '@vercel/edge-config: Expected keys to be an array of string',
-    );
-  }
-}
-
-const ERRORS = {
-  UNEXPECTED: '@vercel/edge-config: Unexpected error',
-  UNAUTHORIZED: '@vercel/edge-config: Unauthorized',
-  NETWORK: '@vercel/edge-config: Network error',
-  EDGE_CONFIG_NOT_FOUND: '@vercel/edge-config: Edge Config not found',
-};
-
-/**
- * Creates a deep clone of an object.
- */
-function clone<T>(value: T): T {
-  // only available since node v17.0.0
-  if (typeof structuredClone === 'function') return structuredClone<T>(value);
-
-  // poor man's polyfill for structuredClone
-  if (value === undefined) return value;
-  return JSON.parse(JSON.stringify(value)) as T;
-}
-
-/**
- * Parse the edgeConfigId and token from an Edge Config Connection String.
- *
- * Edge Config Connection Strings look like this:
- * https://edge-config.vercel.com/<edgeConfigId>?token=<token>
- *
- * @param text - A potential Edge Config Connection String
- * @returns The id and token parsed from the given Connection String or null if
- * the given text was not a valid Edge Config Connection String.
- */
-export function parseConnectionString(
-  text: string,
-): { id: string; token: string } | null {
-  try {
-    const url = new URL(text);
-    if (url.host !== 'edge-config.vercel.com') return null;
-    if (url.protocol !== 'https:') return null;
-    if (!url.pathname.startsWith('/ecfg')) return null;
-
-    const id = url.pathname.split('/')[1];
-    if (!id) return null;
-
-    const token = url.searchParams.get('token');
-    if (!token || token === '') return null;
-
-    return { id, token };
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Reads an Edge Config from the local file system
- */
-async function getLocalEdgeConfig(
+async function getFileSystemEdgeConfig(
   edgeConfigId: string,
 ): Promise<EmbeddedEdgeConfig | null> {
-  // skip in Edge Runtime, as it has no fs
-  if (typeof EdgeRuntime === 'string') return null;
-
-  // import "fs/promises"
-  const fs = (await import(
-    // Joining here avoids this warning:
-    //   A Node.js module is loaded ('fs/promises' at line 1) which is not
-    //   upported in the Edge Runtime
-    //
-    // This is fine as this code never runs inside of EdgeRuntime due to the
-    // check above
-    ['fs', 'promises'].join('/')
-    // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-  )) as typeof import('fs/promises');
-
   try {
     const content = await fs.readFile(
       `/opt/edge-config/${edgeConfigId}.json`,
@@ -119,6 +28,29 @@ async function getLocalEdgeConfig(
   } catch {
     return null;
   }
+}
+
+/**
+ * Handles runtime optimizations
+ */
+async function getOptimizedEdgeConfig(
+  connection: {
+    id: string;
+    token: string;
+  },
+  cache: Map<string, EmbeddedEdgeConfig | null | undefined>,
+): Promise<EmbeddedEdgeConfig | null> {
+  if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    const localEdgeConfig = cache.get(connection.id);
+    if (localEdgeConfig) return localEdgeConfig;
+
+    const edgeConfig = await getFileSystemEdgeConfig(connection.id);
+    if (edgeConfig) cache.set(connection.id, edgeConfig);
+
+    return edgeConfig;
+  }
+
+  return null;
 }
 
 /**
@@ -151,35 +83,28 @@ export function createClient(
   const headers = { Authorization: `Bearer ${connection.token}` };
 
   /**
-   * Holds local edge config in case it exists
+   * Holds local edge config in case it exists, serverless only.
+   * At runtime we can use the cache instead of reading from fs.
    *
    * Potential values
    * - undefined: we have not checked yet whether it exists or not
    * - null: we checked and it did not exist
    * - EmbeddedEdgeConfig: we checked
    */
-  let localEdgeConfig: EmbeddedEdgeConfig | null | undefined;
+  const cache = new Map<string, EmbeddedEdgeConfig | undefined | null>();
 
   return {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async get<T = any>(key: string): Promise<T | undefined> {
-      if (
-        typeof EdgeRuntime !== 'string' &&
-        process.env.AWS_LAMBDA_FUNCTION_NAME
-      ) {
-        if (localEdgeConfig === undefined) {
-          localEdgeConfig = await getLocalEdgeConfig(connection.id);
-        }
+      const subEdgeConfig = await getOptimizedEdgeConfig(connection, cache);
+      if (subEdgeConfig) {
+        assertIsKey(key);
 
-        if (localEdgeConfig) {
-          assertIsKey(key);
-
-          // We need to return a clone of the value so users can't modify
-          // our original value, and so the reference changes.
-          //
-          // This makes it consistent with the real API.
-          return Promise.resolve(clone(localEdgeConfig.items[key]) as T);
-        }
+        // We need to return a clone of the value so users can't modify
+        // our original value, and so the reference changes.
+        //
+        // This makes it consistent with the real API.
+        return Promise.resolve(clone(subEdgeConfig.items[key]) as T);
       }
 
       assertIsKey(key);
@@ -206,18 +131,10 @@ export function createClient(
       );
     },
     async has(key): Promise<boolean> {
-      if (
-        typeof EdgeRuntime !== 'string' &&
-        process.env.AWS_LAMBDA_FUNCTION_NAME
-      ) {
-        if (localEdgeConfig === undefined) {
-          localEdgeConfig = await getLocalEdgeConfig(connection.id);
-        }
-
-        if (localEdgeConfig) {
-          assertIsKey(key);
-          return Promise.resolve(hasOwnProperty(localEdgeConfig.items, key));
-        }
+      const subEdgeConfig = await getOptimizedEdgeConfig(connection, cache);
+      if (subEdgeConfig) {
+        assertIsKey(key);
+        return Promise.resolve(hasOwnProperty(subEdgeConfig.items, key));
       }
 
       assertIsKey(key);
@@ -245,22 +162,15 @@ export function createClient(
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async getAll<T = any>(keys?: (keyof T)[]): Promise<T | undefined> {
-      if (
-        typeof EdgeRuntime !== 'string' &&
-        process.env.AWS_LAMBDA_FUNCTION_NAME
-      ) {
-        if (localEdgeConfig === undefined) {
-          localEdgeConfig = await getLocalEdgeConfig(connection.id);
+      const subEdgeConfig = await getOptimizedEdgeConfig(connection, cache);
+
+      if (subEdgeConfig) {
+        if (keys === undefined) {
+          return Promise.resolve(clone(subEdgeConfig.items) as T);
         }
 
-        if (localEdgeConfig) {
-          if (keys === undefined) {
-            return Promise.resolve(clone(localEdgeConfig.items) as T);
-          }
-
-          assertIsKeys(keys);
-          return Promise.resolve(clone(pick(localEdgeConfig.items, keys)) as T);
-        }
+        assertIsKeys(keys);
+        return Promise.resolve(clone(pick(subEdgeConfig.items, keys)) as T);
       }
 
       if (Array.isArray(keys)) assertIsKeys(keys);
@@ -293,16 +203,10 @@ export function createClient(
       );
     },
     async digest(): Promise<string> {
-      if (
-        typeof EdgeRuntime !== 'string' &&
-        process.env.AWS_LAMBDA_FUNCTION_NAME
-      ) {
-        if (localEdgeConfig === undefined) {
-          localEdgeConfig = await getLocalEdgeConfig(connection.id);
-        }
-        if (localEdgeConfig) {
-          return Promise.resolve(localEdgeConfig.digest);
-        }
+      const subEdgeConfig = await getOptimizedEdgeConfig(connection, cache);
+
+      if (subEdgeConfig) {
+        return Promise.resolve(subEdgeConfig.digest);
       }
 
       return fetch(`${url}/digest?version=1`, { headers }).then(

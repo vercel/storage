@@ -12,26 +12,35 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
-    "import": "./dist/index.js",
-    "require": "./dist/index.cjs"
+    ".": {
+      "import": {
+        "node": "./dist/index.node.js",
+        "default": "./dist/index.edge.js"
+      },
+      "require": {
+        "node": "./dist/index.node.cjs",
+        "default": "./dist/index.edge.cjs"
+      }
+    }
   },
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
+  "main": "./dist/index.edge.cjs",
+  "module": "./dist/index.edge.js",
   "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && node scripts/post-build.js",
     "eslint-check": "eslint --max-warnings=0 .",
     "precommit": "lint-staged",
     "prepare": "husky install",
     "prepublishOnly": "pnpm run build",
     "prettier-check": "prettier --check .",
     "release": "pnpm build && changeset publish",
-    "test": "pnpm run test-nodejs && pnpm run test-edge",
-    "test-edge": "jest --env @edge-runtime/jest-environment",
-    "test-nodejs": "jest --env node",
+    "test": "pnpm run test:node && pnpm run test:edge && pnpm run test:common",
+    "test:common": "jest --env @edge-runtime/jest-environment .common.test.ts && jest --env node .common.test.ts",
+    "test:edge": "jest --env @edge-runtime/jest-environment .edge.test.ts",
+    "test:node": "jest --env node .node.test.ts",
     "type-check": "tsc --noEmit",
     "version-packages": "changeset version"
   },

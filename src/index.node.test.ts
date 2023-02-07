@@ -1,7 +1,14 @@
 import fs from 'node:fs/promises';
 import fetchMock from 'jest-fetch-mock';
-import type { EmbeddedEdgeConfig, EdgeConfigClient } from './types';
-import * as pkg from './index.node';
+import type { EmbeddedEdgeConfig } from './types';
+import { get, has, digest, createClient, getAll } from './index.node';
+
+const baseUrl = 'https://edge-config.vercel.com/ecfg-1';
+
+// eslint-disable-next-line jest/require-top-level-describe
+beforeEach(() => {
+  fetchMock.resetMocks();
+});
 
 // mock fs for test
 jest.mock('node:fs/promises', () => {
@@ -17,18 +24,10 @@ jest.mock('node:fs/promises', () => {
   };
 });
 
-const connectionString = process.env.EDGE_CONFIG;
-const baseUrl = 'https://edge-config.vercel.com/ecfg-1';
-
-// eslint-disable-next-line jest/require-top-level-describe
-beforeEach(() => {
-  fetchMock.resetMocks();
-});
-
 describe('default Edge Config', () => {
   describe('test conditions', () => {
     it('should have an env var called EDGE_CONFIG', () => {
-      expect(connectionString).toEqual(
+      expect(process.env.EDGE_CONFIG).toEqual(
         'https://edge-config.vercel.com/ecfg-1?token=token-1',
       );
     });
@@ -37,7 +36,7 @@ describe('default Edge Config', () => {
   it('should fetch an item from the Edge Config specified by process.env.EDGE_CONFIG', async () => {
     fetchMock.mockResponse(JSON.stringify('bar'));
 
-    await expect(pkg.get('foo')).resolves.toEqual('bar');
+    await expect(get('foo')).resolves.toEqual('bar');
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo?version=1`, {
@@ -50,7 +49,7 @@ describe('default Edge Config', () => {
       it('should return the value', async () => {
         fetchMock.mockResponse(JSON.stringify('bar'));
 
-        await expect(pkg.get('foo')).resolves.toEqual('bar');
+        await expect(get('foo')).resolves.toEqual('bar');
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(
@@ -78,7 +77,7 @@ describe('default Edge Config', () => {
           },
         );
 
-        await expect(pkg.get('foo')).resolves.toEqual(undefined);
+        await expect(get('foo')).resolves.toEqual(undefined);
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(
@@ -100,7 +99,7 @@ describe('default Edge Config', () => {
           { status: 404, headers: { 'content-type': 'application/json' } },
         );
 
-        await expect(pkg.get('foo')).rejects.toThrow(
+        await expect(get('foo')).rejects.toThrow(
           '@vercel/edge-config: Edge Config not found',
         );
 
@@ -118,7 +117,7 @@ describe('default Edge Config', () => {
       it('should throw a Network error', async () => {
         fetchMock.mockReject();
 
-        await expect(pkg.get('foo')).rejects.toThrow(
+        await expect(get('foo')).rejects.toThrow(
           '@vercel/edge-config: Network error',
         );
 
@@ -136,7 +135,7 @@ describe('default Edge Config', () => {
       it('should throw a Unexpected error on 500', async () => {
         fetchMock.mockResponse('', { status: 500 });
 
-        await expect(pkg.get('foo')).rejects.toThrow(
+        await expect(get('foo')).rejects.toThrow(
           '@vercel/edge-config: Unexpected error',
         );
 
@@ -156,7 +155,7 @@ describe('default Edge Config', () => {
       it('should return all items', async () => {
         fetchMock.mockResponse(JSON.stringify({ foo: 'foo1' }));
 
-        await expect(pkg.getAll()).resolves.toEqual({ foo: 'foo1' });
+        await expect(getAll()).resolves.toEqual({ foo: 'foo1' });
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items?version=1`, {
@@ -169,7 +168,7 @@ describe('default Edge Config', () => {
       it('should return the selected items', async () => {
         fetchMock.mockResponse(JSON.stringify({ foo: 'foo1', bar: 'bar1' }));
 
-        await expect(pkg.getAll(['foo', 'bar'])).resolves.toEqual({
+        await expect(getAll(['foo', 'bar'])).resolves.toEqual({
           foo: 'foo1',
           bar: 'bar1',
         });
@@ -194,7 +193,7 @@ describe('default Edge Config', () => {
           { status: 404, headers: { 'content-type': 'application/json' } },
         );
 
-        await expect(pkg.getAll(['foo', 'bar'])).rejects.toThrow(
+        await expect(getAll(['foo', 'bar'])).rejects.toThrow(
           '@vercel/edge-config: Edge Config not found',
         );
 
@@ -210,7 +209,7 @@ describe('default Edge Config', () => {
       it('should throw a Network error', async () => {
         fetchMock.mockReject();
 
-        await expect(pkg.getAll()).rejects.toThrow(
+        await expect(getAll()).rejects.toThrow(
           '@vercel/edge-config: Network error',
         );
 
@@ -225,7 +224,7 @@ describe('default Edge Config', () => {
       it('should throw a Unexpected error on 500', async () => {
         fetchMock.mockResponse('', { status: 500 });
 
-        await expect(pkg.getAll()).rejects.toThrow(
+        await expect(getAll()).rejects.toThrow(
           '@vercel/edge-config: Unexpected error',
         );
 
@@ -242,7 +241,7 @@ describe('default Edge Config', () => {
       it('should return true', async () => {
         fetchMock.mockResponse('');
 
-        await expect(pkg.has('foo')).resolves.toEqual(true);
+        await expect(has('foo')).resolves.toEqual(true);
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(
@@ -273,7 +272,7 @@ describe('default Edge Config', () => {
           },
         );
 
-        await expect(pkg.has('foo')).resolves.toEqual(false);
+        await expect(has('foo')).resolves.toEqual(false);
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(
@@ -298,7 +297,7 @@ describe('default Edge Config', () => {
           { status: 404, headers: { 'content-type': 'application/json' } },
         );
 
-        await expect(pkg.has('foo')).rejects.toThrow(
+        await expect(has('foo')).rejects.toThrow(
           '@vercel/edge-config: Edge Config not found',
         );
 
@@ -319,7 +318,7 @@ describe('default Edge Config', () => {
       it('should return the digest', async () => {
         fetchMock.mockResponse(JSON.stringify('awe1'));
 
-        await expect(pkg.digest()).resolves.toEqual('awe1');
+        await expect(digest()).resolves.toEqual('awe1');
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest?version=1`, {
@@ -332,7 +331,7 @@ describe('default Edge Config', () => {
       it('should throw an Unexpected error on 500', async () => {
         fetchMock.mockResponse('', { status: 500 });
 
-        await expect(pkg.digest()).rejects.toThrow(
+        await expect(digest()).rejects.toThrow(
           '@vercel/edge-config: Unexpected error',
         );
 
@@ -345,7 +344,7 @@ describe('default Edge Config', () => {
       it('should throw an Unexpected error on 404', async () => {
         fetchMock.mockResponse('', { status: 404 });
 
-        await expect(pkg.digest()).rejects.toThrow(
+        await expect(digest()).rejects.toThrow(
           '@vercel/edge-config: Unexpected error',
         );
 
@@ -360,7 +359,7 @@ describe('default Edge Config', () => {
       it('should throw a Network error', async () => {
         fetchMock.mockReject();
 
-        await expect(pkg.digest()).rejects.toThrow(
+        await expect(digest()).rejects.toThrow(
           '@vercel/edge-config: Network error',
         );
 
@@ -376,84 +375,6 @@ describe('default Edge Config', () => {
 // these test the happy path only, as the cases are tested through the
 // "default Edge Config" tests above anyhow
 describe('createEdgeConfig', () => {
-  describe('when running without lambda layer or via edge function', () => {
-    const modifiedConnectionString =
-      'https://edge-config.vercel.com/ecfg-2?token=token-2';
-    const modifiedBaseUrl = 'https://edge-config.vercel.com/ecfg-2';
-    let edgeConfig: EdgeConfigClient;
-
-    beforeEach(() => {
-      edgeConfig = pkg.createClient(modifiedConnectionString);
-    });
-
-    it('should be a function', () => {
-      expect(typeof pkg.createClient).toBe('function');
-    });
-
-    describe('when called without a baseUrl', () => {
-      it('should throw', () => {
-        expect(() => pkg.createClient(undefined)).toThrow(
-          '@vercel/edge-config: No connection string provided',
-        );
-      });
-    });
-
-    describe('get', () => {
-      describe('when item exists', () => {
-        it('should fetch using information from the passed token', async () => {
-          fetchMock.mockResponse(JSON.stringify('bar'));
-
-          await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
-
-          expect(fetchMock).toHaveBeenCalledTimes(1);
-          expect(fetchMock).toHaveBeenCalledWith(
-            `${modifiedBaseUrl}/item/foo?version=1`,
-            {
-              headers: { Authorization: 'Bearer token-2' },
-            },
-          );
-        });
-      });
-    });
-
-    describe('has(key)', () => {
-      describe('when item exists', () => {
-        it('should return true', async () => {
-          fetchMock.mockResponse('');
-
-          await expect(edgeConfig.has('foo')).resolves.toEqual(true);
-
-          expect(fetchMock).toHaveBeenCalledTimes(1);
-          expect(fetchMock).toHaveBeenCalledWith(
-            `${modifiedBaseUrl}/item/foo?version=1`,
-            {
-              method: 'HEAD',
-              headers: { Authorization: 'Bearer token-2' },
-            },
-          );
-        });
-      });
-    });
-
-    describe('digest()', () => {
-      describe('when the request succeeds', () => {
-        it('should return the digest', async () => {
-          fetchMock.mockResponse(JSON.stringify('awe1'));
-
-          await expect(edgeConfig.digest()).resolves.toEqual('awe1');
-
-          expect(fetchMock).toHaveBeenCalledTimes(1);
-          expect(fetchMock).toHaveBeenCalledWith(
-            `${modifiedBaseUrl}/digest?version=1`,
-            {
-              headers: { Authorization: 'Bearer token-2' },
-            },
-          );
-        });
-      });
-    });
-  });
-
   describe('when running with lambda layer on serverless function', () => {
     beforeAll(() => {
       process.env.AWS_LAMBDA_FUNCTION_NAME = 'some-value';
@@ -470,7 +391,7 @@ describe('createEdgeConfig', () => {
     describe('get(key)', () => {
       describe('when item exists', () => {
         it('should return the value', async () => {
-          const edgeConfig = pkg.createClient(connectionString);
+          const edgeConfig = createClient(process.env.EDGE_CONFIG);
           await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
           expect(fetchMock).toHaveBeenCalledTimes(0);
           expect(fs.readFile).toHaveBeenCalledTimes(1);
@@ -481,7 +402,7 @@ describe('createEdgeConfig', () => {
         });
 
         it('should not be able to modify the value for the next get', async () => {
-          const edgeConfig = pkg.createClient(connectionString);
+          const edgeConfig = createClient(process.env.EDGE_CONFIG);
           const someArray = await edgeConfig.get<string[]>('someArray');
           expect(someArray).toEqual([]);
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -500,7 +421,7 @@ describe('createEdgeConfig', () => {
 
       describe('when the item does not exist', () => {
         it('should return undefined', async () => {
-          const edgeConfig = pkg.createClient(connectionString);
+          const edgeConfig = createClient(process.env.EDGE_CONFIG);
           await expect(edgeConfig.get('baz')).resolves.toEqual(undefined);
           expect(fetchMock).toHaveBeenCalledTimes(0);
           expect(fs.readFile).toHaveBeenCalledTimes(1);
@@ -515,7 +436,7 @@ describe('createEdgeConfig', () => {
     describe('has(key)', () => {
       describe('when item exists', () => {
         it('should return true', async () => {
-          const edgeConfig = pkg.createClient(connectionString);
+          const edgeConfig = createClient(process.env.EDGE_CONFIG);
           await expect(edgeConfig.has('foo')).resolves.toEqual(true);
           expect(fetchMock).toHaveBeenCalledTimes(0);
           expect(fs.readFile).toHaveBeenCalledTimes(1);
@@ -528,7 +449,7 @@ describe('createEdgeConfig', () => {
 
       describe('when the item does not exist', () => {
         it('should return false', async () => {
-          const edgeConfig = pkg.createClient(connectionString);
+          const edgeConfig = createClient(process.env.EDGE_CONFIG);
           await expect(edgeConfig.has('baz')).resolves.toEqual(false);
           expect(fetchMock).toHaveBeenCalledTimes(0);
           expect(fs.readFile).toHaveBeenCalledTimes(1);
@@ -542,7 +463,7 @@ describe('createEdgeConfig', () => {
 
     describe('digest()', () => {
       it('should return the digest', async () => {
-        const edgeConfig = pkg.createClient(connectionString);
+        const edgeConfig = createClient(process.env.EDGE_CONFIG);
         await expect(edgeConfig.digest()).resolves.toEqual('awe1');
         expect(fetchMock).toHaveBeenCalledTimes(0);
         expect(fs.readFile).toHaveBeenCalledTimes(1);

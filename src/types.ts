@@ -1,17 +1,27 @@
 export interface EmbeddedEdgeConfig {
   digest: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  items: Record<string, any>;
+  items: Record<string, EdgeConfigValue>;
 }
 
 /**
  * Edge Config Client
  */
 export interface EdgeConfigClient {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  get: <T = any>(key: string) => Promise<T | undefined>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getAll: <T = any>(keys?: (keyof T)[]) => Promise<T | undefined>;
+  get: <T extends EdgeConfigValue = EdgeConfigValue>(
+    key: string,
+  ) => Promise<T | undefined>;
+  getAll: <T extends EdgeConfigItems = EdgeConfigItems>(
+    keys?: (keyof T)[],
+  ) => Promise<T>;
   has: (key: string) => Promise<boolean>;
   digest: () => Promise<string>;
 }
+
+export type EdgeConfigItems = Record<string, EdgeConfigValue>;
+export type EdgeConfigValue =
+  | string
+  | number
+  | boolean
+  | null
+  | { [x: string]: EdgeConfigValue }
+  | EdgeConfigValue[];

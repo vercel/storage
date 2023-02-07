@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.1.2-bundling.1
+
+### Patch Changes
+
+- 6047c1d: make `get()` and `getAll()` return type EdgeConfigValue instead of any, kudos @jzxhuang
+
 ## 0.1.2-bundling.0
 
 ### Patch Changes

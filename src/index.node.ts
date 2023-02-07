@@ -8,9 +8,20 @@ import {
   parseConnectionString,
   pick,
 } from './shared';
-import type { EmbeddedEdgeConfig } from './types';
+import type {
+  EdgeConfigClient,
+  EdgeConfigItems,
+  EdgeConfigValue,
+  EmbeddedEdgeConfig,
+} from './types';
 
-export { parseConnectionString };
+export {
+  parseConnectionString,
+  type EdgeConfigClient,
+  type EdgeConfigItems,
+  type EdgeConfigValue,
+  type EmbeddedEdgeConfig,
+};
 
 /**
  * Reads an Edge Config from the local file system.
@@ -53,21 +64,6 @@ async function getOptimizedEdgeConfig(
   return null;
 }
 
-/**
- * Edge Config Client
- */
-export interface EdgeConfigClient {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  get: <T = any>(key: string) => Promise<T | undefined>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getAll: <T = any>(keys?: (keyof T)[]) => Promise<T | undefined>;
-  has: (key: string) => Promise<boolean>;
-  digest: () => Promise<string>;
-}
-
-/**
- * Creates a deep clone of an object.
- */
 export function createClient(
   connectionString: string | undefined,
 ): EdgeConfigClient {
@@ -94,8 +90,9 @@ export function createClient(
   const cache = new Map<string, EmbeddedEdgeConfig | undefined | null>();
 
   return {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async get<T = any>(key: string): Promise<T | undefined> {
+    async get<T extends EdgeConfigValue = EdgeConfigValue>(
+      key: string,
+    ): Promise<T | undefined> {
       const subEdgeConfig = await getOptimizedEdgeConfig(connection, cache);
       if (subEdgeConfig) {
         assertIsKey(key);
@@ -160,8 +157,9 @@ export function createClient(
         },
       );
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async getAll<T = any>(keys?: (keyof T)[]): Promise<T | undefined> {
+    async getAll<T extends EdgeConfigItems = EdgeConfigItems>(
+      keys?: (keyof T)[],
+    ): Promise<T> {
       const subEdgeConfig = await getOptimizedEdgeConfig(connection, cache);
 
       if (subEdgeConfig) {
@@ -188,7 +186,7 @@ export function createClient(
       return fetch(
         `${url}/items?version=${version}${search === null ? '' : `&${search}`}`,
         { headers },
-      ).then<T | undefined, undefined>(
+      ).then<T>(
         async (res) => {
           if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
           // the /items endpoint never returns 404, so if we get a 404

@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.1.2-bundling.0
+
+### Patch Changes
+
+- 868f702: split bundles into edge-runtime and node
+
 ## 0.1.1
 
 ### Patch Changes

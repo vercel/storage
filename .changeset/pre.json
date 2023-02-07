@@ -4,5 +4,5 @@
   "initialVersions": {
     "@vercel/edge-config": "0.1.1"
   },
-  "changesets": ["three-pigs-press"]
+  "changesets": ["big-garlics-protect", "three-pigs-press"]
 }

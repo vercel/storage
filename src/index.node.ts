@@ -1,4 +1,5 @@
-import fs from 'node:fs/promises';
+// eslint-disable-next-line unicorn/prefer-node-protocol
+import fs from 'fs/promises';
 import {
   assertIsKey,
   assertIsKeys,

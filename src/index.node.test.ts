@@ -1,4 +1,5 @@
-import fs from 'node:fs/promises';
+// eslint-disable-next-line unicorn/prefer-node-protocol
+import fs from 'fs/promises';
 import fetchMock from 'jest-fetch-mock';
 import type { EmbeddedEdgeConfig } from './types';
 import { get, has, digest, createClient, getAll } from './index.node';
@@ -11,7 +12,7 @@ beforeEach(() => {
 });
 
 // mock fs for test
-jest.mock('node:fs/promises', () => {
+jest.mock('fs/promises', () => {
   const embeddedEdgeConfig: EmbeddedEdgeConfig = {
     digest: 'awe1',
     items: { foo: 'bar', someArray: [] },

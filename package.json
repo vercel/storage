@@ -61,23 +61,23 @@
     "testEnvironment": "node"
   },
   "devDependencies": {
-    "@babel/core": "7.19.6",
-    "@changesets/cli": "2.25.0",
-    "@edge-runtime/jest-environment": "1.1.0-beta.31",
-    "@edge-runtime/types": "2.0.0",
-    "@types/jest": "29.2.0",
-    "@types/node": "18.11.3",
+    "@babel/core": "7.21.0",
+    "@changesets/cli": "2.26.0",
+    "@edge-runtime/jest-environment": "2.0.8",
+    "@edge-runtime/types": "2.0.8",
+    "@types/jest": "29.4.0",
+    "@types/node": "18.14.6",
     "@vercel/style-guide": "4.0.2",
-    "eslint": "8.25.0",
-    "husky": "8.0.1",
-    "jest": "29.2.1",
+    "eslint": "8.35.0",
+    "husky": "8.0.3",
+    "jest": "29.5.0",
     "jest-fetch-mock": "3.0.3",
-    "lint-staged": "13.0.3",
-    "prettier": "2.7.1",
-    "ts-jest": "29.0.3",
-    "tsup": "6.3.0",
-    "typescript": "4.8.4",
-    "urlpattern-polyfill": "6.0.1"
+    "lint-staged": "13.1.2",
+    "prettier": "2.8.4",
+    "ts-jest": "29.0.5",
+    "tsup": "6.6.3",
+    "typescript": "4.9.5",
+    "urlpattern-polyfill": "6.0.2"
   },
   "engines": {
     "node": ">=14.6"

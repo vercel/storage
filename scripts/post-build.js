@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
-import fs from 'node:fs/promises';
+// eslint-disable-next-line unicorn/prefer-node-protocol
+import fs from 'fs/promises';
 
 // ensures index.node.d.ts and index.edge.d.ts are completely equal,
 // then creates a single index.d.ts file for both.

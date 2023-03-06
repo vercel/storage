@@ -411,7 +411,7 @@ describe('createEdgeConfig', () => {
           // next get
           await expect(edgeConfig.get('someArray')).resolves.toEqual([]);
           expect(fetchMock).toHaveBeenCalledTimes(0);
-          expect(fs.readFile).toHaveBeenCalledTimes(1);
+          expect(fs.readFile).toHaveBeenCalledTimes(2);
           expect(fs.readFile).toHaveBeenCalledWith(
             '/opt/edge-config/ecfg-1.json',
             'utf-8',

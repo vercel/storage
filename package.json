@@ -23,8 +23,6 @@
       }
     }
   },
-  "main": "./dist/index.edge.cjs",
-  "module": "./dist/index.edge.js",
   "types": "./dist/index.d.ts",
   "files": [
     "dist"

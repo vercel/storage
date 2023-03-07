@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.1.2-bundling.3
+
+### Patch Changes
+
+- 4f93dad: Removes main and module fields to force the use of the exports field
+
 ## 0.1.2-bundling.2
 
 ### Patch Changes

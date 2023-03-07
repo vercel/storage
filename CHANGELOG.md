@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.1.2-bundling.2
+
+### Patch Changes
+
+- 9aadcf8: upgrade dependencies
+
 ## 0.1.2-bundling.1
 
 ### Patch Changes

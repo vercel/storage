@@ -1,5 +1,14 @@
 # @vercel/edge-config
 
+## 0.1.2
+
+### Patch Changes
+
+- 6047c1d: make `get()` and `getAll()` return type EdgeConfigValue instead of any, kudos @jzxhuang
+- 9aadcf8: upgrade dependencies
+- 4f93dad: Removes main and module fields to force the use of the exports field
+- 868f702: split bundles into edge-runtime and node
+
 ## 0.1.2-bundling.3
 
 ### Patch Changes

@@ -10,7 +10,7 @@ import fetchMock from 'jest-fetch-mock';
 import * as node from './index.node';
 import * as edge from './index.edge';
 import type { EdgeConfigClient } from './types';
-import { cache } from './utils/fetch-with-cache';
+import { cache } from './utils/fetch-with-cached-response';
 
 describe('package exports', () => {
   it('should have the same exports in both runtimes', () => {
@@ -160,6 +160,7 @@ describe.each([
         });
 
         // second call should reuse response
+
         await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
 
         expect(fetchMock).toHaveBeenCalledTimes(2);

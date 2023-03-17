@@ -3,7 +3,7 @@ import fs from 'fs/promises';
 import fetchMock from 'jest-fetch-mock';
 import type { EmbeddedEdgeConfig } from './types';
 import { get, has, digest, createClient, getAll } from './index.node';
-import { cache } from './utils/fetch-with-cache';
+import { cache } from './utils/fetch-with-cached-response';
 
 const baseUrl = 'https://edge-config.vercel.com/ecfg-1';
 

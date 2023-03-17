@@ -10,7 +10,7 @@ import type {
   EdgeConfigValue,
   EmbeddedEdgeConfig,
 } from './types';
-import { fetchWithCache } from './utils/fetch-with-cache';
+import { fetchWithCachedResponse } from './utils/fetch-with-cached-response';
 
 export {
   parseConnectionString,
@@ -39,10 +39,10 @@ export function createClient(
       key: string,
     ): Promise<T | undefined> {
       assertIsKey(key);
-      return fetchWithCache(`${url}/item/${key}?version=${version}`, {
+      return fetchWithCachedResponse(`${url}/item/${key}?version=${version}`, {
         headers: new Headers(headers),
       }).then<T | undefined, undefined>(
-        async (res) => {
+        (res) => {
           if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
           if (res.status === 404) {
             // if the x-edge-config-digest header is present, it means
@@ -52,8 +52,8 @@ export function createClient(
             // the edge config itself does not exist
             throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
           }
+          if (res.cachedResponse) return res.cachedResponse.json();
           if (res.ok) return res.json();
-
           throw new Error(ERRORS.UNEXPECTED);
         },
         () => {
@@ -63,7 +63,7 @@ export function createClient(
     },
     async has(key): Promise<boolean> {
       assertIsKey(key);
-      return fetchWithCache(`${url}/item/${key}?version=${version}`, {
+      return fetchWithCachedResponse(`${url}/item/${key}?version=${version}`, {
         method: 'HEAD',
         headers: new Headers(headers),
       }).then(
@@ -100,7 +100,7 @@ export function createClient(
       // so skip the request and return an empty object
       if (search === '') return Promise.resolve({} as T);
 
-      return fetchWithCache(
+      return fetchWithCachedResponse(
         `${url}/items?version=${version}${search === null ? '' : `&${search}`}`,
         { headers: new Headers(headers) },
       ).then<T>(
@@ -109,6 +109,7 @@ export function createClient(
           // the /items endpoint never returns 404, so if we get a 404
           // it means the edge config itself did not exist
           if (res.status === 404) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
+          if (res.cachedResponse) return res.cachedResponse.json();
           if (res.ok) return res.json();
           throw new Error(ERRORS.UNEXPECTED);
         },
@@ -118,12 +119,14 @@ export function createClient(
       );
     },
     async digest(): Promise<string> {
-      return fetchWithCache(`${url}/digest?version=1`, {
+      return fetchWithCachedResponse(`${url}/digest?version=1`, {
         headers: new Headers(headers),
       }).then(
         (res) => {
-          if (!res.ok) throw new Error(ERRORS.UNEXPECTED);
-          return res.json() as Promise<string>;
+          if (res.cachedResponse)
+            return res.cachedResponse.json() as Promise<string>;
+          if (res.ok) return res.json() as Promise<string>;
+          throw new Error(ERRORS.UNEXPECTED);
         },
         () => {
           throw new Error(ERRORS.NETWORK);

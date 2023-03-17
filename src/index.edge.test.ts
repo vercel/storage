@@ -1,6 +1,6 @@
 import fetchMock from 'jest-fetch-mock';
 import { get, has, digest, getAll } from './index.edge';
-import { cache } from './utils/fetch-with-cache';
+import { cache } from './utils/fetch-with-cached-response';
 
 const baseUrl = 'https://edge-config.vercel.com/ecfg-1';
 

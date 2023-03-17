@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.1.4
+
+### Patch Changes
+
+- 2df8aac: avoid reusing ReadableStream across request contexts
+
 ## 0.1.3
 
 ### Patch Changes

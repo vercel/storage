@@ -10,6 +10,7 @@ import fetchMock from 'jest-fetch-mock';
 import * as node from './index.node';
 import * as edge from './index.edge';
 import type { EdgeConfigClient } from './types';
+import { cache } from './utils/fetch-with-cached-response';
 
 describe('package exports', () => {
   it('should have the same exports in both runtimes', () => {
@@ -63,7 +64,7 @@ describe.each([
 
     beforeEach(() => {
       fetchMock.resetMocks();
-
+      cache.clear();
       edgeConfig = pkg.createClient(modifiedConnectionString);
     });
 
@@ -89,7 +90,7 @@ describe.each([
           expect(fetchMock).toHaveBeenCalledTimes(1);
           expect(fetchMock).toHaveBeenCalledWith(
             `${modifiedBaseUrl}/item/foo?version=1`,
-            { headers: { Authorization: 'Bearer token-2' } },
+            { headers: new Headers({ Authorization: 'Bearer token-2' }) },
           );
         });
       });
@@ -107,7 +108,7 @@ describe.each([
             `${modifiedBaseUrl}/item/foo?version=1`,
             {
               method: 'HEAD',
-              headers: { Authorization: 'Bearer token-2' },
+              headers: new Headers({ Authorization: 'Bearer token-2' }),
             },
           );
         });
@@ -124,9 +125,58 @@ describe.each([
           expect(fetchMock).toHaveBeenCalledTimes(1);
           expect(fetchMock).toHaveBeenCalledWith(
             `${modifiedBaseUrl}/digest?version=1`,
-            { headers: { Authorization: 'Bearer token-2' } },
+            { headers: new Headers({ Authorization: 'Bearer token-2' }) },
           );
         });
+      });
+    });
+  });
+
+  describe('etags and if-none-match', () => {
+    const modifiedConnectionString =
+      'https://edge-config.vercel.com/ecfg-2?token=token-2';
+    const modifiedBaseUrl = 'https://edge-config.vercel.com/ecfg-2';
+    let edgeConfig: EdgeConfigClient;
+
+    beforeEach(() => {
+      fetchMock.resetMocks();
+      cache.clear();
+      edgeConfig = pkg.createClient(modifiedConnectionString);
+    });
+
+    describe('when reading the same item twice', () => {
+      it('should reuse the response', async () => {
+        fetchMock.mockResponseOnce(JSON.stringify('bar'), {
+          headers: { ETag: 'a' },
+        });
+
+        await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
+
+        // the server would not actually send a response body the second time
+        // as the etag matches
+        fetchMock.mockResponseOnce('', {
+          status: 304,
+          headers: { ETag: 'a' },
+        });
+
+        // second call should reuse response
+
+        await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
+
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+        expect(fetchMock).toHaveBeenCalledWith(
+          `${modifiedBaseUrl}/item/foo?version=1`,
+          { headers: new Headers({ Authorization: 'Bearer token-2' }) },
+        );
+        expect(fetchMock).toHaveBeenCalledWith(
+          `${modifiedBaseUrl}/item/foo?version=1`,
+          {
+            headers: new Headers({
+              Authorization: 'Bearer token-2',
+              'if-none-match': 'a',
+            }),
+          },
+        );
       });
     });
   });

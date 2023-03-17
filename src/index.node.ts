@@ -89,7 +89,8 @@ export function createClient(
             // the edge config itself does not exist
             throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
           }
-          if (res.cachedResponse) return res.cachedResponse.json();
+          if (res.cachedResponseBody !== undefined)
+            return res.cachedResponseBody as T;
           if (res.ok) return res.json();
           throw new Error(ERRORS.UNEXPECTED);
         },
@@ -163,7 +164,8 @@ export function createClient(
           // the /items endpoint never returns 404, so if we get a 404
           // it means the edge config itself did not exist
           if (res.status === 404) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-          if (res.cachedResponse) return res.cachedResponse.json();
+          if (res.cachedResponseBody !== undefined)
+            return res.cachedResponseBody as T;
           if (res.ok) return res.json();
           throw new Error(ERRORS.UNEXPECTED);
         },
@@ -183,8 +185,8 @@ export function createClient(
         headers: new Headers(headers),
       }).then(
         (res) => {
-          if (res.cachedResponse)
-            return res.cachedResponse.json() as Promise<string>;
+          if (res.cachedResponseBody !== undefined)
+            return res.cachedResponseBody as string;
           if (res.ok) return res.json() as Promise<string>;
           throw new Error(ERRORS.UNEXPECTED);
         },

@@ -27,7 +27,7 @@ describe('fetchWithCachedResponse', () => {
       new Headers({ ETag: 'abc123', 'content-type': 'application/json' }),
     );
     await expect(data1.json()).resolves.toEqual({ name: 'John' });
-    expect(data1.cachedResponse).toBeUndefined();
+    expect(data1.cachedResponseBody).toBeUndefined();
 
     // Second request (should come from cache)
     fetchMock.mockResponseOnce('', {
@@ -45,10 +45,7 @@ describe('fetchWithCachedResponse', () => {
     );
 
     expect(data2).toHaveProperty('status', 304);
-    expect(data2.cachedResponse).toHaveProperty('status', 200);
-    await expect(data2.cachedResponse?.json()).resolves.toEqual({
-      name: 'John',
-    });
+    expect(data2.cachedResponseBody).toEqual({ name: 'John' });
   });
 
   it('should differentiate caches by authorization header', async () => {
@@ -93,7 +90,7 @@ describe('fetchWithCachedResponse', () => {
       new Headers({ ETag: 'abc123', 'content-type': 'application/json' }),
     );
     expect(data2).toHaveProperty('status', 200);
-    expect(data2.cachedResponse).toBeUndefined();
+    expect(data2.cachedResponseBody).toBeUndefined();
     await expect(data2.json()).resolves.toEqual({
       name: 'Bob',
     });
@@ -122,9 +119,6 @@ describe('fetchWithCachedResponse', () => {
     );
 
     expect(data3).toHaveProperty('status', 304);
-    expect(data3.cachedResponse).toHaveProperty('status', 200);
-    await expect(data3.cachedResponse?.json()).resolves.toEqual({
-      name: 'John',
-    });
+    expect(data3.cachedResponseBody).toEqual({ name: 'John' });
   });
 });

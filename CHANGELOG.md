@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.1.3
+
+### Patch Changes
+
+- 419c38e: adds an etag based cache to reduce latency and bandwidth
+
 ## 0.1.2
 
 ### Patch Changes

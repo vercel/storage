@@ -10,6 +10,7 @@ import type {
   EdgeConfigValue,
   EmbeddedEdgeConfig,
 } from './types';
+import { fetchWithCache } from './utils/fetch-with-cache';
 
 export {
   parseConnectionString,
@@ -38,8 +39,8 @@ export function createClient(
       key: string,
     ): Promise<T | undefined> {
       assertIsKey(key);
-      return fetch(`${url}/item/${key}?version=${version}`, {
-        headers,
+      return fetchWithCache(`${url}/item/${key}?version=${version}`, {
+        headers: new Headers(headers),
       }).then<T | undefined, undefined>(
         async (res) => {
           if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
@@ -62,9 +63,9 @@ export function createClient(
     },
     async has(key): Promise<boolean> {
       assertIsKey(key);
-      return fetch(`${url}/item/${key}?version=${version}`, {
+      return fetchWithCache(`${url}/item/${key}?version=${version}`, {
         method: 'HEAD',
-        headers,
+        headers: new Headers(headers),
       }).then(
         (res) => {
           if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
@@ -99,9 +100,9 @@ export function createClient(
       // so skip the request and return an empty object
       if (search === '') return Promise.resolve({} as T);
 
-      return fetch(
+      return fetchWithCache(
         `${url}/items?version=${version}${search === null ? '' : `&${search}`}`,
-        { headers },
+        { headers: new Headers(headers) },
       ).then<T>(
         async (res) => {
           if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
@@ -117,7 +118,9 @@ export function createClient(
       );
     },
     async digest(): Promise<string> {
-      return fetch(`${url}/digest?version=1`, { headers }).then(
+      return fetchWithCache(`${url}/digest?version=1`, {
+        headers: new Headers(headers),
+      }).then(
         (res) => {
           if (!res.ok) throw new Error(ERRORS.UNEXPECTED);
           return res.json() as Promise<string>;

@@ -3,12 +3,14 @@ import fs from 'fs/promises';
 import fetchMock from 'jest-fetch-mock';
 import type { EmbeddedEdgeConfig } from './types';
 import { get, has, digest, createClient, getAll } from './index.node';
+import { cache } from './utils/fetch-with-cache';
 
 const baseUrl = 'https://edge-config.vercel.com/ecfg-1';
 
 // eslint-disable-next-line jest/require-top-level-describe
 beforeEach(() => {
   fetchMock.resetMocks();
+  cache.clear();
 });
 
 // mock fs for test
@@ -41,7 +43,7 @@ describe('default Edge Config', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo?version=1`, {
-      headers: { Authorization: 'Bearer token-1' },
+      headers: new Headers({ Authorization: 'Bearer token-1' }),
     });
   });
 
@@ -55,7 +57,7 @@ describe('default Edge Config', () => {
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(
           `${baseUrl}/item/foo?version=1`,
-          { headers: { Authorization: 'Bearer token-1' } },
+          { headers: new Headers({ Authorization: 'Bearer token-1' }) },
         );
       });
     });
@@ -83,7 +85,7 @@ describe('default Edge Config', () => {
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(
           `${baseUrl}/item/foo?version=1`,
-          { headers: { Authorization: 'Bearer token-1' } },
+          { headers: new Headers({ Authorization: 'Bearer token-1' }) },
         );
       });
     });
@@ -108,7 +110,7 @@ describe('default Edge Config', () => {
         expect(fetchMock).toHaveBeenCalledWith(
           `${baseUrl}/item/foo?version=1`,
           {
-            headers: { Authorization: 'Bearer token-1' },
+            headers: new Headers({ Authorization: 'Bearer token-1' }),
           },
         );
       });
@@ -126,7 +128,7 @@ describe('default Edge Config', () => {
         expect(fetchMock).toHaveBeenCalledWith(
           `${baseUrl}/item/foo?version=1`,
           {
-            headers: { Authorization: 'Bearer token-1' },
+            headers: new Headers({ Authorization: 'Bearer token-1' }),
           },
         );
       });
@@ -144,7 +146,7 @@ describe('default Edge Config', () => {
         expect(fetchMock).toHaveBeenCalledWith(
           `${baseUrl}/item/foo?version=1`,
           {
-            headers: { Authorization: 'Bearer token-1' },
+            headers: new Headers({ Authorization: 'Bearer token-1' }),
           },
         );
       });
@@ -160,7 +162,7 @@ describe('default Edge Config', () => {
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items?version=1`, {
-          headers: { Authorization: 'Bearer token-1' },
+          headers: new Headers({ Authorization: 'Bearer token-1' }),
         });
       });
     });
@@ -177,7 +179,7 @@ describe('default Edge Config', () => {
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(
           `${baseUrl}/items?version=1&key=foo&key=bar`,
-          { headers: { Authorization: 'Bearer token-1' } },
+          { headers: new Headers({ Authorization: 'Bearer token-1' }) },
         );
       });
     });
@@ -201,7 +203,7 @@ describe('default Edge Config', () => {
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(
           `${baseUrl}/items?version=1&key=foo&key=bar`,
-          { headers: { Authorization: 'Bearer token-1' } },
+          { headers: new Headers({ Authorization: 'Bearer token-1' }) },
         );
       });
     });
@@ -216,7 +218,7 @@ describe('default Edge Config', () => {
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items?version=1`, {
-          headers: { Authorization: 'Bearer token-1' },
+          headers: new Headers({ Authorization: 'Bearer token-1' }),
         });
       });
     });
@@ -231,7 +233,7 @@ describe('default Edge Config', () => {
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items?version=1`, {
-          headers: { Authorization: 'Bearer token-1' },
+          headers: new Headers({ Authorization: 'Bearer token-1' }),
         });
       });
     });
@@ -249,7 +251,7 @@ describe('default Edge Config', () => {
           `${baseUrl}/item/foo?version=1`,
           {
             method: 'HEAD',
-            headers: { Authorization: 'Bearer token-1' },
+            headers: new Headers({ Authorization: 'Bearer token-1' }),
           },
         );
       });
@@ -280,7 +282,7 @@ describe('default Edge Config', () => {
           `${baseUrl}/item/foo?version=1`,
           {
             method: 'HEAD',
-            headers: { Authorization: 'Bearer token-1' },
+            headers: new Headers({ Authorization: 'Bearer token-1' }),
           },
         );
       });
@@ -307,7 +309,7 @@ describe('default Edge Config', () => {
           `${baseUrl}/item/foo?version=1`,
           {
             method: 'HEAD',
-            headers: { Authorization: 'Bearer token-1' },
+            headers: new Headers({ Authorization: 'Bearer token-1' }),
           },
         );
       });
@@ -323,7 +325,7 @@ describe('default Edge Config', () => {
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest?version=1`, {
-          headers: { Authorization: 'Bearer token-1' },
+          headers: new Headers({ Authorization: 'Bearer token-1' }),
         });
       });
     });
@@ -338,7 +340,7 @@ describe('default Edge Config', () => {
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest?version=1`, {
-          headers: { Authorization: 'Bearer token-1' },
+          headers: new Headers({ Authorization: 'Bearer token-1' }),
         });
       });
 
@@ -351,7 +353,7 @@ describe('default Edge Config', () => {
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest?version=1`, {
-          headers: { Authorization: 'Bearer token-1' },
+          headers: new Headers({ Authorization: 'Bearer token-1' }),
         });
       });
     });
@@ -366,7 +368,7 @@ describe('default Edge Config', () => {
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest?version=1`, {
-          headers: { Authorization: 'Bearer token-1' },
+          headers: new Headers({ Authorization: 'Bearer token-1' }),
         });
       });
     });

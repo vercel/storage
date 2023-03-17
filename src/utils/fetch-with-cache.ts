@@ -1,4 +1,4 @@
-interface CachedResponsePair {
+export interface CachedResponsePair {
   etag: string;
   response: Response;
 }

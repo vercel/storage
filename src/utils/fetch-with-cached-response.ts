@@ -1,12 +1,12 @@
 export interface CachedResponsePair {
   etag: string;
-  response: Response;
+  response: string;
 }
 
 type FetchOptions = Omit<RequestInit, 'headers'> & { headers?: Headers };
 
 interface ResponseWithCachedResponse extends Response {
-  cachedResponse?: Response;
+  cachedResponseBody?: unknown;
 }
 
 export const cache = new Map<string, CachedResponsePair>();
@@ -32,18 +32,23 @@ export async function fetchWithCachedResponse(
     });
 
     if (res.status === 304) {
-      res.cachedResponse = cachedResponse.clone();
+      res.cachedResponseBody = JSON.parse(cachedResponse);
       return res;
     }
 
     const newETag = res.headers.get('ETag');
     if (res.ok && newETag)
-      cache.set(cacheKey, { etag: newETag, response: res.clone() });
+      cache.set(cacheKey, {
+        etag: newETag,
+        response: await res.clone().text(),
+      });
     return res;
   }
 
   const res = await fetch(url, options);
   const etag = res.headers.get('ETag');
-  if (res.ok && etag) cache.set(cacheKey, { etag, response: res.clone() });
+  if (res.ok && etag)
+    cache.set(cacheKey, { etag, response: await res.clone().text() });
+
   return res;
 }

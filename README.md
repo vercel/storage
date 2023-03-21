@@ -71,7 +71,7 @@ The `createClient` function connects to a any Edge Config based on the provided 
 
 It returns the same `get`, `getAll`, `has` and `digest` functions as the default Edge Config Client exports.
 
-## Updating Edge Config Items
+## Writing Edge Config Items
 
 Edge Config Items can be managed in two ways:
 

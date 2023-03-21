@@ -12,15 +12,15 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
-    ".": {
-      "import": {
-        "node": "./dist/index.node.js",
-        "default": "./dist/index.edge.js"
-      },
-      "require": {
-        "node": "./dist/index.node.cjs",
-        "default": "./dist/index.edge.cjs"
-      }
+    "import": {
+      "edge-light": "./dist/index.edge.js",
+      "node": "./dist/index.node.js",
+      "default": "./dist/index.edge.js"
+    },
+    "require": {
+      "edge-light": "./dist/index.edge.cjs",
+      "node": "./dist/index.node.cjs",
+      "default": "./dist/index.edge.cjs"
     }
   },
   "types": "./dist/index.d.ts",

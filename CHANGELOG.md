@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.1.5
+
+### Patch Changes
+
+- af5f776: explicitly target edge-light runtime environment
+
 ## 0.1.5-canary.0
 
 ### Patch Changes

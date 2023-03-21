@@ -71,6 +71,15 @@ The `createClient` function connects to a any Edge Config based on the provided 
 
 It returns the same `get`, `getAll`, `has` and `digest` functions as the default Edge Config Client exports.
 
+## Updating Edge Config Items
+
+Edge Config Items can be managed in two ways:
+
+- [Using the Dashboard on vercel.com](https://vercel.com/docs/concepts/edge-network/edge-config/edge-config-dashboard#manage-items-in-the-store)
+- [Using the Vercel API](https://vercel.com/docs/concepts/edge-network/edge-config/vercel-api#update-your-edge-config)
+
+Keep in mind that Edge Config is built for very high read volume, but for infrequent writes.
+
 ## Features
 
 - Works in [Edge Runtime](https://edge-runtime.vercel.sh/), [Node.js](https://nodejs.org) and in the browser

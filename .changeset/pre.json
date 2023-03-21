@@ -4,5 +4,5 @@
   "initialVersions": {
     "@vercel/edge-config": "0.1.4"
   },
-  "changesets": []
+  "changesets": ["strange-cougars-marry"]
 }

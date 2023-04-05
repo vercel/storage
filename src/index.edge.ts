@@ -41,6 +41,7 @@ export function createClient(
       assertIsKey(key);
       return fetchWithCachedResponse(`${url}/item/${key}?version=${version}`, {
         headers: new Headers(headers),
+        cache: 'no-store',
       }).then<T | undefined, undefined>(
         (res) => {
           if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
@@ -67,6 +68,7 @@ export function createClient(
       return fetchWithCachedResponse(`${url}/item/${key}?version=${version}`, {
         method: 'HEAD',
         headers: new Headers(headers),
+        cache: 'no-store',
       }).then(
         (res) => {
           if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
@@ -103,7 +105,10 @@ export function createClient(
 
       return fetchWithCachedResponse(
         `${url}/items?version=${version}${search === null ? '' : `&${search}`}`,
-        { headers: new Headers(headers) },
+        {
+          headers: new Headers(headers),
+          cache: 'no-store',
+        },
       ).then<T>(
         async (res) => {
           if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
@@ -123,6 +128,7 @@ export function createClient(
     async digest(): Promise<string> {
       return fetchWithCachedResponse(`${url}/digest?version=1`, {
         headers: new Headers(headers),
+        cache: 'no-store',
       }).then(
         (res) => {
           if (res.cachedResponseBody !== undefined)

@@ -90,7 +90,10 @@ describe.each([
           expect(fetchMock).toHaveBeenCalledTimes(1);
           expect(fetchMock).toHaveBeenCalledWith(
             `${modifiedBaseUrl}/item/foo?version=1`,
-            { headers: new Headers({ Authorization: 'Bearer token-2' }) },
+            {
+              headers: new Headers({ Authorization: 'Bearer token-2' }),
+              cache: 'no-store',
+            },
           );
         });
       });
@@ -109,6 +112,7 @@ describe.each([
             {
               method: 'HEAD',
               headers: new Headers({ Authorization: 'Bearer token-2' }),
+              cache: 'no-store',
             },
           );
         });
@@ -125,7 +129,10 @@ describe.each([
           expect(fetchMock).toHaveBeenCalledTimes(1);
           expect(fetchMock).toHaveBeenCalledWith(
             `${modifiedBaseUrl}/digest?version=1`,
-            { headers: new Headers({ Authorization: 'Bearer token-2' }) },
+            {
+              headers: new Headers({ Authorization: 'Bearer token-2' }),
+              cache: 'no-store',
+            },
           );
         });
       });
@@ -166,7 +173,10 @@ describe.each([
         expect(fetchMock).toHaveBeenCalledTimes(2);
         expect(fetchMock).toHaveBeenCalledWith(
           `${modifiedBaseUrl}/item/foo?version=1`,
-          { headers: new Headers({ Authorization: 'Bearer token-2' }) },
+          {
+            headers: new Headers({ Authorization: 'Bearer token-2' }),
+            cache: 'no-store',
+          },
         );
         expect(fetchMock).toHaveBeenCalledWith(
           `${modifiedBaseUrl}/item/foo?version=1`,
@@ -175,6 +185,7 @@ describe.each([
               Authorization: 'Bearer token-2',
               'if-none-match': 'a',
             }),
+            cache: 'no-store',
           },
         );
       });

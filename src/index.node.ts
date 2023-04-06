@@ -61,9 +61,7 @@ export function createClient(
   const headers = { Authorization: `Bearer ${connection.token}` };
 
   return {
-    async get<T extends EdgeConfigValue = EdgeConfigValue>(
-      key: string,
-    ): Promise<T | undefined> {
+    async get<T = EdgeConfigValue>(key: string): Promise<T | undefined> {
       const localEdgeConfig = await getFileSystemEdgeConfig(connection);
       if (localEdgeConfig) {
         assertIsKey(key);
@@ -131,9 +129,7 @@ export function createClient(
         },
       );
     },
-    async getAll<T extends EdgeConfigItems = EdgeConfigItems>(
-      keys?: (keyof T)[],
-    ): Promise<T> {
+    async getAll<T = EdgeConfigItems>(keys?: (keyof T)[]): Promise<T> {
       const localEdgeConfig = await getFileSystemEdgeConfig(connection);
 
       if (localEdgeConfig) {

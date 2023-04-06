@@ -1,5 +1,12 @@
 # @vercel/edge-config
 
+## 0.1.6
+
+### Patch Changes
+
+- 523f7a7: accept interfaces as generic types of get<T> and getAll<T>
+- becf6bf: add cache: no-store to fetch requests
+
 ## 0.1.6-canary.0
 
 ### Patch Changes

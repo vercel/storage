@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.1.6-canary.0
+
+### Patch Changes
+
+- becf6bf: add cache: no-store to fetch requests
+
 ## 0.1.5
 
 ### Patch Changes

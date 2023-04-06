@@ -7,12 +7,8 @@ export interface EmbeddedEdgeConfig {
  * Edge Config Client
  */
 export interface EdgeConfigClient {
-  get: <T extends EdgeConfigValue = EdgeConfigValue>(
-    key: string,
-  ) => Promise<T | undefined>;
-  getAll: <T extends EdgeConfigItems = EdgeConfigItems>(
-    keys?: (keyof T)[],
-  ) => Promise<T>;
+  get: <T = EdgeConfigValue>(key: string) => Promise<T | undefined>;
+  getAll: <T = EdgeConfigItems>(keys?: (keyof T)[]) => Promise<T>;
   has: (key: string) => Promise<boolean>;
   digest: () => Promise<string>;
 }

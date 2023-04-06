@@ -35,9 +35,7 @@ export function createClient(
   const headers = { Authorization: `Bearer ${connection.token}` };
 
   return {
-    async get<T extends EdgeConfigValue = EdgeConfigValue>(
-      key: string,
-    ): Promise<T | undefined> {
+    async get<T = EdgeConfigValue>(key: string): Promise<T | undefined> {
       assertIsKey(key);
       return fetchWithCachedResponse(`${url}/item/${key}?version=${version}`, {
         headers: new Headers(headers),
@@ -88,9 +86,7 @@ export function createClient(
         },
       );
     },
-    async getAll<T extends EdgeConfigItems = EdgeConfigItems>(
-      keys?: (keyof T)[],
-    ): Promise<T> {
+    async getAll<T = EdgeConfigItems>(keys?: (keyof T)[]): Promise<T> {
       if (Array.isArray(keys)) assertIsKeys(keys);
 
       const search = Array.isArray(keys)

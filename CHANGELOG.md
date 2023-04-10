@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.1.7
+
+### Patch Changes
+
+- b8d26e9: read body to avoid memory leaks
+
 ## 0.1.6
 
 ### Patch Changes

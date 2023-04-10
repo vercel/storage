@@ -78,7 +78,12 @@ export function createClient(
         headers: new Headers(headers),
         cache: 'no-store',
       }).then<T | undefined, undefined>(
-        (res) => {
+        async (res) => {
+          if (res.ok) return res.json();
+          // Read body to avoid memory leaks.
+          // see https://github.com/nodejs/undici/blob/v5.21.2/README.md#garbage-collection
+          // see https://github.com/node-fetch/node-fetch/issues/83
+          await res.arrayBuffer();
           if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
           if (res.status === 404) {
             // if the x-edge-config-digest header is present, it means
@@ -90,7 +95,6 @@ export function createClient(
           }
           if (res.cachedResponseBody !== undefined)
             return res.cachedResponseBody as T;
-          if (res.ok) return res.json();
           throw new Error(ERRORS.UNEXPECTED);
         },
         () => {
@@ -161,13 +165,17 @@ export function createClient(
         },
       ).then<T>(
         async (res) => {
+          if (res.ok) return res.json();
+          // Read body to avoid memory leaks.
+          // see https://github.com/nodejs/undici/blob/v5.21.2/README.md#garbage-collection
+          // see https://github.com/node-fetch/node-fetch/issues/83
+          await res.arrayBuffer();
           if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
           // the /items endpoint never returns 404, so if we get a 404
           // it means the edge config itself did not exist
           if (res.status === 404) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
           if (res.cachedResponseBody !== undefined)
             return res.cachedResponseBody as T;
-          if (res.ok) return res.json();
           throw new Error(ERRORS.UNEXPECTED);
         },
         () => {
@@ -186,10 +194,14 @@ export function createClient(
         headers: new Headers(headers),
         cache: 'no-store',
       }).then(
-        (res) => {
+        async (res) => {
+          if (res.ok) return res.json() as Promise<string>;
+          // Read body to avoid memory leaks.
+          // see https://github.com/nodejs/undici/blob/v5.21.2/README.md#garbage-collection
+          // see https://github.com/node-fetch/node-fetch/issues/83
+          await res.arrayBuffer();
           if (res.cachedResponseBody !== undefined)
             return res.cachedResponseBody as string;
-          if (res.ok) return res.json() as Promise<string>;
           throw new Error(ERRORS.UNEXPECTED);
         },
         () => {

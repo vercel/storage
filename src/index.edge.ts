@@ -63,7 +63,8 @@ export function createClient(
     },
     async has(key): Promise<boolean> {
       assertIsKey(key);
-      return fetchWithCachedResponse(`${url}/item/${key}?version=${version}`, {
+      // this is a HEAD request anyhow, no need for fetchWithCachedResponse
+      return fetch(`${url}/item/${key}?version=${version}`, {
         method: 'HEAD',
         headers: new Headers(headers),
         cache: 'no-store',

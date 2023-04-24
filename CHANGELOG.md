@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.1.8-canary.0
+
+### Patch Changes
+
+- 7a3a45b: prevent has() from failing on subsequent requests
+
 ## 0.1.7
 
 ### Patch Changes

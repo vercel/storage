@@ -4,5 +4,5 @@
   "initialVersions": {
     "@vercel/edge-config": "0.1.6"
   },
-  "changesets": []
+  "changesets": ["silver-boats-cheer"]
 }

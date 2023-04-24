@@ -1,8 +1,0 @@
-{
-  "mode": "pre",
-  "tag": "canary",
-  "initialVersions": {
-    "@vercel/edge-config": "0.1.6"
-  },
-  "changesets": ["silver-boats-cheer"]
-}

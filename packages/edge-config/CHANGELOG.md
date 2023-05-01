@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.1.9
+
+### Patch Changes
+
+- 1ade1f0: chore: Update package.json and licenses
+
 ## 0.1.8
 
 ### Patch Changes

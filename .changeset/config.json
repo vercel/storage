@@ -3,7 +3,7 @@
   "changelog": "@changesets/cli/changelog",
   "commit": false,
   "fixed": [],
-  "linked": [],
+  "linked": [["@vercel/postgres", "@vercel/postgres-kysely"]],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",

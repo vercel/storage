@@ -6,6 +6,3 @@ node_modules/
 
 # logs
 npm-debug.log
-
-.turbo
-.DS_Store

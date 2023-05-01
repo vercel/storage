@@ -1,0 +1,14 @@
+{
+  "name": "tsconfig",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@vercel/style-guide": "latest",
+    "eslint": "8.39.0",
+    "typescript": "4.8.4"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

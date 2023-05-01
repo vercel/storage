@@ -4,10 +4,7 @@ module.exports = {
     require.resolve('@vercel/style-guide/eslint/node'),
     require.resolve('@vercel/style-guide/eslint/typescript'),
   ],
-  parserOptions: {
-    project: 'tsconfig.json',
-  },
-  ignorePatterns: ['dist/**'],
+  ignorePatterns: ['packages/*/dist/**'],
   overrides: [
     {
       files: ['**/*.test.ts'],

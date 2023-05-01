@@ -1,0 +1,79 @@
+{
+  "name": "@vercel/postgres-kysely",
+  "version": "0.1.2",
+  "description": "An @vercel/postgres wrapper for the kysely ORM",
+  "homepage": "https://vercel.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vercel/storage.git",
+    "directory": "packages/postgres-kysely"
+  },
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": {
+        "edge-light": "./dist/index.js",
+        "node": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "edge-light": "./dist/index.cjs",
+        "node": "./dist/index.cjs",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/*.js",
+    "dist/*.cjs",
+    "dist/*.d.ts"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "lint": "eslint \"**/*.ts\"",
+    "prepublishOnly": "pnpm run build",
+    "prettier-check": "prettier --check .",
+    "publint": "npx publint --yes",
+    "test": "jest --env @edge-runtime/jest-environment .test.ts && jest --env node .test.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node"
+  },
+  "dependencies": {
+    "@vercel/postgres": "workspace:0.1.2"
+  },
+  "devDependencies": {
+    "@babel/core": "7.19.6",
+    "@changesets/cli": "2.25.0",
+    "@edge-runtime/jest-environment": "1.1.0-beta.31",
+    "@edge-runtime/types": "2.0.0",
+    "@neondatabase/serverless": "0.4.3",
+    "@types/jest": "29.2.0",
+    "@types/node": "18.11.3",
+    "@types/ws": "8.5.4",
+    "eslint": "8.25.0",
+    "eslint-config-custom": "workspace:*",
+    "jest": "29.2.1",
+    "kysely": "0.24.2",
+    "ts-jest": "29.0.3",
+    "tsconfig": "workspace:*",
+    "tsup": "6.3.0",
+    "typescript": "4.8.4"
+  },
+  "peerDependencies": {
+    "kysely": "^0.24.2"
+  },
+  "engines": {
+    "node": ">=14.6"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

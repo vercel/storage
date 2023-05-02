@@ -85,9 +85,6 @@ importers:
       typescript:
         specifier: 4.9.5
         version: 4.9.5
-      urlpattern-polyfill:
-        specifier: 6.0.2
-        version: 6.0.2
 
   packages/eslint-config-custom:
     dependencies:
@@ -7139,12 +7136,6 @@ packages:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
     dependencies:
       punycode: 2.3.0
-
-  /urlpattern-polyfill@6.0.2:
-    resolution: {integrity: sha512-5vZjFlH9ofROmuWmXM9yj2wljYKgWstGwe8YTyiqM7hVum/g9LyCizPZtb3UqsuppVwety9QJmfc42VggLpTgg==}
-    dependencies:
-      braces: 3.0.2
-    dev: true
 
   /utf-8-validate@6.0.3:
     resolution: {integrity: sha512-uIuGf9TWQ/y+0Lp+KGZCMuJWc3N9BHA+l/UmHd/oUHwJJDeysyTRxNQVkbzsIWfGFbRe3OcgML/i0mvVRPOyDA==}

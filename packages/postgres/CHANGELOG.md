@@ -1,5 +1,11 @@
 # @vercel/postgres
 
+## 0.1.3
+
+### Patch Changes
+
+- 1ade1f0: chore: Update package.json and licenses
+
 ## 0.1.2
 
 ### Patch Changes

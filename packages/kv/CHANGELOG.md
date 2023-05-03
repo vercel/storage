@@ -1,5 +1,11 @@
 # @vercel/kv
 
+## 0.1.1
+
+### Patch Changes
+
+- 1ade1f0: chore: Update package.json and licenses
+
 ## 0.1.0
 
 ### Minor Changes

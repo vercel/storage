@@ -1,5 +1,13 @@
 # @vercel/postgres-kysely
 
+## 0.1.3
+
+### Patch Changes
+
+- 1ade1f0: chore: Update package.json and licenses
+- Updated dependencies [1ade1f0]
+  - @vercel/postgres@0.1.3
+
 ## 0.1.2
 
 ### Patch Changes

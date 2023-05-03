@@ -10,7 +10,7 @@ const baseURL =
   process.env.PLAYWRIGHT_TEST_BASE_URL ?? `http://localhost:${PORT}`;
 
 const webServer = {
-  command: 'pnpm start',
+  command: 'pnpm dev',
   url: baseURL,
   timeout: 120 * 1000,
   reuseExistingServer: !process.env.CI,

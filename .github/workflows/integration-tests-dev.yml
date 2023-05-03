@@ -5,7 +5,10 @@ env:
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 
 on:
-  deployment_status:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   test:

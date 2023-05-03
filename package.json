@@ -17,7 +17,7 @@
     "prettier-fix": "prettier --write .",
     "publint": "turbo publint",
     "release": "pnpm build && changeset publish",
-    "runIntegration": "pnpm -F vercel-storage-integration-test-suite dev",
+    "run-integration": "pnpm -F vercel-storage-integration-test-suite dev",
     "test": "turbo test",
     "type-check": "turbo type-check",
     "version-packages": "changeset version && pnpm i --no-frozen-lockfile && git add ."

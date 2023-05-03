@@ -1,4 +1,8 @@
-name: Playwright Tests
+name: Playwright Dev Tests
+
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 
 on:
   deployment_status:
@@ -23,11 +27,6 @@ jobs:
 
       - name: Install Playwright
         run: npx playwright install --with-deps
-
-      - name: Run Playwright tests on ${{ github.event.deployment_status.target_url }}
-        run: npx playwright test
-        env:
-          PLAYWRIGHT_TEST_BASE_URL: ${{ github.event.deployment_status.target_url }}
 
       - name: Run Playwright tests in development mode
         run: pnpm integration-test

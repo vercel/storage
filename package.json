@@ -14,6 +14,7 @@
     "lint": "turbo lint -- --max-warnings=0",
     "prepare": "husky install",
     "prettier-check": "prettier --check .",
+    "prettier-fix": "prettier --write .",
     "publint": "turbo publint",
     "release": "pnpm build && changeset publish",
     "runIntegration": "pnpm -F vercel-storage-integration-test-suite dev",

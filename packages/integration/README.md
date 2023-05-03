@@ -1,10 +1,12 @@
 Instructions:
+
 - `vc link` => link to `Vercel Labs` => `vercel-postgres-test-suite`
 - `vc env pull`
 - `pnpm i`
 - `pnpm dev`
 
 Visit the following routes
+
 - /api/appdir/node
 - /api/appdir/edge
 - /appdir/node

@@ -24,9 +24,16 @@ export interface Database {
 }
 export const db = createKysely<Database>();
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const queryUsers = async (): Promise<any> => {
-  const timeoutPromise = new Promise((_, reject) =>
+export const queryUsers = async (): Promise<
+  {
+    id: number;
+    name: string;
+    email: string;
+    image: string;
+    createdAt: Date;
+  }[]
+> => {
+  const timeoutPromise = new Promise<never>((_, reject) =>
     // eslint-disable-next-line no-promise-executor-return
     setTimeout(
       () => reject(new Error('SELECT hung for more than 20 seconds')),

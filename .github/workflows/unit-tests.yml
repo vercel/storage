@@ -1,4 +1,4 @@
-name: CI
+name: Unit Tests
 
 env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}

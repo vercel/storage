@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { queryUsers } from '@/lib/db-default-client';
+import { queryUsers } from '@/lib/postgres-client';
 
 export const config = {
   runtime: 'edge',
@@ -7,9 +7,8 @@ export const config = {
 
 export default async function handler(): Promise<Response> {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const users = await queryUsers();
-    return NextResponse.json(users);
+    return NextResponse.json(users.rows);
   } catch (e) {
     return NextResponse.json(
       { message: (e as Error).message },

@@ -5,9 +5,9 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev",
+    "integration-test": "playwright test",
     "lint": "next lint",
     "start": "next start",
-    "test": "playwright test",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

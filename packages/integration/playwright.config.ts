@@ -1,11 +1,20 @@
-import { PlaywrightTestConfig, devices } from '@playwright/test';
-import path from 'path';
+import path from 'node:path';
+import type { PlaywrightTestConfig } from '@playwright/test';
+import { devices } from '@playwright/test';
 
 // Use process.env.PORT by default and fallback to port 3000
 const PORT = process.env.PORT || 3000;
 
 // Set webServer.url and use.baseURL with the location of the WebServer respecting the correct set port
-const baseURL = `http://localhost:${PORT}`;
+const baseURL =
+  process.env.PLAYWRIGHT_TEST_BASE_URL ?? `http://localhost:${PORT}`;
+
+const webServer = {
+  command: 'pnpm start',
+  url: baseURL,
+  timeout: 120 * 1000,
+  reuseExistingServer: !process.env.CI,
+};
 
 // Reference: https://playwright.dev/docs/test-configuration
 const config: PlaywrightTestConfig = {
@@ -20,12 +29,7 @@ const config: PlaywrightTestConfig = {
 
   // Run your local dev server before starting the tests:
   // https://playwright.dev/docs/test-advanced#launching-a-development-web-server-during-the-tests
-  webServer: {
-    command: 'pnpm build && pnpm start',
-    url: baseURL,
-    timeout: 120 * 1000,
-    reuseExistingServer: !process.env.CI,
-  },
+  webServer: process.env.PLAYWRIGHT_TEST_BASE_URL ? undefined : webServer,
 
   use: {
     // Use baseURL so to make navigations relative.
@@ -58,4 +62,6 @@ const config: PlaywrightTestConfig = {
     },
   ],
 };
+
+// eslint-disable-next-line import/no-default-export
 export default config;

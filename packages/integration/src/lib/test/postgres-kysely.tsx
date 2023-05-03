@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { capitalizeFirstLetter } from '../utils';
 
 export interface TestRunnerProps {
   apiOrPage: 'api' | 'page';
@@ -68,10 +69,6 @@ Link: `;
       <details>{message}</details>
     </pre>
   );
-}
-
-function capitalizeFirstLetter(string: string): string {
-  return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
 function getUrl({ apiOrPage, directory, environment }: TestRunnerProps): URL {

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { queryUsers } from '@/lib/db-kysely-pool';
+import { queryUsers } from '@/lib/postgres-kysely';
 
 export const runtime = 'nodejs';
 

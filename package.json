@@ -10,11 +10,13 @@
   "license": "Apache-2.0",
   "scripts": {
     "build": "turbo build",
+    "integration-test": "turbo integration-test",
     "lint": "turbo lint -- --max-warnings=0",
     "prepare": "husky install",
     "prettier-check": "prettier --check .",
     "publint": "turbo publint",
     "release": "pnpm build && changeset publish",
+    "runIntegration": "pnpm -F vercel-storage-integration-test-suite dev",
     "test": "turbo test",
     "type-check": "turbo type-check",
     "version-packages": "changeset version && pnpm i --no-frozen-lockfile && git add ."

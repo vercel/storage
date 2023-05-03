@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
-import type { TestRunnerProps } from '../../components/postgres-test-runner';
-import { PostgresTestRunner } from '../../components/postgres-test-runner';
-import { ProjectDashboardLayout } from '@/app/components/project-dashboard-layout';
+import type { TestRunnerProps } from '@/lib/test/postgres';
+import { PostgresTestRunner } from '@/lib/test/postgres';
+import { ProjectDashboardLayout } from '@/lib/test/project-dashboard-layout';
 
 export default function Page(): JSX.Element {
   const tests: TestRunnerProps[] = [

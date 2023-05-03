@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { capitalizeFirstLetter } from '../utils';
 
 export interface TestRunnerProps {
   apiOrPage: 'api' | 'page';
@@ -7,14 +8,74 @@ export interface TestRunnerProps {
   environment: 'node' | 'edge';
 }
 
+export interface TestResult {
+  status: 'Passed' | 'Failed';
+  message: string;
+  url: URL;
+}
+
 export async function PostgresTestRunner({
   apiOrPage,
   connectionType,
   directory,
   environment,
 }: TestRunnerProps): Promise<JSX.Element> {
+  const { status, url, message } = await runTest({
+    apiOrPage,
+    connectionType,
+    directory,
+    environment,
+  });
+  const summary = `Render Type: ${apiOrPage === 'api' ? 'API' : 'Page'}
+Connection Type: ${connectionType === 'pool' ? 'Pool' : 'Single Client'}
+Directory: ${directory}
+Environment: ${capitalizeFirstLetter(environment)}
+Status: ${status}
+Link: `;
+
+  return (
+    <pre
+      style={{
+        maxHeight: '33vh',
+        minHeight: 'max-content',
+        overflow: 'scroll',
+        border: '1px solid black',
+        padding: '8px',
+        backgroundColor: status === 'Passed' ? 'lightgreen' : 'lightcoral',
+        margin: 0,
+      }}
+    >
+      {summary}
+      <Link href={url.toString()}>{url.toString()}</Link>
+      <details>{message}</details>
+    </pre>
+  );
+}
+
+export function getUrl({
+  apiOrPage,
+  connectionType,
+  directory,
+  environment,
+}: TestRunnerProps): URL {
+  const base = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : `http://localhost:${process.env.PORT || 3000}`;
+  const trailingFragment = `vercel/postgres/${directory}/${connectionType}/${environment}`;
+  if (apiOrPage === 'api') {
+    return new URL(`${base}/api/${trailingFragment}`, base);
+  }
+  return new URL(`${base}/${trailingFragment}`, base);
+}
+
+async function runTest({
+  apiOrPage,
+  connectionType,
+  directory,
+  environment,
+}: TestRunnerProps): Promise<TestResult> {
   let message = '';
-  let status = 'Failed';
+  let status: 'Passed' | 'Failed' = 'Failed';
   const url = getUrl({
     apiOrPage,
     connectionType,
@@ -48,48 +109,9 @@ export async function PostgresTestRunner({
     }
   }
 
-  const summary = `Render Type: ${apiOrPage === 'api' ? 'API' : 'Page'}
-Connection Type: ${connectionType === 'pool' ? 'Pool' : 'Single Client'}
-Directory: ${directory}
-Environment: ${capitalizeFirstLetter(environment)}
-Status: ${status}
-Link: `;
-
-  return (
-    <pre
-      style={{
-        maxHeight: '33vh',
-        minHeight: 'max-content',
-        overflow: 'scroll',
-        border: '1px solid black',
-        padding: '8px',
-        backgroundColor: status === 'Passed' ? 'lightgreen' : 'lightcoral',
-        margin: 0,
-      }}
-    >
-      {summary}
-      <Link href={url.toString()}>{url.toString()}</Link>
-      <details>{message}</details>
-    </pre>
-  );
-}
-
-function capitalizeFirstLetter(string: string): string {
-  return string.charAt(0).toUpperCase() + string.slice(1);
-}
-
-function getUrl({
-  apiOrPage,
-  connectionType,
-  directory,
-  environment,
-}: TestRunnerProps): URL {
-  const base = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : 'http://localhost:3000';
-  const trailingFragment = `vercel/postgres/${directory}/${connectionType}/${environment}`;
-  if (apiOrPage === 'api') {
-    return new URL(`${base}/api/${trailingFragment}`, base);
-  }
-  return new URL(`${base}/${trailingFragment}`, base);
+  return {
+    status,
+    message,
+    url,
+  };
 }

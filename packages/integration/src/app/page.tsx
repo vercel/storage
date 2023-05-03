@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-export default async function Page(): Promise<JSX.Element> {
+export default function Page(): JSX.Element {
   return (
     <div
       style={{

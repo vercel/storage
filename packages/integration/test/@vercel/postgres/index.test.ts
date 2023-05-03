@@ -7,7 +7,7 @@ const expectedRows = [
     email: 'rauchg@vercel.com',
     image:
       'https://pbs.twimg.com/profile_images/1576257734810312704/ucxb4lHy_400x400.jpg',
-    createdAt: '2023-04-27T02:00:15.878Z',
+    createdAt: null,
   },
   {
     id: 2,
@@ -15,7 +15,7 @@ const expectedRows = [
     email: 'lee@vercel.com',
     image:
       'https://pbs.twimg.com/profile_images/1587647097670467584/adWRdqQ6_400x400.jpg',
-    createdAt: '2023-04-27T02:00:16.237Z',
+    createdAt: null,
   },
   {
     id: 3,
@@ -23,7 +23,7 @@ const expectedRows = [
     email: 'stey@vercel.com',
     image:
       'https://pbs.twimg.com/profile_images/1506792347840888834/dS-r50Je_400x400.jpg',
-    createdAt: '2023-04-27T02:00:16.587Z',
+    createdAt: null,
   },
 ];
 

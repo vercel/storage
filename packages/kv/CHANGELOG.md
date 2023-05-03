@@ -1,5 +1,11 @@
 # @vercel/kv
 
+## 0.1.2-canary.0
+
+### Patch Changes
+
+- 8b843c5: debug-issue-107
+
 ## 0.1.1
 
 ### Patch Changes

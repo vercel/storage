@@ -100,3 +100,57 @@ const person = await db
 ### Connection Config
 
 When using the `createClient` or `createPool` functions, you can pass in additional options alongside the connection string that conforms to `VercelPostgresClientConfig` or `VercelPostgresPoolConfig`.
+
+### A note for Vite users
+
+`@vercel/postgres-kysely` is zero-config for platforms where `process.env` is available. It is _technically_ available in Vite, but one major caveat: **Vite only reads variables starting with `VITE_` from your `.env` files -- this is to avoid accidentally bundling your secrets into client code**. Practically, this means that this library _will_ work zero-config when deployed to production (where `process.env` is available on the server, but not on the client), but will _not_ work while you're developing locally, because Vite will not add your environment variables (`POSTGRES_URL`, `POSTGRES_URL_NON_POOLING`, etc) from your `.env` file.
+
+To combat this, you have one of two options:
+
+#### Add dotenv-expand to your dev command (but _not_ your build command!)
+
+This will load your sensitive environment variables into `process.env` during dev, but allow Vite to safely omit them during build.
+
+```shell
+pnpm install --save-dev dotenv dotenv-expand
+```
+
+```js
+// an example vite.config.js from a SvelteKit app
+import { sveltekit } from '@sveltejs/kit/vite';
+import dotenv from 'dotenv';
+import dotenvExpand from 'dotenv-expand';
+import { defineConfig } from 'vite';
+
+export default defineConfig(({ mode }) => {
+  // This check is important!
+  if (mode === 'development') {
+    const env = dotenv.config();
+    dotenvExpand.expand(env);
+  }
+
+  return {
+    plugins: [sveltekit()],
+  };
+});
+```
+
+#### Configure your client manually
+
+If you're developing in a framework that provides private environment variable access, such as SvelteKit, instead of relying on `@vercel/postgres-kysely` to find your config via environment variables, you can feed it the values it needs (here's an example from earlier):
+
+```diff
+import { createKysely } from '@vercel/postgres-kysely';
++ import { POSTGRES_URL } from '$env/static/private';
+
+interface Database {
+  person: PersonTable;
+  pet: PetTable;
+  movie: MovieTable;
+}
+
+- const db = createKysely<Database>();
++ const db = createKysely<Database>({
++  connectionString: POSTGRES_URL,
++ });
+```

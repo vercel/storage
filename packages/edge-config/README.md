@@ -143,7 +143,7 @@ export default defineConfig(({ mode }) => {
 });
 ```
 
-Secondly, you can provide the credentials explicitly, instead of relying on zero-config setup. For example, here's how you could create a client in SvelteKit, which makes private environment variables available via `$env/static/private`:
+2. You can provide the credentials explicitly, instead of relying on a zero-config setup. For example, this is how you could create a client in SvelteKit, which makes private environment variables available via `$env/static/private`:
 
 ```diff
 import { createClient } from '@vercel/edge-config';

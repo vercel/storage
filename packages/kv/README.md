@@ -70,13 +70,13 @@ await kv.set('key', 'value');
 
 See the [documentation](https://www.vercel.com/docs/storage/vercel-kv) for details.
 
-### A note for Vite users
+## A note for Vite users
 
 `@vercel/kv` is zero-config for platforms where `process.env` is available. It is _technically_ available in Vite, but one major caveat: **Vite only reads variables starting with `VITE_` from your `.env` files -- this is to avoid accidentally bundling your secrets into client code**. Practically, this means that this library _will_ work zero-config when deployed to production (where `process.env` is available on the server, but not on the client), but will _not_ work while you're developing locally, because Vite will not add your environment variables (`POSTGRES_URL`, `POSTGRES_URL_NON_POOLING`, etc) from your `.env` file.
 
 To combat this, you have one of two options:
 
-#### Add dotenv-expand to your dev command (but _not_ your build command!)
+### Add dotenv-expand to your dev command (but _not_ your build command!)
 
 This will load your sensitive environment variables into `process.env` during dev, but allow Vite to safely omit them during build.
 
@@ -104,7 +104,7 @@ export default defineConfig(({ mode }) => {
 });
 ```
 
-#### Configure your client manually
+### Configure your client manually
 
 If you're developing in a framework that provides private environment variable access, such as SvelteKit, instead of relying on `@vercel/kv` to find your config via environment variables, you can feed it the values it needs (here's an example from earlier):
 

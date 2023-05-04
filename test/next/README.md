@@ -1,7 +1,7 @@
 Instructions:
 
 - `cd packages/integration`
-- `vc link` => link to `Curated Tests` => `vercel-storage-integration-test-suite`
+- `vc link` => link to `Curated Tests` => `vercel-storage-next-integration-test-suite`
 - `vc env pull`
 - `pnpm i`
 - `pnpm dev`

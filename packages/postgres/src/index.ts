@@ -1,6 +1,7 @@
 import type { QueryResult, QueryResultRow } from '@neondatabase/serverless';
 import { type VercelPool, createPool } from './create-pool';
 import type { Primitive } from './sql-template';
+import 'server-only';
 
 export * from './create-client';
 export * from './create-pool';

@@ -205,6 +205,9 @@ importers:
       bufferutil:
         specifier: 4.0.7
         version: 4.0.7
+      server-only:
+        specifier: 0.0.1
+        version: 0.0.1
       utf-8-validate:
         specifier: 6.0.3
         version: 6.0.3

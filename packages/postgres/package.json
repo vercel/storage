@@ -46,6 +46,7 @@
   "dependencies": {
     "@neondatabase/serverless": "0.6.0",
     "bufferutil": "4.0.7",
+    "server-only": "0.0.1",
     "utf-8-validate": "6.0.3",
     "ws": "8.14.2"
   },

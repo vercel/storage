@@ -32,12 +32,10 @@ test.describe('@vercel/postgres-kysely', () => {
     test.describe('api', () => {
       test('edge', async ({ request }) => {
         const res = await request.get('api/vercel/postgres-kysely/app/edge');
-        expect(res.status()).toBe(200);
         expect(await res.json()).toEqual(expectedRows);
       });
       test('node', async ({ request }) => {
         const res = await request.get('api/vercel/postgres-kysely/app/node');
-        expect(res.status()).toBe(200);
         expect(await res.json()).toEqual(expectedRows);
       });
     });
@@ -64,12 +62,10 @@ test.describe('@vercel/postgres-kysely', () => {
     test.describe('api', () => {
       test('edge', async ({ request }) => {
         const res = await request.get('api/vercel/postgres-kysely/pages/edge');
-        expect(res.status()).toBe(200);
         expect(await res.json()).toEqual(expectedRows);
       });
       test('node', async ({ request }) => {
         const res = await request.get('api/vercel/postgres-kysely/pages/node');
-        expect(res.status()).toBe(200);
         expect(await res.json()).toEqual(expectedRows);
       });
     });

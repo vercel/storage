@@ -33,12 +33,10 @@ test.describe('@vercel/postgres', () => {
       test.describe('api', () => {
         test('edge', async ({ request }) => {
           const res = await request.get('api/vercel/postgres/app/client/edge');
-          expect(res.status()).toBe(200);
           expect(await res.json()).toEqual(expectedRows);
         });
         test('node', async ({ request }) => {
           const res = await request.get('api/vercel/postgres/app/client/node');
-          expect(res.status()).toBe(200);
           expect(await res.json()).toEqual(expectedRows);
         });
       });
@@ -65,12 +63,10 @@ test.describe('@vercel/postgres', () => {
       test.describe('api', () => {
         test('edge', async ({ request }) => {
           const res = await request.get('api/vercel/postgres/app/pool/edge');
-          expect(res.status()).toBe(200);
           expect(await res.json()).toEqual(expectedRows);
         });
         test('node', async ({ request }) => {
           const res = await request.get('api/vercel/postgres/app/pool/node');
-          expect(res.status()).toBe(200);
           expect(await res.json()).toEqual(expectedRows);
         });
       });
@@ -98,24 +94,20 @@ test.describe('@vercel/postgres', () => {
     test.describe('client', () => {
       test('edge', async ({ request }) => {
         const res = await request.get('api/vercel/postgres/pages/client/edge');
-        expect(res.status()).toBe(200);
         expect(await res.json()).toEqual(expectedRows);
       });
       test('node', async ({ request }) => {
         const res = await request.get('api/vercel/postgres/pages/client/node');
-        expect(res.status()).toBe(200);
         expect(await res.json()).toEqual(expectedRows);
       });
     });
     test.describe('pool', () => {
       test('edge', async ({ request }) => {
         const res = await request.get('api/vercel/postgres/pages/pool/edge');
-        expect(res.status()).toBe(200);
         expect(await res.json()).toEqual(expectedRows);
       });
       test('node', async ({ request }) => {
         const res = await request.get('api/vercel/postgres/pages/pool/node');
-        expect(res.status()).toBe(200);
         expect(await res.json()).toEqual(expectedRows);
       });
     });

@@ -119,7 +119,8 @@ As always, you can run the tests using: `npm test`
 
 `@vercel/edge-config` reads database credentials from `process.env`. With some tools, process.env is automatically populated from your `.env` file during development (created when you run `vc env pull`), but Vite does not expose `.env` variables on `process.env.`
 
-You can fix this in one of two ways. Firstly, you can populate `process.env` yourself using something like `dotenv-expand`:
+You can fix this in **one** of following two ways:
+1. You can populate `process.env` yourself using something like `dotenv-expand`:
 
 ```shell
 pnpm install --save-dev dotenv dotenv-expand

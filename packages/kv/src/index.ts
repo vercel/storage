@@ -1,5 +1,6 @@
 import { Redis, type RedisConfigNodejs } from '@upstash/redis';
 import { type ScanCommandOptions } from '@upstash/redis/types/pkg/commands/scan';
+import 'server-only';
 
 let _kv: Redis | null = null;
 process.env.UPSTASH_DISABLE_TELEMETRY = '1';

@@ -72,41 +72,33 @@ See the [documentation](https://www.vercel.com/docs/storage/vercel-kv) for detai
 
 ## A note for Vite users
 
-`@vercel/kv` is zero-config for platforms where `process.env` is available. It is _technically_ available in Vite, but one major caveat: **Vite only reads variables starting with `VITE_` from your `.env` files -- this is to avoid accidentally bundling your secrets into client code**. Practically, this means that this library _will_ work zero-config when deployed to production (where `process.env` is available on the server, but not on the client), but will _not_ work while you're developing locally, because Vite will not add your environment variables (`POSTGRES_URL`, `POSTGRES_URL_NON_POOLING`, etc) from your `.env` file.
+`@vercel/kv` reads database credentials from `process.env`. With some tools, process.env is automatically populated from your `.env` file during development (created when you run `vc env pull`), but Vite does not expose `.env` variables on `process.env.`
 
-To combat this, you have one of two options:
-
-### Add dotenv-expand to your dev command (but _not_ your build command!)
-
-This will load your sensitive environment variables into `process.env` during dev, but allow Vite to safely omit them during build.
+You can fix this in one of two ways. Firstly, you can populate `process.env` yourself using something like `dotenv-expand`:
 
 ```shell
 pnpm install --save-dev dotenv dotenv-expand
 ```
 
 ```js
-// an example vite.config.js from a SvelteKit app
-import { sveltekit } from '@sveltejs/kit/vite';
-import dotenv from 'dotenv';
+// vite.config.js
 import dotenvExpand from 'dotenv-expand';
-import { defineConfig } from 'vite';
+import { loadEnv, defineConfig } from 'vite';
 
 export default defineConfig(({ mode }) => {
   // This check is important!
   if (mode === 'development') {
-    const env = dotenv.config();
+    const env = loadEnv(mode);
     dotenvExpand.expand(env);
   }
 
   return {
-    plugins: [sveltekit()],
+    ...
   };
 });
 ```
 
-### Configure your client manually
-
-If you're developing in a framework that provides private environment variable access, such as SvelteKit, instead of relying on `@vercel/kv` to find your config via environment variables, you can feed it the values it needs (here's an example from earlier):
+Secondly, you can provide the credentials explicitly, instead of relying on zero-config setup. For example, here's how you could create a client in SvelteKit, which makes private environment variables available via `$env/static/private`:
 
 ```diff
 import { createClient } from '@vercel/kv';

@@ -37,3 +37,29 @@ export function isPooledConnectionString(connectionString: string): boolean {
 export function isDirectConnectionString(connectionString: string): boolean {
   return !isPooledConnectionString(connectionString);
 }
+
+export function isLocalhostConnectionString(connectionString: string): boolean {
+  try {
+    // This seems silly, but we can use all of the hard work put into URL parsing
+    // if we just convert `postgresql://` to `https://` and then parse it as a URL.
+    const withHttpsProtocol = connectionString.startsWith('postgresql://')
+      ? connectionString.replace('postgresql://', 'https://')
+      : connectionString;
+    return new URL(withHttpsProtocol).hostname === 'localhost';
+  } catch (err) {
+    if (err instanceof TypeError) {
+      return false;
+    }
+    // ok typescript
+    if (
+      typeof err === 'object' &&
+      err !== null &&
+      'message' in err &&
+      typeof err.message === 'string' &&
+      err.message === 'Invalid URL'
+    ) {
+      return false;
+    }
+    throw err;
+  }
+}

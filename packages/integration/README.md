@@ -1,17 +1,11 @@
 Instructions:
 
-- `vc link` => link to `Vercel Labs` => `vercel-postgres-test-suite`
+- `cd packages/integration`
+- `vc link` => link to `Vercel Labs` => `vercel-storage-integration-test-suite`
 - `vc env pull`
 - `pnpm i`
 - `pnpm dev`
 
-Visit the following routes
+The root page provides links to test suites. You can visit these test suites to quickly debug packages as you're developing them -- refreshing the page will fire off requests in every environment we test for and make sure they come back successfully.
 
-- /api/appdir/node
-- /api/appdir/edge
-- /appdir/node
-- /appdir/edge
-- /api/pagesdir/node
-- /api/pagesdir/edge
-
-All try to make the same query, all fail similarly. Fwiw, the node error (hanging forever) is affecting SvelteKit projects as well, and it wasn't last night! But I don't think it had anything to do with @vercel/postgres or @neondatabase/serverless -- I git bisected both of them and nothing that happened in the last day fixes the issue.
+This also deploys to a preview branch for every PR, so you can test your code in production!

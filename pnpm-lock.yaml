@@ -107,8 +107,8 @@ importers:
   packages/kv:
     dependencies:
       '@upstash/redis':
-        specifier: 1.20.2
-        version: 1.20.2
+        specifier: 1.20.6
+        version: 1.20.6
     devDependencies:
       '@babel/core':
         specifier: 7.19.6
@@ -2054,8 +2054,8 @@ packages:
       '@typescript-eslint/types': 5.59.1
       eslint-visitor-keys: 3.4.0
 
-  /@upstash/redis@1.20.2:
-    resolution: {integrity: sha512-9QS/SypDxeeh672H7dEEmuYOX5TtPYnaDLlhxWJEPd8LzcEQ6hohwDJuojpqGkvvvrK58mlWOkN1GrMxbXPTeQ==}
+  /@upstash/redis@1.20.6:
+    resolution: {integrity: sha512-q1izaYEUsq/WiXNOjf4oOjFZe8fIeBSZN8d5cEyOD4nem+zxc4jccieorQQrNlEahKPE1ZYLzVEkMODRUfch2g==}
     dependencies:
       isomorphic-fetch: 3.0.0
     transitivePeerDependencies:

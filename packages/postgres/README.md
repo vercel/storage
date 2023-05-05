@@ -90,3 +90,46 @@ When using the `createClient` or `createPool` functions, you can pass in additio
 
 The `@vercel/postgres` package uses the `pg` package. For
 more detailed documentation, checkout [node-postgres](https://node-postgres.com/).
+
+### A note for Vite users
+
+`@vercel/postgres` reads database credentials from the environment variables on `process.env`. In general, `process.env` is automatically populated from your `.env` file during development, which is created when you run `vc env pull`. However, Vite does not expose the `.env` variables on `process.env.`
+
+You can fix this in **one** of following two ways:
+
+1. You can populate `process.env` yourself using something like `dotenv-expand`:
+
+```shell
+pnpm install --save-dev dotenv dotenv-expand
+```
+
+```js
+// vite.config.js
+import dotenvExpand from 'dotenv-expand';
+import { loadEnv, defineConfig } from 'vite';
+
+export default defineConfig(({ mode }) => {
+  // This check is important!
+  if (mode === 'development') {
+    const env = loadEnv(mode, process.cwd(), '');
+    dotenvExpand.expand({ parsed: env });
+  }
+
+  return {
+    ...
+  };
+});
+```
+
+2. You can provide the credentials explicitly, instead of relying on a zero-config setup. For example, this is how you could create a client in SvelteKit, which makes private environment variables available via `$env/static/private`:
+
+```diff
+import { createPool } from '@vercel/postgres';
++ import { POSTGRES_URL } from '$env/static/private';
+
+import { createPool } from '@vercel/postgres';
+const pool = createPool({
+-  /* config */
++  connectionString: POSTGRES_URL
+});
+```

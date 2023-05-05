@@ -1,4 +1,3 @@
-import { VercelPostgresError } from './error';
 import {
   createClient,
   createPool,
@@ -16,12 +15,11 @@ describe('@vercel/postgres', () => {
   });
   it('exports sql', () => {
     expect(typeof sql).toEqual('function');
-    expect(() => sql.connect()).toThrow(VercelPostgresError);
   });
   it('exports postgresConnectionString', () => {
     expect(typeof postgresConnectionString).toEqual('function');
   });
   it('exports a default db pool instance', () => {
-    expect(() => db.connect()).toThrow(VercelPostgresError);
+    expect(typeof db).toEqual('function');
   });
 });

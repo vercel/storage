@@ -9,3 +9,4 @@ npm-debug.log
 
 .turbo
 .DS_Store
+.vscode

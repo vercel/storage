@@ -18,6 +18,8 @@
       "dependsOn": ["^build", "build"]
     },
     "prettier-check": {},
-    "//#prettier-check": {}
+    "integration-test": {
+      "dependsOn": ["^build", "build"]
+    }
   }
 }

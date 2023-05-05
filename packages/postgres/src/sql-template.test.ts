@@ -1,3 +1,4 @@
+import { VercelPostgresError } from './error';
 import { sqlTemplate } from './sql-template';
 
 const cases = [
@@ -25,5 +26,12 @@ const cases = [
 describe('sql', () => {
   it.each(cases)('should return a query and params', ({ input, output }) => {
     expect(input).toEqual(output);
+  });
+  it('throws when not used as a tagged literal', () => {
+    const likes = 100;
+    expect(() => {
+      // @ts-expect-error - intentionally incorrect usage
+      sqlTemplate(`SELECT * FROM posts WHERE likes > ${likes}`);
+    }).toThrow(VercelPostgresError);
   });
 });

@@ -121,7 +121,7 @@ import { loadEnv, defineConfig } from 'vite';
 export default defineConfig(({ mode }) => {
   // This check is important!
   if (mode === 'development') {
-    const env = loadEnv(mode);
+    const env = loadEnv(mode, process.cwd(), '');
     dotenvExpand.expand(env);
   }
 

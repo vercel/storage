@@ -1,6 +1,6 @@
 {
   "name": "@vercel/edge-config",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Ultra-low latency data at the edge",
   "homepage": "https://vercel.com",
   "repository": {

@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.1.10
+
+### Patch Changes
+
+- c4a8aa5: feat: Docs section for Vite environment config
+
 ## 0.1.9
 
 ### Patch Changes

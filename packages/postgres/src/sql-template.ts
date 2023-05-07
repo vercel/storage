@@ -12,14 +12,12 @@ export function sqlTemplate(
       "It looks like you tried to call `sql` as a function. Make sure to use it as a tagged template.\n\tExample: sql`SELECT * FROM users`, not sql('SELECT * FROM users')",
     );
   }
-  let result = '';
 
-  for (let i = 0; i < strings.length; i++) {
-    result += strings[i];
+  // ts tries to annotate `strings` with `& any[]` because of the prior check which breaks the type
+  let result = (strings as TemplateStringsArray)[0] ?? '';
 
-    if (i < values.length) {
-      result += `$${i + 1}`;
-    }
+  for (let i = 1; i < strings.length; i++) {
+    result += `$${i}${(strings as TemplateStringsArray)[i] ?? ''}`;
   }
 
   return [result, values];

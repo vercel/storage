@@ -5,6 +5,7 @@ import type { Primitive } from './sql-template';
 export * from './create-client';
 export * from './create-pool';
 export * from './types';
+export { unsafeUnescaped } from './sql-template';
 export { postgresConnectionString } from './postgres-connection-string';
 
 let pool: VercelPool | undefined;

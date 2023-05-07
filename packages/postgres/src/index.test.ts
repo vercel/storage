@@ -4,6 +4,7 @@ import {
   postgresConnectionString,
   sql,
   db,
+  unsafeUnescaped,
 } from './index';
 
 describe('@vercel/postgres', () => {
@@ -21,5 +22,8 @@ describe('@vercel/postgres', () => {
   });
   it('exports a default db pool instance', () => {
     expect(typeof db).toEqual('function');
+  });
+  it('exports unsafeUnescaped', () => {
+    expect(typeof unsafeUnescaped).toEqual('function');
   });
 });

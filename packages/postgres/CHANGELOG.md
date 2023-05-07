@@ -1,5 +1,16 @@
 # @vercel/postgres
 
+## 0.2.0
+
+### Minor Changes
+
+- 18b69a5: feat: Prevent incorrect usage of tagged literal `sql` for non-ts users
+
+### Patch Changes
+
+- 8b51d48: chore: Simplify `sqlTemplate`
+- c4a8aa5: feat: Docs section for Vite environment config
+
 ## 0.1.3
 
 ### Patch Changes

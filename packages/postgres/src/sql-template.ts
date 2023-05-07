@@ -8,7 +8,7 @@ export type Primitive =
   | null
   | UnsafeUnescaped;
 
-const unsafeUnescapedSecret = Symbol();
+const unsafeUnescapedSecret = Symbol('The key for all unsafe unescaped values');
 
 export function sqlTemplate(
   strings: TemplateStringsArray,
@@ -68,7 +68,7 @@ interface UnsafeUnescaped {
  *
  * This is _unsafe_ and _will_ lead to SQL injection vulnerabilities if you do not sanitize your input.
  *
- * @param value The value to ignore during template string interpolation
+ * @param value - The value to ignore during template string interpolation
  * @returns A value that will be ignored during {@link sqlTemplate} template string interpolation
  */
 export function unsafeUnescaped(value: string): UnsafeUnescaped {

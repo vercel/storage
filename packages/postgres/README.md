@@ -36,7 +36,7 @@ const client = createClient({
 
 ```typescript
 // no-config
-import { sql } from '@vercel/postgres';
+import { sql, unsafeUnescaped } from '@vercel/postgres';
 
 const id = 100;
 
@@ -49,6 +49,10 @@ const client = await sql.connect();
 const { rows } = await client.sql`SELECT * FROM users WHERE id = ${userId};`;
 await client.sql`UPDATE users SET status = 'satisfied' WHERE id = ${userId};`;
 client.release();
+
+// Unsafely parameterize any part of the query
+// Translates to: `await pg.query('SELECT * FROM users WHERE id = $1;', [userId]);`
+await sql`SELECT * FROM ${unsafeUnescaped('users')} WHERE id = ${userId};`;
 ```
 
 The `sql` import in the query above is just a modified `Pool` object (that's why you can call it). If you're running a custom config with `createPool`, the same functionality is available as `pool.sql`.

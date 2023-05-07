@@ -13,10 +13,11 @@ export function sqlTemplate(
     );
   }
 
-  let [result] = strings;
+  // ts tries to annotate `strings` with `& any[]` because of the prior check which breaks the type
+  let result = (strings as TemplateStringsArray)[0] ?? '';
 
   for (let i = 1; i < strings.length; i++) {
-    result += `$${i}${strings[i]}`;
+    result += `$${i}${(strings as TemplateStringsArray)[i] ?? ''}`;
   }
 
   return [result, values];

@@ -6,7 +6,8 @@ import {
   postgresConnectionString,
 } from './postgres-connection-string';
 import { VercelPostgresError } from './error';
-import { Primitive, SqlTemplate } from './sql-template';
+import type { Primitive } from './sql-template';
+import { SqlTemplate } from './sql-template';
 
 export class VercelClient extends Client {
   /**

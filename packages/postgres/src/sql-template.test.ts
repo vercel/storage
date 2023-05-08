@@ -1,6 +1,7 @@
-import { QueryResult, QueryResultRow } from '@neondatabase/serverless';
+import type { QueryResult, QueryResultRow } from '@neondatabase/serverless';
 import { VercelPostgresError } from './error';
-import { Primitive, SqlTemplate } from './sql-template';
+import type { Primitive } from './sql-template';
+import { SqlTemplate } from './sql-template';
 
 // this is just a mock that causes `execute` to return the internal state of the SqlTemplate
 const returnBuiltDbQuery = jest.fn(
@@ -37,11 +38,11 @@ const validCases = [
   },
 ];
 
-beforeEach(() => {
-  returnBuiltDbQuery.mockClear();
-});
-
 describe('append', () => {
+  beforeEach(() => {
+    returnBuiltDbQuery.mockClear();
+  });
+
   it.each(validCases)(
     'should return a query and params',
     async ({ input, output }) => {

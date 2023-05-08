@@ -26,7 +26,10 @@ function isTemplateStringsArray(
   strings: unknown,
 ): strings is TemplateStringsArray {
   return (
-    // @ts-expect-error - I don't know how to convince TS that an array can have a property
-    Array.isArray(strings) && 'raw' in strings && Array.isArray(strings.raw)
+    Array.isArray(strings) &&
+    Object.isFrozen(strings) &&
+    'raw' in strings &&
+    Array.isArray(strings.raw) &&
+    Object.isFrozen(strings.raw)
   );
 }

@@ -35,7 +35,7 @@ jobs:
         with:
           path: |
             ~/.cache/ms-playwright
-          key: cache-playwright-linux-1
+          key: cache-playwright-linux-2
 
       - name: Install Playwright
         if: steps.playwright-cache.outputs.cache-hit != 'true'

@@ -114,3 +114,44 @@ export const config = { runtime: 'edge' };
 3. Within the module you want to test your local development instance of `@vercel/edge-config`, just link it to the dependencies: `npm link @vercel/edge-config`. Instead of the default one from npm, Node.js will now use your clone of `@vercel/edge-config`!
 
 As always, you can run the tests using: `npm test`
+
+## A note for Vite users
+
+`@vercel/edge-config` reads database credentials from the environment variables on `process.env`. In general, `process.env` is automatically populated from your `.env` file during development, which is created when you run `vc env pull`. However, Vite does not expose the `.env` variables on `process.env.`
+
+You can fix this in **one** of following two ways:
+
+1. You can populate `process.env` yourself using something like `dotenv-expand`:
+
+```shell
+pnpm install --save-dev dotenv dotenv-expand
+```
+
+```js
+// vite.config.js
+import dotenvExpand from 'dotenv-expand';
+import { loadEnv, defineConfig } from 'vite';
+
+export default defineConfig(({ mode }) => {
+  // This check is important!
+  if (mode === 'development') {
+    const env = loadEnv(mode, process.cwd(), '');
+    dotenvExpand.expand({ parsed: env });
+  }
+
+  return {
+    ...
+  };
+});
+```
+
+2. You can provide the credentials explicitly, instead of relying on a zero-config setup. For example, this is how you could create a client in SvelteKit, which makes private environment variables available via `$env/static/private`:
+
+```diff
+import { createClient } from '@vercel/edge-config';
++ import { EDGE_CONFIG } from '$env/static/private';
+
+- const edgeConfig = createClient(process.env.ANOTHER_EDGE_CONFIG);
++ const edgeConfig = createClient(EDGE_CONFIG);
+await edgeConfig.get('someKey');
+```

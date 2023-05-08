@@ -1,5 +1,22 @@
 # @vercel/postgres-kysely
 
+## 0.2.1
+
+### Patch Changes
+
+- Updated dependencies [6b8b7a9]
+  - @vercel/postgres@0.2.1
+
+## 0.2.0
+
+### Patch Changes
+
+- c4a8aa5: feat: Docs section for Vite environment config
+- Updated dependencies [8b51d48]
+- Updated dependencies [18b69a5]
+- Updated dependencies [c4a8aa5]
+  - @vercel/postgres@0.2.0
+
 ## 0.1.3
 
 ### Patch Changes

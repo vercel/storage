@@ -1,5 +1,13 @@
 # @vercel/kv
 
+## 0.1.2
+
+### Patch Changes
+
+- 88aa25e: avoid process.version warning in edge runtime
+- c4a8aa5: feat: Docs section for Vite environment config
+- 8b843c5: debug-issue-107
+
 ## 0.1.2-canary.0
 
 ### Patch Changes

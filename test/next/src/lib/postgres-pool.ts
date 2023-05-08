@@ -9,11 +9,6 @@ export const queryUsers = async (): Promise<QueryResult> => {
       20000,
     ),
   );
-  const client = await sql.connect();
-  const usersPromise = client.sql`SELECT * FROM users`;
-  try {
-    return await Promise.race([timeoutPromise, usersPromise]);
-  } finally {
-    client.release();
-  }
+  const usersPromise = sql`SELECT * FROM users`.execute();
+  return Promise.race([timeoutPromise, usersPromise]);
 };

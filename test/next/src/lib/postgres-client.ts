@@ -2,8 +2,8 @@ import type { QueryResult } from '@vercel/postgres';
 import { createClient } from '@vercel/postgres';
 
 export const queryUsers = async (): Promise<QueryResult> => {
-  const db = createClient();
-  await db.connect();
+  const client = createClient();
+  await client.connect();
   const timeoutPromise = new Promise<never>((_, reject) =>
     // eslint-disable-next-line no-promise-executor-return
     setTimeout(
@@ -11,10 +11,10 @@ export const queryUsers = async (): Promise<QueryResult> => {
       20000,
     ),
   );
-  const usersPromise = db.query('SELECT * FROM users');
+  const usersPromise = client.sql`SELECT * FROM users`.execute();
   try {
     return await Promise.race([timeoutPromise, usersPromise]);
   } finally {
-    await db.end();
+    await client.end();
   }
 };

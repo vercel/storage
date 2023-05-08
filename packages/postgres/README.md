@@ -41,14 +41,22 @@ import { sql } from '@vercel/postgres';
 const id = 100;
 
 // A one-shot query
-const { rows } = await sql`SELECT * FROM users WHERE id = ${userId};`;
+const { rows } = await sql`SELECT * FROM users WHERE id = ${userId};`.execute();
 
 // Multiple queries on the same connection (improves performance)
 // warning: Do not share clients across requests and be sure to release them!
 const client = await sql.connect();
-const { rows } = await client.sql`SELECT * FROM users WHERE id = ${userId};`;
-await client.sql`UPDATE users SET status = 'satisfied' WHERE id = ${userId};`;
+const { rows } =
+  await client.sql`SELECT * FROM users WHERE id = ${userId};`.execute();
+await client.sql`UPDATE users SET status = 'satisfied' WHERE id = ${userId};`.execute();
 client.release();
+
+// Complex conditional queries
+const { rows } = await sql`SELECT * FROM `.appendUnsafeRaw('users')
+  .append` WHERE id = ${userId}`;
+// equivalent to:
+const { rows } = await sql.query('SELECT * FROM users WHERE id = $1', [userId]);
+// note that `users` was substituted as-is: `appendUnsafeRaw` does that it says on the tin. Use it carefully!
 ```
 
 The `sql` import in the query above is just a modified `Pool` object (that's why you can call it). If you're running a custom config with `createPool`, the same functionality is available as `pool.sql`.

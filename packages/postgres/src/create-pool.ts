@@ -1,8 +1,4 @@
-import type {
-  PoolClient,
-  QueryResult,
-  QueryResultRow,
-} from '@neondatabase/serverless';
+import type { PoolClient, QueryResultRow } from '@neondatabase/serverless';
 import { Pool } from '@neondatabase/serverless';
 import type { VercelPoolClient, VercelPostgresPoolConfig } from './types';
 import {
@@ -11,7 +7,7 @@ import {
 } from './postgres-connection-string';
 import { VercelPostgresError } from './error';
 import type { Primitive } from './sql-template';
-import { sqlTemplate } from './sql-template';
+import { SqlTemplate } from './sql-template';
 import { VercelClient } from './create-client';
 
 export class VercelPool extends Pool {
@@ -20,21 +16,23 @@ export class VercelPool extends Pool {
    * A template literal tag providing safe, easy to use SQL parameterization.
    * Parameters are substituted using the underlying Postgres database, and so must follow
    * the rules of Postgres parameterization.
+   *
    * @example
    * ```ts
    * const pool = createPool();
    * const userId = 123;
-   * const result = await pool.sql`SELECT * FROM users WHERE id = ${userId}`;
+   * const result = await pool.sql`SELECT * FROM users WHERE id = ${userId}`.execute();
    * // Equivalent to: await pool.query('SELECT * FROM users WHERE id = $1', [id]);
    * ```
    * @returns A promise that resolves to the query result.
    */
-  async sql<O extends QueryResultRow>(
+  sql<O extends QueryResultRow>(
     strings: TemplateStringsArray,
     ...values: Primitive[]
-  ): Promise<QueryResult<O>> {
-    const [query, params] = sqlTemplate(strings, ...values);
-    return this.query(query, params);
+  ): SqlTemplate<O> {
+    const template = new SqlTemplate<O>(this.query.bind(this));
+    template.append(strings, ...values);
+    return template;
   }
 
   connect(): Promise<VercelPoolClient>;

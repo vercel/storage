@@ -29,7 +29,9 @@ function isTemplateStringsArray(
     Array.isArray(strings) &&
     Object.isFrozen(strings) &&
     'raw' in strings &&
+    // @ts-expect-error I don't know what the heck TS is on about here
     Array.isArray(strings.raw) &&
+    // @ts-expect-error I don't know what the heck TS is on about here
     Object.isFrozen(strings.raw)
   );
 }

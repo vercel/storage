@@ -1,5 +1,11 @@
 # @vercel/postgres
 
+## 0.2.1
+
+### Patch Changes
+
+- 6b8b7a9: fix: Make it even harder to call `sql` incorrectly
+
 ## 0.2.0
 
 ### Minor Changes

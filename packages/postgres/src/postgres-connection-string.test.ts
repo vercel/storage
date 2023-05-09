@@ -4,6 +4,7 @@ import {
 } from './mocks';
 import {
   isDirectConnectionString,
+  isLocalhostConnectionString,
   isPooledConnectionString,
   postgresConnectionString,
 } from './postgres-connection-string';
@@ -77,5 +78,33 @@ describe('isPooledConnectionString', () => {
     expect(isPooledConnectionString(MOCKED_DIRECT_CONNECTION_STRING)).toEqual(
       false,
     );
+  });
+});
+
+describe('isLocalhostConnectionString', () => {
+  it.each(['localhost', 'http', 'foobar', 'blah'])(
+    'returns false for invalid connection strings: %s',
+    (connectionString) => {
+      expect(isLocalhostConnectionString(connectionString)).toEqual(false);
+    },
+  );
+  it.each([
+    'postgresql://localhost',
+    'postgresql://localhost:5432',
+    'postgresql://localhost/mydb',
+    'postgresql://user@localhost',
+    'postgresql://user:secret@localhost',
+    'postgresql://other@localhost/otherdb?connect_timeout=10&application_name=myapp',
+    'postgresql://localhost/mydb?user=other&password=secret',
+  ])(
+    'returns true for a valid localhost connection string',
+    (connectionString) => {
+      expect(isLocalhostConnectionString(connectionString)).toEqual(true);
+    },
+  );
+  it('returns false for a valid non-localhost connection string', () => {
+    expect(
+      isLocalhostConnectionString(MOCKED_POOLED_CONNECTION_STRING),
+    ).toEqual(false);
   });
 });

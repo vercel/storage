@@ -1,5 +1,11 @@
 # @vercel/postgres
 
+## 0.3.0
+
+### Minor Changes
+
+- 34defd9: feat: Allow users to connect to local databases
+
 ## 0.2.1
 
 ### Patch Changes

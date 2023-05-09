@@ -6,6 +6,7 @@ import type {
 import { Pool } from '@neondatabase/serverless';
 import type { VercelPoolClient, VercelPostgresPoolConfig } from './types';
 import {
+  isLocalhostConnectionString,
   isPooledConnectionString,
   postgresConnectionString,
 } from './postgres-connection-string';
@@ -75,7 +76,10 @@ export function createPool(config?: VercelPostgresPoolConfig): VercelPool {
       "You did not supply a 'connectionString' and no 'POSTGRES_URL' env var was found.",
     );
 
-  if (!isPooledConnectionString(connectionString))
+  if (
+    !isLocalhostConnectionString(connectionString) &&
+    !isPooledConnectionString(connectionString)
+  )
     throw new VercelPostgresError(
       'invalid_connection_string',
       'This connection string is meant to be used with a direct connection. Make sure to use a pooled connection string or try `createClient()` instead.',

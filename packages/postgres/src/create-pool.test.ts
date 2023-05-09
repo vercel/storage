@@ -1,6 +1,7 @@
 import type { Pool } from './types';
 import {
   MOCKED_DIRECT_CONNECTION_STRING,
+  MOCKED_LOCALHOST_CONNECTION_STRING,
   MOCKED_POOLED_CONNECTION_STRING,
 } from './mocks';
 import { createPool } from './create-pool';
@@ -77,5 +78,11 @@ describe('createPool', () => {
       createPool({ connectionString: MOCKED_DIRECT_CONNECTION_STRING });
     expect(bad).toThrow(VercelPostgresError);
     expect(bad).toThrow('invalid_connection_string');
+  });
+
+  it('does not throw error if provided with local connection string', () => {
+    const good = (): Pool =>
+      createPool({ connectionString: MOCKED_LOCALHOST_CONNECTION_STRING });
+    expect(good).not.toThrow(VercelPostgresError);
   });
 });

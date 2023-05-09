@@ -1,6 +1,7 @@
 import type { Client } from './types';
 import {
   MOCKED_DIRECT_CONNECTION_STRING,
+  MOCKED_LOCALHOST_CONNECTION_STRING,
   MOCKED_POOLED_CONNECTION_STRING,
 } from './mocks';
 import { createClient } from './create-client';
@@ -68,5 +69,11 @@ describe('createClient', () => {
       createClient({ connectionString: MOCKED_POOLED_CONNECTION_STRING });
     expect(bad).toThrow(VercelPostgresError);
     expect(bad).toThrow('invalid_connection_string');
+  });
+
+  it('does not throw error if provided with local connection string', () => {
+    const good = (): Client =>
+      createClient({ connectionString: MOCKED_LOCALHOST_CONNECTION_STRING });
+    expect(good).not.toThrow(VercelPostgresError);
   });
 });

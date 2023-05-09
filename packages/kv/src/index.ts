@@ -80,6 +80,19 @@ export function createClient(config: RedisConfigNodejs): VercelKV {
   return new VercelKV(config);
 }
 
+// eslint-disable-next-line import/no-default-export
+export default new Proxy(
+  {},
+  {
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+    get() {
+      throw new Error(
+        '"The default export has been moved to a named export, change to import { kv }"',
+      );
+    },
+  },
+);
+
 export const kv = new Proxy(
   {},
   {

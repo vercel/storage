@@ -1,5 +1,16 @@
 # @vercel/postgres-kysely
 
+## 0.3.0
+
+### Minor Changes
+
+- 34defd9: feat: Allow users to connect to local databases
+
+### Patch Changes
+
+- Updated dependencies [34defd9]
+  - @vercel/postgres@0.3.0
+
 ## 0.2.1
 
 ### Patch Changes

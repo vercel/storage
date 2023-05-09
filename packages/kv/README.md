@@ -12,7 +12,7 @@ npm install @vercel/kv
 ## Usage
 
 ```js
-import kv from '@vercel/kv';
+import { kv } from '@vercel/kv';
 
 // string
 await kv.set('key', 'value');

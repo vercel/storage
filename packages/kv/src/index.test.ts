@@ -1,4 +1,4 @@
-import kv, { VercelKV, createClient } from '.';
+import { kv, VercelKV, createClient } from '.';
 
 let scanReturnValues: [number, string[]][] = [[0, []]];
 jest.mock('@upstash/redis', () => ({

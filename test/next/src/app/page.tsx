@@ -24,6 +24,7 @@ export default function Page(): JSX.Element {
         <Link href="/vercel/kv">KV</Link>
         <Link href="/vercel/postgres">Postgres</Link>
         <Link href="/vercel/postgres-kysely">Postgres Kysely</Link>
+        <Link href="/vercel/blob">Blob</Link>
       </div>
     </div>
   );

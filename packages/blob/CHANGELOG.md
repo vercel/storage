@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.8.3
+
+### Patch Changes
+
+- e976847: Align license to Apache 2.0 and fix urls in package.json
+
 ## 0.8.2
 
 ### Patch Changes

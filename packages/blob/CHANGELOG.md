@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.8.2
+
+### Patch Changes
+
+- 04e175d: fix response updateAt format
+
 ## 0.8.1
 
 ### Patch Changes

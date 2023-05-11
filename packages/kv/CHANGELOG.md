@@ -1,5 +1,11 @@
 # @vercel/kv
 
+## 0.2.0
+
+### Minor Changes
+
+- 30e3f04: move default export to named kv export
+
 ## 0.1.2
 
 ### Patch Changes

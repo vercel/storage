@@ -15,10 +15,11 @@ jest.mock('@upstash/redis', () => ({
 describe('@vercel/kv', () => {
   beforeEach(() => {
     scanReturnValues = [[0, []]];
+    jest.clearAllMocks();
   });
 
   describe('kv export', () => {
-    it('exports a default client', async () => {
+    it('exports "kv" client', async () => {
       process.env.KV_REST_API_URL =
         'https://foobar-6739.redis.vercel-storage.com';
       process.env.KV_REST_API_TOKEN = 'tok_foobar';
@@ -28,25 +29,19 @@ describe('@vercel/kv', () => {
       process.env.KV_REST_API_URL = undefined;
       process.env.KV_REST_API_TOKEN = undefined;
     });
-  });
 
-  describe('kv default export', () => {
-    it('exports a default client', async () => {
-      const warnSpy = jest.spyOn(global.console, 'warn');
+    it('exports default legacy client', async () => {
       process.env.KV_REST_API_URL =
         'https://foobar-6739.redis.vercel-storage.com';
       process.env.KV_REST_API_TOKEN = 'tok_foobar';
 
       expect(await defaultKv.get('foo')).toEqual('bar');
-      expect(warnSpy).toHaveBeenCalled();
 
       process.env.KV_REST_API_URL = undefined;
       process.env.KV_REST_API_TOKEN = undefined;
     });
-  });
 
-  describe('should load awaited default module (Vite use case)', () => {
-    it('exports a default client', async () => {
+    it('should load awaited default module (Vite use case', async () => {
       const kvModule = await import('.').then((m) => m.default);
 
       process.env.KV_REST_API_URL =

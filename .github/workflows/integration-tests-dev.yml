@@ -19,18 +19,32 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+
       - uses: actions/setup-node@v3
         with:
           node-version: '18'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+          cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install
 
-      - name: Install Playwright
-        run: npx playwright install --with-deps
+      # from https://dev.to/jpoehnelt/caching-playwright-binaries-in-github-actions-2mfc
+      - uses: actions/cache@v2
+        id: playwright-cache
+        with:
+          path: |
+            ~/.cache/ms-playwright
+          key: cache-playwright-linux-3
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - run: pnpm dlx playwright install --with-deps
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+      - run: pnpm dlx playwright install-deps
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
 
       - name: Run Playwright tests in development mode
         run: pnpm integration-test

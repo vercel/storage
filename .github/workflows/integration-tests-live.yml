@@ -7,7 +7,11 @@ env:
   POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
 
 on:
-  deployment_status:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   test:
@@ -17,20 +21,41 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+
       - uses: actions/setup-node@v3
         with:
           node-version: '18'
+          cache: 'pnpm'
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+      # from https://dev.to/jpoehnelt/caching-playwright-binaries-in-github-actions-2mfc
+      - uses: actions/cache@v2
+        id: playwright-cache
+        with:
+          path: |
+            ~/.cache/ms-playwright
+          key: cache-playwright-linux-3
 
       - name: Install dependencies
         run: pnpm install
 
-      - name: Install Playwright
-        run: npx playwright install --with-deps
+      - run: pnpm dlx playwright install --with-deps
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+      - run: pnpm dlx playwright install-deps
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
 
-      - name: Run Playwright tests on ${{ github.event.deployment_status.target_url }}
+      # https://github.com/patrickedqvist/wait-for-vercel-preview
+      # this allows to use action cache, which is not possible when using deployment_status otherwise
+      # see https://github.com/actions/cache/issues/319
+      - name: Wait for Vercel Preview
+        uses: patrickedqvist/wait-for-vercel-preview@v1.3.1
+        id: waitForVercelPreview
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          max_timeout: 60
+
+      - name: Run Playwright tests on ${{ steps.waitForVercelPreview.outputs.url }}
         run: pnpm integration-test
         env:
-          PLAYWRIGHT_TEST_BASE_URL: ${{ github.event.deployment_status.target_url }}
+          PLAYWRIGHT_TEST_BASE_URL: ${{ steps.waitForVercelPreview.outputs.url }}

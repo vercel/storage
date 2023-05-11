@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { type BlobResult } from '@vercel/blob';
 
-test.describe('@vercel/kv', () => {
+test.describe('@vercel/blob', () => {
   test.describe('api', () => {
     [
       'vercel/blob/api/app/body/edge',

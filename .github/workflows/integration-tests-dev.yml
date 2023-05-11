@@ -5,6 +5,9 @@ env:
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
   POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
   POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
+  BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+  KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
+  KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
 
 on:
   push:

@@ -8,7 +8,7 @@ env:
   COMMIT_INFO_BRANCH: ${{ github.event.deployment_status.branch }}
 
 on:
-  deployment_status:
+  pull_request:
 
 jobs:
   test:
@@ -42,7 +42,17 @@ jobs:
       - run: pnpm dlx playwright install-deps
         if: steps.playwright-cache.outputs.cache-hit == 'true'
 
-      - name: Run Playwright tests on ${{ github.event.deployment_status.target_url }}
+      # https://github.com/patrickedqvist/wait-for-vercel-preview
+      # this allows to use action cache, which is not possible when using deployment_status otherwise
+      # see https://github.com/actions/cache/issues/319
+      - name: Wait for Vercel Preview
+        uses: patrickedqvist/wait-for-vercel-preview@v1.3.1
+        id: waitForVercelPreview
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          max_timeout: 60
+
+      - name: Run Playwright tests on ${{ steps.waitForVercelPreview.outputs.url }}
         run: pnpm integration-test
         env:
-          PLAYWRIGHT_TEST_BASE_URL: ${{ github.event.deployment_status.target_url }}
+          PLAYWRIGHT_TEST_BASE_URL: ${{ steps.waitForVercelPreview.outputs.url }}

@@ -17,7 +17,6 @@ jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
-    if: github.event.deployment_status.state == 'success'
     steps:
       - uses: actions/checkout@v3
 
@@ -35,7 +34,7 @@ jobs:
         with:
           path: |
             ~/.cache/ms-playwright
-          key: cache-playwright-linux-3
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       - name: Install dependencies
         run: pnpm install
@@ -53,7 +52,7 @@ jobs:
         id: waitForVercelPreview
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          max_timeout: 60
+          max_timeout: 600
 
       - name: Run Playwright tests on ${{ steps.waitForVercelPreview.outputs.url }}
         run: pnpm integration-test

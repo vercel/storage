@@ -27,8 +27,7 @@ jobs:
           node-version: '18'
           cache: 'pnpm'
 
-      - name: Cache playwright binaries
-        uses: actions/cache@v3
+      - uses: actions/cache@v3
         id: playwright-cache
         with:
           path: |

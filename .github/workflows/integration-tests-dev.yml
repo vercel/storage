@@ -38,9 +38,6 @@ jobs:
         run: pnpm install
 
       - run: pnpm dlx playwright install --with-deps
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-      - run: pnpm dlx playwright install-deps
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
 
       - name: Run Playwright tests in development mode
         run: pnpm integration-test

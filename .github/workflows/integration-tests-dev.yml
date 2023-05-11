@@ -27,11 +27,7 @@ jobs:
           node-version: '18'
           cache: 'pnpm'
 
-      - name: Install dependencies
-        run: pnpm install
-
-      # from https://dev.to/jpoehnelt/caching-playwright-binaries-in-github-actions-2mfc
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         id: playwright-cache
         with:
           path: |
@@ -41,10 +37,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      # This will use the cache for browsers. But it will reinstall system deps, which can't be cached
+      # https://github.com/microsoft/playwright/issues/20603#issuecomment-1416243810
       - run: pnpm dlx playwright install --with-deps
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-      - run: pnpm dlx playwright install-deps
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
 
       - name: Run Playwright tests in development mode
         run: pnpm integration-test

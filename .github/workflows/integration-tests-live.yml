@@ -8,7 +8,11 @@ env:
   COMMIT_INFO_BRANCH: ${{ github.event.deployment_status.branch }}
 
 on:
+  push:
+    branches: [main]
   pull_request:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   test:

@@ -52,7 +52,7 @@ jobs:
         id: waitForVercelPreview
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          max_timeout: 60
+          max_timeout: 600
 
       - name: Run Playwright tests on ${{ steps.waitForVercelPreview.outputs.url }}
         run: pnpm integration-test

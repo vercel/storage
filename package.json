@@ -1,7 +1,7 @@
 {
   "name": "vercel-storage",
   "version": "0.0.1",
-  "description": "The monorepo for everything Postgres at Vercel",
+  "description": "The monorepo for everything Storage at Vercel",
   "homepage": "https://vercel.com",
   "repository": {
     "type": "git",

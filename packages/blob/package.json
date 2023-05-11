@@ -1,0 +1,67 @@
+{
+  "name": "@vercel/blob",
+  "version": "0.8.3",
+  "description": "The Vercel Blob JavaScript API client",
+  "homepage": "https://vercel.com/storage/blob",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vercel/storage.git",
+    "directory": "packages/blob"
+  },
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "node": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "node": "./dist/index.cjs",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "browser": {
+    "undici": "./dist/undici-browser.js"
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup && cp src/undici-browser.js dist/undici-browser.js",
+    "dev": "cp src/undici-browser.js dist/undici-browser.js && tsup --watch --clean=false",
+    "lint": "eslint --max-warnings=0 .",
+    "prepublishOnly": "pnpm run build",
+    "prettier-check": "prettier --check .",
+    "publint": "npx publint",
+    "test": "jest",
+    "type-check": "tsc --noEmit"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node"
+  },
+  "dependencies": {
+    "undici": "5.22.0"
+  },
+  "devDependencies": {
+    "@edge-runtime/jest-environment": "2.1.0",
+    "@edge-runtime/types": "2.0.8",
+    "@types/jest": "29.5.1",
+    "@types/node": "18.16.3",
+    "eslint": "8.25.0",
+    "eslint-config-custom": "workspace:*",
+    "jest": "29.2.1",
+    "ts-jest": "29.0.3",
+    "tsconfig": "workspace:*",
+    "tsup": "6.7.0"
+  },
+  "engines": {
+    "node": ">=16.14"
+  }
+}

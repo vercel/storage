@@ -5,7 +5,6 @@ env:
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
   POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
   POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
-  COMMIT_INFO_BRANCH: ${{ github.event.deployment_status.branch }}
 
 on:
   deployment_status:
@@ -26,20 +25,21 @@ jobs:
           node-version: '18'
           cache: 'pnpm'
 
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Cache playwright binaries
-        uses: actions/cache@v2
+      # from https://dev.to/jpoehnelt/caching-playwright-binaries-in-github-actions-2mfc
+      - uses: actions/cache@v2
         id: playwright-cache
         with:
           path: |
             ~/.cache/ms-playwright
-          key: cache-playwright-linux-2
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}
 
-      - name: Install Playwright
+      - name: Install dependencies
+        run: pnpm install
+
+      - run: npx playwright install --with-deps
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps
+      - run: npx playwright install-deps
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
 
       - name: Run Playwright tests on ${{ github.event.deployment_status.target_url }}
         run: pnpm integration-test

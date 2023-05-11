@@ -5,7 +5,6 @@ env:
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
   POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
   POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
-  COMMIT_INFO_BRANCH: ${{ github.event.deployment_status.branch }}
 
 on:
   push:

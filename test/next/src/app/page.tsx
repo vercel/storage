@@ -36,7 +36,7 @@ export default function Page(): JSX.Element {
           justifyContent: 'stretch',
         }}
       >
-        <Link href="/blob">Blob</Link>
+        <Link href="/vercel/pages/blob">Blob</Link>
       </div>
     </div>
   );

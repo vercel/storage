@@ -23,7 +23,7 @@ test.describe('@vercel/kv', () => {
   });
   test.describe('page', () => {
     test('serverless', async ({ page }) => {
-      await page.goto('blob');
+      await page.goto('vercel/pages/blob');
       const textContent = await page.locator('#blob-path').textContent();
       expect(textContent).toBe('test-page.txt');
     });

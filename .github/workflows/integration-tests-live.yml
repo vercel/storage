@@ -34,7 +34,7 @@ jobs:
         with:
           path: |
             ~/.cache/ms-playwright
-          key: cache-playwright-linux-3
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       - name: Install dependencies
         run: pnpm install

@@ -38,9 +38,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - run: npx playwright install --with-deps
+      - run: pnpm dlx playwright install --with-deps
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-      - run: npx playwright install-deps
+      - run: pnpm dlx playwright install-deps
         if: steps.playwright-cache.outputs.cache-hit != 'true'
 
       # https://github.com/patrickedqvist/wait-for-vercel-preview

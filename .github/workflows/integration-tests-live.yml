@@ -38,6 +38,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      # This will use the cache for browsers. But it will reinstall system deps, which can't be cached
+      # https://github.com/microsoft/playwright/issues/20603#issuecomment-1416243810
       - run: pnpm dlx playwright install --with-deps
 
       # https://github.com/patrickedqvist/wait-for-vercel-preview

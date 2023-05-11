@@ -33,7 +33,7 @@
     "lint": "eslint --max-warnings=0 .",
     "prepublishOnly": "pnpm run build",
     "prettier-check": "prettier --check .",
-    "publint": "pnpm dlx publint",
+    "publint": "npx publint",
     "test": "pnpm run test:node && pnpm run test:edge && pnpm run test:common",
     "test:common": "jest --env @edge-runtime/jest-environment .common.test.ts && jest --env node .common.test.ts",
     "test:edge": "jest --env @edge-runtime/jest-environment .edge.test.ts",

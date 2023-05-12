@@ -22,6 +22,7 @@ const config: PlaywrightTestConfig = {
   timeout: 10 * 1000,
   // Test directory
   testDir: path.join(__dirname, 'test'),
+  testMatch: process.env.PLAYWRIGHT_TEST_MATCH ?? '**/*.test.ts',
   // If a test fails, retry it additional 2 times
   retries: 2,
   // Artifacts folder where screenshots, videos, and traces are stored.

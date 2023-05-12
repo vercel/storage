@@ -1,0 +1,51 @@
+name: Playwright Visual Tests (Scheduled)
+
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+  POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+  POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
+  PLAYWRIGHT_TEST_MATCH: '**/image.test.ts'
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  test:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+
+      # from https://dev.to/jpoehnelt/caching-playwright-binaries-in-github-actions-2mfc
+      - uses: actions/cache@v2
+        id: playwright-cache
+        with:
+          path: |
+            ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - run: pnpm dlx playwright install --with-deps
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+      - run: pnpm dlx playwright install-deps
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+
+      - name: Run Playwright tests on https://vercel-storage-next-integration-test-suite-1tpomu8q5.vercel.app/vercel/pages/blob/image
+        run: pnpm integration-test
+        env:
+          PLAYWRIGHT_TEST_BASE_URL: 'https://vercel-storage-next-integration-test-suite-1tpomu8q5.vercel.app/vercel/pages/blob/image'

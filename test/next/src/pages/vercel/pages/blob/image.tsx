@@ -5,7 +5,9 @@ import * as vercelBlob from '@vercel/blob';
 
 export const getServerSideProps: GetServerSideProps = async () => {
   const imgPath = path.join(process.cwd(), 'images');
-  const imageFile = fs.readFileSync(path.join(imgPath, `lee.jpeg`));
+  const imageFile = fs.readFileSync(
+    path.join(imgPath, `checkly-scheduled-blob.jpeg`),
+  );
 
   const blob = await vercelBlob.put('checkly-scheduled-blob.jpeg', imageFile, {
     access: 'public',

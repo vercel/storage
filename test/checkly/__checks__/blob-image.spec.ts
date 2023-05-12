@@ -6,6 +6,7 @@ test('Should load an image from a blob', async ({ page, request }) => {
   );
   expect(response?.status()).toBeLessThan(400);
   await page.screenshot({ path: 'screenshot.jpg' });
+  await expect(page).toHaveScreenshot();
   await request.delete(
     `${
       process.env.URL ?? ''

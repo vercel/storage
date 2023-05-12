@@ -12,6 +12,7 @@ export default function Page(): JSX.Element {
         width: '100vw',
       }}
     >
+      <h2>App Links</h2>
       <div
         style={{
           display: 'flex',
@@ -25,6 +26,17 @@ export default function Page(): JSX.Element {
         <Link href="/vercel/postgres">Postgres</Link>
         <Link href="/vercel/postgres-kysely">Postgres Kysely</Link>
         <Link href="/vercel/blob">Blob</Link>
+      </div>
+      <h2>Page Links</h2>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'stretch',
+        }}
+      >
+        <Link href="/vercel/pages/blob">Blob</Link>
       </div>
     </div>
   );

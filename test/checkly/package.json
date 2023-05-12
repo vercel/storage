@@ -1,0 +1,14 @@
+{
+  "name": "vercel-storage-checkly",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "checkly-test": "checkly test",
+    "deploy": "checkly deploy"
+  },
+  "dependencies": {
+    "@playwright/test": "1.33.0",
+    "checkly": "4.0.5",
+    "tsconfig": "workspace:*"
+  }
+}

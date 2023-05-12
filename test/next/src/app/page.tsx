@@ -37,6 +37,7 @@ export default function Page(): JSX.Element {
         }}
       >
         <Link href="/vercel/pages/blob">Blob</Link>
+        <Link href="/vercel/pages/blob/image">Blob Image</Link>
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ module.exports = {
     project: [
       resolve(__dirname, './packages/*/tsconfig.json'),
       resolve(__dirname, './tooling/*/tsconfig.json'),
+      resolve(__dirname, './test/checkly/tsconfig.json'),
     ],
   },
 };

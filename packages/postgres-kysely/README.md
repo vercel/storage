@@ -1,10 +1,10 @@
 # @vercel/postgres-kysely
 
-A `@vercel/postgres` wrapper for the [kysely ORM](https://github.com/kysely-org/kysely)
+A `@vercel/postgres` wrapper for the [Kysely](https://github.com/kysely-org/kysely) query builder.
 
 ## Quick Start
 
-**Note:** If you want to write your own queries instead of using an ORM, see [@vercel/postgres](https://npmjs.org/package/@vercel/postgres).
+**Note:** If you want to write your own queries instead of using a query builder, see [@vercel/postgres](https://npmjs.org/package/@vercel/postgres).
 
 ### Install
 

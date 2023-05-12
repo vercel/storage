@@ -1,4 +1,4 @@
-import { handleBody } from '../../../../app/vercel/blob/handle-body';
+import { handleBody } from '../../../../../app/vercel/blob/handle-body';
 
 export default handleBody;
 

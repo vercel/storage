@@ -6,8 +6,8 @@ test.describe('@vercel/blob', () => {
     [
       'vercel/blob/api/app/body/edge',
       'vercel/blob/api/app/body/serverless',
-      'api/vercel/blob/edge',
-      'api/vercel/blob/serverless',
+      'api/vercel/blob/pages/edge',
+      'api/vercel/blob/pages/serverless',
     ].forEach((path) => {
       test(path, async ({ request }) => {
         const data = (await request

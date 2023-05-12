@@ -10,7 +10,7 @@ export default async function AppBodyEdge(): Promise<JSX.Element> {
   );
   return (
     <>
-      <h1>App Router direct body upload example via a Serverless Function</h1>
+      <h1>App Router direct string upload example via a Serverless Function</h1>
       <p id="blob-path">{blob.pathname}</p>
     </>
   );

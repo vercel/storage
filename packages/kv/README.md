@@ -104,12 +104,12 @@ export default defineConfig(({ mode }) => {
 
 ```diff
 import { createClient } from '@vercel/kv';
-+ import { KV_URL, KV_REST_API_TOKEN } from '$env/static/private';
++ import { KV_REST_API_URL, KV_REST_API_TOKEN } from '$env/static/private';
 
 const kv = createClient({
 -  url: 'https://<hostname>.redis.vercel-storage.com',
 -  token: '<token>',
-+  url: KV_URL,
++  url: KV_REST_API_URL,
 +  token: KV_REST_API_TOKEN,
 });
 

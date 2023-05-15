@@ -38,7 +38,14 @@
     "setupFiles": [
       "<rootDir>/jest/setup.js"
     ],
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "testEnvironmentOptions": {
+      "customExportConditions": [
+        "react-server",
+        "node",
+        "node-addons"
+      ]
+    }
   },
   "dependencies": {
     "@vercel/edge-config-fs": "workspace:*",

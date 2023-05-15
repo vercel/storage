@@ -41,7 +41,14 @@
   },
   "jest": {
     "preset": "ts-jest",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "testEnvironmentOptions": {
+      "customExportConditions": [
+        "react-server",
+        "node",
+        "node-addons"
+      ]
+    }
   },
   "dependencies": {
     "@vercel/postgres": "workspace:0.5.0",

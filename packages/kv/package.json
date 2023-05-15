@@ -40,7 +40,14 @@
   },
   "jest": {
     "preset": "ts-jest",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "testEnvironmentOptions": {
+      "customExportConditions": [
+        "react-server",
+        "node",
+        "node-addons"
+      ]
+    }
   },
   "dependencies": {
     "@upstash/redis": "1.22.0",

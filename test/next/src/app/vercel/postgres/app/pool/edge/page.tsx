@@ -1,5 +1,6 @@
 import { queryUsers } from '@/lib/postgres-pool';
 
+export const dynamic = 'force-dynamic';
 export const runtime = 'edge';
 
 export default async function Page(): Promise<JSX.Element> {

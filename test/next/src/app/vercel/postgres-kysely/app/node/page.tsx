@@ -1,5 +1,6 @@
 import { queryUsers } from '@/lib/postgres-kysely';
 
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export default async function Page(): Promise<JSX.Element> {

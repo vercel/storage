@@ -3,6 +3,8 @@ import type { TestRunnerProps } from '@/lib/test/postgres-kysely';
 import { PostgresTestRunner } from '@/lib/test/postgres-kysely';
 import { ProjectDashboardLayout } from '@/lib/test/project-dashboard-layout';
 
+export const dynamic = 'force-dynamic';
+
 export default function Page(): JSX.Element {
   const tests: TestRunnerProps[] = [
     {

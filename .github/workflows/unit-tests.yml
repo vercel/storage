@@ -5,6 +5,7 @@ env:
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
   POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
   POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
+  EDGE_CONFIG: ${{ secrets.EDGE_CONFIG }}
 
 on:
   push:

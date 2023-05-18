@@ -15,6 +15,30 @@ export function hasOwnProperty<X, Y extends PropertyKey>(
   return Object.prototype.hasOwnProperty.call(obj, prop);
 }
 
+/**
+ * Works around an issue in Next.js.
+ *
+ * Next.js problematically expects to be able to throw DynamicServerError and
+ * for it to be passed all the way upwards, but we are catching all errors and
+ * mapping them to a generic NetworkError.
+ *
+ * We do this catch-all to prevent leaky abstractions.
+ * Otherwise we might leak our implementation details through errors.
+ *
+ * But this breaks Next.js. So we need to make an exception for it until Next.js
+ * no longer expects this behavior.
+ *
+ * Without this fix, Next.js would fail builds of in which edge config is read
+ * from async page components.
+ *
+ * https://github.com/vercel/storage/issues/119
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const isDynamicServerError = (error: any): boolean =>
+  error instanceof Error &&
+  hasOwnProperty(error, 'digest') &&
+  error.digest === 'DYNAMIC_SERVER_USAGE';
+
 export function pick<T, K extends keyof T>(obj: T, keys: K[]): Pick<T, K> {
   const ret: Partial<T> = {};
   keys.forEach((key) => {

@@ -3,6 +3,7 @@ import {
   assertIsKeys,
   parseConnectionString,
   ERRORS,
+  isDynamicServerError,
 } from './shared';
 import type {
   EdgeConfigClient,
@@ -56,7 +57,8 @@ export function createClient(
           if (res.ok) return res.json();
           throw new Error(ERRORS.UNEXPECTED);
         },
-        () => {
+        (error) => {
+          if (isDynamicServerError(error)) throw error;
           throw new Error(ERRORS.NETWORK);
         },
       );
@@ -82,7 +84,8 @@ export function createClient(
           if (res.ok) return true;
           throw new Error(ERRORS.UNEXPECTED);
         },
-        () => {
+        (error) => {
+          if (isDynamicServerError(error)) throw error;
           throw new Error(ERRORS.NETWORK);
         },
       );
@@ -117,7 +120,8 @@ export function createClient(
           if (res.ok) return res.json();
           throw new Error(ERRORS.UNEXPECTED);
         },
-        () => {
+        (error) => {
+          if (isDynamicServerError(error)) throw error;
           throw new Error(ERRORS.NETWORK);
         },
       );
@@ -133,7 +137,8 @@ export function createClient(
           if (res.ok) return res.json() as Promise<string>;
           throw new Error(ERRORS.UNEXPECTED);
         },
-        () => {
+        (error) => {
+          if (isDynamicServerError(error)) throw error;
           throw new Error(ERRORS.NETWORK);
         },
       );

@@ -6,6 +6,7 @@ import {
   clone,
   ERRORS,
   hasOwnProperty,
+  isDynamicServerError,
   parseConnectionString,
   pick,
 } from './shared';
@@ -97,7 +98,8 @@ export function createClient(
             return res.cachedResponseBody as T;
           throw new Error(ERRORS.UNEXPECTED);
         },
-        () => {
+        (error) => {
+          if (isDynamicServerError(error)) throw error;
           throw new Error(ERRORS.NETWORK);
         },
       );
@@ -129,7 +131,8 @@ export function createClient(
           if (res.ok) return true;
           throw new Error(ERRORS.UNEXPECTED);
         },
-        () => {
+        (error) => {
+          if (isDynamicServerError(error)) throw error;
           throw new Error(ERRORS.NETWORK);
         },
       );
@@ -179,7 +182,8 @@ export function createClient(
             return res.cachedResponseBody as T;
           throw new Error(ERRORS.UNEXPECTED);
         },
-        () => {
+        (error) => {
+          if (isDynamicServerError(error)) throw error;
           throw new Error(ERRORS.NETWORK);
         },
       );
@@ -205,7 +209,8 @@ export function createClient(
             return res.cachedResponseBody as string;
           throw new Error(ERRORS.UNEXPECTED);
         },
-        () => {
+        (error) => {
+          if (isDynamicServerError(error)) throw error;
           throw new Error(ERRORS.NETWORK);
         },
       );

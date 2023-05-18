@@ -3,16 +3,16 @@ name: Playwright Dev Tests
 env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
-  # This token can be found in Curated Tests > vercel-storage-next-integration-test-suite > storage > vcs-integration-test-suite
+  # These tokens can be found in Curated Tests > vercel-storage-next-integration-test-suite > storage > vcs-integration-test-suite-pg
   POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
-  # This token can be found in Curated Tests > vercel-storage-next-integration-test-suite > storage > vcs-integration-test-suite
   POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
   # This token can be found in Curated Tests > vercel-storage-next-integration-test-suite > storage > vcs-integration-test-suite-blob
   BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
-  # This token can be found in Curated Tests > vercel-storage-next-integration-test-suite > storage > vcs-integration-test-suite-kv
+  # These tokens can be found in Curated Tests > vercel-storage-next-integration-test-suite > storage > vcs-integration-test-suite-kv
   KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
-  # This token can be found in Curated Tests > vercel-storage-next-integration-test-suite > storage > vcs-integration-test-suite-kv
   KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
+  # This token can be found in Curated Tests > vercel-storage-next-integration-test-suite > storage > vcs-integration-test-suite-ecfg
+  EDGE_CONFIG: ${{ secrets.EDGE_CONFIG }}
 
 on:
   push:

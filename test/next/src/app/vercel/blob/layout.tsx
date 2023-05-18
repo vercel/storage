@@ -5,12 +5,11 @@ export const metadata = {
 
 export const dynamic = 'force-dynamic';
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
-}) {
+}): JSX.Element {
   return (
     <html lang="en">
       <body>

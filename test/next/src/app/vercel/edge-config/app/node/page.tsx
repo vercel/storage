@@ -10,5 +10,5 @@ export default async function Page(): Promise<JSX.Element> {
       "Expected Edge Config Item 'keyForTest' to have value 'valueForTest'",
     );
 
-  return <div>success</div>;
+  return <pre>{JSON.stringify(value, null, 2)}</pre>;
 }

@@ -57,6 +57,16 @@ async function consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(
   await res.arrayBuffer();
 }
 
+/**
+ * Create an Edge Config client.
+ *
+ * The client has multiple methods which allow you to read the Edge Config.
+ *
+ * If you need to programmatically write to an Edge Config, check out the [Update your Edge Config items](https://vercel.com/docs/storage/edge-config/vercel-api#update-your-edge-config-items) section.
+ *
+ * @param connectionString - A connection string. Usually you'd pass in `process.env.EDGE_CONFIG` here, which contains a connection string.
+ * @returns An Edge Config Client instance
+ */
 export function createClient(
   connectionString: string | undefined,
 ): EdgeConfigClient {

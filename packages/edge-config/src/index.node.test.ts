@@ -1,9 +1,8 @@
-// eslint-disable-next-line unicorn/prefer-node-protocol
-import fs from 'fs/promises';
+import { readFile } from '@vercel/edge-config-fs';
 import fetchMock from 'jest-fetch-mock';
 import type { EmbeddedEdgeConfig } from './types';
-import { get, has, digest, createClient, getAll } from './index.node';
 import { cache } from './utils/fetch-with-cached-response';
+import { get, has, digest, createClient, getAll } from './index';
 
 const baseUrl = 'https://edge-config.vercel.com/ecfg-1';
 
@@ -14,7 +13,7 @@ beforeEach(() => {
 });
 
 // mock fs for test
-jest.mock('fs/promises', () => {
+jest.mock('@vercel/edge-config-fs', () => {
   const embeddedEdgeConfig: EmbeddedEdgeConfig = {
     digest: 'awe1',
     items: { foo: 'bar', someArray: [] },
@@ -403,7 +402,7 @@ describe('default Edge Config', () => {
 
 // these test the happy path only, as the cases are tested through the
 // "default Edge Config" tests above anyhow
-describe('createEdgeConfig', () => {
+describe('createClient', () => {
   describe('when running with lambda layer on serverless function', () => {
     beforeAll(() => {
       process.env.AWS_LAMBDA_FUNCTION_NAME = 'some-value';
@@ -414,7 +413,7 @@ describe('createEdgeConfig', () => {
     });
 
     beforeEach(() => {
-      (fs.readFile as jest.Mock).mockClear();
+      (readFile as jest.Mock).mockClear();
     });
 
     describe('get(key)', () => {
@@ -423,8 +422,8 @@ describe('createEdgeConfig', () => {
           const edgeConfig = createClient(process.env.EDGE_CONFIG);
           await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
           expect(fetchMock).toHaveBeenCalledTimes(0);
-          expect(fs.readFile).toHaveBeenCalledTimes(1);
-          expect(fs.readFile).toHaveBeenCalledWith(
+          expect(readFile).toHaveBeenCalledTimes(1);
+          expect(readFile).toHaveBeenCalledWith(
             '/opt/edge-config/ecfg-1.json',
             'utf-8',
           );
@@ -440,8 +439,8 @@ describe('createEdgeConfig', () => {
           // next get
           await expect(edgeConfig.get('someArray')).resolves.toEqual([]);
           expect(fetchMock).toHaveBeenCalledTimes(0);
-          expect(fs.readFile).toHaveBeenCalledTimes(2);
-          expect(fs.readFile).toHaveBeenCalledWith(
+          expect(readFile).toHaveBeenCalledTimes(2);
+          expect(readFile).toHaveBeenCalledWith(
             '/opt/edge-config/ecfg-1.json',
             'utf-8',
           );
@@ -453,8 +452,8 @@ describe('createEdgeConfig', () => {
           const edgeConfig = createClient(process.env.EDGE_CONFIG);
           await expect(edgeConfig.get('baz')).resolves.toEqual(undefined);
           expect(fetchMock).toHaveBeenCalledTimes(0);
-          expect(fs.readFile).toHaveBeenCalledTimes(1);
-          expect(fs.readFile).toHaveBeenCalledWith(
+          expect(readFile).toHaveBeenCalledTimes(1);
+          expect(readFile).toHaveBeenCalledWith(
             '/opt/edge-config/ecfg-1.json',
             'utf-8',
           );
@@ -468,8 +467,8 @@ describe('createEdgeConfig', () => {
           const edgeConfig = createClient(process.env.EDGE_CONFIG);
           await expect(edgeConfig.has('foo')).resolves.toEqual(true);
           expect(fetchMock).toHaveBeenCalledTimes(0);
-          expect(fs.readFile).toHaveBeenCalledTimes(1);
-          expect(fs.readFile).toHaveBeenCalledWith(
+          expect(readFile).toHaveBeenCalledTimes(1);
+          expect(readFile).toHaveBeenCalledWith(
             '/opt/edge-config/ecfg-1.json',
             'utf-8',
           );
@@ -481,8 +480,8 @@ describe('createEdgeConfig', () => {
           const edgeConfig = createClient(process.env.EDGE_CONFIG);
           await expect(edgeConfig.has('baz')).resolves.toEqual(false);
           expect(fetchMock).toHaveBeenCalledTimes(0);
-          expect(fs.readFile).toHaveBeenCalledTimes(1);
-          expect(fs.readFile).toHaveBeenCalledWith(
+          expect(readFile).toHaveBeenCalledTimes(1);
+          expect(readFile).toHaveBeenCalledWith(
             '/opt/edge-config/ecfg-1.json',
             'utf-8',
           );
@@ -495,8 +494,8 @@ describe('createEdgeConfig', () => {
         const edgeConfig = createClient(process.env.EDGE_CONFIG);
         await expect(edgeConfig.digest()).resolves.toEqual('awe1');
         expect(fetchMock).toHaveBeenCalledTimes(0);
-        expect(fs.readFile).toHaveBeenCalledTimes(1);
-        expect(fs.readFile).toHaveBeenCalledWith(
+        expect(readFile).toHaveBeenCalledTimes(1);
+        expect(readFile).toHaveBeenCalledWith(
           '/opt/edge-config/ecfg-1.json',
           'utf-8',
         );

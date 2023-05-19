@@ -1,5 +1,4 @@
-// eslint-disable-next-line unicorn/prefer-node-protocol
-import fs from 'fs/promises';
+import { readFile } from '@vercel/edge-config-fs';
 import {
   assertIsKey,
   assertIsKeys,
@@ -8,7 +7,7 @@ import {
   hasOwnProperty,
   parseConnectionString,
   pick,
-} from './shared';
+} from './utils';
 import type {
   EdgeConfigClient,
   EdgeConfigItems,
@@ -36,7 +35,7 @@ async function getFileSystemEdgeConfig(connection: {
   if (!process.env.AWS_LAMBDA_FUNCTION_NAME) return null;
 
   try {
-    const content = await fs.readFile(
+    const content = await readFile(
       `/opt/edge-config/${connection.id}.json`,
       'utf-8',
     );
@@ -44,6 +43,17 @@ async function getFileSystemEdgeConfig(connection: {
   } catch {
     return null;
   }
+}
+
+async function consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(
+  res: Response,
+): Promise<void> {
+  if (typeof EdgeRuntime !== 'undefined') return;
+
+  // Read body to avoid memory leaks in nodejs
+  // see https://github.com/nodejs/undici/blob/v5.21.2/README.md#garbage-collection
+  // see https://github.com/node-fetch/node-fetch/issues/83
+  await res.arrayBuffer();
 }
 
 export function createClient(
@@ -80,10 +90,8 @@ export function createClient(
       }).then<T | undefined, undefined>(
         async (res) => {
           if (res.ok) return res.json();
-          // Read body to avoid memory leaks.
-          // see https://github.com/nodejs/undici/blob/v5.21.2/README.md#garbage-collection
-          // see https://github.com/node-fetch/node-fetch/issues/83
-          await res.arrayBuffer();
+          await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+
           if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
           if (res.status === 404) {
             // if the x-edge-config-digest header is present, it means
@@ -167,10 +175,8 @@ export function createClient(
       ).then<T>(
         async (res) => {
           if (res.ok) return res.json();
-          // Read body to avoid memory leaks.
-          // see https://github.com/nodejs/undici/blob/v5.21.2/README.md#garbage-collection
-          // see https://github.com/node-fetch/node-fetch/issues/83
-          await res.arrayBuffer();
+          await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+
           if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
           // the /items endpoint never returns 404, so if we get a 404
           // it means the edge config itself did not exist
@@ -197,10 +203,8 @@ export function createClient(
       }).then(
         async (res) => {
           if (res.ok) return res.json() as Promise<string>;
-          // Read body to avoid memory leaks.
-          // see https://github.com/nodejs/undici/blob/v5.21.2/README.md#garbage-collection
-          // see https://github.com/node-fetch/node-fetch/issues/83
-          await res.arrayBuffer();
+          await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+
           if (res.cachedResponseBody !== undefined)
             return res.cachedResponseBody as string;
           throw new Error(ERRORS.UNEXPECTED);

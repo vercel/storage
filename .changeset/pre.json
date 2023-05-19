@@ -1,0 +1,16 @@
+{
+  "mode": "pre",
+  "tag": "canary",
+  "initialVersions": {
+    "@vercel/blob": "0.8.3",
+    "@vercel/edge-config": "0.1.10",
+    "@vercel/edge-config-fs": "0.1.0",
+    "@vercel/kv": "0.2.1",
+    "@vercel/postgres": "0.3.0",
+    "@vercel/postgres-kysely": "0.3.0",
+    "vercel-storage-integration-test-suite": "0.1.5",
+    "eslint-config-custom": "0.0.0",
+    "tsconfig": "0.0.0"
+  },
+  "changesets": []
+}

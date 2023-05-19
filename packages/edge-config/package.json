@@ -13,23 +13,15 @@
   "type": "module",
   "exports": {
     "types": "./dist/index.d.ts",
-    "import": {
-      "edge-light": "./dist/index.edge.js",
-      "node": "./dist/index.node.js",
-      "default": "./dist/index.edge.js"
-    },
-    "require": {
-      "edge-light": "./dist/index.edge.cjs",
-      "node": "./dist/index.node.cjs",
-      "default": "./dist/index.edge.cjs"
-    }
+    "import": "./dist/index.js",
+    "require": "./dist/index.cjs"
   },
   "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsup && node scripts/post-build.js",
+    "build": "tsup",
     "lint": "eslint --max-warnings=0 .",
     "prepublishOnly": "pnpm run build",
     "prettier-check": "prettier --check .",
@@ -46,6 +38,9 @@
       "<rootDir>/jest/setup.js"
     ],
     "testEnvironment": "node"
+  },
+  "dependencies": {
+    "@vercel/edge-config-fs": "workspace:*"
   },
   "devDependencies": {
     "@babel/core": "7.21.0",

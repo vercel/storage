@@ -17,7 +17,7 @@ export interface EdgeConfigClient {
    */
   get: <T = EdgeConfigValue>(key: string) => Promise<T | undefined>;
   /**
-   * Read multiple or all values.
+   * Reads multiple or all values.
    *
    * Allows you to read all or only selected keys of an Edge Config at once.
    *

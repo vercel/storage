@@ -19,6 +19,7 @@ module.exports = {
       ],
       rules: {
         'import/no-default-export': 'off',
+        '@next/next/no-html-link-for-pages': 'off',
       },
     },
     {

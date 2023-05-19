@@ -12,5 +12,5 @@
     "eslint-config-custom": "0.0.0",
     "tsconfig": "0.0.0"
   },
-  "changesets": ["mean-poets-judge"]
+  "changesets": ["mean-poets-judge", "mean-poets-rock"]
 }

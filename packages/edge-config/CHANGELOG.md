@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.1.11-canary.1
+
+### Patch Changes
+
+- 282b5ee: work around an issue which prevented edge config from being read via async page components in app router on the nodejs runtime
+
 ## 0.1.11-canary.0
 
 ### Patch Changes

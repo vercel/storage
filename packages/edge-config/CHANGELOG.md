@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.1.11-canary.0
+
+### Patch Changes
+
+- 490a976: internal rewrite - no functionality should have changed
+
 ## 0.1.10
 
 ### Patch Changes

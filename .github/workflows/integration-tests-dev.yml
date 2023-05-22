@@ -50,11 +50,11 @@ jobs:
       - run: pnpm dlx playwright install --with-deps
 
       - name: Run Playwright tests in development mode
-        run: DEBUG=pw:* pnpm integration-test
+        run: pnpm integration-test
 
       - uses: actions/upload-artifact@v3
         if: always()
         with:
           name: playwright-report
-          path: test/next/playwright-report
+          path: test/next/test-results
           retention-days: 30

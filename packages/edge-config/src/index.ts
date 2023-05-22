@@ -29,10 +29,12 @@ export {
  * Reads an Edge Config from the local file system.
  * This is used at runtime on serverless functions.
  */
-async function getFileSystemEdgeConfig(connection: {
-  id: string;
-  token: string;
-}): Promise<EmbeddedEdgeConfig | null> {
+async function getFileSystemEdgeConfig(
+  connection: Connection,
+): Promise<EmbeddedEdgeConfig | null> {
+  // can't optimize non-vercel hosted edge configs
+  if (connection.type !== 'vercel') return null;
+  // can't use fs optimizations outside of lambda
   if (!process.env.AWS_LAMBDA_FUNCTION_NAME) return null;
 
   try {
@@ -57,6 +59,88 @@ async function consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(
   await res.arrayBuffer();
 }
 
+type Connection =
+  | {
+      baseUrl: string;
+      id: string;
+      token: string;
+      version: string;
+      type: 'vercel';
+    }
+  | {
+      baseUrl: string;
+      id: string;
+      token: string;
+      version: string;
+      type: 'external';
+    };
+
+/**
+ * Parses info contained in connection strings.
+ *
+ * This works with the vercel-provided connection strings, but it also
+ * works with custom connection strings.
+ *
+ * The reason we support custom connection strings is that it makes testing
+ * edge config really straightforward. Users can provide  connection strings
+ * pointing to their own servers and then either have a custom server
+ * return the desired values or even intercept requests with something like
+ * msw.
+ *
+ * To allow interception we need a custom connection string as the
+ * edge-config.vercel.com connection string might not always go over
+ * the network, so msw would not have a chance to intercept.
+ */
+function getConnection(connectionString: string): Connection | null {
+  const isVercelConnectionString = connectionString.startsWith(
+    'https://edge-config.vercel.com/',
+  );
+
+  const connection = isVercelConnectionString
+    ? parseConnectionString(connectionString)
+    : null;
+
+  if (isVercelConnectionString && connection)
+    return {
+      type: 'vercel',
+      baseUrl: `https://edge-config.vercel.com/${connection.id}`,
+      id: connection.id,
+      version: '1',
+      token: connection.token,
+    };
+
+  try {
+    const url = new URL(connectionString);
+
+    let id: string | null = url.searchParams.get('id');
+    const token = url.searchParams.get('token');
+    const version = url.searchParams.get('version') || '1';
+
+    // try to determine id based on pathname if it wasn't provided explicitly
+    if (!id || url.pathname.startsWith('/ecfg_')) {
+      id = url.pathname.split('/')[1] || null;
+    }
+
+    // clean up URL for use as baseURL
+    for (const key of url.searchParams.keys()) {
+      url.searchParams.delete(key);
+    }
+
+    if (!id || !token) return null;
+
+    // try to parse as external connection string
+    return {
+      type: 'external',
+      baseUrl: url.toString(),
+      id,
+      token,
+      version,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Create an Edge Config client.
  *
@@ -73,12 +157,13 @@ export function createClient(
   if (!connectionString)
     throw new Error('@vercel/edge-config: No connection string provided');
 
-  const connection = parseConnectionString(connectionString);
+  const connection = getConnection(connectionString);
+
   if (!connection)
     throw new Error('@vercel/edge-config: Invalid connection string provided');
 
-  const url = `https://edge-config.vercel.com/${connection.id}`;
-  const version = '1'; // version of the edge config read access api we talk to
+  const baseUrl = connection.baseUrl;
+  const version = connection.version; // version of the edge config read access api we talk to
   const headers = { Authorization: `Bearer ${connection.token}` };
 
   return {
@@ -95,10 +180,13 @@ export function createClient(
       }
 
       assertIsKey(key);
-      return fetchWithCachedResponse(`${url}/item/${key}?version=${version}`, {
-        headers: new Headers(headers),
-        cache: 'no-store',
-      }).then<T | undefined, undefined>(
+      return fetchWithCachedResponse(
+        `${baseUrl}/item/${key}?version=${version}`,
+        {
+          headers: new Headers(headers),
+          cache: 'no-store',
+        },
+      ).then<T | undefined, undefined>(
         async (res) => {
           if (res.ok) return res.json();
           await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
@@ -131,7 +219,7 @@ export function createClient(
 
       assertIsKey(key);
       // this is a HEAD request anyhow, no need for fetchWithCachedResponse
-      return fetch(`${url}/item/${key}?version=${version}`, {
+      return fetch(`${baseUrl}/item/${key}?version=${version}`, {
         method: 'HEAD',
         headers: new Headers(headers),
         cache: 'no-store',
@@ -180,7 +268,9 @@ export function createClient(
       if (search === '') return Promise.resolve({} as T);
 
       return fetchWithCachedResponse(
-        `${url}/items?version=${version}${search === null ? '' : `&${search}`}`,
+        `${baseUrl}/items?version=${version}${
+          search === null ? '' : `&${search}`
+        }`,
         {
           headers: new Headers(headers),
           cache: 'no-store',
@@ -211,7 +301,7 @@ export function createClient(
         return Promise.resolve(localEdgeConfig.digest);
       }
 
-      return fetchWithCachedResponse(`${url}/digest?version=1`, {
+      return fetchWithCachedResponse(`${baseUrl}/digest?version=1`, {
         headers: new Headers(headers),
         cache: 'no-store',
       }).then(

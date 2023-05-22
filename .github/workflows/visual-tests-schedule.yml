@@ -1,0 +1,84 @@
+name: Playwright Visual Tests (Scheduled)
+
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+  # Required to build test/next
+  POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+  # Required to build test/next
+  POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
+  PLAYWRIGHT_TEST_MATCH: '**/*.visual.test.ts'
+  PLAYWRIGHT_PROJECT: 'Desktop Chrome'
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    inputs:
+      PLAYWRIGHT_TEST_BASE_URL:
+        description: 'Test url'
+        type: string
+        required: false
+
+jobs:
+  test:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+
+      - uses: actions/cache@v3
+        id: playwright-cache
+        with:
+          path: |
+            ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - name: Install dependencies
+        run: pnpm install
+
+      # This will use the cache for browsers. But it will reinstall system deps, which can't be cached
+      # https://github.com/microsoft/playwright/issues/20603#issuecomment-1416243810
+      - run: pnpm dlx playwright install --with-deps
+
+      - name: Run Playwright tests on https://storage-rho.vercel.app/
+        run: pnpm integration-test
+        env:
+          PLAYWRIGHT_TEST_BASE_URL: ${{inputs.PLAYWRIGHT_TEST_BASE_URL || 'https://storage-rho.vercel.app' }}
+      - name: Datadog report Fail
+        uses: masci/datadog@v1
+        if: failure()
+        with:
+          api-key: ${{ secrets.DATADOG_API_KEY }}
+          service-checks: |
+            - check: "blob.storage.load.image"
+              message: "Blob image Visual test failed"
+              status: 2
+              host_name: ${{ github.repository_owner }}
+              tags:
+                - "project:${{ github.repository }}"
+      - name: Datadog report Success
+        uses: masci/datadog@v1
+        with:
+          api-key: ${{ secrets.DATADOG_API_KEY }}
+          service-checks: |
+            - check: "blob.storage.load.image"
+              message: "Blob image Visual test succeeded"
+              status: 0
+              host_name: ${{ github.repository_owner }}
+              tags:
+                - "project:${{ github.repository }}"
+      - name: Upload Snpashot results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: playwright-snapshot
+          path: test/next/test-results

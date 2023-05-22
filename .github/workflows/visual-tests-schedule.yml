@@ -7,6 +7,8 @@ env:
   POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
   # Required to build test/next
   POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
+  # Required to build test/next
+  EDGE_CONFIG: ${{ secrets.EDGE_CONFIG }}
   PLAYWRIGHT_TEST_MATCH: '**/*.visual.test.ts'
   PLAYWRIGHT_PROJECT: 'Desktop Chrome'
 

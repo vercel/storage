@@ -310,3 +310,5 @@ const kv = await head("filepath", {
 
 await kv.set('key', 'value');
 ```
+
+TEST PIPELINE

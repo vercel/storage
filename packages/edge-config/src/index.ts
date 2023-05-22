@@ -32,11 +32,6 @@ export {
 async function getFileSystemEdgeConfig(
   connection: Connection,
 ): Promise<EmbeddedEdgeConfig | null> {
-  // can't optimize non-vercel hosted edge configs
-  if (connection.type !== 'vercel') return null;
-  // can't use fs optimizations outside of lambda
-  if (!process.env.AWS_LAMBDA_FUNCTION_NAME) return null;
-
   try {
     const content = await readFile(
       `/opt/edge-config/${connection.id}.json`,
@@ -48,14 +43,12 @@ async function getFileSystemEdgeConfig(
   }
 }
 
-async function consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(
-  res: Response,
-): Promise<void> {
-  if (typeof EdgeRuntime !== 'undefined') return;
-
-  // Read body to avoid memory leaks in nodejs
-  // see https://github.com/nodejs/undici/blob/v5.21.2/README.md#garbage-collection
-  // see https://github.com/node-fetch/node-fetch/issues/83
+/**
+ * Read body to avoid memory leaks in nodejs
+ * @see https://github.com/nodejs/undici/blob/v5.21.2/README.md#garbage-collection
+ * @see https://github.com/node-fetch/node-fetch/issues/83
+ */
+async function consumeResponseBody(res: Response): Promise<void> {
   await res.arrayBuffer();
 }
 
@@ -166,9 +159,20 @@ export function createClient(
   const version = connection.version; // version of the edge config read access api we talk to
   const headers = { Authorization: `Bearer ${connection.token}` };
 
+  const shouldGetFileSystemEdgeConfig =
+    // can't optimize non-vercel hosted edge configs
+    connection.type === 'vercel' &&
+    // can't use fs optimizations outside of lambda
+    typeof process.env.AWS_LAMBDA_FUNCTION_NAME === 'string';
+
+  const shouldConsumeResponseBody = typeof EdgeRuntime !== 'undefined';
+
   return {
     async get<T = EdgeConfigValue>(key: string): Promise<T | undefined> {
-      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+      const localEdgeConfig = shouldGetFileSystemEdgeConfig
+        ? await getFileSystemEdgeConfig(connection)
+        : null;
+
       if (localEdgeConfig) {
         assertIsKey(key);
 
@@ -189,7 +193,7 @@ export function createClient(
       ).then<T | undefined, undefined>(
         async (res) => {
           if (res.ok) return res.json();
-          await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+          if (shouldConsumeResponseBody) await consumeResponseBody(res);
 
           if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
           if (res.status === 404) {
@@ -211,7 +215,10 @@ export function createClient(
       );
     },
     async has(key): Promise<boolean> {
-      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+      const localEdgeConfig = shouldGetFileSystemEdgeConfig
+        ? await getFileSystemEdgeConfig(connection)
+        : null;
+
       if (localEdgeConfig) {
         assertIsKey(key);
         return Promise.resolve(hasOwnProperty(localEdgeConfig.items, key));
@@ -244,7 +251,9 @@ export function createClient(
       );
     },
     async getAll<T = EdgeConfigItems>(keys?: (keyof T)[]): Promise<T> {
-      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+      const localEdgeConfig = shouldGetFileSystemEdgeConfig
+        ? await getFileSystemEdgeConfig(connection)
+        : null;
 
       if (localEdgeConfig) {
         if (keys === undefined) {
@@ -278,7 +287,7 @@ export function createClient(
       ).then<T>(
         async (res) => {
           if (res.ok) return res.json();
-          await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+          if (shouldConsumeResponseBody) await consumeResponseBody(res);
 
           if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
           // the /items endpoint never returns 404, so if we get a 404
@@ -295,7 +304,9 @@ export function createClient(
       );
     },
     async digest(): Promise<string> {
-      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+      const localEdgeConfig = shouldGetFileSystemEdgeConfig
+        ? await getFileSystemEdgeConfig(connection)
+        : null;
 
       if (localEdgeConfig) {
         return Promise.resolve(localEdgeConfig.digest);
@@ -307,7 +318,7 @@ export function createClient(
       }).then(
         async (res) => {
           if (res.ok) return res.json() as Promise<string>;
-          await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+          if (shouldConsumeResponseBody) await consumeResponseBody(res);
 
           if (res.cachedResponseBody !== undefined)
             return res.cachedResponseBody as string;

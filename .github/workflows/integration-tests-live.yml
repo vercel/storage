@@ -54,7 +54,7 @@ jobs:
           max_timeout: 600
 
       - name: Run Playwright tests on ${{ steps.waitForVercelPreview.outputs.url }}
-        run: pnpm integration-test
+        run: DEBUG=pw:* pnpm integration-test
         env:
           PLAYWRIGHT_TEST_BASE_URL: ${{ steps.waitForVercelPreview.outputs.url }}
 
@@ -62,5 +62,5 @@ jobs:
         if: always()
         with:
           name: playwright-report
-          path: playwright-report/
+          path: test/next/playwright-report
           retention-days: 30

@@ -22,6 +22,7 @@ const config: PlaywrightTestConfig = {
   timeout: 10 * 1000,
   // Test directory
   testDir: path.join(__dirname, 'test'),
+  testMatch: process.env.PLAYWRIGHT_TEST_MATCH,
   // If a test fails, retry it additional 2 times
   retries: 2,
   // Artifacts folder where screenshots, videos, and traces are stored.
@@ -41,26 +42,35 @@ const config: PlaywrightTestConfig = {
     trace: 'retry-with-trace',
   },
 
-  projects: [
-    {
-      name: 'Desktop Chrome',
-      use: {
-        ...devices['Desktop Chrome'],
-      },
-    },
-    {
-      name: 'Desktop Firefox',
-      use: {
-        ...devices['Desktop Firefox'],
-      },
-    },
-    {
-      name: 'Desktop Safari',
-      use: {
-        ...devices['Desktop Safari'],
-      },
-    },
-  ],
+  projects: process.env.PLAYWRIGHT_PROJECT
+    ? [
+        {
+          name: process.env.PLAYWRIGHT_PROJECT,
+          use: {
+            ...devices[process.env.PLAYWRIGHT_PROJECT],
+          },
+        },
+      ]
+    : [
+        {
+          name: 'Desktop Chrome',
+          use: {
+            ...devices['Desktop Chrome'],
+          },
+        },
+        {
+          name: 'Desktop Firefox',
+          use: {
+            ...devices['Desktop Firefox'],
+          },
+        },
+        {
+          name: 'Desktop Safari',
+          use: {
+            ...devices['Desktop Safari'],
+          },
+        },
+      ],
 };
 
 // eslint-disable-next-line import/no-default-export

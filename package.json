@@ -25,9 +25,6 @@
   "lint-staged": {
     "*": [
       "prettier --ignore-unknown --write"
-    ],
-    "*.{js,jsx,ts,tsx}": [
-      "turbo lint -- --max-warnings=0 --fix"
     ]
   },
   "prettier": "@vercel/style-guide/prettier",

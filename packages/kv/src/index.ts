@@ -120,15 +120,15 @@ export const kv = new Proxy(
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     get(target, prop) {
       if (!_kv) {
-        if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+        if (!process.env['KV_REST_API_URL'] || !process.env['KV_REST_API_TOKEN']) {
           throw new Error(
             '@vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN',
           );
         }
 
         _kv = createClient({
-          url: process.env.KV_REST_API_URL,
-          token: process.env.KV_REST_API_TOKEN,
+          url: process.env['KV_REST_API_URL'],
+          token: process.env['KV_REST_API_TOKEN'],
         });
       }
 

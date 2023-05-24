@@ -301,7 +301,7 @@ export function createClient(
         return Promise.resolve(localEdgeConfig.digest);
       }
 
-      return fetchWithCachedResponse(`${baseUrl}/digest?version=1`, {
+      return fetchWithCachedResponse(`${baseUrl}/digest?version=${version}`, {
         headers: new Headers(headers),
         cache: 'no-store',
       }).then(

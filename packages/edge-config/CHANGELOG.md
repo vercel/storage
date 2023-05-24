@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.2.0
+
+### Minor Changes
+
+- 7944205: support third-party connection strings
+
 ## 0.1.11
 
 ### Patch Changes

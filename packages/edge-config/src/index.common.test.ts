@@ -178,3 +178,40 @@ describe('etags and if-none-match', () => {
     });
   });
 });
+
+describe('connectionStrings', () => {
+  describe('when used with external connection strings', () => {
+    const modifiedConnectionString = 'https://example.com/ecfg-2?token=token-2';
+
+    let edgeConfig: EdgeConfigClient;
+
+    beforeEach(() => {
+      fetchMock.resetMocks();
+      cache.clear();
+      edgeConfig = pkg.createClient(modifiedConnectionString);
+    });
+
+    it('should be a function', () => {
+      expect(typeof pkg.createClient).toBe('function');
+    });
+
+    describe('get', () => {
+      describe('when item exists', () => {
+        it('should fetch using information from the passed token', async () => {
+          fetchMock.mockResponse(JSON.stringify('bar'));
+
+          await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
+
+          expect(fetchMock).toHaveBeenCalledTimes(1);
+          expect(fetchMock).toHaveBeenCalledWith(
+            `https://example.com/ecfg-2/item/foo?version=1`,
+            {
+              headers: new Headers({ Authorization: 'Bearer token-2' }),
+              cache: 'no-store',
+            },
+          );
+        });
+      });
+    });
+  });
+});

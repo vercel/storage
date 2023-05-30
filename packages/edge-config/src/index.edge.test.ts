@@ -25,7 +25,10 @@ describe('default Edge Config', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo?version=1`, {
-      headers: new Headers({ Authorization: 'Bearer token-1' }),
+      headers: new Headers({
+        Authorization: 'Bearer token-1',
+        'x-node-env': 'test',
+      }),
       cache: 'no-store',
     });
   });
@@ -41,7 +44,10 @@ describe('default Edge Config', () => {
         expect(fetchMock).toHaveBeenCalledWith(
           `${baseUrl}/item/foo?version=1`,
           {
-            headers: new Headers({ Authorization: 'Bearer token-1' }),
+            headers: new Headers({
+              Authorization: 'Bearer token-1',
+              'x-node-env': 'test',
+            }),
             cache: 'no-store',
           },
         );
@@ -72,7 +78,10 @@ describe('default Edge Config', () => {
         expect(fetchMock).toHaveBeenCalledWith(
           `${baseUrl}/item/foo?version=1`,
           {
-            headers: new Headers({ Authorization: 'Bearer token-1' }),
+            headers: new Headers({
+              Authorization: 'Bearer token-1',
+              'x-node-env': 'test',
+            }),
             cache: 'no-store',
           },
         );
@@ -99,7 +108,10 @@ describe('default Edge Config', () => {
         expect(fetchMock).toHaveBeenCalledWith(
           `${baseUrl}/item/foo?version=1`,
           {
-            headers: new Headers({ Authorization: 'Bearer token-1' }),
+            headers: new Headers({
+              Authorization: 'Bearer token-1',
+              'x-node-env': 'test',
+            }),
             cache: 'no-store',
           },
         );
@@ -118,7 +130,10 @@ describe('default Edge Config', () => {
         expect(fetchMock).toHaveBeenCalledWith(
           `${baseUrl}/item/foo?version=1`,
           {
-            headers: new Headers({ Authorization: 'Bearer token-1' }),
+            headers: new Headers({
+              Authorization: 'Bearer token-1',
+              'x-node-env': 'test',
+            }),
             cache: 'no-store',
           },
         );
@@ -137,7 +152,10 @@ describe('default Edge Config', () => {
         expect(fetchMock).toHaveBeenCalledWith(
           `${baseUrl}/item/foo?version=1`,
           {
-            headers: new Headers({ Authorization: 'Bearer token-1' }),
+            headers: new Headers({
+              Authorization: 'Bearer token-1',
+              'x-node-env': 'test',
+            }),
             cache: 'no-store',
           },
         );
@@ -154,7 +172,10 @@ describe('default Edge Config', () => {
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items?version=1`, {
-          headers: new Headers({ Authorization: 'Bearer token-1' }),
+          headers: new Headers({
+            Authorization: 'Bearer token-1',
+            'x-node-env': 'test',
+          }),
           cache: 'no-store',
         });
       });
@@ -173,7 +194,10 @@ describe('default Edge Config', () => {
         expect(fetchMock).toHaveBeenCalledWith(
           `${baseUrl}/items?version=1&key=foo&key=bar`,
           {
-            headers: new Headers({ Authorization: 'Bearer token-1' }),
+            headers: new Headers({
+              Authorization: 'Bearer token-1',
+              'x-node-env': 'test',
+            }),
             cache: 'no-store',
           },
         );
@@ -200,7 +224,10 @@ describe('default Edge Config', () => {
         expect(fetchMock).toHaveBeenCalledWith(
           `${baseUrl}/items?version=1&key=foo&key=bar`,
           {
-            headers: new Headers({ Authorization: 'Bearer token-1' }),
+            headers: new Headers({
+              Authorization: 'Bearer token-1',
+              'x-node-env': 'test',
+            }),
             cache: 'no-store',
           },
         );
@@ -217,7 +244,10 @@ describe('default Edge Config', () => {
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items?version=1`, {
-          headers: new Headers({ Authorization: 'Bearer token-1' }),
+          headers: new Headers({
+            Authorization: 'Bearer token-1',
+            'x-node-env': 'test',
+          }),
           cache: 'no-store',
         });
       });
@@ -233,7 +263,10 @@ describe('default Edge Config', () => {
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items?version=1`, {
-          headers: new Headers({ Authorization: 'Bearer token-1' }),
+          headers: new Headers({
+            Authorization: 'Bearer token-1',
+            'x-node-env': 'test',
+          }),
           cache: 'no-store',
         });
       });
@@ -252,7 +285,10 @@ describe('default Edge Config', () => {
           `${baseUrl}/item/foo?version=1`,
           {
             method: 'HEAD',
-            headers: new Headers({ Authorization: 'Bearer token-1' }),
+            headers: new Headers({
+              Authorization: 'Bearer token-1',
+              'x-node-env': 'test',
+            }),
             cache: 'no-store',
           },
         );
@@ -284,7 +320,10 @@ describe('default Edge Config', () => {
           `${baseUrl}/item/foo?version=1`,
           {
             method: 'HEAD',
-            headers: new Headers({ Authorization: 'Bearer token-1' }),
+            headers: new Headers({
+              Authorization: 'Bearer token-1',
+              'x-node-env': 'test',
+            }),
             cache: 'no-store',
           },
         );
@@ -312,7 +351,10 @@ describe('default Edge Config', () => {
           `${baseUrl}/item/foo?version=1`,
           {
             method: 'HEAD',
-            headers: new Headers({ Authorization: 'Bearer token-1' }),
+            headers: new Headers({
+              Authorization: 'Bearer token-1',
+              'x-node-env': 'test',
+            }),
             cache: 'no-store',
           },
         );
@@ -329,7 +371,10 @@ describe('default Edge Config', () => {
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest?version=1`, {
-          headers: new Headers({ Authorization: 'Bearer token-1' }),
+          headers: new Headers({
+            Authorization: 'Bearer token-1',
+            'x-node-env': 'test',
+          }),
           cache: 'no-store',
         });
       });
@@ -345,7 +390,10 @@ describe('default Edge Config', () => {
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest?version=1`, {
-          headers: new Headers({ Authorization: 'Bearer token-1' }),
+          headers: new Headers({
+            Authorization: 'Bearer token-1',
+            'x-node-env': 'test',
+          }),
           cache: 'no-store',
         });
       });
@@ -359,7 +407,10 @@ describe('default Edge Config', () => {
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest?version=1`, {
-          headers: new Headers({ Authorization: 'Bearer token-1' }),
+          headers: new Headers({
+            Authorization: 'Bearer token-1',
+            'x-node-env': 'test',
+          }),
           cache: 'no-store',
         });
       });
@@ -375,7 +426,10 @@ describe('default Edge Config', () => {
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest?version=1`, {
-          headers: new Headers({ Authorization: 'Bearer token-1' }),
+          headers: new Headers({
+            Authorization: 'Bearer token-1',
+            'x-node-env': 'test',
+          }),
           cache: 'no-store',
         });
       });

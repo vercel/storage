@@ -164,7 +164,12 @@ export function createClient(
 
   const baseUrl = connection.baseUrl;
   const version = connection.version; // version of the edge config read access api we talk to
-  const headers = { Authorization: `Bearer ${connection.token}` };
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${connection.token}`,
+  };
+
+  if (typeof process !== 'undefined' && process.env.NODE_ENV)
+    headers['x-node-env'] = process.env.NODE_ENV;
 
   return {
     async get<T = EdgeConfigValue>(key: string): Promise<T | undefined> {

@@ -78,7 +78,10 @@ describe('when running without lambda layer or via edge function', () => {
         expect(fetchMock).toHaveBeenCalledWith(
           `${modifiedBaseUrl}/item/foo?version=1`,
           {
-            headers: new Headers({ Authorization: 'Bearer token-2' }),
+            headers: new Headers({
+              Authorization: 'Bearer token-2',
+              'x-node-env': 'test',
+            }),
             cache: 'no-store',
           },
         );
@@ -98,7 +101,10 @@ describe('when running without lambda layer or via edge function', () => {
           `${modifiedBaseUrl}/item/foo?version=1`,
           {
             method: 'HEAD',
-            headers: new Headers({ Authorization: 'Bearer token-2' }),
+            headers: new Headers({
+              Authorization: 'Bearer token-2',
+              'x-node-env': 'test',
+            }),
             cache: 'no-store',
           },
         );
@@ -117,7 +123,10 @@ describe('when running without lambda layer or via edge function', () => {
         expect(fetchMock).toHaveBeenCalledWith(
           `${modifiedBaseUrl}/digest?version=1`,
           {
-            headers: new Headers({ Authorization: 'Bearer token-2' }),
+            headers: new Headers({
+              Authorization: 'Bearer token-2',
+              'x-node-env': 'test',
+            }),
             cache: 'no-store',
           },
         );
@@ -161,7 +170,10 @@ describe('etags and if-none-match', () => {
       expect(fetchMock).toHaveBeenCalledWith(
         `${modifiedBaseUrl}/item/foo?version=1`,
         {
-          headers: new Headers({ Authorization: 'Bearer token-2' }),
+          headers: new Headers({
+            Authorization: 'Bearer token-2',
+            'x-node-env': 'test',
+          }),
           cache: 'no-store',
         },
       );
@@ -170,6 +182,7 @@ describe('etags and if-none-match', () => {
         {
           headers: new Headers({
             Authorization: 'Bearer token-2',
+            'x-node-env': 'test',
             'if-none-match': 'a',
           }),
           cache: 'no-store',
@@ -206,7 +219,10 @@ describe('connectionStrings', () => {
           expect(fetchMock).toHaveBeenCalledWith(
             `https://example.com/ecfg-2/item/foo?version=1`,
             {
-              headers: new Headers({ Authorization: 'Bearer token-2' }),
+              headers: new Headers({
+                Authorization: 'Bearer token-2',
+                'x-node-env': 'test',
+              }),
               cache: 'no-store',
             },
           );

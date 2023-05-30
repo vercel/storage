@@ -2,4 +2,4 @@
 '@vercel/edge-config': patch
 ---
 
-Add `x-node-env` header to requests
+Add `x-edge-config-vercel-env` header to requests

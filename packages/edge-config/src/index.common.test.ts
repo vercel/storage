@@ -80,7 +80,7 @@ describe('when running without lambda layer or via edge function', () => {
           {
             headers: new Headers({
               Authorization: 'Bearer token-2',
-              'x-node-env': 'test',
+              'x-edge-config-vercel-env': 'test',
             }),
             cache: 'no-store',
           },
@@ -103,7 +103,7 @@ describe('when running without lambda layer or via edge function', () => {
             method: 'HEAD',
             headers: new Headers({
               Authorization: 'Bearer token-2',
-              'x-node-env': 'test',
+              'x-edge-config-vercel-env': 'test',
             }),
             cache: 'no-store',
           },
@@ -125,7 +125,7 @@ describe('when running without lambda layer or via edge function', () => {
           {
             headers: new Headers({
               Authorization: 'Bearer token-2',
-              'x-node-env': 'test',
+              'x-edge-config-vercel-env': 'test',
             }),
             cache: 'no-store',
           },
@@ -172,7 +172,7 @@ describe('etags and if-none-match', () => {
         {
           headers: new Headers({
             Authorization: 'Bearer token-2',
-            'x-node-env': 'test',
+            'x-edge-config-vercel-env': 'test',
           }),
           cache: 'no-store',
         },
@@ -182,7 +182,7 @@ describe('etags and if-none-match', () => {
         {
           headers: new Headers({
             Authorization: 'Bearer token-2',
-            'x-node-env': 'test',
+            'x-edge-config-vercel-env': 'test',
             'if-none-match': 'a',
           }),
           cache: 'no-store',
@@ -221,7 +221,7 @@ describe('connectionStrings', () => {
             {
               headers: new Headers({
                 Authorization: 'Bearer token-2',
-                'x-node-env': 'test',
+                'x-edge-config-vercel-env': 'test',
               }),
               cache: 'no-store',
             },

@@ -168,8 +168,8 @@ export function createClient(
     Authorization: `Bearer ${connection.token}`,
   };
 
-  if (typeof process !== 'undefined' && process.env.NODE_ENV)
-    headers['x-node-env'] = process.env.NODE_ENV;
+  if (typeof process !== 'undefined' && process.env.VERCEL_ENV)
+    headers['x-edge-config-vercel-env'] = process.env.VERCEL_ENV;
 
   return {
     async get<T = EdgeConfigValue>(key: string): Promise<T | undefined> {

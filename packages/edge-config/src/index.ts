@@ -1,4 +1,5 @@
 import { readFile } from '@vercel/edge-config-fs';
+import { name as sdkName, version as sdkVersion } from '../package.json';
 import {
   assertIsKey,
   assertIsKeys,
@@ -164,7 +165,15 @@ export function createClient(
 
   const baseUrl = connection.baseUrl;
   const version = connection.version; // version of the edge config read access api we talk to
-  const headers = { Authorization: `Bearer ${connection.token}` };
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${connection.token}`,
+  };
+
+  if (typeof process !== 'undefined' && process.env.VERCEL_ENV)
+    headers['x-edge-config-vercel-env'] = process.env.VERCEL_ENV;
+
+  if (typeof sdkName === 'string' && typeof sdkVersion === 'string')
+    headers['x-edge-config-sdk'] = `${sdkName}@${sdkVersion}`;
 
   return {
     async get<T = EdgeConfigValue>(key: string): Promise<T | undefined> {

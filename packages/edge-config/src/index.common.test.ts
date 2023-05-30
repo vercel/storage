@@ -4,9 +4,12 @@
 // - @edge-runtime/jest-environment
 // - node
 import fetchMock from 'jest-fetch-mock';
+import { version as pkgVersion } from '../package.json';
 import type { EdgeConfigClient } from './types';
 import { cache } from './utils/fetch-with-cached-response';
 import * as pkg from './index';
+
+const sdkVersion = typeof pkgVersion === 'string' ? pkgVersion : '';
 
 describe('test conditions', () => {
   it('should have an env var called EDGE_CONFIG', () => {
@@ -78,7 +81,11 @@ describe('when running without lambda layer or via edge function', () => {
         expect(fetchMock).toHaveBeenCalledWith(
           `${modifiedBaseUrl}/item/foo?version=1`,
           {
-            headers: new Headers({ Authorization: 'Bearer token-2' }),
+            headers: new Headers({
+              Authorization: 'Bearer token-2',
+              'x-edge-config-vercel-env': 'test',
+              'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            }),
             cache: 'no-store',
           },
         );
@@ -98,7 +105,11 @@ describe('when running without lambda layer or via edge function', () => {
           `${modifiedBaseUrl}/item/foo?version=1`,
           {
             method: 'HEAD',
-            headers: new Headers({ Authorization: 'Bearer token-2' }),
+            headers: new Headers({
+              Authorization: 'Bearer token-2',
+              'x-edge-config-vercel-env': 'test',
+              'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            }),
             cache: 'no-store',
           },
         );
@@ -117,7 +128,11 @@ describe('when running without lambda layer or via edge function', () => {
         expect(fetchMock).toHaveBeenCalledWith(
           `${modifiedBaseUrl}/digest?version=1`,
           {
-            headers: new Headers({ Authorization: 'Bearer token-2' }),
+            headers: new Headers({
+              Authorization: 'Bearer token-2',
+              'x-edge-config-vercel-env': 'test',
+              'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            }),
             cache: 'no-store',
           },
         );
@@ -161,7 +176,11 @@ describe('etags and if-none-match', () => {
       expect(fetchMock).toHaveBeenCalledWith(
         `${modifiedBaseUrl}/item/foo?version=1`,
         {
-          headers: new Headers({ Authorization: 'Bearer token-2' }),
+          headers: new Headers({
+            Authorization: 'Bearer token-2',
+            'x-edge-config-vercel-env': 'test',
+            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+          }),
           cache: 'no-store',
         },
       );
@@ -170,6 +189,8 @@ describe('etags and if-none-match', () => {
         {
           headers: new Headers({
             Authorization: 'Bearer token-2',
+            'x-edge-config-vercel-env': 'test',
+            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
             'if-none-match': 'a',
           }),
           cache: 'no-store',
@@ -206,7 +227,11 @@ describe('connectionStrings', () => {
           expect(fetchMock).toHaveBeenCalledWith(
             `https://example.com/ecfg-2/item/foo?version=1`,
             {
-              headers: new Headers({ Authorization: 'Bearer token-2' }),
+              headers: new Headers({
+                Authorization: 'Bearer token-2',
+                'x-edge-config-vercel-env': 'test',
+                'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              }),
               cache: 'no-store',
             },
           );

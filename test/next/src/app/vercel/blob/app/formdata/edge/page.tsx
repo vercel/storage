@@ -7,20 +7,20 @@ export default function AppFormDataEdge(): JSX.Element {
     <>
       <h1>App Router Form Data upload example via an Edge Function</h1>
       <p>
-        This <a href="https://nextjs.org/docs/app">Next.js App Router</a>{" "}
-        example uses a{" "}
+        This <a href="https://nextjs.org/docs/app">Next.js App Router</a>{' '}
+        example uses a{' '}
         <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form">
           Form
-        </a>{" "}
-        to send data as{" "}
+        </a>{' '}
+        to send data as{' '}
         <a href="https://developer.mozilla.org/en-US/docs/Web/API/FormData/FormData">
           FormData
-        </a>{" "}
-        via the{" "}
+        </a>{' '}
+        via the{' '}
         <a href="https://developer.mozilla.org/en-US/docs/Web/API/fetch">
           Fetch API
         </a>
-        to an{" "}
+        to an{' '}
         <a href="https://vercel.com/docs/concepts/functions/edge-functions">
           Edge Function
         </a>

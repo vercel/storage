@@ -1,5 +1,17 @@
 # @vercel/edge-config
 
+## 0.2.1
+
+### Patch Changes
+
+- 97a3d06: Add `x-edge-config-vercel-env` and `x-edge-config-sdk` headers to requests
+
+## 0.2.0
+
+### Minor Changes
+
+- 7944205: support third-party connection strings
+
 ## 0.1.11
 
 ### Patch Changes

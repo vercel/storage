@@ -382,8 +382,8 @@ importers:
         version: 5.22.1
     devDependencies:
       '@playwright/test':
-        specifier: 1.34.0
-        version: 1.34.0
+        specifier: 1.35.0
+        version: 1.35.0
 
   tooling/eslint-config-custom:
     dependencies:
@@ -1951,13 +1951,13 @@ packages:
       tiny-glob: 0.2.9
       tslib: 2.5.0
 
-  /@playwright/test@1.34.0:
-    resolution: {integrity: sha512-GIALJVODOIrMflLV54H3Cow635OfrTwOu24ZTDyKC66uchtFX2NcCRq83cLdakMjZKYK78lODNLQSYBj2OgaTw==}
-    engines: {node: '>=14'}
+  /@playwright/test@1.35.0:
+    resolution: {integrity: sha512-6qXdd5edCBynOwsz1YcNfgX8tNWeuS9fxy5o59D0rvHXxRtjXRebB4gE4vFVfEMXl/z8zTnAzfOs7aQDEs8G4Q==}
+    engines: {node: '>=16'}
     hasBin: true
     dependencies:
       '@types/node': 18.16.3
-      playwright-core: 1.34.0
+      playwright-core: 1.35.0
     optionalDependencies:
       fsevents: 2.3.2
     dev: true
@@ -7346,9 +7346,10 @@ packages:
       find-up: 4.1.0
     dev: true
 
-  /playwright-core@1.34.0:
-    resolution: {integrity: sha512-fMUY1+iR6kYbJF/EsOOqzBA99ZHXbw9sYPNjwA4X/oV0hVF/1aGlWYBGPVUEqxBkGANDKMziYoOdKGU5DIP5Gg==}
-    engines: {node: '>=14'}
+  /playwright-core@1.35.0:
+    resolution: {integrity: sha512-muMXyPmIx/2DPrCHOD1H1ePT01o7OdKxKj2ebmCAYvqhUy+Y1bpal7B0rdoxros7YrXI294JT/DWw2LqyiqTPA==}
+    engines: {node: '>=16'}
+    hasBin: true
     dev: true
 
   /pluralize@8.0.0:

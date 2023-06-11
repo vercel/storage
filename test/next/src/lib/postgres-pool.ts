@@ -39,21 +39,34 @@ export const queryUsers = async (): Promise<QueryResult> => {
   const fromSql = await queryUsersViaSql();
   const fromQuery = await queryUsersViaPoolQuery();
 
-  // Assert that all methods return the same result.
-  if (JSON.stringify(fromPoolClient) !== JSON.stringify(fromSql)) {
-    throw new Error(
-      `fromPoolClient !== fromSql: ${JSON.stringify(
-        fromPoolClient,
-      )} !== ${JSON.stringify(fromSql)}`,
-    );
-  }
-  if (JSON.stringify(fromPoolClient) !== JSON.stringify(fromQuery)) {
-    throw new Error(
-      `fromPoolClient !== fromQuery: ${JSON.stringify(
-        fromPoolClient,
-      )} !== ${JSON.stringify(fromQuery)}`,
-    );
-  }
+  assertFieldEqual(fromPoolClient, fromSql, fromQuery, 'rows');
+  assertFieldEqual(fromPoolClient, fromSql, fromQuery, 'rowCount');
+  assertFieldEqual(fromPoolClient, fromSql, fromQuery, 'command');
+  assertFieldEqual(fromPoolClient, fromSql, fromQuery, 'fields');
 
   return fromPoolClient;
 };
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function assertFieldEqual(a: any, b: any, c: any, field: string): void {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  if (JSON.stringify(a[field]) !== JSON.stringify(b[field])) {
+    throw new Error(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      `${field} a/b: ${JSON.stringify(a[field])} !== ${JSON.stringify(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        b[field],
+      )}`,
+    );
+  }
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  if (JSON.stringify(a[field]) !== JSON.stringify(c[field])) {
+    throw new Error(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      `${field} a/c: ${JSON.stringify(a[field])} !== ${JSON.stringify(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        c[field],
+      )}`,
+    );
+  }
+}

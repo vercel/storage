@@ -1,6 +1,9 @@
 'use client';
-import { put } from '@vercel/blob/client';
-import { type BlobResult, type GenerateClientTokenOptions } from '@vercel/blob';
+import {
+  put,
+  type BlobResult,
+  type GenerateClientTokenOptions,
+} from '@vercel/blob';
 import { useEffect, useState } from 'react';
 
 export default function AppBodyClient({

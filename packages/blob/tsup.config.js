@@ -2,9 +2,9 @@ import { defineConfig } from 'tsup';
 
 // eslint-disable-next-line import/no-default-export
 export default defineConfig({
-  entry: ['src/index.ts', 'src/client.ts'],
+  entry: ['src/index.ts'],
   format: ['esm', 'cjs'],
-  splitting: false,
+  splitting: true,
   sourcemap: false,
   minify: true,
   clean: true,

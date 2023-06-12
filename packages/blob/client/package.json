@@ -1,5 +1,0 @@
-{
-  "main": "../dist/client.cjs",
-  "module": "../dist/client.js",
-  "types": "../dist/client.d.ts"
-}

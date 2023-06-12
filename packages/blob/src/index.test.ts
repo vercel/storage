@@ -489,6 +489,56 @@ describe('blob client', () => {
     });
   });
 
+  describe('client put', () => {
+    beforeEach(() => {
+      process.env.BLOB_READ_WRITE_TOKEN = undefined;
+      mockClient = mockAgent.get(BASE_URL);
+      jest.resetAllMocks();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+      global.window = {} as any;
+    });
+    afterEach(() => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+      global.window = undefined as any;
+    });
+    it('should upload a file from the client', async () => {
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'PUT',
+        })
+        .reply(200, mockedFileMeta);
+
+      await expect(
+        put('foo.txt', 'Test Body', {
+          access: 'public',
+          token: 'vercel_blob_client_123_token',
+        }),
+      ).resolves.toMatchInlineSnapshot(`
+        {
+          "contentDisposition": "attachment; filename="foo.txt"",
+          "contentType": "text/plain",
+          "pathname": "foo.txt",
+          "size": 12345,
+          "uploadedAt": 2023-05-04T15:12:07.818Z,
+          "url": "https://blob.vercel-storage.com/storeid/foo-id.txt",
+        }
+      `);
+    });
+
+    it('should throw when calling `put()` with an BLOB_READ_WRITE_TOKEN', async () => {
+      await expect(
+        put('foo.txt', 'Test Body', {
+          access: 'public',
+          contentType: 'text/plain',
+          token: 'vercel_blob_rw_123_TEST_TOKEN',
+        }),
+      ).rejects.toThrow(
+        new Error('Vercel Blob: client upload only supports client tokens'),
+      );
+    });
+  });
+
   describe('generateClientTokenFromReadWriteToken', () => {
     afterEach(() => {
       jest.runOnlyPendingTimers();

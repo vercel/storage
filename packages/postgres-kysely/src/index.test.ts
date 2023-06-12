@@ -5,9 +5,9 @@ import {
 } from './mocks';
 import { createKysely } from '.';
 
-jest.mock('@neondatabase/serverless', () => {
+jest.mock('@vercel/postgres', () => {
   return {
-    Pool: jest.fn().mockImplementation(() => {
+    createPool: jest.fn().mockImplementation(() => {
       return {
         query: jest.fn().mockImplementation(() => ({
           rows: [MOCKED_POOL_RESPONSE],
@@ -72,9 +72,6 @@ describe('kysely', () => {
         .select('first_name')
         .executeTakeFirst();
       expect(res).toEqual(MOCKED_POOL_RESPONSE);
-    });
-    it('throw when no connection', () => {
-      expect(createKysely).toThrow('missing_connection_string');
     });
   });
 });

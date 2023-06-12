@@ -14,24 +14,21 @@ import {
   type BlobResult,
   type BlobMetadataApi,
   type PutCommandOptions,
+  type GenerateClientTokenOptions,
 } from '.';
 
 export { type BlobResult } from '.';
 
-export interface ClientPutCommandOptions
-  extends Omit<PutCommandOptions, 'token'> {
-  onUploadCompletedUrl?: string;
-  token: string;
-}
+export type ClientPutCommandOptions = Omit<PutCommandOptions, 'token'> &
+  Pick<GenerateClientTokenOptions, 'onUploadCompleted'> & {
+    token: string;
+  };
 
 export async function put(
   pathname: string,
   body: string | Blob | ArrayBuffer | FormData | ReadableStream | File,
   options: ClientPutCommandOptions,
 ): Promise<BlobResult> {
-  if (typeof window === 'undefined') {
-    throw new BlobError('access must be "public"');
-  }
   if (!pathname) {
     throw new BlobError('pathname is required');
   }

@@ -1,5 +1,13 @@
 # @vercel/postgres-kysely
 
+## 0.3.1
+
+### Patch Changes
+
+- cec1d6b: Upgrade @neondatabase/serverless to 0.4.11
+- Updated dependencies [cec1d6b]
+  - @vercel/postgres@0.3.1
+
 ## 0.3.0
 
 ### Minor Changes

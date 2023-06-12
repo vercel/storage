@@ -548,8 +548,8 @@ describe('blob client', () => {
     beforeEach(() => {
       jest.useFakeTimers().setSystemTime(new Date('2023-01-01'));
     });
-    test('should generate an upload token with the correct payload', () => {
-      const uploadToken = generateClientTokenFromReadWriteToken({
+    test('should generate an upload token with the correct payload', async () => {
+      const uploadToken = await generateClientTokenFromReadWriteToken({
         pathname: 'foo.txt',
         onUploadCompleted: {
           callbackUrl: 'https://example.com',

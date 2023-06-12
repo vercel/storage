@@ -57,7 +57,7 @@
     "@neondatabase/serverless": "0.4.3",
     "@types/jest": "29.2.0",
     "@types/node": "18.11.3",
-    "@types/ws": "8.5.4",
+    "@types/ws": "8.5.5",
     "eslint": "8.25.0",
     "eslint-config-custom": "workspace:*",
     "jest": "29.2.1",

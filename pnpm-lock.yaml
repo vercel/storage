@@ -221,8 +221,8 @@ importers:
         specifier: 18.11.3
         version: 18.11.3
       '@types/ws':
-        specifier: 8.5.4
-        version: 8.5.4
+        specifier: 8.5.5
+        version: 8.5.5
       eslint:
         specifier: 8.25.0
         version: 8.25.0
@@ -276,8 +276,8 @@ importers:
         specifier: 18.11.3
         version: 18.11.3
       '@types/ws':
-        specifier: 8.5.4
-        version: 8.5.4
+        specifier: 8.5.5
+        version: 8.5.5
       eslint:
         specifier: 8.25.0
         version: 8.25.0
@@ -2141,8 +2141,8 @@ packages:
   /@types/stack-utils@2.0.1:
     resolution: {integrity: sha512-Hl219/BT5fLAaz6NDkSuhzasy49dwQS/DSdu4MdggFB8zcXv7vflBI3xp7FEmkmdDkBUI2bPUNeMttp2knYdxw==}
 
-  /@types/ws@8.5.4:
-    resolution: {integrity: sha512-zdQDHKUgcX/zBc4GrwsE/7dVdAD8JR4EuiAXiiUhhfyIJXXb2+PrGshFyeXWQPMmmZ2XxgaqclgpIC7eTXc1mg==}
+  /@types/ws@8.5.5:
+    resolution: {integrity: sha512-lwhs8hktwxSjf9UaZ9tG5M03PGogvFaH8gUgLNbN9HKIg0dvv6q+gkSuJ8HN4/VbyxkuLzCjlN7GquQ0gUJfIg==}
     dependencies:
       '@types/node': 18.16.3
     dev: true

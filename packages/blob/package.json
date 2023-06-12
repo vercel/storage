@@ -21,12 +21,24 @@
         "node": "./dist/index.cjs",
         "default": "./dist/index.cjs"
       }
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": {
+        "node": "./dist/client.js",
+        "default": "./dist/client.js"
+      },
+      "require": {
+        "node": "./dist/client.cjs",
+        "default": "./dist/client.cjs"
+      }
     }
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "browser": {
-    "undici": "./dist/undici-browser.js"
+    "undici": "./dist/undici-browser.js",
+    "crypto": false
   },
   "types": "./dist/index.d.ts",
   "files": [

@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.9.0-canary.0
+
+### Minor Changes
+
+- implement client token
+
 ## 0.8.3
 
 ### Patch Changes

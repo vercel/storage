@@ -1,6 +1,6 @@
 {
   "name": "@vercel/blob",
-  "version": "0.8.3",
+  "version": "0.9.0-canary.0",
   "description": "The Vercel Blob JavaScript API client",
   "homepage": "https://vercel.com/storage/blob",
   "repository": {

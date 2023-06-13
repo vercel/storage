@@ -56,7 +56,7 @@
     "@babel/core": "7.19.6",
     "@changesets/cli": "2.26.1",
     "@edge-runtime/jest-environment": "1.1.0",
-    "@edge-runtime/types": "2.0.0",
+    "@edge-runtime/types": "2.1.2",
     "@types/jest": "29.2.0",
     "@types/node": "18.16.18",
     "@types/ws": "8.5.5",

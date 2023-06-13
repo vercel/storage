@@ -51,8 +51,8 @@ importers:
         specifier: 2.1.0
         version: 2.1.0
       '@edge-runtime/types':
-        specifier: 2.0.8
-        version: 2.0.8
+        specifier: 2.1.2
+        version: 2.1.2
       '@types/jest':
         specifier: 29.5.1
         version: 29.5.1
@@ -94,8 +94,8 @@ importers:
         specifier: 2.0.8
         version: 2.0.8
       '@edge-runtime/types':
-        specifier: 2.0.8
-        version: 2.0.8
+        specifier: 2.1.2
+        version: 2.1.2
       '@types/jest':
         specifier: 29.4.0
         version: 29.4.0
@@ -148,8 +148,8 @@ importers:
         specifier: 1.1.0
         version: 1.1.0
       '@edge-runtime/types':
-        specifier: 2.0.0
-        version: 2.0.0
+        specifier: 2.1.2
+        version: 2.1.2
       '@types/jest':
         specifier: 29.2.0
         version: 29.2.0
@@ -212,8 +212,8 @@ importers:
         specifier: 1.1.0
         version: 1.1.0
       '@edge-runtime/types':
-        specifier: 2.0.0
-        version: 2.0.0
+        specifier: 2.1.2
+        version: 2.1.2
       '@types/jest':
         specifier: 29.2.0
         version: 29.2.0
@@ -264,8 +264,8 @@ importers:
         specifier: 1.1.0
         version: 1.1.0
       '@edge-runtime/types':
-        specifier: 2.0.0
-        version: 2.0.0
+        specifier: 2.1.2
+        version: 2.1.2
       '@neondatabase/serverless':
         specifier: 0.4.3
         version: 0.4.3
@@ -1025,26 +1025,21 @@ packages:
     resolution: {integrity: sha512-MpL5fKlOs9mz5DMRuFchLe3Il84t7XpfbPq4qtaEK37uNMCRx1MzA3d7A4aTsR/guXSZvV/AtEbKVqBWjuSThA==}
     dev: true
 
-  /@edge-runtime/primitives@2.0.0:
-    resolution: {integrity: sha512-AXqUq1zruTJAICrllUvZcgciIcEGHdF6KJ3r6FM0n4k8LpFxZ62tPWVIJ9HKm+xt+ncTBUZxwgUaQ73QMUQEKw==}
-    dev: true
-
   /@edge-runtime/primitives@2.1.2:
     resolution: {integrity: sha512-SR04SMDybALlhIYIi0hiuEUwIl0b7Sn+RKwQkX6hydg4+AKMzBNDFhj2nqHDD1+xkHArV9EhmJIb6iGjShwSzg==}
     engines: {node: '>=14'}
     dev: true
 
-  /@edge-runtime/types@2.0.0:
-    resolution: {integrity: sha512-NZ4pJpwOBjC/1azjA3KB1qf/0V3GhDlnI9AFVcpstOB6Ih0tnHKkEJ2KhEaqSH5/CwKzS4ARdb+ZTKRdSjON9w==}
-    dependencies:
-      '@edge-runtime/primitives': 2.0.0
+  /@edge-runtime/primitives@3.0.2:
+    resolution: {integrity: sha512-mbo36g01tidaO5NiquJP5x9y2gBOnXlqPSjI03QBczSFWgfarU1guVwc6qdLb++afxaU82R/VI5ogOqh4pamjQ==}
+    engines: {node: '>=14'}
     dev: true
 
-  /@edge-runtime/types@2.0.8:
-    resolution: {integrity: sha512-b+5nFA3SzMhEvL2uo3MECoiY2MhgWRt2UQ4EFFyHmLPRn5lb4AyJUny0eq5qxwzlLbv9bgVg/MOJtpuTgX1WWQ==}
+  /@edge-runtime/types@2.1.2:
+    resolution: {integrity: sha512-qilUN0hBqzA6SxrZ9rsfFnXvHlwPGlQ8XTTgPn0+e0WNnBBXJdF0VaQ1Por9x1NicFGRY7sV0NvpYm9NGuPIDQ==}
     engines: {node: '>=14'}
     dependencies:
-      '@edge-runtime/primitives': 2.1.2
+      '@edge-runtime/primitives': 3.0.2
     dev: true
 
   /@edge-runtime/vm@1.1.0:

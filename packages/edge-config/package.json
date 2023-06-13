@@ -43,7 +43,7 @@
     "@vercel/edge-config-fs": "workspace:*"
   },
   "devDependencies": {
-    "@babel/core": "7.21.0",
+    "@babel/core": "7.22.5",
     "@changesets/cli": "2.26.1",
     "@edge-runtime/jest-environment": "2.0.8",
     "@edge-runtime/types": "2.0.8",

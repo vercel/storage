@@ -53,7 +53,7 @@
     "eslint-config-custom": "workspace:*",
     "jest": "29.5.0",
     "jest-fetch-mock": "3.0.3",
-    "prettier": "2.8.4",
+    "prettier": "2.8.8",
     "ts-jest": "29.0.5",
     "tsconfig": "workspace:*",
     "tsup": "6.6.3",

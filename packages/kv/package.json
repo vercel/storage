@@ -48,7 +48,7 @@
   },
   "devDependencies": {
     "@babel/core": "7.19.6",
-    "@changesets/cli": "2.25.0",
+    "@changesets/cli": "2.26.1",
     "@edge-runtime/jest-environment": "1.1.0",
     "@edge-runtime/types": "2.0.0",
     "@types/jest": "29.2.0",

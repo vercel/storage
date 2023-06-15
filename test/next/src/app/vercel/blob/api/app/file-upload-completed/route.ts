@@ -24,6 +24,17 @@ export async function POST(request: Request): Promise<NextResponse> {
       },
     );
   }
+  // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
+  const metadata = JSON.parse(body.payload.metadata as string) as {
+    userId: string;
+  };
+  const blob = body.payload.blob;
+
+  // eslint-disable-next-line no-console
+  console.log(metadata.userId); // 12345
+  // eslint-disable-next-line no-console
+  console.log(blob); // { url: '...', size: ..., uploadedAt: ..., ... }
+
   return NextResponse.json({
     response: 'ok',
   });

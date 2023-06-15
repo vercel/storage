@@ -343,8 +343,10 @@ export async function POST(request: Request): Promise<NextResponse> {
       },
     );
   }
-  const metadata = JSON.stringify(body.payload.metadata);
-  const blob = body.blob;
+  const metadata = JSON.parse(body.payload.metadata as string) as {
+    userId: string;
+  };
+  const blob = body.payload.blob;
 
   console.log(metadata.userId); // 12345
   console.log(blob); // { url: '...', size: ..., uploadedAt: ..., ... }

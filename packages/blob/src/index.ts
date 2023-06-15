@@ -276,6 +276,16 @@ export async function generateClientTokenFromReadWriteToken({
   ).toString('base64')}`;
 }
 
+async function importKey(token?: string): Promise<CryptoKey> {
+  return globalThis.crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(getToken({ token })),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign', 'verify'],
+  );
+}
+
 async function signPayload(
   payload: string,
   token: string,
@@ -284,22 +294,59 @@ async function signPayload(
   if (!globalThis.crypto) {
     return crypto.createHmac('sha256', token).update(payload).digest('hex');
   }
-  const key = await globalThis.crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(token),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  );
 
   const signature = await globalThis.crypto.subtle.sign(
     'HMAC',
-    key,
+    await importKey(token),
     new TextEncoder().encode(payload),
   );
-  return [...new Uint8Array(signature)]
-    .map((x) => x.toString(16).padStart(2, '0'))
-    .join('');
+  return Buffer.from(new Uint8Array(signature)).toString('hex');
+}
+
+export async function verifyCallbackSignature({
+  token,
+  signature,
+  body,
+}: {
+  token?: string;
+  signature: string;
+  body: string;
+}): Promise<boolean> {
+  const secret = getToken({ token });
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (!globalThis.crypto) {
+    const digest = crypto
+      .createHmac('sha256', secret)
+      .update(body)
+      .digest('hex');
+    const digestBuffer = Buffer.from(digest);
+    const signatureBuffer = Buffer.from(signature);
+
+    return (
+      digestBuffer.length === signatureBuffer.length &&
+      crypto.timingSafeEqual(digestBuffer, signatureBuffer)
+    );
+  }
+  const verified = await globalThis.crypto.subtle.verify(
+    'HMAC',
+    await importKey(token),
+    hexToArrayByte(signature),
+    new TextEncoder().encode(body),
+  );
+  return verified;
+}
+
+function hexToArrayByte(input: string): ArrayBuffer {
+  if (input.length % 2 !== 0) {
+    throw new RangeError('Expected string to be an even number of characters');
+  }
+  const view = new Uint8Array(input.length / 2);
+
+  for (let i = 0; i < input.length; i += 2) {
+    view[i / 2] = parseInt(input.substring(i, i + 2), 16);
+  }
+
+  return Buffer.from(view);
 }
 
 type DecodedClientTokenPayload = Omit<GenerateClientTokenOptions, 'token'> & {

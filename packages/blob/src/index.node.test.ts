@@ -6,6 +6,7 @@ import {
   put,
   generateClientTokenFromReadWriteToken,
   getPayloadFromClientToken,
+  verifyCallbackSignature,
 } from './index';
 
 const BASE_URL = 'https://blob.vercel-storage.com';
@@ -570,6 +571,48 @@ describe('blob client', () => {
         },
         validUntil: 1672531230000,
       });
+    });
+  });
+
+  describe('verifyCallbackSignature', () => {
+    test('should verify a webhook signature', async () => {
+      const token = 'vercel_blob_client_123456789_TEST_TOKEN';
+      const body = JSON.stringify({
+        type: 'blob.upload-completed',
+        payload: {
+          blob: { pathname: 'text.txt' },
+          metadata: 'custom-metadata',
+        },
+      });
+
+      expect(
+        await verifyCallbackSignature({
+          token,
+          body,
+          signature:
+            '3fac10916b6b4af8678e189a3843706ec8185162c15238f0557f113531969053',
+        }),
+      ).toBeTruthy();
+    });
+
+    test('should fail verifying an invalid signature', async () => {
+      const token = 'vercel_blob_client_123456789_TEST_TOKEN';
+      const body = JSON.stringify({
+        type: 'blob.upload-completed',
+        payload: {
+          blob: { pathname: 'newfile.txt' },
+          metadata: 'custom-metadata',
+        },
+      });
+
+      expect(
+        await verifyCallbackSignature({
+          token,
+          body,
+          signature:
+            '3fac10916b6b4af8678e189a3843706ec8185162c15238f0557f113531969053',
+        }),
+      ).toBeFalsy();
     });
   });
 });

@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.9.0
+
+### Minor Changes
+
+- 28ba58d: Implement Client Upload
+
 ## 0.8.3
 
 ### Patch Changes

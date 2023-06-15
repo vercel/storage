@@ -134,6 +134,7 @@ async function list(options?: {
 Generates a single-use token that can be used from within the client. This is useful when [uploading directly from browsers](#uploading-directly-from-browsers) to circumvent the 4MB limitation of going through a Vercel-hosted route.
 
 Once created, a client token is valid for 30 seconds. This means you have 30 seconds to initiate an upload with this token.
+
 ```ts
 async function generateClientTokenFromReadWriteToken(options?: {
   token?: string;
@@ -326,7 +327,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   const body = (await request.json()) as BlobUploadCompletedEvent;
   console.log(body);
   // { type: "blob.upload-completed", payload: { metadata: "{ foo: 'bar' }", blob: ... }}
-  
+
   if (
     !(await verifyCallbackSignature({
       signature: request.headers.get('x-vercel-signature') ?? '',
@@ -344,10 +345,10 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
   const metadata = JSON.stringify(body.payload.metadata);
   const blob = body.blob;
-  
+
   console.log(metadata.userId); // 12345
   console.log(blob); // { url: '...', size: ..., uploadedAt: ..., ... }
-  
+
   return NextResponse.json({
     response: 'ok',
   });

@@ -312,7 +312,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 ```ts
 // /app/api/upload-completed/route.ts
 
-import { type BlobUploadCompletedEvent } from '@vercel/blob';
+import { type BlobUploadCompletedEvent, verifyCallbackSignature } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request): Promise<NextResponse> {

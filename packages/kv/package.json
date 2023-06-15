@@ -47,7 +47,6 @@
     "@upstash/redis": "1.20.6"
   },
   "devDependencies": {
-    "@babel/core": "7.22.5",
     "@changesets/cli": "2.26.1",
     "@edge-runtime/jest-environment": "2.2.2",
     "@edge-runtime/types": "2.1.2",

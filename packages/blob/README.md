@@ -133,6 +133,7 @@ async function list(options?: {
 
 Generates a single-use token that can be used from within the client. This is useful when [uploading directly from browsers](#uploading-directly-from-browsers) to circumvent the 4MB limitation of going through a Vercel-hosted route.
 
+Once created, a client token is valid for 30 seconds. This means you have 30 seconds to initiate an upload with this token.
 ```ts
 async function generateClientTokenFromReadWriteToken(options?: {
   token?: string;

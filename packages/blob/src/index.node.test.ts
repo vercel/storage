@@ -527,7 +527,7 @@ describe('blob client', () => {
       `);
     });
 
-    it('should throw when calling `put()` with an BLOB_READ_WRITE_TOKEN', async () => {
+    it('should throw when calling `put()` with a server token', async () => {
       await expect(
         put('foo.txt', 'Test Body', {
           access: 'public',

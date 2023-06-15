@@ -1,5 +1,5 @@
 import type { Readable } from 'node:stream';
-// eslint-disable-next-line unicorn/prefer-node-protocol
+// eslint-disable-next-line unicorn/prefer-node-protocol -- node:crypto does not resolve correctly in browser and edge runtime
 import * as crypto from 'crypto';
 import type { BodyInit } from 'undici';
 // When bundled via a bundler supporting the `browser` field, then

@@ -314,9 +314,12 @@ export async function verifyCallbackSignature({
   signature: string;
   body: string;
 }): Promise<boolean> {
+  // callback signature is signed using the server token
   const secret = getToken({ token });
+  // Browsers, Edge runtime and Node >=20 implement the Web Crypto API
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!globalThis.crypto) {
+    // Node <20 falls back to the Node.js crypto module
     const digest = crypto
       .createHmac('sha256', secret)
       .update(body)

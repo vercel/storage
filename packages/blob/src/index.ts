@@ -213,34 +213,34 @@ export async function list(
 
 export interface GenerateClientTokenOptions extends BlobCommandOptions {
   pathname: string;
-  onUploadCompletedUrl: string;
-  onUploadCompletedCallbackUrlArgs?: Record<string, string>;
+  onUploadCompleted?: {
+    callbackUrl: string;
+    metadata?: string;
+  };
 }
 
 export function generateClientTokenFromReadWriteToken({
-  pathname,
-  onUploadCompletedUrl,
   token,
-  onUploadCompletedCallbackUrlArgs,
+  ...args
 }: GenerateClientTokenOptions): string {
   const timestamp = new Date();
   timestamp.setSeconds(timestamp.getSeconds() + 30);
   const blobToken = getToken({ token });
 
-  const payload = Buffer.from(
-    JSON.stringify({
-      pathname,
-      validUntil: timestamp.getTime(),
-      onUploadCompletedUrl,
-      onUploadCompletedCallbackUrlArgs,
-    }),
-  ).toString('base64');
-
   const [, , , storeId = null] = blobToken.split('_');
 
   if (!storeId) {
-    throw new Error('Invalid BLOB_READ_WRITE_TOKEN');
+    throw new Error(
+      token ? 'Invalid "token" parameter' : 'Invalid BLOB_READ_WRITE_TOKEN',
+    );
   }
+
+  const payload = Buffer.from(
+    JSON.stringify({
+      ...args,
+      validUntil: timestamp.getTime(),
+    }),
+  ).toString('base64');
 
   const securedKey = crypto
     .createHmac('sha256', blobToken)
@@ -256,7 +256,7 @@ type DecodedClientTokenPayload = Omit<GenerateClientTokenOptions, 'token'> & {
   validUntil: number;
 };
 
-export function decodeClientToken(
+export function getPayloadFromClientToken(
   clientToken: string,
 ): DecodedClientTokenPayload {
   const [, , , , encodedToken] = clientToken.split('_');

@@ -5,7 +5,7 @@ import {
   del,
   put,
   generateClientTokenFromReadWriteToken,
-  decodeClientToken,
+  getPayloadFromClientToken,
 } from './index';
 
 const BASE_URL = 'https://blob.vercel-storage.com';
@@ -501,19 +501,21 @@ describe('blob client', () => {
     test('should generate an upload token with the correct payload', () => {
       const uploadToken = generateClientTokenFromReadWriteToken({
         pathname: 'foo.txt',
-        onUploadCompletedUrl: 'https://example.com',
-        onUploadCompletedCallbackUrlArgs: { foo: 'bar' },
+        onUploadCompleted: {
+          callbackUrl: 'https://example.com',
+          metadata: JSON.stringify({ foo: 'bar' }),
+        },
         token: 'vercel_blob_client_123456789_TEST_TOKEN',
       });
       expect(uploadToken).toEqual(
-        'vercel_blob_client_123456789_Y2JmMTQ0ZmRhMzc3N2YxOWRmNWZkNzk2NmE5ZjVmNDU2ODJjZjUzNDZlNzRlYmRhMDZlN2QzNzhhY2Q3OTgzOC5leUp3WVhSb2JtRnRaU0k2SW1admJ5NTBlSFFpTENKMllXeHBaRlZ1ZEdsc0lqb3hOamN5TlRNeE1qTXdNREF3TENKdmJsVndiRzloWkVOdmJYQnNaWFJsWkZWeWJDSTZJbWgwZEhCek9pOHZaWGhoYlhCc1pTNWpiMjBpTENKdmJsVndiRzloWkVOdmJYQnNaWFJsWkVOaGJHeGlZV05yVlhKc1FYSm5jeUk2ZXlKbWIyOGlPaUppWVhJaWZYMD0=',
+        'vercel_blob_client_123456789_YWVlNmY1ZjVkZGU5YWZiYjczOGE1YmM0ZTNiOGFjNTI3MGNlMTJhOTNiNDc1YTlmZjBmYjkyZTFlZWVhNGE2OS5leUp3WVhSb2JtRnRaU0k2SW1admJ5NTBlSFFpTENKdmJsVndiRzloWkVOdmJYQnNaWFJsWkNJNmV5SmpZV3hzWW1GamExVnliQ0k2SW1oMGRIQnpPaTh2WlhoaGJYQnNaUzVqYjIwaUxDSnRaWFJoWkdGMFlTSTZJbnRjSW1admIxd2lPbHdpWW1GeVhDSjlJbjBzSW5aaGJHbGtWVzUwYVd3aU9qRTJOekkxTXpFeU16QXdNREI5',
       );
 
-      expect(decodeClientToken(uploadToken)).toEqual({
+      expect(getPayloadFromClientToken(uploadToken)).toEqual({
         pathname: 'foo.txt',
-        onUploadCompletedUrl: 'https://example.com',
-        onUploadCompletedCallbackUrlArgs: {
-          foo: 'bar',
+        onUploadCompleted: {
+          callbackUrl: 'https://example.com',
+          metadata: '{"foo":"bar"}',
         },
         validUntil: 1672531230000,
       });

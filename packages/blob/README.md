@@ -145,7 +145,7 @@ async function generateClientTokenFromReadWriteToken(options?: {
   };
   maximumSizeInBytes?: number;
   allowedContentTypes?: string[];
-  validUntil?: number;
+  validUntil?: number; // timestamp in ms
 }): string {}
 ```
 

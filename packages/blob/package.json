@@ -28,16 +28,21 @@
     "prepublishOnly": "pnpm run build",
     "prettier-check": "prettier --check .",
     "publint": "npx publint",
-    "test": "pnpm run test:node && pnpm run test:edge",
+    "test": "pnpm run test:node && pnpm run test:edge && pnpm run test:browser",
+    "test:browser": "jest --env jsdom .browser.test.ts",
     "test:edge": "jest --env @edge-runtime/jest-environment .edge.test.ts",
     "test:node": "jest --env node .node.test.ts",
     "type-check": "tsc --noEmit"
   },
   "jest": {
     "preset": "ts-jest",
+    "setupFiles": [
+      "<rootDir>/jest/setup.js"
+    ],
     "testEnvironment": "node"
   },
   "dependencies": {
+    "jest-environment-jsdom": "29.5.0",
     "undici": "5.22.0"
   },
   "devDependencies": {

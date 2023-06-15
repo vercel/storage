@@ -1,5 +1,12 @@
 import { type Interceptable, MockAgent, setGlobalDispatcher } from 'undici';
-import { list, head, del, put } from './index';
+import {
+  list,
+  head,
+  del,
+  put,
+  generateClientTokenFromReadWriteToken,
+  decodeClientToken,
+} from './index';
 
 const BASE_URL = 'https://blob.vercel-storage.com';
 const mockAgent = new MockAgent();
@@ -479,6 +486,37 @@ describe('blob client', () => {
           access: 'private',
         }),
       ).rejects.toThrow(new Error('Vercel Blob: access must be "public"'));
+    });
+  });
+
+  describe('generateClientTokenFromReadWriteToken', () => {
+    afterEach(() => {
+      jest.runOnlyPendingTimers();
+      jest.useRealTimers();
+    });
+
+    beforeEach(() => {
+      jest.useFakeTimers().setSystemTime(new Date('2023-01-01'));
+    });
+    test('should generate an upload token with the correct payload', () => {
+      const uploadToken = generateClientTokenFromReadWriteToken({
+        pathname: 'foo.txt',
+        onUploadCompletedUrl: 'https://example.com',
+        onUploadCompletedCallbackUrlArgs: { foo: 'bar' },
+        token: 'vercel_blob_client_123456789_TEST_TOKEN',
+      });
+      expect(uploadToken).toEqual(
+        'vercel_blob_client_123456789_Y2JmMTQ0ZmRhMzc3N2YxOWRmNWZkNzk2NmE5ZjVmNDU2ODJjZjUzNDZlNzRlYmRhMDZlN2QzNzhhY2Q3OTgzOC5leUp3WVhSb2JtRnRaU0k2SW1admJ5NTBlSFFpTENKMllXeHBaRlZ1ZEdsc0lqb3hOamN5TlRNeE1qTXdNREF3TENKdmJsVndiRzloWkVOdmJYQnNaWFJsWkZWeWJDSTZJbWgwZEhCek9pOHZaWGhoYlhCc1pTNWpiMjBpTENKdmJsVndiRzloWkVOdmJYQnNaWFJsWkVOaGJHeGlZV05yVlhKc1FYSm5jeUk2ZXlKbWIyOGlPaUppWVhJaWZYMD0=',
+      );
+
+      expect(decodeClientToken(uploadToken)).toEqual({
+        pathname: 'foo.txt',
+        onUploadCompletedUrl: 'https://example.com',
+        onUploadCompletedCallbackUrlArgs: {
+          foo: 'bar',
+        },
+        validUntil: 1672531230000,
+      });
     });
   });
 });

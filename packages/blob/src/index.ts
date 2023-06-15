@@ -1,9 +1,18 @@
 import type { Readable } from 'node:stream';
+// eslint-disable-next-line unicorn/prefer-node-protocol
+import * as crypto from 'crypto';
 import type { BodyInit } from 'undici';
 // When bundled via a bundler supporting the `browser` field, then
 // the `undici` module will be replaced with https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
 // for browser contexts. See ./undici-browser.js and ./package.json
 import { fetch } from 'undici';
+import {
+  getApiUrl,
+  mapBlobResult,
+  BlobAccessError,
+  BlobError,
+  BlobUnknownError,
+} from './helpers';
 
 export interface BlobResult {
   url: string;
@@ -12,26 +21,6 @@ export interface BlobResult {
   pathname: string;
   contentType: string;
   contentDisposition: string;
-}
-
-export class BlobError extends Error {
-  constructor(message: string) {
-    super(`Vercel Blob: ${message}`);
-  }
-}
-
-export class BlobAccessError extends Error {
-  constructor() {
-    super(
-      'Vercel Blob: Access denied, please provide a valid token for this resource',
-    );
-  }
-}
-
-export class BlobUnknownError extends Error {
-  constructor() {
-    super('Vercel Blob: Unknown error, please contact support@vercel.com');
-  }
 }
 
 export interface ListBlobResult {
@@ -57,7 +46,14 @@ export interface PutCommandOptions extends BlobCommandOptions {
 
 export async function put(
   pathname: string,
-  body: string | Readable | Blob | ArrayBuffer | FormData | ReadableStream,
+  body:
+    | string
+    | Readable
+    | Blob
+    | ArrayBuffer
+    | FormData
+    | ReadableStream
+    | File,
   options: PutCommandOptions,
 ): Promise<BlobResult> {
   if (!pathname) {
@@ -141,7 +137,7 @@ export async function del<T extends string | string[]>(
   return null as BlobDelResult<T>;
 }
 
-interface BlobMetadataApi extends Omit<BlobResult, 'uploadedAt'> {
+export interface BlobMetadataApi extends Omit<BlobResult, 'uploadedAt'> {
   uploadedAt: string;
 }
 interface ListBlobResultApi extends Omit<ListBlobResult, 'blobs'> {
@@ -215,8 +211,60 @@ export async function list(
   };
 }
 
-function getApiUrl(): string {
-  return process.env.VERCEL_BLOB_API_URL || 'https://blob.vercel-storage.com';
+export interface GenerateClientTokenOptions extends BlobCommandOptions {
+  pathname: string;
+  onUploadCompletedUrl: string;
+  onUploadCompletedCallbackUrlArgs?: Record<string, string>;
+}
+
+export function generateClientTokenFromReadWriteToken({
+  pathname,
+  onUploadCompletedUrl,
+  token,
+  onUploadCompletedCallbackUrlArgs,
+}: GenerateClientTokenOptions): string {
+  const timestamp = new Date();
+  timestamp.setSeconds(timestamp.getSeconds() + 30);
+  const blobToken = getToken({ token });
+
+  const payload = Buffer.from(
+    JSON.stringify({
+      pathname,
+      validUntil: timestamp.getTime(),
+      onUploadCompletedUrl,
+      onUploadCompletedCallbackUrlArgs,
+    }),
+  ).toString('base64');
+
+  const [, , , storeId = null] = blobToken.split('_');
+
+  if (!storeId) {
+    throw new Error('Invalid BLOB_READ_WRITE_TOKEN');
+  }
+
+  const securedKey = crypto
+    .createHmac('sha256', blobToken)
+    .update(payload)
+    .digest('hex');
+
+  return `vercel_blob_client_${storeId}_${Buffer.from(
+    `${securedKey}.${payload}`,
+  ).toString('base64')}`;
+}
+
+type DecodedClientTokenPayload = Omit<GenerateClientTokenOptions, 'token'> & {
+  validUntil: number;
+};
+
+export function decodeClientToken(
+  clientToken: string,
+): DecodedClientTokenPayload {
+  const [, , , , encodedToken] = clientToken.split('_');
+  const encodedPayload = Buffer.from(encodedToken ?? '', 'base64')
+    .toString()
+    .split('.')[1];
+  const decodedPayload = Buffer.from(encodedPayload ?? '', 'base64').toString();
+  return JSON.parse(decodedPayload) as DecodedClientTokenPayload;
 }
 
 function getToken(putOptions?: BlobCommandOptions): string {
@@ -231,11 +279,4 @@ function getToken(putOptions?: BlobCommandOptions): string {
   }
 
   return process.env.BLOB_READ_WRITE_TOKEN;
-}
-
-function mapBlobResult(blobResult: BlobMetadataApi): BlobResult {
-  return {
-    ...blobResult,
-    uploadedAt: new Date(blobResult.uploadedAt),
-  };
 }

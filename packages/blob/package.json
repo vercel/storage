@@ -28,7 +28,9 @@
     "prepublishOnly": "pnpm run build",
     "prettier-check": "prettier --check .",
     "publint": "npx publint",
-    "test": "jest",
+    "test": "pnpm run test:node && pnpm run test:edge",
+    "test:edge": "jest --env @edge-runtime/jest-environment .edge.test.ts",
+    "test:node": "jest --env node .node.test.ts",
     "type-check": "tsc --noEmit"
   },
   "jest": {

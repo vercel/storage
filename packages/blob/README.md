@@ -218,6 +218,79 @@ export async function POST(request: Request) {
 }
 ```
 
+The above example uploads a file through a vercel route. This solution is limited to a 4Mb file size. In order to bypass this limit, it is possible to upload a file directly from within the client, after generating a single-use token.
+
+```tsx
+// /app/UploadForm.tsx
+
+'use client';
+
+import type { BlobResult, put } from '@vercel/blob';
+import { useState } from 'react';
+
+export default function UploadForm() {
+  const inputFileRef = useRef<HTMLInputElement>(null);
+  const [blob, setBlob] = useState<BlobResult | null>(null);
+  return (
+    <>
+      <h1>App Router Client Upload</h1>
+
+      <form
+        onSubmit={async (event): Promise<void> => {
+          event.preventDefault();
+
+          const file = inputFileRef.current?.files?.[0];
+          if (!file) {
+            return;
+          }
+
+          const clientTokenData = (await fetch('/app/api/upload-token', {
+            method: 'POST',
+            body: JSON.stringify({
+              pathname: file.name,
+              onUploadCompletedUrl: '/app/api/upload-completed',
+            }),
+          }).then((r) => r.json())) as { clientToken: string };
+
+          const blobResult = await put(file.name, file, {
+            access: 'public',
+            token: clientTokenData.clientToken,
+          });
+
+          setBlob(blobResult);
+        }}
+      >
+        <input name="file" ref={inputFileRef} type="file" />
+        <button type="submit">Upload</button>
+      </form>
+      {blob && (
+        <div>
+          Blob url: <a href={blob.url}>{blob.url}</a>
+        </div>
+      )}
+    </>
+  );
+}
+```
+
+```ts
+// /app/api/upload-token/route.ts
+
+import {
+  generateClientTokenFromReadWriteToken,
+  type GenerateClientTokenOptions,
+} from '@vercel/blob';
+import { NextResponse } from 'next/server';
+
+export async function POST(request: Request): Promise<NextResponse> {
+  const body = (await request.json()) as GenerateClientTokenOptions;
+
+  return NextResponse.json({
+    clientToken: await generateClientTokenFromReadWriteToken(body),
+  });
+}
+```
+
 ## How to list all your blobs
 
 This will paginate through all your blobs in chunks of 1,000 blobs.

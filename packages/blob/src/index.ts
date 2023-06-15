@@ -231,10 +231,10 @@ export interface GenerateClientTokenOptions extends BlobCommandOptions {
   };
 }
 
-export function generateClientTokenFromReadWriteToken({
+export async function generateClientTokenFromReadWriteToken({
   token,
   ...args
-}: GenerateClientTokenOptions): string {
+}: GenerateClientTokenOptions): Promise<string> {
   if (typeof window !== 'undefined') {
     throw new Error(
       '"generateClientTokenFromReadWriteToken" must be called from a server environment',
@@ -259,14 +259,39 @@ export function generateClientTokenFromReadWriteToken({
     }),
   ).toString('base64');
 
-  const securedKey = crypto
-    .createHmac('sha256', blobToken)
-    .update(payload)
-    .digest('hex');
-
+  const securedKey = await signPayload(payload, blobToken);
+  if (!securedKey) {
+    throw new Error('Unable to sign client token');
+  }
   return `vercel_blob_client_${storeId}_${Buffer.from(
     `${securedKey}.${payload}`,
   ).toString('base64')}`;
+}
+
+async function signPayload(
+  payload: string,
+  token: string,
+): Promise<string | undefined> {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (!globalThis.crypto) {
+    return crypto.createHmac('sha256', token).update(payload).digest('hex');
+  }
+  const key = await globalThis.crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(token),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+
+  const signature = await globalThis.crypto.subtle.sign(
+    'HMAC',
+    key,
+    new TextEncoder().encode(payload),
+  );
+  return [...new Uint8Array(signature)]
+    .map((x) => x.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 type DecodedClientTokenPayload = Omit<GenerateClientTokenOptions, 'token'> & {

@@ -56,6 +56,14 @@ export interface PutCommandOptions extends BlobCommandOptions {
   contentType?: string;
 }
 
+export interface BlobUploadCompletedEvent {
+  type: 'blob.upload-completed';
+  payload: {
+    blob: BlobResult;
+    metadata?: string;
+  };
+}
+
 export async function put(
   pathname: string,
   body:

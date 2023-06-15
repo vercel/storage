@@ -23,9 +23,6 @@ export default function AppBodyClient({
           method: 'POST',
           body: JSON.stringify({
             pathname: filename,
-            onUploadCompleted: {
-              callbackUrl: '/api/upload-completed',
-            },
           } as GenerateClientTokenOptions),
         },
       ).then((r) => r.json())) as { clientToken: string };

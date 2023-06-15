@@ -26,7 +26,6 @@ export default function AppClientUpload(): JSX.Element {
               method: 'POST',
               body: JSON.stringify({
                 pathname: file.name,
-                onUploadCompletedUrl: '/api/upload-completed',
               }),
             },
           ).then((r) => r.json())) as { clientToken: string };

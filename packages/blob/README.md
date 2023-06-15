@@ -218,6 +218,8 @@ export async function POST(request: Request) {
 }
 ```
 
+### Uploading directly from browsers
+
 The above example uploads a file through a vercel route. This solution is limited to a 4Mb file size. In order to bypass this limit, it is possible to upload a file directly from within the client, after generating a single-use token.
 
 ```tsx
@@ -244,11 +246,10 @@ export default function UploadForm() {
             return;
           }
 
-          const clientTokenData = (await fetch('/app/api/upload-token', {
+          const clientTokenData = (await fetch('/api/upload-token', {
             method: 'POST',
             body: JSON.stringify({
               pathname: file.name,
-              onUploadCompletedUrl: '/app/api/upload-completed',
             }),
           }).then((r) => r.json())) as { clientToken: string };
 
@@ -286,7 +287,31 @@ export async function POST(request: Request): Promise<NextResponse> {
   const body = (await request.json()) as GenerateClientTokenOptions;
 
   return NextResponse.json({
-    clientToken: await generateClientTokenFromReadWriteToken(body),
+    clientToken: await generateClientTokenFromReadWriteToken({
+      ...body,
+      onUploadCompleted: {
+        callbackUrl: `https://${
+          process.env.VERCEL_URL ?? ''
+        }/api/upload-completed`,
+        metadata: JSON.stringify({ foo: 'bar' }),
+      },
+    }),
+  });
+}
+```
+
+```ts
+// /app/api/upload-completed/route.ts
+
+import { type BlobUploadCompletedEvent } from '@vercel/blob';
+import { NextResponse } from 'next/server';
+
+export async function POST(request: Request): Promise<NextResponse> {
+  const body = (await request.json()) as BlobUploadCompletedEvent;
+  console.log(body);
+  // { type: "blob.upload-completed", payload: { metadata: "{ foo: 'bar' }", blob: ... }}
+  return NextResponse.json({
+    response: 'ok',
   });
 }
 ```

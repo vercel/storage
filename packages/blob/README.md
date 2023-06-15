@@ -250,12 +250,15 @@ export default function UploadForm() {
             return;
           }
 
-          const clientTokenData = (await fetch('/api/upload-token', {
-            method: 'POST',
-            body: JSON.stringify({
-              pathname: file.name,
-            }),
-          }).then((r) => r.json())) as { clientToken: string };
+          const clientTokenData = (await fetch(
+            '/api/generate-blob-client-token',
+            {
+              method: 'POST',
+              body: JSON.stringify({
+                pathname: file.name,
+              }),
+            },
+          ).then((r) => r.json())) as { clientToken: string };
 
           const blobResult = await put(file.name, file, {
             access: 'public',
@@ -279,7 +282,7 @@ export default function UploadForm() {
 ```
 
 ```ts
-// /app/api/upload-token/route.ts
+// /app/api/generate-blob-client-token/route.ts
 
 import {
   generateClientTokenFromReadWriteToken,
@@ -299,7 +302,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       onUploadCompleted: {
         callbackUrl: `https://${
           process.env.VERCEL_URL ?? ''
-        }/api/upload-completed`,
+        }/api/file-upload-completed`,
         metadata: JSON.stringify({ foo: 'bar' }),
       },
       maximumSizeInBytes: 10_000_000, // 10 Mb
@@ -310,9 +313,12 @@ export async function POST(request: Request): Promise<NextResponse> {
 ```
 
 ```ts
-// /app/api/upload-completed/route.ts
+// /app/api/file-upload-completed/route.ts
 
-import { type BlobUploadCompletedEvent, verifyCallbackSignature } from '@vercel/blob';
+import {
+  type BlobUploadCompletedEvent,
+  verifyCallbackSignature,
+} from '@vercel/blob';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request): Promise<NextResponse> {

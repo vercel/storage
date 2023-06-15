@@ -14,7 +14,7 @@ export default function AppBodyClient({
   useEffect(() => {
     const doUpload = async (): Promise<void> => {
       const clientTokenData = (await fetch(
-        '/vercel/blob/api/app/upload-token/edge',
+        '/vercel/blob/api/app/generate-blob-client-token/edge',
         {
           method: 'POST',
           body: JSON.stringify({

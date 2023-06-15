@@ -21,7 +21,7 @@ export default function AppClientUpload(): JSX.Element {
           }
 
           const clientTokenData = (await fetch(
-            '/vercel/blob/api/app/upload-token/edge',
+            '/vercel/blob/api/app/generate-blob-client-token/edge',
             {
               method: 'POST',
               body: JSON.stringify({

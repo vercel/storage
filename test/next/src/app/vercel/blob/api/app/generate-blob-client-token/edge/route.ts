@@ -10,9 +10,11 @@ export async function POST(request: Request): Promise<NextResponse> {
       onUploadCompleted: {
         callbackUrl: `https://${
           process.env.VERCEL_URL ?? ''
-        }/vercel/blob/api/app/upload-completed`,
+        }/vercel/blob/api/app/file-upload-completed`,
         metadata: JSON.stringify({ foo: 'bar' }),
       },
     }),
   });
 }
+
+export const runtime = 'edge';

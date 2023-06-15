@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.9.1
+
+### Patch Changes
+
+- 08caff4: expose validUntil field
+
 ## 0.9.0
 
 ### Minor Changes

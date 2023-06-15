@@ -239,6 +239,7 @@ export interface GenerateClientTokenOptions extends BlobCommandOptions {
   };
   maximumSizeInBytes?: number;
   allowedContentTypes?: string[];
+  validUntil?: number;
 }
 
 export async function generateClientTokenFromReadWriteToken({
@@ -265,7 +266,7 @@ export async function generateClientTokenFromReadWriteToken({
   const payload = Buffer.from(
     JSON.stringify({
       ...args,
-      validUntil: timestamp.getTime(),
+      validUntil: args.validUntil ?? timestamp.getTime(),
     }),
   ).toString('base64');
 

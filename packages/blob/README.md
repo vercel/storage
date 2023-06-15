@@ -303,7 +303,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         callbackUrl: `https://${
           process.env.VERCEL_URL ?? ''
         }/api/file-upload-completed`,
-        metadata: JSON.stringify({ foo: 'bar' }),
+        metadata: JSON.stringify({ userId: 12345 }),
       },
       maximumSizeInBytes: 10_000_000, // 10 Mb
       allowedContentTypes: 'text/plain',
@@ -325,6 +325,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   const body = (await request.json()) as BlobUploadCompletedEvent;
   console.log(body);
   // { type: "blob.upload-completed", payload: { metadata: "{ foo: 'bar' }", blob: ... }}
+  
   if (
     !(await verifyCallbackSignature({
       signature: request.headers.get('x-vercel-signature') ?? '',
@@ -340,6 +341,12 @@ export async function POST(request: Request): Promise<NextResponse> {
       },
     );
   }
+  const metadata = JSON.stringify(body.payload.metadata);
+  const blob = body.blob;
+  
+  console.log(metadata.userId); // 12345
+  console.log(blob); // { url: '...', size: ..., uploadedAt: ..., ... }
+  
   return NextResponse.json({
     response: 'ok',
   });

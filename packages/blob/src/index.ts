@@ -237,6 +237,8 @@ export interface GenerateClientTokenOptions extends BlobCommandOptions {
     callbackUrl: string;
     metadata?: string;
   };
+  maximumSizeInBytes?: number;
+  allowedContentTypes?: string[];
 }
 
 export async function generateClientTokenFromReadWriteToken({

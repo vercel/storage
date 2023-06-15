@@ -141,6 +141,8 @@ async function generateClientTokenFromReadWriteToken(options?: {
     callbackUrl: string;
     metadata?: string;
   };
+  maximumSizeInBytes?: number;
+  allowedContentTypes?: string[];
 }): string {}
 ```
 
@@ -298,6 +300,8 @@ export async function POST(request: Request): Promise<NextResponse> {
         }/api/upload-completed`,
         metadata: JSON.stringify({ foo: 'bar' }),
       },
+      maximumSizeInBytes: 10_000_000, // 10 Mb
+      allowedContentTypes: 'text/plain',
     }),
   });
 }
@@ -313,6 +317,21 @@ export async function POST(request: Request): Promise<NextResponse> {
   const body = (await request.json()) as BlobUploadCompletedEvent;
   console.log(body);
   // { type: "blob.upload-completed", payload: { metadata: "{ foo: 'bar' }", blob: ... }}
+  if (
+    !(await verifyCallbackSignature({
+      signature: request.headers.get('x-vercel-signature') ?? '',
+      body: JSON.stringify(body),
+    }))
+  ) {
+    return NextResponse.json(
+      {
+        response: 'invalid signature',
+      },
+      {
+        status: 403,
+      },
+    );
+  }
   return NextResponse.json({
     response: 'ok',
   });

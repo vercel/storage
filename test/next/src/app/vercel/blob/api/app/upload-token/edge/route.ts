@@ -1,11 +1,8 @@
-import {
-  generateClientTokenFromReadWriteToken,
-  type GenerateClientTokenOptions,
-} from '@vercel/blob';
+import { generateClientTokenFromReadWriteToken } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const body = (await request.json()) as GenerateClientTokenOptions;
+  const body = (await request.json()) as { pathname: string };
 
   return NextResponse.json({
     clientToken: await generateClientTokenFromReadWriteToken({

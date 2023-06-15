@@ -284,7 +284,10 @@ import {
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const body = (await request.json()) as GenerateClientTokenOptions;
+  // On a real website, this route would be protected by authentication, see: https://nextjs.org/docs/pages/building-your-application/routing/authenticating
+  // Here, we accept the `pathname` from the browser, but in some situations, you may even craft the pathname
+  // based on the authentication result
+  const body = (await request.json()) as { pathname: string };
 
   return NextResponse.json({
     clientToken: await generateClientTokenFromReadWriteToken({

@@ -1,9 +1,5 @@
 'use client';
-import {
-  put,
-  type BlobResult,
-  type GenerateClientTokenOptions,
-} from '@vercel/blob';
+import { put, type BlobResult } from '@vercel/blob';
 import { useEffect, useState } from 'react';
 
 export default function AppBodyClient({
@@ -23,7 +19,7 @@ export default function AppBodyClient({
           method: 'POST',
           body: JSON.stringify({
             pathname: filename,
-          } as GenerateClientTokenOptions),
+          }),
         },
       ).then((r) => r.json())) as { clientToken: string };
 

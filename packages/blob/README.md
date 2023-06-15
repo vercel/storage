@@ -131,7 +131,7 @@ async function list(options?: {
 
 ### generateClientTokenFromReadWriteToken(options)
 
-Generates a single-use token which can be used from within the client.
+Generates a single-use token that can be used from within the client. This is useful when [uploading directly from browsers](#uploading-directly-from-browsers) to circumvent the 4MB limitation of going through a Vercel-hosted route.
 
 ```ts
 async function generateClientTokenFromReadWriteToken(options?: {
@@ -145,6 +145,8 @@ async function generateClientTokenFromReadWriteToken(options?: {
   allowedContentTypes?: string[];
 }): string {}
 ```
+
+Note: This method should be called server-side, not client-side.
 
 ## Examples
 

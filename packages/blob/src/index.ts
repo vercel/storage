@@ -6,13 +6,6 @@ import type { BodyInit } from 'undici';
 // the `undici` module will be replaced with https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
 // for browser contexts. See ./undici-browser.js and ./package.json
 import { fetch } from 'undici';
-import {
-  getApiUrl,
-  mapBlobResult,
-  BlobAccessError,
-  BlobError,
-  BlobUnknownError,
-} from './helpers';
 
 export interface BlobResult {
   url: string;
@@ -21,6 +14,25 @@ export interface BlobResult {
   pathname: string;
   contentType: string;
   contentDisposition: string;
+}
+export class BlobError extends Error {
+  constructor(message: string) {
+    super(`Vercel Blob: ${message}`);
+  }
+}
+
+export class BlobAccessError extends Error {
+  constructor() {
+    super(
+      'Vercel Blob: Access denied, please provide a valid token for this resource',
+    );
+  }
+}
+
+export class BlobUnknownError extends Error {
+  constructor() {
+    super('Vercel Blob: Unknown error, please contact support@vercel.com');
+  }
 }
 
 export interface ListBlobResult {
@@ -137,7 +149,7 @@ export async function del<T extends string | string[]>(
   return null as BlobDelResult<T>;
 }
 
-export interface BlobMetadataApi extends Omit<BlobResult, 'uploadedAt'> {
+interface BlobMetadataApi extends Omit<BlobResult, 'uploadedAt'> {
   uploadedAt: string;
 }
 interface ListBlobResultApi extends Omit<ListBlobResult, 'blobs'> {
@@ -223,6 +235,11 @@ export function generateClientTokenFromReadWriteToken({
   token,
   ...args
 }: GenerateClientTokenOptions): string {
+  if (typeof window !== 'undefined') {
+    throw new Error(
+      '"generateClientTokenFromReadWriteToken" must be called from a server environment',
+    );
+  }
   const timestamp = new Date();
   timestamp.setSeconds(timestamp.getSeconds() + 30);
   const blobToken = getToken({ token });
@@ -267,9 +284,17 @@ export function getPayloadFromClientToken(
   return JSON.parse(decodedPayload) as DecodedClientTokenPayload;
 }
 
-function getToken(putOptions?: BlobCommandOptions): string {
-  if (putOptions?.token) {
-    return putOptions.token;
+function getToken(options?: BlobCommandOptions): string {
+  if (typeof window !== 'undefined') {
+    if (!options?.token) {
+      throw new BlobError('"token" is required');
+    }
+    if (!options.token.startsWith('vercel_blob_client')) {
+      throw new BlobError('client upload only supports client tokens');
+    }
+  }
+  if (options?.token) {
+    return options.token;
   }
 
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
@@ -279,4 +304,19 @@ function getToken(putOptions?: BlobCommandOptions): string {
   }
 
   return process.env.BLOB_READ_WRITE_TOKEN;
+}
+
+function getApiUrl(): string {
+  return (
+    process.env.VERCEL_BLOB_API_URL ||
+    process.env.NEXT_PUBLIC_VERCEL_BLOB_API_URL ||
+    'https://blob.vercel-storage.com'
+  );
+}
+
+function mapBlobResult(blobResult: BlobMetadataApi): BlobResult {
+  return {
+    ...blobResult,
+    uploadedAt: new Date(blobResult.uploadedAt),
+  };
 }

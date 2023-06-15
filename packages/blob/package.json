@@ -15,15 +15,14 @@
   "module": "./dist/index.js",
   "browser": {
     "undici": "./dist/undici-browser.js",
-    "crypto": false
+    "crypto": "./dist/crypto-browser.js"
   },
   "types": "./dist/index.d.ts",
   "files": [
-    "dist",
-    "client"
+    "dist"
   ],
   "scripts": {
-    "build": "tsup && cp src/undici-browser.js dist/undici-browser.js",
+    "build": "tsup && cp src/undici-browser.js dist/undici-browser.js && cp src/crypto-browser.js dist/crypto-browser.js",
     "dev": "cp src/undici-browser.js dist/undici-browser.js && tsup --watch --clean=false",
     "lint": "eslint --max-warnings=0 .",
     "prepublishOnly": "pnpm run build",

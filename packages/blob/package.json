@@ -11,35 +11,27 @@
   "license": "Apache-2.0",
   "sideEffects": false,
   "type": "module",
-  "exports": {
-    ".": {
-      "import": {
-        "node": "./dist/index.js",
-        "default": "./dist/index.js"
-      },
-      "require": {
-        "node": "./dist/index.cjs",
-        "default": "./dist/index.cjs"
-      }
-    }
-  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "browser": {
-    "undici": "./dist/undici-browser.js"
+    "undici": "./dist/undici-browser.js",
+    "crypto": "./dist/crypto-browser.js"
   },
   "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsup && cp src/undici-browser.js dist/undici-browser.js",
+    "build": "tsup && cp src/undici-browser.js dist/undici-browser.js && cp src/crypto-browser.js dist/crypto-browser.js",
     "dev": "cp src/undici-browser.js dist/undici-browser.js && tsup --watch --clean=false",
     "lint": "eslint --max-warnings=0 .",
     "prepublishOnly": "pnpm run build",
     "prettier-check": "prettier --check .",
     "publint": "npx publint",
-    "test": "jest",
+    "test": "pnpm run test:node && pnpm run test:edge && pnpm run test:browser",
+    "test:browser": "jest --env jsdom .browser.test.ts --setupFilesAfterEnv ./jest/setup.js",
+    "test:edge": "jest --env @edge-runtime/jest-environment .edge.test.ts",
+    "test:node": "jest --env node .node.test.ts",
     "type-check": "tsc --noEmit"
   },
   "jest": {
@@ -47,6 +39,7 @@
     "testEnvironment": "node"
   },
   "dependencies": {
+    "jest-environment-jsdom": "29.5.0",
     "undici": "5.22.0"
   },
   "devDependencies": {

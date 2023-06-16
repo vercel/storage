@@ -48,7 +48,7 @@
     "@edge-runtime/types": "2.1.2",
     "@types/jest": "29.5.2",
     "@types/node": "18.16.18",
-    "eslint": "8.42.0",
+    "eslint": "8.43.0",
     "eslint-config-custom": "workspace:*",
     "jest": "29.5.0",
     "jest-fetch-mock": "3.0.3",

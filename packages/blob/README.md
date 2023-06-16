@@ -253,19 +253,9 @@ export default function UploadForm() {
             return;
           }
 
-          const clientTokenData = (await fetch(
-            '/api/generate-blob-client-token',
-            {
-              method: 'POST',
-              body: JSON.stringify({
-                pathname: file.name,
-              }),
-            },
-          ).then((r) => r.json())) as { clientToken: string };
-
           const blobResult = await put(file.name, file, {
             access: 'public',
-            token: clientTokenData.clientToken,
+            handleBlobUploadUrl: '/api/upload/avatars',
           });
 
           setBlob(blobResult);
@@ -285,79 +275,57 @@ export default function UploadForm() {
 ```
 
 ```ts
-// /app/api/generate-blob-client-token/route.ts
+// /app/api/upload/avatars/route.ts
 
-import {
-  generateClientTokenFromReadWriteToken,
-  type GenerateClientTokenOptions,
-} from '@vercel/blob';
+import { handleBlobUpload, type HandleBlobUploadBody } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request): Promise<NextResponse> {
-  // On a real website, this route would be protected by authentication, see: https://nextjs.org/docs/pages/building-your-application/routing/authenticating
-  // Here, we accept the `pathname` from the browser, but in some situations, you may even craft the pathname
-  // based on the authentication result
-  const body = (await request.json()) as { pathname: string };
+  const body = (await request.json()) as HandleBlobUploadBody;
 
-  const timestamp = new Date();
-  timestamp.setSeconds(timestamp.getSeconds() + 60);
-  return NextResponse.json({
-    clientToken: await generateClientTokenFromReadWriteToken({
-      ...body,
-      onUploadCompleted: {
-        callbackUrl: `https://${
-          process.env.VERCEL_URL ?? ''
-        }/api/file-upload-completed`,
-        metadata: JSON.stringify({ userId: 12345 }),
+  // The request will run at least 2 times:
+  // - the first time when generating a client token, the body will contain the {type: "blob.generate-client-token"} object.
+  // - the second time once the file upload completed, the body will contain the {type: "blob.upload-completed"} object. This request will retry for 5 times in case the response returns an error status code.
+
+  try {
+    const jsonResponse = await handleBlobUpload({
+      body,
+      request,
+      onBeforeGenerateToken: async (pathname) => {
+        // On a real website, this route would be protected by authentication, see: https://nextjs.org/docs/pages/building-your-application/routing/authenticating
+        const { user, userCanUpload } = await auth(request, pathname);
+
+        if (!userCanUpload) {
+          throw new Error('not authenticated or bad pathname');
+        }
+
+        return {
+          maxFileSize: 10_000_000,
+          allowedContentTypes: ['image/jpeg', 'image/png', 'image/gif'],
+          metadata: JSON.stringify({
+            userId: user.id,
+          }),
+        };
       },
-      maximumSizeInBytes: 10_000_000, // 10 Mb
-      allowedContentTypes: 'text/plain',
-      validUntil: timestamp.getTime(), // default to 30s
-    }),
-  });
-}
-```
+      onUploadCompleted: async ({ blob, metadata }) => {
+        console.log('Upload completed', blob, metadata);
+        try {
+          // Run any logic after the file upload completed
+          await db.update({ avatar: blob.url, userId: metadata.userId });
+        } catch (error) {
+          // In case of error, the "onUploadCompleted" will retry for 5 times
+          throw new Error('Could not update user');
+        }
+      },
+    });
 
-```ts
-// /app/api/file-upload-completed/route.ts
-
-import {
-  type BlobUploadCompletedEvent,
-  verifyCallbackSignature,
-} from '@vercel/blob';
-import { NextResponse } from 'next/server';
-
-export async function POST(request: Request): Promise<NextResponse> {
-  const body = (await request.json()) as BlobUploadCompletedEvent;
-  console.log(body);
-  // { type: "blob.upload-completed", payload: { metadata: "{ foo: 'bar' }", blob: ... }}
-
-  if (
-    !(await verifyCallbackSignature({
-      signature: request.headers.get('x-vercel-signature') ?? '',
-      body: JSON.stringify(body),
-    }))
-  ) {
+    return NextResponse.json(jsonResponse);
+  } catch (error) {
     return NextResponse.json(
-      {
-        response: 'invalid signature',
-      },
-      {
-        status: 403,
-      },
+      { error: (error as Error).message },
+      { status: 400 },
     );
   }
-  const metadata = JSON.parse(body.payload.metadata as string) as {
-    userId: string;
-  };
-  const blob = body.payload.blob;
-
-  console.log(metadata.userId); // 12345
-  console.log(blob); // { url: '...', size: ..., uploadedAt: ..., ... }
-
-  return NextResponse.json({
-    response: 'ok',
-  });
 }
 ```
 

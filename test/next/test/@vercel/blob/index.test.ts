@@ -62,7 +62,7 @@ test.describe('@vercel/blob', () => {
     });
     test('client sign serverless', async ({ page }) => {
       await page.goto(
-        `vercel/blob/app/test/client-serverless?filename=${prefix}/test-app-client.txt`,
+        `vercel/blob/app/test/client?filename=${prefix}/test-app-client.txt&callback=/vercel/blob/api/app/handle-blob-upload/serverless`,
       );
       const textContent = await page.locator('#blob-path').textContent();
       expect(textContent).toBe(`${prefix}/test-app-client.txt`);
@@ -73,7 +73,28 @@ test.describe('@vercel/blob', () => {
 
     test('client sign edge', async ({ page }) => {
       await page.goto(
-        `vercel/blob/app/test/client-edge?filename=${prefix}/test-app-client.txt`,
+        `vercel/blob/app/test/client?filename=${prefix}/test-app-client.txt&callback=/vercel/blob/api/app/handle-blob-upload/edge`,
+      );
+      const textContent = await page.locator('#blob-path').textContent();
+      expect(textContent).toBe(`${prefix}/test-app-client.txt`);
+      expect(await page.locator('#blob-content').textContent()).toBe(
+        `Hello from ${prefix}/test-app-client.txt`,
+      );
+    });
+
+    test('client sign edge page', async ({ page }) => {
+      await page.goto(
+        `vercel/blob/app/test/client?filename=${prefix}/test-app-client.txt&callback=/api/vercel/blob/pages/handle-blob-upload-edge`,
+      );
+      const textContent = await page.locator('#blob-path').textContent();
+      expect(textContent).toBe(`${prefix}/test-app-client.txt`);
+      expect(await page.locator('#blob-content').textContent()).toBe(
+        `Hello from ${prefix}/test-app-client.txt`,
+      );
+    });
+    test('client sign serverless page', async ({ page }) => {
+      await page.goto(
+        `vercel/blob/app/test/client?filename=${prefix}/test-app-client.txt&callback=/api/vercel/blob/pages/handle-blob-upload-serverless`,
       );
       const textContent = await page.locator('#blob-path').textContent();
       expect(textContent).toBe(`${prefix}/test-app-client.txt`);

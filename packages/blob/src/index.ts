@@ -1,11 +1,28 @@
 import type { Readable } from 'node:stream';
-// eslint-disable-next-line unicorn/prefer-node-protocol -- node:crypto does not resolve correctly in browser and edge runtime
-import * as crypto from 'crypto';
 import type { BodyInit } from 'undici';
 // When bundled via a bundler supporting the `browser` field, then
 // the `undici` module will be replaced with https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
 // for browser contexts. See ./undici-browser.js and ./package.json
 import { fetch } from 'undici';
+import {
+  BlobAccessError,
+  BlobError,
+  BlobUnknownError,
+  getToken,
+} from './helpers';
+import { EventTypes, type GenerateClientTokenEvent } from './client-upload';
+
+export { BlobAccessError, BlobError, BlobUnknownError };
+export {
+  generateClientTokenFromReadWriteToken,
+  getPayloadFromClientToken,
+  verifyCallbackSignature,
+  handleBlobUpload,
+  type BlobUploadCompletedEvent,
+  type GenerateClientTokenOptions,
+  type HandleBlobUploadBody,
+  type HandleBlobUploadOptions,
+} from './client-upload';
 
 export interface BlobResult {
   url: string;
@@ -14,25 +31,6 @@ export interface BlobResult {
   pathname: string;
   contentType: string;
   contentDisposition: string;
-}
-export class BlobError extends Error {
-  constructor(message: string) {
-    super(`Vercel Blob: ${message}`);
-  }
-}
-
-export class BlobAccessError extends Error {
-  constructor() {
-    super(
-      'Vercel Blob: Access denied, please provide a valid token for this resource',
-    );
-  }
-}
-
-export class BlobUnknownError extends Error {
-  constructor() {
-    super('Vercel Blob: Unknown error, please contact support@vercel.com');
-  }
 }
 
 export interface ListBlobResult {
@@ -54,14 +52,7 @@ export interface BlobCommandOptions {
 export interface PutCommandOptions extends BlobCommandOptions {
   access: 'public';
   contentType?: string;
-}
-
-export interface BlobUploadCompletedEvent {
-  type: 'blob.upload-completed';
-  payload: {
-    blob: BlobResult;
-    metadata?: string;
-  };
+  handleBlobUploadUrl?: string;
 }
 
 export async function put(
@@ -88,6 +79,8 @@ export async function put(
   if (!options || options.access !== 'public') {
     throw new BlobError('access must be "public"');
   }
+
+  await checkAndRetrieveClientToken(pathname, options);
 
   const headers: Record<string, string> = {
     authorization: `Bearer ${getToken(options)}`,
@@ -231,167 +224,6 @@ export async function list(
   };
 }
 
-export interface GenerateClientTokenOptions extends BlobCommandOptions {
-  pathname: string;
-  onUploadCompleted?: {
-    callbackUrl: string;
-    metadata?: string;
-  };
-  maximumSizeInBytes?: number;
-  allowedContentTypes?: string[];
-  validUntil?: number;
-}
-
-export async function generateClientTokenFromReadWriteToken({
-  token,
-  ...args
-}: GenerateClientTokenOptions): Promise<string> {
-  if (typeof window !== 'undefined') {
-    throw new Error(
-      '"generateClientTokenFromReadWriteToken" must be called from a server environment',
-    );
-  }
-  const timestamp = new Date();
-  timestamp.setSeconds(timestamp.getSeconds() + 30);
-  const blobToken = getToken({ token });
-
-  const [, , , storeId = null] = blobToken.split('_');
-
-  if (!storeId) {
-    throw new Error(
-      token ? 'Invalid "token" parameter' : 'Invalid BLOB_READ_WRITE_TOKEN',
-    );
-  }
-
-  const payload = Buffer.from(
-    JSON.stringify({
-      ...args,
-      validUntil: args.validUntil ?? timestamp.getTime(),
-    }),
-  ).toString('base64');
-
-  const securedKey = await signPayload(payload, blobToken);
-  if (!securedKey) {
-    throw new Error('Unable to sign client token');
-  }
-  return `vercel_blob_client_${storeId}_${Buffer.from(
-    `${securedKey}.${payload}`,
-  ).toString('base64')}`;
-}
-
-async function importKey(token?: string): Promise<CryptoKey> {
-  return globalThis.crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(getToken({ token })),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign', 'verify'],
-  );
-}
-
-async function signPayload(
-  payload: string,
-  token: string,
-): Promise<string | undefined> {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (!globalThis.crypto) {
-    return crypto.createHmac('sha256', token).update(payload).digest('hex');
-  }
-
-  const signature = await globalThis.crypto.subtle.sign(
-    'HMAC',
-    await importKey(token),
-    new TextEncoder().encode(payload),
-  );
-  return Buffer.from(new Uint8Array(signature)).toString('hex');
-}
-
-export async function verifyCallbackSignature({
-  token,
-  signature,
-  body,
-}: {
-  token?: string;
-  signature: string;
-  body: string;
-}): Promise<boolean> {
-  // callback signature is signed using the server token
-  const secret = getToken({ token });
-  // Browsers, Edge runtime and Node >=20 implement the Web Crypto API
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (!globalThis.crypto) {
-    // Node <20 falls back to the Node.js crypto module
-    const digest = crypto
-      .createHmac('sha256', secret)
-      .update(body)
-      .digest('hex');
-    const digestBuffer = Buffer.from(digest);
-    const signatureBuffer = Buffer.from(signature);
-
-    return (
-      digestBuffer.length === signatureBuffer.length &&
-      crypto.timingSafeEqual(digestBuffer, signatureBuffer)
-    );
-  }
-  const verified = await globalThis.crypto.subtle.verify(
-    'HMAC',
-    await importKey(token),
-    hexToArrayByte(signature),
-    new TextEncoder().encode(body),
-  );
-  return verified;
-}
-
-function hexToArrayByte(input: string): ArrayBuffer {
-  if (input.length % 2 !== 0) {
-    throw new RangeError('Expected string to be an even number of characters');
-  }
-  const view = new Uint8Array(input.length / 2);
-
-  for (let i = 0; i < input.length; i += 2) {
-    view[i / 2] = parseInt(input.substring(i, i + 2), 16);
-  }
-
-  return Buffer.from(view);
-}
-
-type DecodedClientTokenPayload = Omit<GenerateClientTokenOptions, 'token'> & {
-  validUntil: number;
-};
-
-export function getPayloadFromClientToken(
-  clientToken: string,
-): DecodedClientTokenPayload {
-  const [, , , , encodedToken] = clientToken.split('_');
-  const encodedPayload = Buffer.from(encodedToken ?? '', 'base64')
-    .toString()
-    .split('.')[1];
-  const decodedPayload = Buffer.from(encodedPayload ?? '', 'base64').toString();
-  return JSON.parse(decodedPayload) as DecodedClientTokenPayload;
-}
-
-function getToken(options?: BlobCommandOptions): string {
-  if (typeof window !== 'undefined') {
-    if (!options?.token) {
-      throw new BlobError('"token" is required');
-    }
-    if (!options.token.startsWith('vercel_blob_client')) {
-      throw new BlobError('client upload only supports client tokens');
-    }
-  }
-  if (options?.token) {
-    return options.token;
-  }
-
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    throw new Error(
-      'BLOB_READ_WRITE_TOKEN environment variable is not set. Please set it to your write token.',
-    );
-  }
-
-  return process.env.BLOB_READ_WRITE_TOKEN;
-}
-
 function getApiUrl(): string {
   return (
     process.env.VERCEL_BLOB_API_URL ||
@@ -405,4 +237,41 @@ function mapBlobResult(blobResult: BlobMetadataApi): BlobResult {
     ...blobResult,
     uploadedAt: new Date(blobResult.uploadedAt),
   };
+}
+
+function isValidUrl(url: string): boolean {
+  try {
+    return Boolean(new URL(url));
+  } catch (e) {
+    return false;
+  }
+}
+
+async function checkAndRetrieveClientToken(
+  pathname: string,
+  options: PutCommandOptions,
+): Promise<void> {
+  if (!options.token && options.handleBlobUploadUrl) {
+    const { handleBlobUploadUrl } = options;
+    const url = isValidUrl(handleBlobUploadUrl)
+      ? handleBlobUploadUrl
+      : `${window.location.origin}${handleBlobUploadUrl}`;
+
+    const res = await fetch(url, {
+      method: 'POST',
+      body: JSON.stringify({
+        type: EventTypes.generateClientToken,
+        payload: { pathname, callbackUrl: url },
+      } as GenerateClientTokenEvent),
+    });
+    if (!res.ok) {
+      throw new BlobError('Failed to  retrieve the client token');
+    }
+    try {
+      const { clientToken } = (await res.json()) as { clientToken: string };
+      options.token = clientToken;
+    } catch (e) {
+      throw new BlobError('Failed to retrieve the client token');
+    }
+  }
 }

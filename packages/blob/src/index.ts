@@ -80,10 +80,15 @@ export async function put(
     throw new BlobError('access must be "public"');
   }
 
-  await checkAndRetrieveClientToken(pathname, options);
+  const token = shouldFetchClientToken(options)
+    ? await retrieveClientToken({
+        handleBlobUploadUrl: options.handleBlobUploadUrl,
+        pathname,
+      })
+    : getToken(options);
 
   const headers: Record<string, string> = {
-    authorization: `Bearer ${getToken(options)}`,
+    authorization: `Bearer ${token}`,
   };
 
   if (options.contentType) {
@@ -239,7 +244,7 @@ function mapBlobResult(blobResult: BlobMetadataApi): BlobResult {
   };
 }
 
-function isValidUrl(url: string): boolean {
+function isAbsoluteUrl(url: string): boolean {
   try {
     return Boolean(new URL(url));
   } catch (e) {
@@ -247,31 +252,41 @@ function isValidUrl(url: string): boolean {
   }
 }
 
-async function checkAndRetrieveClientToken(
-  pathname: string,
-  options: PutCommandOptions,
-): Promise<void> {
-  if (!options.token && options.handleBlobUploadUrl) {
-    const { handleBlobUploadUrl } = options;
-    const url = isValidUrl(handleBlobUploadUrl)
-      ? handleBlobUploadUrl
-      : `${window.location.origin}${handleBlobUploadUrl}`;
+async function retrieveClientToken(options: {
+  pathname: string;
+  handleBlobUploadUrl: string;
+}): Promise<string> {
+  const { handleBlobUploadUrl, pathname } = options;
+  const url = isAbsoluteUrl(handleBlobUploadUrl)
+    ? handleBlobUploadUrl
+    : `${window.location.origin}${handleBlobUploadUrl}`;
 
-    const res = await fetch(url, {
-      method: 'POST',
-      body: JSON.stringify({
-        type: EventTypes.generateClientToken,
-        payload: { pathname, callbackUrl: url },
-      } as GenerateClientTokenEvent),
-    });
-    if (!res.ok) {
-      throw new BlobError('Failed to  retrieve the client token');
-    }
-    try {
-      const { clientToken } = (await res.json()) as { clientToken: string };
-      options.token = clientToken;
-    } catch (e) {
-      throw new BlobError('Failed to retrieve the client token');
-    }
+  const res = await fetch(url, {
+    method: 'POST',
+    body: JSON.stringify({
+      type: EventTypes.generateClientToken,
+      payload: { pathname, callbackUrl: url },
+    } as GenerateClientTokenEvent),
+  });
+  if (!res.ok) {
+    throw new BlobError('Failed to  retrieve the client token');
   }
+  try {
+    const { clientToken } = (await res.json()) as { clientToken: string };
+    return clientToken;
+  } catch (e) {
+    throw new BlobError('Failed to retrieve the client token');
+  }
+}
+
+interface ReturnPutCommandOptions {
+  handleBlobUploadUrl: string;
+  access: 'public';
+  token: undefined;
+}
+
+function shouldFetchClientToken(
+  options: PutCommandOptions,
+): options is ReturnPutCommandOptions {
+  return Boolean(!options.token && options.handleBlobUploadUrl);
 }

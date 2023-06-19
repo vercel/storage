@@ -10,9 +10,11 @@ The root page provides links to test suites. You can visit these test suites to 
 
 This also deploys to a preview branch for every PR, so you can test your code in production!
 
-## File Upload
+## Protect File Upload
 
-File upload is protected by the `blobUpload` cookie. Call `document.cookie="blobUpload=[process.env.BLOB_UPLOAD_SECRET]; Path=/;"` in order to set it
+The File upload can be protected by the `BLOB_UPLOAD_SECRET` environment variable and accessed through the `blobUpload` cookie. In order to set it, define a `BLOB_UPLOAD_SECRET` within the `.env` file and call `document.cookie="blobUpload=[process.env.BLOB_UPLOAD_SECRET]; Path=/;"` inside the browser console.
+
+Note that the `BLOB_UPLOAD_SECRET` environment variable is set on the `vercel-storage-next-integration-test-suite` Vercel project, and the related playwright tests includes the `blobUpload` cookie while requesting the file upload test pages.
 
 ## Visual regression tests
 

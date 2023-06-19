@@ -388,9 +388,6 @@ importers:
       '@types/lodash':
         specifier: 4.14.195
         version: 4.14.195
-      deep-equal:
-        specifier: 2.2.1
-        version: 2.2.1
       dequal:
         specifier: 2.0.3
         version: 2.0.3

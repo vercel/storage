@@ -1,11 +1,18 @@
 import { handleBlobUpload, type HandleBlobUploadBody } from '@vercel/blob';
 import { NextResponse } from 'next/server';
+import { validateUploadToken } from './validate-upload-token';
 
 // eslint-disable-next-line @typescript-eslint/require-await
 async function auth(
-  _request: Request,
+  request: Request,
   _pathname: string,
-): Promise<{ user: { id: string }; userCanUpload: boolean }> {
+): Promise<{ user: { id: string } | null; userCanUpload: boolean }> {
+  if (!validateUploadToken(request)) {
+    return {
+      userCanUpload: false,
+      user: null,
+    };
+  }
   return {
     user: { id: '12345' },
     userCanUpload: true,
@@ -25,7 +32,7 @@ export async function handleBlobUploadHandler(
         const { user, userCanUpload } = await auth(request, pathname);
 
         if (!userCanUpload) {
-          throw new Error('not authenticated or bad pathname');
+          throw new Error('Not authorized');
         }
 
         return {
@@ -37,7 +44,7 @@ export async function handleBlobUploadHandler(
             'text/plain',
           ],
           metadata: JSON.stringify({
-            userId: user.id,
+            userId: user?.id,
           }),
         };
       },
@@ -55,9 +62,10 @@ export async function handleBlobUploadHandler(
 
     return NextResponse.json(jsonResponse);
   } catch (error) {
+    const message = (error as Error).message;
     return NextResponse.json(
-      { error: (error as Error).message },
-      { status: 400 },
+      { error: message },
+      { status: message === 'Not authorized' ? 401 : 400 },
     );
   }
 }

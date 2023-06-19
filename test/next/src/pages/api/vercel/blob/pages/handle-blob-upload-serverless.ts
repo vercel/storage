@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { type HandleBlobUploadBody, handleBlobUpload } from '@vercel/blob';
+import { validateUploadToken } from '@/app/vercel/blob/validate-upload-token';
 
 export const config = {
   runtime: 'nodejs',
@@ -9,6 +10,10 @@ export default async function handleBody(
   request: NextApiRequest,
   response: NextApiResponse,
 ): Promise<void> {
+  if (!validateUploadToken(request)) {
+    return response.status(401).json({ message: 'Not authorized' });
+  }
+
   const body = request.body as string;
   try {
     const jsonResponse = await handleBlobUpload({

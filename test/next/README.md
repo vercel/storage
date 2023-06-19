@@ -10,6 +10,10 @@ The root page provides links to test suites. You can visit these test suites to 
 
 This also deploys to a preview branch for every PR, so you can test your code in production!
 
+## File Upload
+
+File upload is protected by the `blobUpload` cookie. Call `document.cookie="blobUpload=[process.env.BLOB_UPLOAD_SECRET]; Path=/;"` in order to set it
+
 ## Visual regression tests
 
 Visual regression tests generate a screenshot which is compared against a reference image. Visual regression tests are following the pattern `**/*!(.visual).test.ts` under the same `test/next/test` folder.

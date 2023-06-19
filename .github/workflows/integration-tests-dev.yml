@@ -52,6 +52,8 @@ jobs:
 
       - name: Run Playwright tests in development mode
         run: pnpm integration-test
+        env:
+          BLOB_UPLOAD_SECRET: ${{ secrets.BLOB_UPLOAD_SECRET }}
 
       - uses: actions/upload-artifact@v3
         if: always()

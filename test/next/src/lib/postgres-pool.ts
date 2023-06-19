@@ -1,8 +1,9 @@
+// eslint-disable-next-line eslint-comments/disable-enable-pair
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
+import { dequal as deepEqual } from 'dequal';
 import type { QueryResult } from '@vercel/postgres';
 import { sql } from '@vercel/postgres';
 import { sortBy } from 'lodash';
-import deepEqual from 'deep-equal';
 
 function timeout(msg: string): Promise<never> {
   return new Promise<never>((_, reject) =>
@@ -61,9 +62,15 @@ function assertFieldEqual(
   field: string,
   sortProperty?: string,
 ): void {
-  const aToCompare = sortProperty ? sortBy(a[field], sortProperty) : a[field];
-  const bToCompare = sortProperty ? sortBy(b[field], sortProperty) : b[field];
-  const cTompare = sortProperty ? sortBy(b[field], sortProperty) : c[field];
+  const aToCompare = JSON.parse(
+    JSON.stringify(sortProperty ? sortBy(a[field], sortProperty) : a[field]),
+  ) as never;
+  const bToCompare = JSON.parse(
+    JSON.stringify(sortProperty ? sortBy(b[field], sortProperty) : b[field]),
+  ) as never;
+  const cTompare = JSON.parse(
+    JSON.stringify(sortProperty ? sortBy(b[field], sortProperty) : c[field]),
+  ) as never;
 
   if (!deepEqual(aToCompare, bToCompare)) {
     throw new Error(`${field} a/b: ${aToCompare} !== ${bToCompare}`);

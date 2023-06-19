@@ -42,6 +42,6 @@
     "@playwright/test": "1.35.0",
     "@types/deep-equal": "1.0.1",
     "@types/lodash": "4.14.195",
-    "deep-equal": "2.2.1"
+    "dequal": "2.0.3"
   }
 }

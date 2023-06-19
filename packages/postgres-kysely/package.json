@@ -47,7 +47,7 @@
     "testEnvironment": "node"
   },
   "dependencies": {
-    "@vercel/postgres": "workspace:0.3.0"
+    "@vercel/postgres": "workspace:0.3.1"
   },
   "devDependencies": {
     "@babel/core": "7.19.6",

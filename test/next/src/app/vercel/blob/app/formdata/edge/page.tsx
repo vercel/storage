@@ -7,10 +7,7 @@ export default function AppFormDataEdge(): JSX.Element {
     <>
       <h1>App Router Form Data upload example via an Edge Function</h1>
       <p>
-        This{' '}
-        <a href="https://beta.nextjs.org/docs/app-directory-roadmap">
-          Next.js App Router
-        </a>{' '}
+        This <a href="https://nextjs.org/docs/app">Next.js App Router</a>{' '}
         example uses a{' '}
         <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form">
           Form

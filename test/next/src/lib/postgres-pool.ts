@@ -3,7 +3,6 @@
 import { dequal as deepEqual } from 'dequal';
 import type { QueryResult } from '@vercel/postgres';
 import { sql } from '@vercel/postgres';
-import { sortBy } from 'lodash';
 
 function timeout(msg: string): Promise<never> {
   return new Promise<never>((_, reject) =>
@@ -50,27 +49,15 @@ export const queryUsers = async (): Promise<QueryResult> => {
   // @ts-expect-error never is not compatible here
   assertFieldEqual(fromPoolClient, fromSql, fromQuery, 'command');
   // @ts-expect-error never is not compatible here
-  assertFieldEqual(fromPoolClient, fromSql, fromQuery, 'fields', 'name');
+  assertFieldEqual(fromPoolClient, fromSql, fromQuery, 'fields');
 
   return fromPoolClient;
 };
 
-function assertFieldEqual(
-  a: never,
-  b: never,
-  c: never,
-  field: string,
-  sortProperty?: string,
-): void {
-  const aToCompare = JSON.parse(
-    JSON.stringify(sortProperty ? sortBy(a[field], sortProperty) : a[field]),
-  ) as never;
-  const bToCompare = JSON.parse(
-    JSON.stringify(sortProperty ? sortBy(b[field], sortProperty) : b[field]),
-  ) as never;
-  const cTompare = JSON.parse(
-    JSON.stringify(sortProperty ? sortBy(b[field], sortProperty) : c[field]),
-  ) as never;
+function assertFieldEqual(a: never, b: never, c: never, field: string): void {
+  const aToCompare = JSON.parse(JSON.stringify(a[field])) as never;
+  const bToCompare = JSON.parse(JSON.stringify(b[field])) as never;
+  const cTompare = JSON.parse(JSON.stringify(c[field])) as never;
 
   if (!deepEqual(aToCompare, bToCompare)) {
     throw new Error(`${field} a/b: ${aToCompare} !== ${bToCompare}`);

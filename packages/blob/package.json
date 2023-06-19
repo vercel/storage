@@ -22,8 +22,9 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup && cp src/undici-browser.js dist/undici-browser.js && cp src/crypto-browser.js dist/crypto-browser.js",
-    "dev": "cp src/undici-browser.js dist/undici-browser.js && tsup --watch --clean=false",
+    "build": "tsup && pnpm run copy-shims",
+    "copy-shims": "cp src/undici-browser.js dist/undici-browser.js && cp src/crypto-browser.js dist/crypto-browser.js",
+    "dev": "pnpm run copy-shims && tsup --watch --clean=false",
     "lint": "eslint --max-warnings=0 .",
     "prepublishOnly": "pnpm run build",
     "prettier-check": "prettier --check .",

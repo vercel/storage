@@ -55,8 +55,8 @@ importers:
         version: 5.22.0
     devDependencies:
       '@edge-runtime/jest-environment':
-        specifier: 2.2.3
-        version: 2.2.3
+        specifier: 2.2.4
+        version: 2.2.4
       '@edge-runtime/types':
         specifier: 2.1.2
         version: 2.1.2
@@ -95,8 +95,8 @@ importers:
         specifier: 2.26.1
         version: 2.26.1
       '@edge-runtime/jest-environment':
-        specifier: 2.2.3
-        version: 2.2.3
+        specifier: 2.2.4
+        version: 2.2.4
       '@edge-runtime/types':
         specifier: 2.1.2
         version: 2.1.2
@@ -146,8 +146,8 @@ importers:
         specifier: 2.26.1
         version: 2.26.1
       '@edge-runtime/jest-environment':
-        specifier: 2.2.3
-        version: 2.2.3
+        specifier: 2.2.4
+        version: 2.2.4
       '@edge-runtime/types':
         specifier: 2.1.2
         version: 2.1.2
@@ -207,8 +207,8 @@ importers:
         specifier: 2.26.1
         version: 2.26.1
       '@edge-runtime/jest-environment':
-        specifier: 2.2.3
-        version: 2.2.3
+        specifier: 2.2.4
+        version: 2.2.4
       '@edge-runtime/types':
         specifier: 2.1.2
         version: 2.1.2
@@ -256,8 +256,8 @@ importers:
         specifier: 2.26.1
         version: 2.26.1
       '@edge-runtime/jest-environment':
-        specifier: 2.2.3
-        version: 2.2.3
+        specifier: 2.2.4
+        version: 2.2.4
       '@edge-runtime/types':
         specifier: 2.1.2
         version: 2.1.2
@@ -943,8 +943,8 @@ packages:
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
 
-  /@edge-runtime/jest-environment@2.2.3:
-    resolution: {integrity: sha512-5DEv8nzuMFGoVbNYbOz7/mileYSbq1/oIvisyTeSfyjId7Pc5Qh2t3BH7ixLa62aVz7oCQlALM4cYGbZQZw1YQ==}
+  /@edge-runtime/jest-environment@2.2.4:
+    resolution: {integrity: sha512-tI7TeFEvFmydCy77UH1feDGVHG+X9MQT8Iltbg6DKzXCWZInhfjpK8vk+3UxEQ8MfWALYw5+XKpg60LxMATImQ==}
     engines: {node: '>=14'}
     dependencies:
       '@edge-runtime/vm': 3.0.3

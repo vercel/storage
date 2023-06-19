@@ -44,7 +44,7 @@
   },
   "devDependencies": {
     "@changesets/cli": "2.26.1",
-    "@edge-runtime/jest-environment": "2.2.3",
+    "@edge-runtime/jest-environment": "2.2.4",
     "@edge-runtime/types": "2.1.2",
     "@types/jest": "29.5.2",
     "@types/node": "18.16.18",

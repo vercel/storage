@@ -3,8 +3,6 @@ import type { TestRunnerProps } from '@/lib/test/postgres';
 import { PostgresTestRunner } from '@/lib/test/postgres';
 import { ProjectDashboardLayout } from '@/lib/test/project-dashboard-layout';
 
-export const dynamic = 'force-dynamic';
-
 export default function Page(): JSX.Element {
   const tests: TestRunnerProps[] = [
     {

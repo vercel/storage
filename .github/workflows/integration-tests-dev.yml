@@ -32,13 +32,23 @@ jobs:
 
       - uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version-file: '.node-version'
           cache: 'pnpm'
+
+      - uses: actions/cache@v3
+        id: playwright-cache
+        with:
+          path: |
+            ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       - name: Install dependencies
         run: pnpm install
 
-      - run: pnpm dlx playwright install --with-deps
+      # This will use the cache for browsers. But it will reinstall system deps, which can't be cached
+      # https://github.com/microsoft/playwright/issues/20603#issuecomment-1416243810
+      # Using ./test/next... is mandatory so we are not subject to playwright surprise updates
+      - run: ./test/next/node_modules/.bin/playwright install --with-deps
 
       - name: Run Playwright tests in development mode
         run: pnpm integration-test

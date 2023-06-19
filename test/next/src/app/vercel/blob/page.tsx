@@ -40,6 +40,9 @@ export default function Home(): JSX.Element {
           </a>
         </li>
         <li>
+          Client Upload → <a href="/vercel/blob/app/client">/app/client</a>
+        </li>
+        <li>
           List blob items → <a href="/vercel/blob/app/list">/app/list</a>
         </li>
       </ul>

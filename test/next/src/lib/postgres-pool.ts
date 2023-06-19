@@ -1,6 +1,9 @@
+// eslint-disable-next-line eslint-comments/disable-enable-pair
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 import { dequal as deepEqual } from 'dequal';
 import type { QueryResult } from '@vercel/postgres';
 import { sql } from '@vercel/postgres';
+import stringify from 'json-stable-stringify';
 
 function timeout(msg: string): Promise<never> {
   return new Promise<never>((_, reject) =>
@@ -53,23 +56,15 @@ export const queryUsers = async (): Promise<QueryResult> => {
 };
 
 function assertFieldEqual(a: never, b: never, c: never, field: string): void {
-  const aToCompare = JSON.parse(JSON.stringify(a[field])) as never;
-  const bToCompare = JSON.parse(JSON.stringify(b[field])) as never;
-  const cTompare = JSON.parse(JSON.stringify(c[field])) as never;
+  const aToCompare = stringify(a[field]) as never;
+  const bToCompare = stringify(b[field]) as never;
+  const cToCompare = stringify(c[field]) as never;
 
   if (!deepEqual(aToCompare, bToCompare)) {
-    throw new Error(
-      `${field} a/b: ${JSON.stringify(aToCompare)} !== ${JSON.stringify(
-        bToCompare,
-      )}`,
-    );
+    throw new Error(`${field} a/b: ${aToCompare} !== ${bToCompare}`);
   }
 
-  if (!deepEqual(aToCompare, cTompare)) {
-    throw new Error(
-      `${field} a/c: ${JSON.stringify(aToCompare)} !== ${JSON.stringify(
-        cTompare,
-      )}`,
-    );
+  if (!deepEqual(aToCompare, cToCompare)) {
+    throw new Error(`${field} a/c: ${aToCompare} !== ${cToCompare}`);
   }
 }

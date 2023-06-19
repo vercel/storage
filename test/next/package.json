@@ -39,6 +39,8 @@
   },
   "devDependencies": {
     "@playwright/test": "1.35.0",
-    "dequal": "2.0.3"
+    "@types/json-stable-stringify": "1.0.34",
+    "dequal": "2.0.3",
+    "json-stable-stringify": "1.0.2"
   }
 }

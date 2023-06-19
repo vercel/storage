@@ -26,7 +26,7 @@ jobs:
 
       - uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version-file: '.node-version'
           cache: 'pnpm'
 
       - uses: actions/cache@v3
@@ -41,7 +41,8 @@ jobs:
 
       # This will use the cache for browsers. But it will reinstall system deps, which can't be cached
       # https://github.com/microsoft/playwright/issues/20603#issuecomment-1416243810
-      - run: pnpm dlx playwright install --with-deps
+      # Using ./test/next... is mandatory so we are not subject to playwright surprise updates
+      - run: ./test/next/node_modules/.bin/playwright install --with-deps
 
       # https://github.com/patrickedqvist/wait-for-vercel-preview
       # this allows to use action cache, which is not possible when using deployment_status otherwise

@@ -1,5 +1,11 @@
 # @vercel/postgres
 
+## 0.3.1
+
+### Patch Changes
+
+- cec1d6b: Upgrade @neondatabase/serverless to 0.4.11
+
 ## 0.3.0
 
 ### Minor Changes

@@ -22,6 +22,7 @@
   ],
   "scripts": {
     "build": "tsup",
+    "dev": "tsup --watch --clean=false",
     "lint": "eslint --max-warnings=0 .",
     "prepublishOnly": "pnpm run build",
     "prettier-check": "prettier --check .",
@@ -43,21 +44,20 @@
     "@vercel/edge-config-fs": "workspace:*"
   },
   "devDependencies": {
-    "@babel/core": "7.21.0",
-    "@changesets/cli": "2.26.0",
-    "@edge-runtime/jest-environment": "2.0.8",
-    "@edge-runtime/types": "2.0.8",
-    "@types/jest": "29.4.0",
-    "@types/node": "18.14.6",
-    "eslint": "8.35.0",
+    "@changesets/cli": "2.26.1",
+    "@edge-runtime/jest-environment": "2.2.4",
+    "@edge-runtime/types": "2.1.3",
+    "@types/jest": "29.5.2",
+    "@types/node": "18.16.18",
+    "eslint": "8.43.0",
     "eslint-config-custom": "workspace:*",
     "jest": "29.5.0",
     "jest-fetch-mock": "3.0.3",
-    "prettier": "2.8.4",
-    "ts-jest": "29.0.5",
+    "prettier": "2.8.8",
+    "ts-jest": "29.1.0",
     "tsconfig": "workspace:*",
-    "tsup": "6.6.3",
-    "typescript": "4.9.5"
+    "tsup": "7.0.0",
+    "typescript": "5.1.3"
   },
   "engines": {
     "node": ">=14.6"

@@ -1,6 +1,6 @@
 {
   "name": "vercel-storage-integration-test-suite",
-  "version": "0.1.8",
+  "version": "0.1.11",
   "private": true,
   "scripts": {
     "build": "next build",
@@ -38,6 +38,6 @@
     "undici": "5.22.1"
   },
   "devDependencies": {
-    "@playwright/test": "1.34.0"
+    "@playwright/test": "1.35.0"
   }
 }

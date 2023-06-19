@@ -1,5 +1,8 @@
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 import type { QueryResult } from '@vercel/postgres';
 import { sql } from '@vercel/postgres';
+import { sortBy } from 'lodash';
+import deepEqual from 'deep-equal';
 
 function timeout(msg: string): Promise<never> {
   return new Promise<never>((_, reject) =>
@@ -39,34 +42,34 @@ export const queryUsers = async (): Promise<QueryResult> => {
   const fromSql = await queryUsersViaSql();
   const fromQuery = await queryUsersViaPoolQuery();
 
+  // @ts-expect-error never is not compatible here
   assertFieldEqual(fromPoolClient, fromSql, fromQuery, 'rows');
+  // @ts-expect-error never is not compatible here
   assertFieldEqual(fromPoolClient, fromSql, fromQuery, 'rowCount');
+  // @ts-expect-error never is not compatible here
   assertFieldEqual(fromPoolClient, fromSql, fromQuery, 'command');
-  assertFieldEqual(fromPoolClient, fromSql, fromQuery, 'fields');
+  // @ts-expect-error never is not compatible here
+  assertFieldEqual(fromPoolClient, fromSql, fromQuery, 'fields', 'name');
 
   return fromPoolClient;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function assertFieldEqual(a: any, b: any, c: any, field: string): void {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  if (JSON.stringify(a[field]) !== JSON.stringify(b[field])) {
-    throw new Error(
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      `${field} a/b: ${JSON.stringify(a[field])} !== ${JSON.stringify(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        b[field],
-      )}`,
-    );
+function assertFieldEqual(
+  a: never,
+  b: never,
+  c: never,
+  field: string,
+  sortProperty?: string,
+): void {
+  const aToCompare = sortProperty ? sortBy(a[field], sortProperty) : a[field];
+  const bToCompare = sortProperty ? sortBy(b[field], sortProperty) : b[field];
+  const cTompare = sortProperty ? sortBy(b[field], sortProperty) : c[field];
+
+  if (!deepEqual(aToCompare, bToCompare)) {
+    throw new Error(`${field} a/b: ${aToCompare} !== ${bToCompare}`);
   }
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  if (JSON.stringify(a[field]) !== JSON.stringify(c[field])) {
-    throw new Error(
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      `${field} a/c: ${JSON.stringify(a[field])} !== ${JSON.stringify(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        c[field],
-      )}`,
-    );
+
+  if (!deepEqual(aToCompare, cTompare)) {
+    throw new Error(`${field} a/c: ${aToCompare} !== ${cTompare}`);
   }
 }

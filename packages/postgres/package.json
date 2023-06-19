@@ -35,6 +35,7 @@
   ],
   "scripts": {
     "build": "tsup",
+    "dev": "tsup --watch --clean=false",
     "lint": "eslint \"src/**/*.ts\"",
     "prepublishOnly": "pnpm run build",
     "prettier-check": "prettier --check .",

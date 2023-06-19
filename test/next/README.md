@@ -3,7 +3,6 @@ Instructions:
 - `cd test/next`
 - `vc link` => link to `Curated Tests` => `vercel-storage-next-integration-test-suite`
 - `vc env pull`
-- `pnpm i`
 - `pnpm dev`
 
 The root page provides links to test suites. You can visit these test suites to quickly debug packages as you're developing them -- refreshing the page will fire off requests in every environment we test for and make sure they come back successfully.

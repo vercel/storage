@@ -42,6 +42,7 @@ export class VercelPool extends Pool {
     ...values: Primitive[]
   ): Promise<QueryResult<O>> {
     const [query, params] = sqlTemplate(strings, ...values);
+
     const sql = neon(this.connectionString, {
       fullResults: true,
     });

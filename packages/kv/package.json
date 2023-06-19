@@ -32,6 +32,7 @@
   ],
   "scripts": {
     "build": "tsup",
+    "dev": "tsup --watch --clean=false",
     "lint": "eslint --max-warnings=0 .",
     "prepublishOnly": "pnpm run build",
     "prettier-check": "prettier --check .",

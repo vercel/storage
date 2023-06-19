@@ -1,5 +1,3 @@
-// eslint-disable-next-line eslint-comments/disable-enable-pair
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
 import { dequal as deepEqual } from 'dequal';
 import type { QueryResult } from '@vercel/postgres';
 import { sql } from '@vercel/postgres';
@@ -60,10 +58,18 @@ function assertFieldEqual(a: never, b: never, c: never, field: string): void {
   const cTompare = JSON.parse(JSON.stringify(c[field])) as never;
 
   if (!deepEqual(aToCompare, bToCompare)) {
-    throw new Error(`${field} a/b: ${aToCompare} !== ${bToCompare}`);
+    throw new Error(
+      `${field} a/b: ${JSON.stringify(aToCompare)} !== ${JSON.stringify(
+        bToCompare,
+      )}`,
+    );
   }
 
   if (!deepEqual(aToCompare, cTompare)) {
-    throw new Error(`${field} a/c: ${aToCompare} !== ${cTompare}`);
+    throw new Error(
+      `${field} a/c: ${JSON.stringify(aToCompare)} !== ${JSON.stringify(
+        cTompare,
+      )}`,
+    );
   }
 }

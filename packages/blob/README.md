@@ -140,7 +140,7 @@ async function handleBlobUpload(options?: {
   onBeforeGenerateToken: (pathname: string) => Promise<{
     allowedContentTypes?: string[];
     maximumSizeInBytes?: number;
-    validUntil?: number;
+    validUntil?: number; // timestamp in ms, by default 30s
     metadata?: string;
   }>;
   onUploadCompleted: (body: {
@@ -183,7 +183,7 @@ async function generateClientTokenFromReadWriteToken(options?: {
   };
   maximumSizeInBytes?: number;
   allowedContentTypes?: string[];
-  validUntil?: number; // timestamp in ms
+  validUntil?: number; // timestamp in ms, by default 30s
 }): string {}
 ```
 

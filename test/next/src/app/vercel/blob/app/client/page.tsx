@@ -20,19 +20,9 @@ export default function AppClientUpload(): JSX.Element {
             return;
           }
 
-          const clientTokenData = (await fetch(
-            '/vercel/blob/api/app/generate-blob-client-token/edge',
-            {
-              method: 'POST',
-              body: JSON.stringify({
-                pathname: file.name,
-              }),
-            },
-          ).then((r) => r.json())) as { clientToken: string };
-
           const blobResult = await put(file.name, file, {
             access: 'public',
-            token: clientTokenData.clientToken,
+            handleBlobUploadUrl: `/vercel/blob/api/app/handle-blob-upload/edge`,
           });
 
           setBlob(blobResult);

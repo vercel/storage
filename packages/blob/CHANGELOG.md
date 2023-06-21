@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.9.2
+
+### Patch Changes
+
+- ce4b585: Add handleBlobUpload wrapper
+
 ## 0.9.1
 
 ### Patch Changes

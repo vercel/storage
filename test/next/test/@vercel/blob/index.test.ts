@@ -18,6 +18,9 @@ test.describe('@vercel/blob', () => {
         const data = (await request
           .post(`${path}?filename=${prefix}/test.txt`, {
             data: `Hello world ${path} ${prefix}`,
+            headers: {
+              cookie: `blobUpload=${process.env.BLOB_UPLOAD_SECRET ?? ''}`,
+            },
           })
           .then((r) => r.json())) as BlobResult;
         expect(data.contentDisposition).toBe('attachment; filename="test.txt"');
@@ -60,26 +63,38 @@ test.describe('@vercel/blob', () => {
         `Hello from ${prefix}/test-app-serverless.txt`,
       );
     });
-    test('client sign serverless', async ({ page }) => {
-      await page.goto(
-        `vercel/blob/app/test/client-serverless?filename=${prefix}/test-app-client.txt`,
-      );
-      const textContent = await page.locator('#blob-path').textContent();
-      expect(textContent).toBe(`${prefix}/test-app-client.txt`);
-      expect(await page.locator('#blob-content').textContent()).toBe(
-        `Hello from ${prefix}/test-app-client.txt`,
-      );
-    });
 
-    test('client sign edge', async ({ page }) => {
-      await page.goto(
-        `vercel/blob/app/test/client-edge?filename=${prefix}/test-app-client.txt`,
-      );
-      const textContent = await page.locator('#blob-path').textContent();
-      expect(textContent).toBe(`${prefix}/test-app-client.txt`);
-      expect(await page.locator('#blob-content').textContent()).toBe(
-        `Hello from ${prefix}/test-app-client.txt`,
-      );
+    test.describe('client upload', () => {
+      [
+        '/vercel/blob/api/app/handle-blob-upload/serverless',
+        '/vercel/blob/api/app/handle-blob-upload/edge',
+        '/api/vercel/blob/pages/handle-blob-upload-edge',
+        '/api/vercel/blob/pages/handle-blob-upload-serverless',
+      ].forEach((callback) => {
+        test(callback, async ({ browser }) => {
+          const browserContext = await browser.newContext();
+          await browserContext.addCookies([
+            {
+              name: 'blobUpload',
+              value: process.env.BLOB_UPLOAD_SECRET ?? '',
+              path: '/',
+              domain: (
+                process.env.PLAYWRIGHT_TEST_BASE_URL ?? 'localhost'
+              ).replace('https://', ''),
+            },
+          ]);
+          const page = await browserContext.newPage();
+          await page.goto(
+            `vercel/blob/app/test/client?filename=${prefix}/test-app-client.txt&callback=${callback}`,
+          );
+
+          const textContent = await page.locator('#blob-path').textContent();
+          expect(textContent).toBe(`${prefix}/test-app-client.txt`);
+          expect(await page.locator('#blob-content').textContent()).toBe(
+            `Hello from ${prefix}/test-app-client.txt`,
+          );
+        });
+      });
     });
   });
 

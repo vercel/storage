@@ -1,5 +1,5 @@
 ---
-"@vercel/postgres": patch
+'@vercel/postgres': patch
 ---
 
 Before this release, when using our default pooling client (`import { sql } from '@vercel/storage'`), and deploying on Vercel Edge Functions,

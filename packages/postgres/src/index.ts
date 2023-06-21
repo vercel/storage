@@ -25,8 +25,14 @@ export const sql = new Proxy(
 
       // keep an eye on this -- it'll fail on certain cases, like private property access, which can
       // require weird things like binding or calling with an explicit `this` arg.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const val = Reflect.get(pool, prop);
+      if (typeof val === 'function') {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        return val.bind(pool);
+      }
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return Reflect.get(pool, prop);
+      return val;
     },
     // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     apply(_, __, argumentsList) {

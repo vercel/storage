@@ -191,8 +191,8 @@ importers:
   packages/postgres:
     dependencies:
       '@neondatabase/serverless':
-        specifier: 0.4.18
-        version: 0.4.18
+        specifier: 0.4.19
+        version: 0.4.19
       bufferutil:
         specifier: 4.0.7
         version: 4.0.7
@@ -399,7 +399,7 @@ importers:
         version: 8.8.0(eslint@8.43.0)
       eslint-config-turbo:
         specifier: latest
-        version: 1.10.4(eslint@8.43.0)
+        version: 1.9.8(eslint@8.43.0)
       typescript:
         specifier: 5.1.3
         version: 5.1.3
@@ -1532,6 +1532,13 @@ packages:
     resolution: {integrity: sha512-2TZnIyRGC/+0fjZ8TKCzaSTPUD94PM7NBGuantGZbUrbWyqBwGnUoRtdZAQ95qBKVHqORLVfymlv2NE+HQMFeA==}
     dependencies:
       '@types/pg': 8.6.6
+    dev: true
+
+  /@neondatabase/serverless@0.4.19:
+    resolution: {integrity: sha512-atzpP9uBLrWPokXZdVy2iNPmmxVx51HXhrEObDb4KXmsyGEkGhCcb6cs51LA/oyXwjJUeB4AreOoVgMcPAIv5g==}
+    dependencies:
+      '@types/pg': 8.6.6
+    dev: false
 
   /@next/env@13.4.3:
     resolution: {integrity: sha512-pa1ErjyFensznttAk3EIv77vFbfSYT6cLzVRK5jx4uiRuCQo+m2wCFAREaHKIy63dlgvOyMlzh6R8Inu8H3KrQ==}
@@ -3412,13 +3419,13 @@ packages:
     dependencies:
       eslint: 8.43.0
 
-  /eslint-config-turbo@1.10.4(eslint@8.43.0):
-    resolution: {integrity: sha512-hmcN373hjDF8sXAJcptL15PCKsDSc3ImcIiH6Q3H0cGbbQgeHpTIwd9WeUbs+9b6xV1jO5rgpNORiJ6Hu20kRg==}
+  /eslint-config-turbo@1.9.8(eslint@8.43.0):
+    resolution: {integrity: sha512-EaZ3EbWXo7bcnwRKZsV+ckcF5Cjdri9wRBXZd5j49E7mJ3EEPvGw70h77kWeeunu+jM3mxxfy8olmo1Udr7gvQ==}
     peerDependencies:
       eslint: '>6.6.0'
     dependencies:
       eslint: 8.43.0
-      eslint-plugin-turbo: 1.10.4(eslint@8.43.0)
+      eslint-plugin-turbo: 1.9.8(eslint@8.43.0)
     dev: false
 
   /eslint-import-resolver-alias@1.1.2(eslint-plugin-import@2.27.5):
@@ -3874,12 +3881,11 @@ packages:
       '@microsoft/tsdoc': 0.14.2
       '@microsoft/tsdoc-config': 0.16.2
 
-  /eslint-plugin-turbo@1.10.4(eslint@8.43.0):
-    resolution: {integrity: sha512-FmwJ/s8vqE4COoAxT9oZfZfl4yDDBTnVkAZtkwIRv5QtudeC0vD8fAkLyM3YdBKlHf5nu+qs7zZZW14v8LpnVg==}
+  /eslint-plugin-turbo@1.9.8(eslint@8.43.0):
+    resolution: {integrity: sha512-Alvv3zCkILFfwEJ2aiuUjzYFqZ12qX+2F14ahNOhC9BDwgGZkEh1w19TB2gOPMLeNx2+iBVAU9L+1FTBSOOAJA==}
     peerDependencies:
       eslint: '>6.6.0'
     dependencies:
-      dotenv: 16.0.3
       eslint: 8.43.0
     dev: false
 

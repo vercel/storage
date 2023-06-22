@@ -1,5 +1,19 @@
 # @vercel/postgres-kysely
 
+## 0.4.0
+
+### Minor Changes
+
+- f545e1c: Upgrade @upstash/redis to the latest version
+  Upgrade @neon/serverless to the latest version
+  Automatically uses @neon http layer with Pool.query/sql``
+  Stop minifying and add sourcemaps for better debugging
+
+### Patch Changes
+
+- Updated dependencies [f545e1c]
+  - @vercel/postgres@0.4.0
+
 ## 0.3.2
 
 ### Patch Changes

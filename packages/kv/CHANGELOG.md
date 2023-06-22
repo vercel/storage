@@ -1,5 +1,14 @@
 # @vercel/kv
 
+## 0.2.2
+
+### Patch Changes
+
+- f545e1c: Upgrade @upstash/redis to the latest version
+  Upgrade @neon/serverless to the latest version
+  Automatically uses @neon http layer with Pool.query/sql``
+  Stop minifying and add sourcemaps for better debugging
+
 ## 0.2.1
 
 ### Patch Changes

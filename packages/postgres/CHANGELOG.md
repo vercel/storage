@@ -1,5 +1,13 @@
 # @vercel/postgres
 
+## 0.4.0
+
+### Minor Changes
+
+- Upgrade @neon/serverless to the latest version
+  Automatically uses @neon http layer with Pool.query/sql``
+  Stop minifying and add sourcemaps for better debugging
+
 ## 0.3.2
 
 ### Patch Changes

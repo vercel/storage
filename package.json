@@ -39,10 +39,10 @@
     "prettier": "2.8.8",
     "publint": "0.1.12",
     "ts-jest": "29.1.0",
-    "turbo": "1.10.3",
+    "turbo": "1.10.4",
     "typescript": "^5.0.0"
   },
-  "packageManager": "pnpm@8.6.2",
+  "packageManager": "pnpm@8.6.3",
   "engines": {
     "node": ">=18"
   }

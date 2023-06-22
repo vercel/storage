@@ -1,3 +1,4 @@
+import type { IncomingMessage } from 'node:http';
 import { type Interceptable, MockAgent, setGlobalDispatcher } from 'undici';
 import {
   list,
@@ -7,6 +8,8 @@ import {
   generateClientTokenFromReadWriteToken,
   getPayloadFromClientToken,
   verifyCallbackSignature,
+  handleBlobUpload,
+  type BlobResult,
 } from './index';
 
 const BASE_URL = 'https://blob.vercel-storage.com';
@@ -563,6 +566,100 @@ describe('blob client', () => {
             '3fac10916b6b4af8678e189a3843706ec8185162c15238f0557f113531969053',
         }),
       ).toBeFalsy();
+    });
+  });
+
+  describe('handleBlobUpload', () => {
+    afterEach(() => {
+      jest.runOnlyPendingTimers();
+      jest.useRealTimers();
+    });
+
+    beforeEach(() => {
+      jest.useFakeTimers().setSystemTime(new Date('2023-01-01'));
+    });
+    test('should return client token when called with blob.generate-client-token', async () => {
+      const token = 'vercel_blob_client_123456789_TEST_TOKEN';
+      const spy = jest.fn();
+      const jsonResponse = await handleBlobUpload({
+        token,
+        request: {
+          headers: { 'x-vercel-signature': '123' },
+        } as unknown as IncomingMessage,
+        body: {
+          type: 'blob.generate-client-token',
+          payload: {
+            pathname: 'newfile.txt',
+            callbackUrl: 'https://example.com',
+          },
+        },
+        // eslint-disable-next-line @typescript-eslint/require-await
+        onBeforeGenerateToken: async (pathname) => {
+          return {
+            metadata: pathname,
+          };
+        },
+        // eslint-disable-next-line @typescript-eslint/require-await
+        onUploadCompleted: async (body) => {
+          spy.call(body);
+        },
+      });
+      expect(jsonResponse).toEqual({
+        clientToken:
+          'vercel_blob_client_123456789_MThhNDRkM2VjZDliYmY3YWE3YmRlNTRiNGMwOTdjNDhiOGQ0NzI3M2NhMmIxOGY2OTEyNTZmOTVkZGJlZjMwNC5leUp0WlhSaFpHRjBZU0k2SW01bGQyWnBiR1V1ZEhoMElpd2ljR0YwYUc1aGJXVWlPaUp1WlhkbWFXeGxMblI0ZENJc0ltOXVWWEJzYjJGa1EyOXRjR3hsZEdWa0lqcDdJbU5oYkd4aVlXTnJWWEpzSWpvaWFIUjBjSE02THk5bGVHRnRjR3hsTG1OdmJTSXNJbTFsZEdGa1lYUmhJam9pYm1WM1ptbHNaUzUwZUhRaWZTd2lkbUZzYVdSVmJuUnBiQ0k2TVRZM01qVXpNVEl6TURBd01IMD0=',
+        type: 'blob.generate-client-token',
+      });
+      expect(spy).not.toHaveBeenCalled();
+      expect(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+        getPayloadFromClientToken((jsonResponse as any).clientToken),
+      ).toEqual({
+        metadata: 'newfile.txt',
+        onUploadCompleted: {
+          callbackUrl: 'https://example.com',
+          metadata: 'newfile.txt',
+        },
+        pathname: 'newfile.txt',
+        validUntil: 1672531230000,
+      });
+    });
+
+    test('should run onCompleted when called with blob.upload-completed', async () => {
+      const token = 'vercel_blob_client_123456789_TEST_TOKEN';
+      const spy = jest.fn();
+
+      expect(
+        await handleBlobUpload({
+          token,
+          request: {
+            headers: {
+              'x-vercel-signature':
+                '973bfbb82f375e9360675b8271b16e1f44e3dd8c3996560b65c0f0fb3316def2',
+            },
+          } as unknown as IncomingMessage,
+          body: {
+            type: 'blob.upload-completed',
+            payload: {
+              blob: { pathname: 'newfile.txt' } as BlobResult,
+              metadata: 'custom-metadata',
+            },
+          },
+          // eslint-disable-next-line @typescript-eslint/require-await
+          onBeforeGenerateToken: async (pathname) => {
+            return {
+              metadata: pathname,
+            };
+          },
+          onUploadCompleted: spy,
+        }),
+      ).toEqual({
+        response: 'ok',
+        type: 'blob.upload-completed',
+      });
+      expect(spy).toHaveBeenCalledWith({
+        blob: { pathname: 'newfile.txt' } as BlobResult,
+        metadata: 'custom-metadata',
+      });
     });
   });
 });

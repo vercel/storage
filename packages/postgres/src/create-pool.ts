@@ -97,6 +97,7 @@ export function createPool(config?: VercelPostgresPoolConfig): VercelPool {
     );
 
   let maxUses = config?.maxUses;
+  let max = config?.max;
   if (typeof EdgeRuntime !== 'undefined') {
     if (maxUses && maxUses !== 1) {
       // eslint-disable-next-line no-console
@@ -104,14 +105,26 @@ export function createPool(config?: VercelPostgresPoolConfig): VercelPool {
         '@vercel/postgres: Overriding `maxUses` to 1 because the EdgeRuntime does not support client reuse.',
       );
     }
+    if (max && max !== 10_000) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '@vercel/postgres: Overriding `max` to 10,000 because the EdgeRuntime does not support client reuse.',
+      );
+    }
     // Client reuse is not supported in the EdgeRuntime because it does not support IO across requests.
     maxUses = 1;
+    // Since we do not allow client reuse, we need a higher max number of clients to avoid running out of
+    // connections.
+    // Usecase: a website that needs more than 10 concurrent connections
+    // https://node-postgres.com/apis/pool#new-pool
+    max = 10_000;
   }
 
   const pool = new VercelPool({
     ...config,
     connectionString,
     maxUses,
+    max,
   });
   return pool;
 }

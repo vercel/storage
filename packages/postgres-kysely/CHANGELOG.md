@@ -1,5 +1,12 @@
 # @vercel/postgres-kysely
 
+## 0.3.2
+
+### Patch Changes
+
+- Updated dependencies [52ce540]
+  - @vercel/postgres@0.3.2
+
 ## 0.3.1
 
 ### Patch Changes

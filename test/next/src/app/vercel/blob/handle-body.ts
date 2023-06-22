@@ -1,5 +1,6 @@
 import * as vercelBlob from '@vercel/blob';
 import { NextResponse } from 'next/server';
+import { validateUploadToken } from './validate-upload-token';
 
 export async function handleBody(request: Request): Promise<NextResponse> {
   const { searchParams } = new URL(request.url);
@@ -10,6 +11,14 @@ export async function handleBody(request: Request): Promise<NextResponse> {
       { message: 'No file to upload.' },
       {
         status: 400,
+      },
+    );
+  }
+  if (!validateUploadToken(request)) {
+    return NextResponse.json(
+      { message: 'Not authorized' },
+      {
+        status: 401,
       },
     );
   }

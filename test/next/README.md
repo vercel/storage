@@ -3,7 +3,6 @@ Instructions:
 - `cd test/next`
 - `vc link` => link to `Curated Tests` => `vercel-storage-next-integration-test-suite`
 - `vc env pull`
-- `pnpm i`
 - `pnpm dev`
 
 To develop one specific module and have it rebuild on change:

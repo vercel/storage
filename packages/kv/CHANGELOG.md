@@ -1,5 +1,12 @@
 # @vercel/kv
 
+## 0.2.2
+
+### Patch Changes
+
+- f545e1c: Upgrade @upstash/redis to the latest version
+  Stop minifying and add sourcemaps for better debugging
+
 ## 0.2.1
 
 ### Patch Changes

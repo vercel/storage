@@ -1,8 +1,5 @@
-import type {
-  PoolClient,
-  QueryResult,
-  QueryResultRow,
-} from '@neondatabase/serverless';
+import type { QueryResult, QueryResultRow } from '@neondatabase/serverless';
+import type { PoolClient as PgPoolClient } from 'pg';
 import { Pool, neon } from '@neondatabase/serverless';
 import type { VercelPoolClient, VercelPostgresPoolConfig } from './types';
 import {
@@ -70,7 +67,7 @@ export class VercelPool extends Pool {
     return super.connect(
       callback as (
         err: Error,
-        client: PoolClient,
+        client: PgPoolClient,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         done: (release?: any) => void,
       ) => void,

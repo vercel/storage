@@ -1,5 +1,5 @@
 import type {
-  ClientBase,
+  Client,
   ClientConfig,
   PoolConfig,
   QueryResult,
@@ -25,7 +25,7 @@ type ConfigItemsToOmit = 'user' | 'database' | 'password' | 'host' | 'port';
 export type VercelPostgresClientConfig = Omit<ClientConfig, ConfigItemsToOmit>;
 export type VercelPostgresPoolConfig = Omit<PoolConfig, ConfigItemsToOmit>;
 
-export interface VercelClientBase extends ClientBase {
+export interface VercelClientBase extends Client {
   sql: <O extends QueryResultRow>(
     strings: TemplateStringsArray,
     ...values: Primitive[]

@@ -48,7 +48,7 @@
     "testEnvironment": "node"
   },
   "dependencies": {
-    "@neondatabase/serverless": "0.4.19",
+    "@neondatabase/serverless": "0.4.20",
     "bufferutil": "4.0.7",
     "utf-8-validate": "6.0.3",
     "ws": "8.13.0"

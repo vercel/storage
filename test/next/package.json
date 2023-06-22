@@ -38,6 +38,8 @@
     "undici": "5.22.1"
   },
   "devDependencies": {
-    "@playwright/test": "1.35.0"
+    "@playwright/test": "1.35.0",
+    "@types/json-stable-stringify": "1.0.34",
+    "json-stable-stringify": "1.0.2"
   }
 }

@@ -3,7 +3,7 @@ import type {
   QueryResult,
   QueryResultRow,
 } from '@neondatabase/serverless';
-import { Pool } from '@neondatabase/serverless';
+import { Pool, neon } from '@neondatabase/serverless';
 import type { VercelPoolClient, VercelPostgresPoolConfig } from './types';
 import {
   isLocalhostConnectionString,
@@ -17,6 +17,13 @@ import { VercelClient } from './create-client';
 
 export class VercelPool extends Pool {
   Client = VercelClient;
+  private connectionString: string;
+
+  constructor(config: VercelPostgresPoolConfig) {
+    super(config);
+    this.connectionString = config.connectionString ?? '';
+  }
+
   /**
    * A template literal tag providing safe, easy to use SQL parameterization.
    * Parameters are substituted using the underlying Postgres database, and so must follow
@@ -35,7 +42,11 @@ export class VercelPool extends Pool {
     ...values: Primitive[]
   ): Promise<QueryResult<O>> {
     const [query, params] = sqlTemplate(strings, ...values);
-    return this.query(query, params);
+
+    const sql = neon(this.connectionString, {
+      fullResults: true,
+    });
+    return sql(query, params) as unknown as Promise<QueryResult<O>>;
   }
 
   connect(): Promise<VercelPoolClient>;
@@ -109,10 +120,11 @@ export function createPool(config?: VercelPostgresPoolConfig): VercelPool {
     max = 10_000;
   }
 
-  return new VercelPool({
+  const pool = new VercelPool({
     ...config,
     connectionString,
     maxUses,
     max,
   });
+  return pool;
 }

@@ -82,8 +82,8 @@ importers:
         specifier: workspace:*
         version: link:../../tooling/tsconfig
       tsup:
-        specifier: 7.0.0
-        version: 7.0.0(typescript@5.1.3)
+        specifier: 7.1.0
+        version: 7.1.0(typescript@5.1.3)
 
   packages/edge-config:
     dependencies:
@@ -128,8 +128,8 @@ importers:
         specifier: workspace:*
         version: link:../../tooling/tsconfig
       tsup:
-        specifier: 7.0.0
-        version: 7.0.0(typescript@5.1.3)
+        specifier: 7.1.0
+        version: 7.1.0(typescript@5.1.3)
       typescript:
         specifier: 5.1.3
         version: 5.1.3
@@ -182,8 +182,8 @@ importers:
         specifier: workspace:*
         version: link:../../tooling/tsconfig
       tsup:
-        specifier: 7.0.0
-        version: 7.0.0(typescript@5.1.3)
+        specifier: 7.1.0
+        version: 7.1.0(typescript@5.1.3)
       typescript:
         specifier: 5.1.3
         version: 5.1.3
@@ -240,8 +240,8 @@ importers:
         specifier: workspace:*
         version: link:../../tooling/tsconfig
       tsup:
-        specifier: 7.0.0
-        version: 7.0.0(typescript@5.1.3)
+        specifier: 7.1.0
+        version: 7.1.0(typescript@5.1.3)
       typescript:
         specifier: 5.1.3
         version: 5.1.3
@@ -292,8 +292,8 @@ importers:
         specifier: workspace:*
         version: link:../../tooling/tsconfig
       tsup:
-        specifier: 7.0.0
-        version: 7.0.0(typescript@5.1.3)
+        specifier: 7.1.0
+        version: 7.1.0(typescript@5.1.3)
       typescript:
         specifier: 5.1.3
         version: 5.1.3
@@ -7232,8 +7232,8 @@ packages:
   /tslib@2.5.0:
     resolution: {integrity: sha512-336iVw3rtn2BUK7ORdIAHTyxHGRIHVReokCR3XjbckJMK7ms8FysBfhLR8IXnAgy7T0PTPNBWKiH514FOW/WSg==}
 
-  /tsup@7.0.0(typescript@5.1.3):
-    resolution: {integrity: sha512-yYARDRkPq07mO3YUXTvF12ISwWQG57Odve8aFEgLdHyeGungxuKxb19yf9G0W8y59SZFkLnRj1gkoVk1gd5fbQ==}
+  /tsup@7.1.0(typescript@5.1.3):
+    resolution: {integrity: sha512-mazl/GRAk70j8S43/AbSYXGgvRP54oQeX8Un4iZxzATHt0roW0t6HYDVZIXMw0ZQIpvr1nFMniIVnN5186lW7w==}
     engines: {node: '>=16.14'}
     hasBin: true
     peerDependencies:

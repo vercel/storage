@@ -263,6 +263,9 @@ importers:
       '@vercel/postgres':
         specifier: workspace:0.5.0
         version: link:../postgres
+      server-only:
+        specifier: 0.0.1
+        version: 0.0.1
     devDependencies:
       '@changesets/cli':
         specifier: 2.26.2

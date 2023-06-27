@@ -3,6 +3,7 @@ import { PostgresDialect, PostgresDriver, Kysely } from 'kysely';
 import type { Pool } from '@neondatabase/serverless';
 import { createPool } from '@vercel/postgres';
 import type { VercelPostgresPoolConfig } from '@vercel/postgres';
+import 'server-only';
 import { VercelPostgresKyselyError } from './error';
 
 type VercelPostgresDialectConfig = VercelPostgresPoolConfig & {

@@ -66,6 +66,25 @@ const kv = createClient({
 await kv.set('key', 'value');
 ```
 
+### Automatic Deserialization
+
+The default `kv` client will automatically deserializes values returned from the database via `JSON.parse`. If this behaviour is undesired, create a custom KV client via the `createClient` method with `automaticDeserialization: false`. All data will be returned as strings.
+
+```js
+import { kv, createClient } from '@vercel/kv';
+
+const customKvClient = createClient({
+  url: process.env.KV_REST_API_URL,
+  token: process.env.KV_REST_API_TOKEN,
+  automaticDeserialization: false,
+});
+
+await customKvClient.set('object', { hello: 'world' });
+
+console.log(await kv.get('object')); // { hello: 'world' }
+console.log(await customKvClient.get('object')); // '{"hello":"world"}'
+```
+
 ## Docs
 
 See the [documentation](https://www.vercel.com/docs/storage/vercel-kv) for details.

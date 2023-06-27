@@ -68,7 +68,7 @@ await kv.set('key', 'value');
 
 ### Automatic Deserialization
 
-The default `kv` client will automatically deserializes values returned from the database via `JSON.parse`. If this behaviour is undesired, create a custom KV client via the `createClient` method with `automaticDeserialization: false`. All data will be returned as strings.
+The default `kv` client automatically deserializes values returned from the database via `JSON.parse`. If this behaviour is undesired, create a custom KV client via the `createClient` method with `automaticDeserialization: false`. All data will be returned as strings.
 
 ```js
 import { kv, createClient } from '@vercel/kv';

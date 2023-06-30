@@ -62,7 +62,7 @@
     "eslint-config-custom": "workspace:*",
     "jest": "29.5.0",
     "kysely": "0.25.0",
-    "ts-jest": "29.1.0",
+    "ts-jest": "29.1.1",
     "tsconfig": "workspace:*",
     "tsup": "7.1.0",
     "typescript": "5.1.5"

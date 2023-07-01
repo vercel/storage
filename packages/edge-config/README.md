@@ -5,6 +5,12 @@
 
 A client that lets you read Edge Config.
 
+## Installation
+
+```sh
+npm install @vercel/edge-config
+```
+
 ## Examples
 
 You can use the methods below to read your Edge Config given you have its Connection String stored in an Environment Variable called `process.env.EDGE_CONFIG`.

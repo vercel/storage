@@ -95,7 +95,7 @@ export async function put(
     headers['x-content-type'] = options.contentType;
   }
 
-  const blobApiResponse = await fetch(`${getApiUrl()}/${pathname}`, {
+  const blobApiResponse = await fetch(getApiUrl(`/${pathname}`), {
     method: 'PUT',
     body: body as BodyInit,
     headers,
@@ -124,7 +124,7 @@ export async function del<T extends string | string[]>(
   url: T,
   options?: BlobCommandOptions,
 ): Promise<BlobDelResult<T>> {
-  const blobApiResponse = await fetch(`${getApiUrl()}/delete`, {
+  const blobApiResponse = await fetch(getApiUrl('/delete'), {
     method: 'POST',
     headers: {
       authorization: `Bearer ${getToken(options)}`,
@@ -229,12 +229,16 @@ export async function list(
   };
 }
 
-function getApiUrl(): string {
-  return (
+function getApiUrl(pathname = ''): string {
+  const multiBucket =
+    process.env.VERCEL_BLOB_MULTIBUCKET === 'true' ? '?multibucket' : '';
+
+  const baseUrl =
     process.env.VERCEL_BLOB_API_URL ||
     process.env.NEXT_PUBLIC_VERCEL_BLOB_API_URL ||
-    'https://blob.vercel-storage.com'
-  );
+    'https://blob.vercel-storage.com';
+
+  return `${baseUrl}${pathname}${multiBucket}`;
 }
 
 function mapBlobResult(blobResult: BlobMetadataApi): BlobResult {

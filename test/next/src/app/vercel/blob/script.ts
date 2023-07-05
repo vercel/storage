@@ -32,7 +32,7 @@ async function run(): Promise<void> {
 
   await Promise.all(
     urls.map(async (url) => {
-      const blobDetails = await vercelBlob.head(url);
+      const blobDetails = await vercelBlob.head(url as string);
       console.log(blobDetails, url);
     }),
   );
@@ -53,7 +53,7 @@ async function run(): Promise<void> {
 
   console.log(count, 'blobs in this store');
 
-  // await Promise.all(urls.map((url) => vercelBlob.del(url)));
+  await Promise.all(urls.map((url) => vercelBlob.del(url)));
 }
 
 async function textFileExample(): Promise<string> {

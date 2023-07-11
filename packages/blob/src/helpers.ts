@@ -38,6 +38,6 @@ export class BlobAccessError extends Error {
 
 export class BlobUnknownError extends Error {
   constructor() {
-    super('Vercel Blob: Unknown error, please contact support@vercel.com');
+    super('Vercel Blob: Unknown error, please visit https://vercel.com/help');
   }
 }

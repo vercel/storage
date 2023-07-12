@@ -11,6 +11,7 @@ import {
   pick,
 } from './utils';
 import type {
+  Connection,
   EdgeConfigClient,
   EdgeConfigItems,
   EdgeConfigValue,
@@ -59,22 +60,6 @@ async function consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(
   // see https://github.com/node-fetch/node-fetch/issues/83
   await res.arrayBuffer();
 }
-
-type Connection =
-  | {
-      baseUrl: string;
-      id: string;
-      token: string;
-      version: string;
-      type: 'vercel';
-    }
-  | {
-      baseUrl: string;
-      id: string;
-      token: string;
-      version: string;
-      type: 'external';
-    };
 
 /**
  * Parses info contained in connection strings.
@@ -176,6 +161,7 @@ export function createClient(
     headers['x-edge-config-sdk'] = `${sdkName}@${sdkVersion}`;
 
   return {
+    connection,
     async get<T = EdgeConfigValue>(key: string): Promise<T | undefined> {
       const localEdgeConfig = await getFileSystemEdgeConfig(connection);
       if (localEdgeConfig) {

@@ -134,3 +134,20 @@ const kv = createClient({
 
 await kv.set('key', 'value');
 ```
+
+## FAQ
+
+### Does the `@vercel/kv` package support [Redis Streams](https://redis.io/docs/data-types/streams/)?
+
+No, the `@vercel/kv` package does not support Redis Streams. To use Redis Streams with Vercel KV, you must connect directly to the database server via packacges like [`io-redis`](https://github.com/redis/ioredis) or [`node-redis`](https://github.com/redis/node-redis).
+
+```js
+import { createClient } from 'redis';
+
+const client = createClient({
+  url: process.env.KV_URL,
+});
+
+await client.connect();
+await client.xRead({ key: 'mystream', id: '0' }, { COUNT: 2 });
+```

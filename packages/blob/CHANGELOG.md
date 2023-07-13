@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.9.3
+
+### Patch Changes
+
+- 978a817: Added an API version string when activated, related to multi bucket migration, no need to update for now.
+
 ## 0.9.2
 
 ### Patch Changes

@@ -60,7 +60,7 @@
     "@types/ws": "8.5.5",
     "eslint": "8.44.0",
     "eslint-config-custom": "workspace:*",
-    "jest": "29.6.0",
+    "jest": "29.6.1",
     "kysely": "0.25.0",
     "ts-jest": "29.1.1",
     "tsconfig": "workspace:*",

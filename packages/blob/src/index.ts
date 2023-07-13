@@ -55,6 +55,8 @@ export interface PutCommandOptions extends BlobCommandOptions {
   handleBlobUploadUrl?: string;
 }
 
+const BLOB_API_VERSION = 1;
+
 export async function put(
   pathname: string,
   body:
@@ -88,6 +90,7 @@ export async function put(
     : getToken(options);
 
   const headers: Record<string, string> = {
+    ...getApiVersionHeader(),
     authorization: `Bearer ${token}`,
   };
 
@@ -127,6 +130,7 @@ export async function del<T extends string | string[]>(
   const blobApiResponse = await fetch(getApiUrl('/delete'), {
     method: 'POST',
     headers: {
+      ...getApiVersionHeader(),
       authorization: `Bearer ${getToken(options)}`,
       'content-type': 'application/json',
     },
@@ -172,6 +176,7 @@ export async function head(
   const blobApiResponse = await fetch(headApiUrl, {
     method: 'GET', // HEAD can't have body as a response, so we use GET
     headers: {
+      ...getApiVersionHeader(),
       authorization: `Bearer ${getToken(options)}`,
     },
   });
@@ -209,6 +214,7 @@ export async function list(
   const blobApiResponse = await fetch(listApiUrl, {
     method: 'GET',
     headers: {
+      ...getApiVersionHeader(),
       authorization: `Bearer ${getToken(options)}`,
     },
   });
@@ -230,22 +236,24 @@ export async function list(
 }
 
 function getApiUrl(pathname = ''): string {
-  const multiBucket =
-    process.env.VERCEL_BLOB_MULTIBUCKET === 'true' ? '?multibucket' : '';
-
   const baseUrl =
     process.env.VERCEL_BLOB_API_URL ||
     process.env.NEXT_PUBLIC_VERCEL_BLOB_API_URL ||
     'https://blob.vercel-storage.com';
 
-  return `${baseUrl}${pathname}${multiBucket}`;
+  return `${baseUrl}${pathname}`;
 }
 
 function mapBlobResult(blobResult: BlobMetadataApi): BlobResult {
-  return {
-    ...blobResult,
-    uploadedAt: new Date(blobResult.uploadedAt),
-  };
+  // TODO: temporary fix for misaligned types given multibucket migration
+  if (blobResult.uploadedAt) {
+    return {
+      ...blobResult,
+      uploadedAt: new Date(blobResult.uploadedAt),
+    };
+  }
+
+  return blobResult as unknown as BlobResult;
 }
 
 function isAbsoluteUrl(url: string): boolean {
@@ -293,4 +301,14 @@ function shouldFetchClientToken(
   options: PutCommandOptions,
 ): options is ReturnPutCommandOptions {
   return Boolean(!options.token && options.handleBlobUploadUrl);
+}
+
+function getApiVersionHeader(): { 'x-api-version'?: string } {
+  if (process.env.VERCEL_BLOB_USE_API_VERSION === 'true') {
+    return {
+      'x-api-version': `${BLOB_API_VERSION}`,
+    };
+  }
+
+  return {};
 }

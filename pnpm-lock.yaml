@@ -58,8 +58,8 @@ importers:
         specifier: 2.2.4
         version: 2.2.4
       '@edge-runtime/types':
-        specifier: 2.1.3
-        version: 2.1.3
+        specifier: 2.1.4
+        version: 2.1.4
       '@types/jest':
         specifier: 29.5.3
         version: 29.5.3
@@ -98,8 +98,8 @@ importers:
         specifier: 2.2.4
         version: 2.2.4
       '@edge-runtime/types':
-        specifier: 2.1.3
-        version: 2.1.3
+        specifier: 2.1.4
+        version: 2.1.4
       '@types/jest':
         specifier: 29.5.3
         version: 29.5.3
@@ -149,8 +149,8 @@ importers:
         specifier: 2.2.4
         version: 2.2.4
       '@edge-runtime/types':
-        specifier: 2.1.3
-        version: 2.1.3
+        specifier: 2.1.4
+        version: 2.1.4
       '@types/jest':
         specifier: 29.5.3
         version: 29.5.3
@@ -210,8 +210,8 @@ importers:
         specifier: 2.2.4
         version: 2.2.4
       '@edge-runtime/types':
-        specifier: 2.1.3
-        version: 2.1.3
+        specifier: 2.1.4
+        version: 2.1.4
       '@types/jest':
         specifier: 29.5.3
         version: 29.5.3
@@ -259,8 +259,8 @@ importers:
         specifier: 2.2.4
         version: 2.2.4
       '@edge-runtime/types':
-        specifier: 2.1.3
-        version: 2.1.3
+        specifier: 2.1.4
+        version: 2.1.4
       '@neondatabase/serverless':
         specifier: 0.4.23
         version: 0.4.23
@@ -969,8 +969,8 @@ packages:
     engines: {node: '>=14'}
     dev: true
 
-  /@edge-runtime/types@2.1.3:
-    resolution: {integrity: sha512-xb3xdWdZfw+XklQ5Kg1drVEOWYber20EF3ISdKP7llVnNWV5p6ncGCacncldA/gqR1KFpNuXC8lwQkU5wBj+0Q==}
+  /@edge-runtime/types@2.1.4:
+    resolution: {integrity: sha512-ImiKAapY49e5r1vQ2EDwABH7luK4ut621RbmhAvwMnhSOEhFsdnj2D+SdBijKD9C9FGUZUNjrR1i9xGuh/FPpg==}
     engines: {node: '>=14'}
     dependencies:
       '@edge-runtime/primitives': 3.0.3

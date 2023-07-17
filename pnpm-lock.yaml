@@ -55,8 +55,8 @@ importers:
         version: 5.22.1
     devDependencies:
       '@edge-runtime/jest-environment':
-        specifier: 2.2.4
-        version: 2.2.4
+        specifier: 2.2.5
+        version: 2.2.5
       '@edge-runtime/types':
         specifier: 2.1.4
         version: 2.1.4
@@ -95,8 +95,8 @@ importers:
         specifier: 2.26.2
         version: 2.26.2
       '@edge-runtime/jest-environment':
-        specifier: 2.2.4
-        version: 2.2.4
+        specifier: 2.2.5
+        version: 2.2.5
       '@edge-runtime/types':
         specifier: 2.1.4
         version: 2.1.4
@@ -146,8 +146,8 @@ importers:
         specifier: 2.26.2
         version: 2.26.2
       '@edge-runtime/jest-environment':
-        specifier: 2.2.4
-        version: 2.2.4
+        specifier: 2.2.5
+        version: 2.2.5
       '@edge-runtime/types':
         specifier: 2.1.4
         version: 2.1.4
@@ -207,8 +207,8 @@ importers:
         specifier: 2.26.2
         version: 2.26.2
       '@edge-runtime/jest-environment':
-        specifier: 2.2.4
-        version: 2.2.4
+        specifier: 2.2.5
+        version: 2.2.5
       '@edge-runtime/types':
         specifier: 2.1.4
         version: 2.1.4
@@ -256,8 +256,8 @@ importers:
         specifier: 2.26.2
         version: 2.26.2
       '@edge-runtime/jest-environment':
-        specifier: 2.2.4
-        version: 2.2.4
+        specifier: 2.2.5
+        version: 2.2.5
       '@edge-runtime/types':
         specifier: 2.1.4
         version: 2.1.4
@@ -399,7 +399,7 @@ importers:
         version: 8.8.0(eslint@8.45.0)
       eslint-config-turbo:
         specifier: latest
-        version: 1.10.7(eslint@8.45.0)
+        version: 1.10.8(eslint@8.45.0)
       typescript:
         specifier: 5.1.6
         version: 5.1.6
@@ -953,11 +953,11 @@ packages:
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
 
-  /@edge-runtime/jest-environment@2.2.4:
-    resolution: {integrity: sha512-tI7TeFEvFmydCy77UH1feDGVHG+X9MQT8Iltbg6DKzXCWZInhfjpK8vk+3UxEQ8MfWALYw5+XKpg60LxMATImQ==}
+  /@edge-runtime/jest-environment@2.2.5:
+    resolution: {integrity: sha512-I9JYvOrWhsso/C/OmSxaawEEw7mUpjNVIwNJncBODVhLoFkn6gkHGZVTPR0e4g4yH9yq4gwXnSdC4BS/iwTSqw==}
     engines: {node: '>=14'}
     dependencies:
-      '@edge-runtime/vm': 3.0.3
+      '@edge-runtime/vm': 3.0.4
       '@jest/environment': 29.5.0
       '@jest/fake-timers': 29.5.0
       jest-mock: 29.5.0
@@ -969,6 +969,11 @@ packages:
     engines: {node: '>=14'}
     dev: true
 
+  /@edge-runtime/primitives@3.0.4:
+    resolution: {integrity: sha512-ZisWDavCpjroNbXZ1FZ2qHqlNfTXjIcQx+7aRdC+n6DVsTShUW7S+urGj2Wags5CH0oICWRoksYX5GngW7SZzw==}
+    engines: {node: '>=14'}
+    dev: true
+
   /@edge-runtime/types@2.1.4:
     resolution: {integrity: sha512-ImiKAapY49e5r1vQ2EDwABH7luK4ut621RbmhAvwMnhSOEhFsdnj2D+SdBijKD9C9FGUZUNjrR1i9xGuh/FPpg==}
     engines: {node: '>=14'}
@@ -976,11 +981,11 @@ packages:
       '@edge-runtime/primitives': 3.0.3
     dev: true
 
-  /@edge-runtime/vm@3.0.3:
-    resolution: {integrity: sha512-SPfI1JeIRNs/4EEE2Oc0X6gG3RqjD1TnKu2lwmwFXq0435xgZGKhc3UiKkYAdoMn2dNFD73nlabMKHBRoMRpxg==}
+  /@edge-runtime/vm@3.0.4:
+    resolution: {integrity: sha512-/QvVIn2+nO48dO3cl5tD3cjoF/xJ7WfTKBIs/oKgfmmWbEQ4EixKlOTJEpcBdOni0E8FCHIc7yxoJGq1qcLdCg==}
     engines: {node: '>=14'}
     dependencies:
-      '@edge-runtime/primitives': 3.0.3
+      '@edge-runtime/primitives': 3.0.4
     dev: true
 
   /@esbuild/android-arm64@0.18.3:
@@ -1340,10 +1345,10 @@ packages:
     resolution: {integrity: sha512-5FXw2+wD29YU1d4I2htpRX7jYnAyTRjP2CsXQdo9SAM8g3ifxWPSV0HnClSn71xwctr0U3oZIIH+dtbfmnbXVQ==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     dependencies:
-      '@jest/fake-timers': 29.6.0
-      '@jest/types': 29.6.0
+      '@jest/fake-timers': 29.6.1
+      '@jest/types': 29.6.1
       '@types/node': 18.16.19
-      jest-mock: 29.6.0
+      jest-mock: 29.6.1
     dev: true
 
   /@jest/environment@29.6.1:
@@ -1374,24 +1379,12 @@ packages:
     resolution: {integrity: sha512-9ARvuAAQcBwDAqOnglWq2zwNIRUDtk/SCkp/ToGEhFv5r86K21l+VEs0qNTaXtyiY0lEePl3kylijSYJQqdbDg==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     dependencies:
-      '@jest/types': 29.6.0
+      '@jest/types': 29.6.1
       '@sinonjs/fake-timers': 10.0.2
       '@types/node': 18.16.19
-      jest-message-util: 29.5.0
-      jest-mock: 29.6.0
-      jest-util: 29.6.0
-    dev: true
-
-  /@jest/fake-timers@29.6.0:
-    resolution: {integrity: sha512-nuCU46AsZoskthWSDS2Aj6LARgyNcp5Fjx2qxsO/fPl1Wp1CJ+dBDqs0OkEcJK8FBeV/MbjH5efe79M2sHcV+A==}
-    engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
-    dependencies:
-      '@jest/types': 29.6.0
-      '@sinonjs/fake-timers': 10.0.2
-      '@types/node': 18.16.19
-      jest-message-util: 29.6.0
-      jest-mock: 29.6.0
-      jest-util: 29.6.0
+      jest-message-util: 29.6.1
+      jest-mock: 29.6.1
+      jest-util: 29.6.1
     dev: true
 
   /@jest/fake-timers@29.6.1:
@@ -1505,18 +1498,6 @@ packages:
       write-file-atomic: 4.0.2
     transitivePeerDependencies:
       - supports-color
-
-  /@jest/types@29.6.0:
-    resolution: {integrity: sha512-8XCgL9JhqbJTFnMRjEAO+TuW251+MoMd5BSzLiE3vvzpQ8RlBxy8NoyNkDhs3K3OL3HeVinlOl9or5p7GTeOLg==}
-    engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
-    dependencies:
-      '@jest/schemas': 29.6.0
-      '@types/istanbul-lib-coverage': 2.0.4
-      '@types/istanbul-reports': 3.0.1
-      '@types/node': 18.16.19
-      '@types/yargs': 17.0.24
-      chalk: 4.1.2
-    dev: true
 
   /@jest/types@29.6.1:
     resolution: {integrity: sha512-tPKQNMPuXgvdOn2/Lg9HNfUvjYVGolt04Hp03f5hAk878uwOLikN+JzeLY0HcVgKgFl9Hs3EIqpu3WX27XNhnw==}
@@ -3479,13 +3460,13 @@ packages:
     dependencies:
       eslint: 8.45.0
 
-  /eslint-config-turbo@1.10.7(eslint@8.45.0):
-    resolution: {integrity: sha512-0yHt5UlXVph8S4SOvP6gYehLvYjJj6XFKTYOG/WUQbjlcF0OU4pOT1a1juqmmBPWYlvJ0evt7v+RekY4tOopPQ==}
+  /eslint-config-turbo@1.10.8(eslint@8.45.0):
+    resolution: {integrity: sha512-fDJTyM04N9XUcvYFlM4r7Byvjx27TuO68iOnMNjtKF7vBtrJuBBBGtNM0aQIWGg0oTqjjcNTNQw9sQK+IcA5Gw==}
     peerDependencies:
       eslint: '>6.6.0'
     dependencies:
       eslint: 8.45.0
-      eslint-plugin-turbo: 1.10.7(eslint@8.45.0)
+      eslint-plugin-turbo: 1.10.8(eslint@8.45.0)
     dev: false
 
   /eslint-import-resolver-alias@1.1.2(eslint-plugin-import@2.27.5):
@@ -3941,8 +3922,8 @@ packages:
       '@microsoft/tsdoc': 0.14.2
       '@microsoft/tsdoc-config': 0.16.2
 
-  /eslint-plugin-turbo@1.10.7(eslint@8.45.0):
-    resolution: {integrity: sha512-YikBHc75DY9VV1vAFUIBekHLQlxqVT5zTNibK8zBQInCUhF7PvyPJc0xXw5FSz8EYtt4uOV3r0Km3CmFRclS4Q==}
+  /eslint-plugin-turbo@1.10.8(eslint@8.45.0):
+    resolution: {integrity: sha512-0ULCoR0Zj/ec4mjmfeYhDa5OtqCvSgDkQdSD/tqLUSHM0GzcUrNvGPclVmsoCb5kmawzeqtlqnS2FKILc862qw==}
     peerDependencies:
       eslint: '>6.6.0'
     dependencies:
@@ -5178,36 +5159,6 @@ packages:
       jest-get-type: 29.4.3
       pretty-format: 29.6.1
 
-  /jest-message-util@29.5.0:
-    resolution: {integrity: sha512-Kijeg9Dag6CKtIDA7O21zNTACqD5MD/8HfIV8pdD94vFyFuer52SigdC3IQMhab3vACxXMiFk+yMHNdbqtyTGA==}
-    engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
-    dependencies:
-      '@babel/code-frame': 7.21.4
-      '@jest/types': 29.6.0
-      '@types/stack-utils': 2.0.1
-      chalk: 4.1.2
-      graceful-fs: 4.2.11
-      micromatch: 4.0.5
-      pretty-format: 29.6.1
-      slash: 3.0.0
-      stack-utils: 2.0.6
-    dev: true
-
-  /jest-message-util@29.6.0:
-    resolution: {integrity: sha512-mkCp56cETbpoNtsaeWVy6SKzk228mMi9FPHSObaRIhbR2Ujw9PqjW/yqVHD2tN1bHbC8ol6h3UEo7dOPmIYwIA==}
-    engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
-    dependencies:
-      '@babel/code-frame': 7.21.4
-      '@jest/types': 29.6.0
-      '@types/stack-utils': 2.0.1
-      chalk: 4.1.2
-      graceful-fs: 4.2.11
-      micromatch: 4.0.5
-      pretty-format: 29.6.1
-      slash: 3.0.0
-      stack-utils: 2.0.6
-    dev: true
-
   /jest-message-util@29.6.1:
     resolution: {integrity: sha512-KoAW2zAmNSd3Gk88uJ56qXUWbFk787QKmjjJVOjtGFmmGSZgDBrlIL4AfQw1xyMYPNVD7dNInfIbur9B2rd/wQ==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
@@ -5226,18 +5177,9 @@ packages:
     resolution: {integrity: sha512-GqOzvdWDE4fAV2bWQLQCkujxYWL7RxjCnj71b5VhDAGOevB3qj3Ovg26A5NI84ZpODxyzaozXLOh2NCgkbvyaw==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     dependencies:
-      '@jest/types': 29.6.0
+      '@jest/types': 29.6.1
       '@types/node': 18.16.19
-      jest-util: 29.6.0
-    dev: true
-
-  /jest-mock@29.6.0:
-    resolution: {integrity: sha512-2Pb7R2w24Q0aUVn+2/vdRDL6CqGqpheDZy7zrXav8FotOpSGw/4bS2hyVoKHMEx4xzOn6EyCAGwc5czWxXeN7w==}
-    engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
-    dependencies:
-      '@jest/types': 29.6.0
-      '@types/node': 18.16.19
-      jest-util: 29.6.0
+      jest-util: 29.6.1
     dev: true
 
   /jest-mock@29.6.1:
@@ -5375,19 +5317,7 @@ packages:
     resolution: {integrity: sha512-RYMgG/MTadOr5t8KdhejfvUU82MxsCu5MF6KuDUHl+NuwzUt+Sm6jJWxTJVrDR1j5M/gJVCPKQEpWXY+yIQ6lQ==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     dependencies:
-      '@jest/types': 29.6.0
-      '@types/node': 18.16.19
-      chalk: 4.1.2
-      ci-info: 3.8.0
-      graceful-fs: 4.2.11
-      picomatch: 2.3.1
-    dev: true
-
-  /jest-util@29.6.0:
-    resolution: {integrity: sha512-S0USx9YwcvEm4pQ5suisVm/RVxBmi0GFR7ocJhIeaCuW5AXnAnffXbaVKvIFodyZNOc9ygzVtTxmBf40HsHXaA==}
-    engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
-    dependencies:
-      '@jest/types': 29.6.0
+      '@jest/types': 29.6.1
       '@types/node': 18.16.19
       chalk: 4.1.2
       ci-info: 3.8.0

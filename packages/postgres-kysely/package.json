@@ -52,7 +52,7 @@
   },
   "devDependencies": {
     "@changesets/cli": "2.26.2",
-    "@edge-runtime/jest-environment": "2.2.4",
+    "@edge-runtime/jest-environment": "2.2.5",
     "@edge-runtime/types": "2.1.4",
     "@neondatabase/serverless": "0.4.23",
     "@types/jest": "29.5.3",

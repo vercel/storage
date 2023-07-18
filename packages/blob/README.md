@@ -8,7 +8,128 @@ The Vercel Blob JavaScript API client.
 npm install @vercel/blob
 ```
 
-## Usage
+## Examples
+
+You can either upload files from the server or directly from a client (the browser):
+
+- When accepting files on your Vercel-hosted website: use the browser upload method, so you can upload files larger than 4MB.
+- When uploading files part of a build process, or if you do not need more than 4MB: use the server upload method.
+
+### Browser Upload
+
+Uploading from browsers is a three-step process:
+
+1. A _client token_ is generated via a route and sent to the browser. This token is restricted to a specific `pathname` and will be valid for 30s (this can be customized).
+2. The file is uploaded to the Vercel Blob API from the browser, using the token from 1.
+3. Your server is notified of the upload completion via a webhook.
+
+Here's a Next.js app router example, and our browser upload helpers are framework-independent.
+
+```tsx
+// /app/UploadForm.tsx
+
+'use client';
+
+import type { PutBlobResult, put } from '@vercel/blob';
+import { useState } from 'react';
+
+export default function UploadForm() {
+  const inputFileRef = useRef<HTMLInputElement>(null);
+  const [blob, setBlob] = useState<PutBlobResult | null>(null);
+  return (
+    <>
+      <h1>App Router Client Upload</h1>
+
+      <form
+        onSubmit={async (event): Promise<void> => {
+          event.preventDefault();
+
+          const file = inputFileRef.current?.files?.[0];
+          if (!file) {
+            return;
+          }
+
+          // Step 2. Upload the file from the browser using the restricted client token
+          const blobResult = await put(file.name, file, {
+            access: 'public',
+            // This is the URL to generate the client token for this `file.name`
+            handleBlobUploadUrl: '/api/upload/avatars',
+          });
+
+          setBlob(blobResult);
+        }}
+      >
+        <input name="file" ref={inputFileRef} type="file" />
+        <button type="submit">Upload</button>
+      </form>
+      {blob && (
+        <div>
+          Blob url: <a href={blob.url}>{blob.url}</a>
+        </div>
+      )}
+    </>
+  );
+}
+```
+
+```ts
+// /app/api/upload/avatars/route.ts
+
+import { handleBlobUpload, type HandleBlobUploadBody } from '@vercel/blob';
+import { NextResponse } from 'next/server';
+
+export async function POST(request: Request): Promise<NextResponse> {
+  const body = (await request.json()) as HandleBlobUploadBody;
+
+  try {
+    const jsonResponse = await handleBlobUpload({
+      body,
+      request,
+      onBeforeGenerateToken: async (pathname) => {
+        // Step 1. Generate a client token for the browser to upload the file
+
+        // ⚠️ Authenticate users before allowing client tokens to be generated and sent to browsers. Otherwise, you're exposing your Blob store to be an anonymous upload platform.
+        // See https://nextjs.org/docs/pages/building-your-application/routing/authenticating for more information
+        const { user, userCanUpload } = await auth(request, pathname);
+
+        if (!userCanUpload) {
+          throw new Error('not authenticated or bad pathname');
+        }
+
+        return {
+          maximumSizeInBytes: 10_000_000, // optional, default and maximum is 500MB
+          allowedContentTypes: ['image/jpeg', 'image/png', 'image/gif'], // optional, default is no restriction
+          metadata: JSON.stringify({
+            // optional, sent to your server on upload completion
+            userId: user.id,
+          }),
+        };
+      },
+      onUploadCompleted: async ({ blob, metadata }) => {
+        // Step 3. Get notified of browser upload completion
+
+        try {
+          // Run any logic after the file upload completed
+          const parsedMetadata = JSON.parse(metadata);
+          await db.update({ avatar: blob.url, userId: parsedMetadata.userId });
+        } catch (error) {
+          // If you return anything but 2xx, the "onUploadCompleted" webhook will retry for 5 times
+          throw new Error('Could not update user');
+        }
+      },
+    });
+
+    return NextResponse.json(jsonResponse);
+  } catch (error) {
+    return NextResponse.json(
+      { error: (error as Error).message },
+      { status: 400 },
+    );
+  }
+}
+```
+
+### Server Upload
 
 ```ts
 import * as vercelBlob from '@vercel/blob';
@@ -22,7 +143,7 @@ async function someMethod() {
   );
 
   console.log(blob.url);
-  // https://public.blob.vercel-storage.com/n1g9m63etib6gkcjqjpspsiwe7ea/profilesv1/user-12345-NoOVGDVcqSPc7VYCUAGnTzLTG2qEM2.txt
+  // https://zyzoioy8txfs14xe.public.blob.vercel-storage.com/profilesv1/user-12345-NoOVGDVcqSPc7VYCUAGnTzLTG2qEM2.txt
 }
 ```
 
@@ -30,7 +151,7 @@ async function someMethod() {
 
 ### `put(pathname, body, options)`
 
-Upload a blob to the Vercel Blob API, and returns the URL of the blob.
+Upload a blob to the Vercel Blob API, and returns the URL of the blob along with some metadata.
 
 ```ts
 async function put(
@@ -45,8 +166,6 @@ async function put(
     // on the client `token` is mandatory and must be generated by "generateClientTokenFromReadWriteToken"
     token?: string,
   }): Promise<{
-      size: number;
-      uploadedAt: Date;
       pathname: string;
       contentType: string;
       contentDisposition: string;
@@ -56,7 +175,7 @@ async function put(
 
 ### del(url, options)
 
-Delete one or multiple blobs by their full URL. Returns the deleted blob(s) or null when not found.
+Delete one or multiple blobs by their full URL. This method doesn't return any value. If the blob url exists, it's deleted once del() returns.
 
 ```ts
 async function del(
@@ -64,25 +183,7 @@ async function del(
   options?: {
     token?: string;
   },
-): Promise<
-  | {
-      size: number;
-      uploadedAt: Date;
-      pathname: string;
-      contentType: string;
-      contentDisposition: string;
-      url: string;
-    }
-  | null
-  | ({
-      size: number;
-      uploadedAt: Date;
-      pathname: string;
-      contentType: string;
-      contentDisposition: string;
-      url: string;
-    } | null)[]
-> {}
+): Promise<void> {}
 ```
 
 ### head(url, options)
@@ -120,8 +221,6 @@ async function list(options?: {
     size: number;
     uploadedAt: Date;
     pathname: string;
-    contentType: string;
-    contentDisposition: string;
     url: string;
   }[];
   cursor?: string;
@@ -131,22 +230,22 @@ async function list(options?: {
 
 ### handleBlobUpload(options)
 
-Handles the requests to generate a client token and respond to the upload completed event. This is useful when [uploading directly from browsers](#uploading-directly-from-browsers) to circumvent the 4MB limitation of going through a Vercel-hosted route.
+Handles the requests to generate a client token and respond to the upload completed event. This is useful when [uploading from browsers](#browser-upload) to circumvent the 4MB limitation of going through a Vercel-hosted route.
 
 ```ts
 async function handleBlobUpload(options?: {
-  token?: string;
-  request?: IncomingMessage | Request;
+  token?: string; // default to process.env.BLOB_READ_WRITE_TOKEN
+  request: IncomingMessage | Request;
   onBeforeGenerateToken: (pathname: string) => Promise<{
-    allowedContentTypes?: string[];
-    maximumSizeInBytes?: number;
-    validUntil?: number; // timestamp in ms, by default 30s
+    allowedContentTypes?: string[]; // optional, defaults to no restriction
+    maximumSizeInBytes?: number; // optional, defaults and maximum is 500MB (524,288,000 bytes)
+    validUntil?: number; // optional, timestamp in ms, by default now + 30s
     metadata?: string;
   }>;
   onUploadCompleted: (body: {
     type: 'blob.upload-completed';
     payload: {
-      blob: BlobResult;
+      blob: PutBlobResult;
       metadata?: string;
     };
   }) => Promise<void>;
@@ -154,7 +253,7 @@ async function handleBlobUpload(options?: {
     | {
         type: 'blob.upload-completed';
         payload: {
-          blob: BlobResult;
+          blob: PutBlobResult;
           metadata?: string;
         };
       }
@@ -162,7 +261,10 @@ async function handleBlobUpload(options?: {
         type: 'blob.generate-client-token';
         payload: { pathname: string; callbackUrl: string };
       };
-}): string {}
+}): Promise<
+  | { type: 'blob.generate-client-token'; clientToken: string }
+  | { type: 'blob.upload-completed'; response: 'ok' }
+> {}
 ```
 
 Note: This method should be called server-side, not client-side.
@@ -187,189 +289,12 @@ async function generateClientTokenFromReadWriteToken(options?: {
 }): string {}
 ```
 
-Note: This method should be called server-side, not client-side.
+Note: This is a server-side method.
 
 ## Examples
 
 - [Next.js App Router examples](../../test/next/src/app/vercel/blob/)
 - [https.get, axios, and got](../../test/next/src/app/vercel/blob/script.ts)
-
-### Next.js App Router example
-
-This example shows a form uploading a file to the Vercel Blob API.
-
-```tsx
-// /app/UploadForm.tsx
-
-'use client';
-
-import type { BlobResult } from '@vercel/blob';
-import { useState } from 'react';
-
-export default function UploadForm() {
-  const [blob, setBlob] = useState<BlobResult | null>(null);
-
-  return (
-    <>
-      <form
-        action="/api/upload"
-        method="POST"
-        encType="multipart/form-data"
-        onSubmit={async (event) => {
-          event.preventDefault();
-
-          const formData = new FormData(event.currentTarget);
-          const response = await fetch('/api/upload', {
-            method: 'POST',
-            body: formData,
-          });
-          const blob = (await response.json()) as BlobResult;
-          setBlob(blob);
-        }}
-      >
-        <input type="file" name="file" />
-        <button type="submit">Upload</button>
-      </form>
-      {blob && (
-        <div>
-          Blob url: <a href={blob.url}>{blob.url}</a>
-        </div>
-      )}
-    </>
-  );
-}
-```
-
-```ts
-// /app/api/upload/route.ts
-
-import * as vercelBlob from '@vercel/blob';
-import { NextResponse } from 'next/server';
-
-export async function POST(request: Request) {
-  const form = await request.formData();
-  const file = form.get('file') as File;
-
-  if (!file) {
-    return NextResponse.json(
-      { message: 'No file to upload.' },
-      { status: 400 },
-    );
-  }
-
-  const blob = await vercelBlob.put(file.name, file, { access: 'public' });
-
-  return NextResponse.json(blob);
-}
-```
-
-### Uploading directly from browsers
-
-The above example uploads a file through a vercel route. This solution is limited to a 4Mb file size. In order to bypass this limit, it is possible to upload a file directly from within the client, after generating a single-use token.
-
-```tsx
-// /app/UploadForm.tsx
-
-'use client';
-
-import type { BlobResult, put } from '@vercel/blob';
-import { useState } from 'react';
-
-export default function UploadForm() {
-  const inputFileRef = useRef<HTMLInputElement>(null);
-  const [blob, setBlob] = useState<BlobResult | null>(null);
-  return (
-    <>
-      <h1>App Router Client Upload</h1>
-
-      <form
-        onSubmit={async (event): Promise<void> => {
-          event.preventDefault();
-
-          const file = inputFileRef.current?.files?.[0];
-          if (!file) {
-            return;
-          }
-
-          // A secured client token will be obtained automatically by making a call to `/api/upload/avatars`
-          const blobResult = await put(file.name, file, {
-            access: 'public',
-            handleBlobUploadUrl: '/api/upload/avatars',
-          });
-
-          setBlob(blobResult);
-        }}
-      >
-        <input name="file" ref={inputFileRef} type="file" />
-        <button type="submit">Upload</button>
-      </form>
-      {blob && (
-        <div>
-          Blob url: <a href={blob.url}>{blob.url}</a>
-        </div>
-      )}
-    </>
-  );
-}
-```
-
-```ts
-// /app/api/upload/avatars/route.ts
-
-import { handleBlobUpload, type HandleBlobUploadBody } from '@vercel/blob';
-import { NextResponse } from 'next/server';
-
-export async function POST(request: Request): Promise<NextResponse> {
-  const body = (await request.json()) as HandleBlobUploadBody;
-
-  // Uploading from browsers is a three-step process:
-  // - First, a specific client token is generated by this current route and sent to the browser. The request body will contain a `{ type: "blob.generate-client-token", ... }` object.
-  // - Second, the file is uploaded to Vercel Blob directly from the browser, using the client token. The file content doesn't go through this route.
-  // - Third, a webhook is called on this route (`onUploadCompleted`). The request body will contain a `{ type: "blob.upload-completed", ... }` object. This webhook will be retried five times in case your route doesn't reply with a 200.
-
-  try {
-    const jsonResponse = await handleBlobUpload({
-      body,
-      request,
-      onBeforeGenerateToken: async (pathname) => {
-        // In most cases, you should authenticate users before allowing upload tokens to be generated and sent to browsers. Otherwise, you're exposing your Blob store to be an anonymous upload platform.
-        // See https://nextjs.org/docs/pages/building-your-application/routing/authenticating for more informations
-        const { user, userCanUpload } = await auth(request, pathname);
-
-        if (!userCanUpload) {
-          throw new Error('not authenticated or bad pathname');
-        }
-
-        return {
-          maxFileSize: 10_000_000,
-          allowedContentTypes: ['image/jpeg', 'image/png', 'image/gif'],
-          metadata: JSON.stringify({
-            userId: user.id,
-          }),
-        };
-      },
-      onUploadCompleted: async ({ blob, metadata }) => {
-        console.log('Upload completed', blob, metadata);
-        try {
-          // Run any logic after the file upload completed
-          const parsedMetadata = JSON.parse(metadata);
-          await db.update({ avatar: blob.url, userId: parsedMetadata.userId });
-        } catch (error) {
-          // In case of error, the "onUploadCompleted" will retry for 5 times
-          throw new Error('Could not update user');
-        }
-      },
-    });
-
-    return NextResponse.json(jsonResponse);
-  } catch (error) {
-    return NextResponse.json(
-      { error: (error as Error).message },
-      { status: 400 },
-    );
-  }
-}
-```
 
 ## How to list all your blobs
 
@@ -423,11 +348,7 @@ Once such a commit gets merged in main, then GitHub will open a versioning PR yo
 
 ## A note about Vercel file upload limitations
 
-When using Serverless or Edge Functions on Vercel, the request body size is limited to 4MB.
-
-When you want to send files larger than that to Vercel Blob, you can do so by using `@vercel/blob` from a regular Node.js script context (like at build time). This way the request body will be sent directly to Vercel Blob and not via an Edge or Serverless Function.
-
-We plan to allow sending larger files to Vercel Blob from browser contexts soon.
+When transferring a file to a Serverless or Edge Functions route on Vercel, then the request body is limited to 4MB. If you need to send larger files then use the [browser-upload](#browser-upload) method.
 
 ## Running examples locally
 

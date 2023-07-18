@@ -1,5 +1,5 @@
 'use client';
-import { put, type BlobResult } from '@vercel/blob';
+import { put, type PutBlobResult } from '@vercel/blob';
 import { useEffect, useState } from 'react';
 
 export default function AppBodyClient({
@@ -9,7 +9,7 @@ export default function AppBodyClient({
 }): JSX.Element {
   const { filename, callback } = searchParams;
   const [content, setContent] = useState<string>('');
-  const [blob, setBlob] = useState<BlobResult | null>(null);
+  const [blob, setBlob] = useState<PutBlobResult | null>(null);
 
   useEffect(() => {
     const doUpload = async (): Promise<void> => {

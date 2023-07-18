@@ -2,7 +2,7 @@
 import * as crypto from 'crypto';
 import type { IncomingMessage } from 'node:http';
 import { getToken } from './helpers';
-import { type BlobResult, type BlobCommandOptions } from '.';
+import { type HeadBlobResult, type BlobCommandOptions } from '.';
 
 export interface GenerateClientTokenOptions extends BlobCommandOptions {
   pathname: string;
@@ -155,7 +155,7 @@ export interface GenerateClientTokenEvent {
 export interface BlobUploadCompletedEvent {
   type: (typeof EventTypes)['uploadCompleted'];
   payload: {
-    blob: BlobResult;
+    blob: HeadBlobResult;
     metadata?: string;
   };
 }

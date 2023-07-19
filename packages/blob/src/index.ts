@@ -24,38 +24,30 @@ export {
   type HandleBlobUploadOptions,
 } from './client-upload';
 
-export interface BlobResult {
-  url: string;
-  size: string;
-  uploadedAt: Date;
-  pathname: string;
-  contentType: string;
-  contentDisposition: string;
-}
-
-export interface ListBlobResult {
-  blobs: BlobResult[];
-  cursor?: string;
-  hasMore: boolean;
-}
-
-export interface ListCommandOptions extends BlobCommandOptions {
-  limit?: number;
-  prefix?: string;
-  cursor?: string;
-}
+// This version is used to ensure that the client and server are compatible
+// The server (Vercel Blob API) uses this information to change its behavior like the
+// response format
+const BLOB_API_VERSION = 2;
 
 export interface BlobCommandOptions {
   token?: string;
 }
 
+// vercelBlob.put()
 export interface PutCommandOptions extends BlobCommandOptions {
   access: 'public';
   contentType?: string;
   handleBlobUploadUrl?: string;
 }
 
-const BLOB_API_VERSION = 1;
+export interface PutBlobResult {
+  url: string;
+  pathname: string;
+  contentType: string;
+  contentDisposition: string;
+}
+
+type PutBlobApiResponse = PutBlobResult;
 
 export async function put(
   pathname: string,
@@ -68,7 +60,7 @@ export async function put(
     | ReadableStream
     | File,
   options: PutCommandOptions,
-): Promise<BlobResult> {
+): Promise<PutBlobResult> {
   if (!pathname) {
     throw new BlobError('pathname is required');
   }
@@ -115,18 +107,21 @@ export async function put(
     }
   }
 
-  const blobResult = (await blobApiResponse.json()) as BlobMetadataApi;
-  return mapBlobResult(blobResult);
+  const blobResult = (await blobApiResponse.json()) as PutBlobApiResponse;
+
+  return blobResult;
 }
 
-type BlobDelResult<T extends string | string[]> = T extends string
-  ? BlobResult | null
-  : (BlobResult | null)[];
+// vercelBlob.del()
 
-export async function del<T extends string | string[]>(
-  url: T,
+type DeleteBlobApiResponse = null;
+
+// del accepts either a single url or an array of urls
+// we use function overloads to define the return type accordingly
+export async function del(
+  url: string[] | string,
   options?: BlobCommandOptions,
-): Promise<BlobDelResult<T>> {
+): Promise<void> {
   const blobApiResponse = await fetch(getApiUrl('/delete'), {
     method: 'POST',
     headers: {
@@ -145,31 +140,28 @@ export async function del<T extends string | string[]>(
     }
   }
 
-  const delResult =
-    (await blobApiResponse.json()) as (BlobMetadataApi | null)[];
-
-  if (Array.isArray(url)) {
-    return delResult.map((deletedBlob) =>
-      deletedBlob ? mapBlobResult(deletedBlob) : null,
-    ) as BlobDelResult<T>;
-  }
-  if (delResult[0]) {
-    return mapBlobResult(delResult[0]) as BlobDelResult<T>;
-  }
-  return null as BlobDelResult<T>;
+  (await blobApiResponse.json()) as DeleteBlobApiResponse;
 }
 
-interface BlobMetadataApi extends Omit<BlobResult, 'uploadedAt'> {
+// vercelBlob.head()
+
+export interface HeadBlobResult {
+  url: string;
+  size: number;
+  uploadedAt: Date;
+  pathname: string;
+  contentType: string;
+  contentDisposition: string;
+}
+
+interface HeadBlobApiResponse extends Omit<HeadBlobResult, 'uploadedAt'> {
   uploadedAt: string;
-}
-interface ListBlobResultApi extends Omit<ListBlobResult, 'blobs'> {
-  blobs: BlobMetadataApi[];
 }
 
 export async function head(
   url: string,
   options?: BlobCommandOptions,
-): Promise<BlobResult | null> {
+): Promise<HeadBlobResult | null> {
   const headApiUrl = new URL(getApiUrl());
   headApiUrl.searchParams.set('url', url);
 
@@ -193,9 +185,38 @@ export async function head(
     }
   }
 
-  const headResult = (await blobApiResponse.json()) as BlobMetadataApi;
+  const headResult = (await blobApiResponse.json()) as HeadBlobApiResponse;
 
   return mapBlobResult(headResult);
+}
+
+// vercelBlob.list()
+interface ListBlobResultBlob {
+  url: string;
+  pathname: string;
+  size: number;
+  uploadedAt: Date;
+}
+
+export interface ListBlobResult {
+  blobs: ListBlobResultBlob[];
+  cursor?: string;
+  hasMore: boolean;
+}
+
+interface ListBlobApiResponseBlob
+  extends Omit<ListBlobResultBlob, 'uploadedAt'> {
+  uploadedAt: string;
+}
+
+interface ListBlobApiResponse extends Omit<ListBlobResult, 'blobs'> {
+  blobs: ListBlobApiResponseBlob[];
+}
+
+export interface ListCommandOptions extends BlobCommandOptions {
+  limit?: number;
+  prefix?: string;
+  cursor?: string;
 }
 
 export async function list(
@@ -227,7 +248,7 @@ export async function list(
     }
   }
 
-  const results = (await blobApiResponse.json()) as ListBlobResultApi;
+  const results = (await blobApiResponse.json()) as ListBlobApiResponse;
 
   return {
     ...results,
@@ -244,16 +265,15 @@ function getApiUrl(pathname = ''): string {
   return `${baseUrl}${pathname}`;
 }
 
-function mapBlobResult(blobResult: BlobMetadataApi): BlobResult {
-  // TODO: temporary fix for misaligned types given multibucket migration
-  if (blobResult.uploadedAt) {
-    return {
-      ...blobResult,
-      uploadedAt: new Date(blobResult.uploadedAt),
-    };
-  }
-
-  return blobResult as unknown as BlobResult;
+function mapBlobResult(blobResult: HeadBlobApiResponse): HeadBlobResult;
+function mapBlobResult(blobResult: ListBlobApiResponseBlob): ListBlobResultBlob;
+function mapBlobResult(
+  blobResult: ListBlobApiResponseBlob | HeadBlobApiResponse,
+): ListBlobResultBlob | HeadBlobResult {
+  return {
+    ...blobResult,
+    uploadedAt: new Date(blobResult.uploadedAt),
+  };
 }
 
 function isAbsoluteUrl(url: string): boolean {
@@ -304,11 +324,9 @@ function shouldFetchClientToken(
 }
 
 function getApiVersionHeader(): { 'x-api-version'?: string } {
-  if (process.env.VERCEL_BLOB_USE_API_VERSION === 'true') {
-    return {
-      'x-api-version': `${BLOB_API_VERSION}`,
-    };
-  }
+  const versionOverride = process.env.VERCEL_BLOB_API_VERSION_OVERRIDE;
 
-  return {};
+  return {
+    'x-api-version': `${versionOverride ?? BLOB_API_VERSION}`,
+  };
 }

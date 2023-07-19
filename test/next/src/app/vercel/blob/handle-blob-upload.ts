@@ -36,7 +36,7 @@ export async function handleBlobUploadHandler(
         }
 
         return {
-          maxFileSize: 10_000_000,
+          maximumSizeInBytes: 10_000_000,
           allowedContentTypes: [
             'image/jpeg',
             'image/png',

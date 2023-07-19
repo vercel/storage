@@ -5,10 +5,7 @@ type VercelPostgresErrorCode =
   | 'incorrect_tagged_template_call';
 
 export class VercelPostgresError extends Error {
-  public constructor(
-    public code: VercelPostgresErrorCode,
-    message: string,
-  ) {
+  public constructor(public code: VercelPostgresErrorCode, message: string) {
     super(`VercelPostgresError - '${code}': ${message}`);
     this.name = 'VercelPostgresError';
   }

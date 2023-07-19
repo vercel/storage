@@ -22,7 +22,7 @@ export default async function handleBody(
       // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/require-await
       onBeforeGenerateToken: async (pathname) => {
         return {
-          maxFileSize: 10_000_000,
+          maximumSizeInBytes: 10_000_000,
           allowedContentTypes: [
             'image/jpeg',
             'image/png',

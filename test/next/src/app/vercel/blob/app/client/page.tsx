@@ -1,11 +1,11 @@
 'use client';
 
-import { put, type BlobResult } from '@vercel/blob';
+import { put, type PutBlobResult } from '@vercel/blob';
 import { useRef, useState } from 'react';
 
 export default function AppClientUpload(): JSX.Element {
   const inputFileRef = useRef<HTMLInputElement>(null);
-  const [blob, setBlob] = useState<BlobResult | null>(null);
+  const [blob, setBlob] = useState<PutBlobResult | null>(null);
   return (
     <>
       <h1>App Router Client Upload</h1>

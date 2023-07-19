@@ -1,11 +1,11 @@
 'use client';
 
-import type { BlobResult } from '@vercel/blob';
+import type { PutBlobResult } from '@vercel/blob';
 import { useState } from 'react';
 
 // eslint-disable-next-line import/no-default-export
 export default function Upload({ action }: { action: string }): JSX.Element {
-  const [blob, setBlob] = useState<BlobResult | null>(null);
+  const [blob, setBlob] = useState<PutBlobResult | null>(null);
 
   return (
     <>
@@ -34,7 +34,7 @@ export default function Upload({ action }: { action: string }): JSX.Element {
               throw new Error(`Error: ${response.status}`);
             }
 
-            setBlob((await response.json()) as BlobResult);
+            setBlob((await response.json()) as PutBlobResult);
           } catch (error) {
             // eslint-disable-next-line no-console
             console.error('Error uploading file:', error);

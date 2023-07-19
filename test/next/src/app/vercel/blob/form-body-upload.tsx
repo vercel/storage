@@ -1,6 +1,6 @@
 'use client';
 
-import type { BlobResult } from '@vercel/blob';
+import type { PutBlobResult } from '@vercel/blob';
 import { useRef, useState } from 'react';
 
 // eslint-disable-next-line import/no-default-export
@@ -10,7 +10,7 @@ export default function FormBodyUpload({
   action: string;
 }): JSX.Element {
   const inputFileRef = useRef<HTMLInputElement>(null);
-  const [blob, setBlob] = useState<BlobResult | null>(null);
+  const [blob, setBlob] = useState<PutBlobResult | null>(null);
 
   return (
     <>
@@ -30,7 +30,7 @@ export default function FormBodyUpload({
               body: file,
             },
           );
-          const blobResult = (await response.json()) as BlobResult;
+          const blobResult = (await response.json()) as PutBlobResult;
           setBlob(blobResult);
         }}
       >

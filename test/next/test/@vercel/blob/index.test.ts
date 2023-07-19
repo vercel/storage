@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { test, expect } from '@playwright/test';
-import { type BlobResult } from '@vercel/blob';
+import { type PutBlobResult } from '@vercel/blob';
 
 const prefix = `${
   process.env.GITHUB_PR_NUMBER || crypto.randomBytes(10).toString('hex')
@@ -22,7 +22,7 @@ test.describe('@vercel/blob', () => {
               cookie: `blobUpload=${process.env.BLOB_UPLOAD_SECRET ?? ''}`,
             },
           })
-          .then((r) => r.json())) as BlobResult;
+          .then((r) => r.json())) as PutBlobResult;
         expect(data.contentDisposition).toBe('attachment; filename="test.txt"');
         expect(data.contentType).toBe('text/plain');
         expect(data.pathname).toBe(`${prefix}/test.txt`);

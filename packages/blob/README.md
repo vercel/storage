@@ -27,11 +27,10 @@ Here's a Next.js app router example, and our browser upload helpers are framewor
 
 ```tsx
 // /app/UploadForm.tsx
-
 'use client';
 
-import type { PutBlobResult, put } from '@vercel/blob';
-import { useState } from 'react';
+import { put, type PutBlobResult } from '@vercel/blob';
+import { useState, useRef } from 'react';
 
 export default function UploadForm() {
   const inputFileRef = useRef<HTMLInputElement>(null);

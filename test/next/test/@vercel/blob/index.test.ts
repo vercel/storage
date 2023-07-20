@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { test, expect } from '@playwright/test';
-import { type PutBlobResult } from '@vercel/blob';
+import type { PutBlobResult } from '@vercel/blob';
 
 const prefix = `${
   process.env.GITHUB_PR_NUMBER || crypto.randomBytes(10).toString('hex')

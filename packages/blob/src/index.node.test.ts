@@ -107,7 +107,7 @@ describe('blob client', () => {
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
-          'Vercel Blob: Unknown error, please contact support@vercel.com',
+          'Vercel Blob: Unknown error, please visit https://vercel.com/help',
         ),
       );
     });
@@ -205,7 +205,7 @@ describe('blob client', () => {
 
       await expect(del(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
-          'Vercel Blob: Unknown error, please contact support@vercel.com',
+          'Vercel Blob: Unknown error, please visit https://vercel.com/help',
         ),
       );
     });
@@ -287,7 +287,7 @@ describe('blob client', () => {
         .reply(500, 'Invalid token');
       await expect(list()).rejects.toThrow(
         new Error(
-          'Vercel Blob: Unknown error, please contact support@vercel.com',
+          'Vercel Blob: Unknown error, please visit https://vercel.com/help',
         ),
       );
     });
@@ -389,7 +389,7 @@ describe('blob client', () => {
         }),
       ).rejects.toThrow(
         new Error(
-          'Vercel Blob: Unknown error, please contact support@vercel.com',
+          'Vercel Blob: Unknown error, please visit https://vercel.com/help',
         ),
       );
     });

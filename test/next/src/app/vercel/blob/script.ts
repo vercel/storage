@@ -33,7 +33,7 @@ async function run(): Promise<void> {
   await Promise.all(
     urls.map(async (url) => {
       const blobDetails = await vercelBlob.head(url as string);
-      console.log(blobDetails);
+      console.log(blobDetails, url);
     }),
   );
 

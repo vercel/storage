@@ -9,8 +9,8 @@ export default function Home(): JSX.Element {
         )
       </h1>
       <p>
-        Note: When deployed on Vercel, there&apos;s a 4MB file upload limit for
-        browsers.
+        Note: When deployed on Vercel, there&apos;s a 4.5 MB file upload limit
+        for browsers.
       </p>
       <p>
         Node.js https.get, axios, and got examples can be found in the{' '}

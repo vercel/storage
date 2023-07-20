@@ -11,14 +11,13 @@ export const getServerSideProps: GetServerSideProps = async (req) => {
   return {
     props: {
       ...blob,
-      uploadedAt: blob.uploadedAt.toString(),
       content,
     },
   };
 };
 
 export default function Blob(
-  props: vercelBlob.BlobResult & { content: string },
+  props: vercelBlob.PutBlobResult & { content: string },
 ): JSX.Element {
   return (
     <div>

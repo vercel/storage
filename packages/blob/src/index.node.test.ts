@@ -9,17 +9,18 @@ import {
   getPayloadFromClientToken,
   verifyCallbackSignature,
   handleBlobUpload,
-  type BlobResult,
+  type HeadBlobResult,
 } from './index';
 
-const BASE_URL = 'https://blob.vercel-storage.com';
+const BLOB_API_URL = 'https://blob.vercel-storage.com';
+const BLOB_STORE_BASE_URL = 'https://storeId.public.blob.vercel-storage.com';
 const mockAgent = new MockAgent();
 mockAgent.disableNetConnect();
 
 setGlobalDispatcher(mockAgent);
 
 const mockedFileMeta = {
-  url: `${BASE_URL}/storeid/foo-id.txt`,
+  url: `${BLOB_STORE_BASE_URL}/foo-id.txt`,
   size: 12345,
   uploadedAt: '2023-05-04T15:12:07.818Z',
   pathname: 'foo.txt',
@@ -32,7 +33,7 @@ describe('blob client', () => {
 
   beforeEach(() => {
     process.env.BLOB_READ_WRITE_TOKEN = 'TEST_TOKEN';
-    mockClient = mockAgent.get(BASE_URL);
+    mockClient = mockAgent.get(BLOB_API_URL);
     jest.resetAllMocks();
   });
 
@@ -51,7 +52,7 @@ describe('blob client', () => {
           return mockedFileMeta;
         });
 
-      await expect(head(`${BASE_URL}/storeid/foo-id.txt`)).resolves
+      await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).resolves
         .toMatchInlineSnapshot(`
               {
                 "contentDisposition": "attachment; filename="foo.txt"",
@@ -59,11 +60,11 @@ describe('blob client', () => {
                 "pathname": "foo.txt",
                 "size": 12345,
                 "uploadedAt": 2023-05-04T15:12:07.818Z,
-                "url": "https://blob.vercel-storage.com/storeid/foo-id.txt",
+                "url": "https://storeId.public.blob.vercel-storage.com/foo-id.txt",
               }
           `);
       expect(path).toEqual(
-        '/?url=https%3A%2F%2Fblob.vercel-storage.com%2Fstoreid%2Ffoo-id.txt',
+        '/?url=https%3A%2F%2FstoreId.public.blob.vercel-storage.com%2Ffoo-id.txt',
       );
       expect(headers.authorization).toEqual('Bearer TEST_TOKEN');
     });
@@ -76,7 +77,7 @@ describe('blob client', () => {
         })
         .reply(404, 'Not found');
 
-      await expect(head(`${BASE_URL}/storeid/foo-id.txt`)).resolves.toEqual(
+      await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).resolves.toEqual(
         null,
       );
     });
@@ -89,7 +90,7 @@ describe('blob client', () => {
         })
         .reply(403, 'Invalid token');
 
-      await expect(head(`${BASE_URL}/storeid/foo-id.txt`)).rejects.toThrow(
+      await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
           'Vercel Blob: Access denied, please provide a valid token for this resource',
         ),
@@ -104,7 +105,7 @@ describe('blob client', () => {
         })
         .reply(500, 'Invalid token');
 
-      await expect(head(`${BASE_URL}/storeid/foo-id.txt`)).rejects.toThrow(
+      await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
           'Vercel Blob: Unknown error, please visit https://vercel.com/help',
         ),
@@ -114,7 +115,7 @@ describe('blob client', () => {
     it('should throw when the token is not set', async () => {
       process.env.BLOB_READ_WRITE_TOKEN = '';
 
-      await expect(head(`${BASE_URL}/storeid/foo-id.txt`)).rejects.toThrow(
+      await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
           'BLOB_READ_WRITE_TOKEN environment variable is not set. Please set it to your write token.',
         ),
@@ -123,7 +124,7 @@ describe('blob client', () => {
   });
 
   describe('del', () => {
-    it('should return Blob metadata when calling `del()` with a single file path', async () => {
+    it('should return null when calling `del()` with a single file path', async () => {
       let path: string | null = null;
       let headers: Record<string, string> = {};
       let body = '';
@@ -136,29 +137,21 @@ describe('blob client', () => {
           path = req.path;
           headers = req.headers as Record<string, string>;
           body = req.body as string;
-          return [mockedFileMeta];
+          return [mockedFileMeta.url];
         });
 
-      await expect(del(`${BASE_URL}/storeid/foo-id.txt`)).resolves
-        .toMatchInlineSnapshot(`
-        {
-          "contentDisposition": "attachment; filename="foo.txt"",
-          "contentType": "text/plain",
-          "pathname": "foo.txt",
-          "size": 12345,
-          "uploadedAt": 2023-05-04T15:12:07.818Z,
-          "url": "https://blob.vercel-storage.com/storeid/foo-id.txt",
-        }
-      `);
+      await expect(
+        del(`${BLOB_STORE_BASE_URL}/foo-id.txt`),
+      ).resolves.toBeUndefined();
 
       expect(path).toEqual('/delete');
       expect(headers.authorization).toEqual('Bearer TEST_TOKEN');
       expect(body).toMatchInlineSnapshot(
-        '"{"urls":["https://blob.vercel-storage.com/storeid/foo-id.txt"]}"',
+        `"{"urls":["https://storeId.public.blob.vercel-storage.com/foo-id.txt"]}"`,
       );
     });
 
-    it('should return multiple Blob metadata when calling `del()` with multiple file paths', async () => {
+    it('should return null Blob metadata when calling `del()` with multiple file paths', async () => {
       let path: string | null = null;
       let headers: Record<string, string> = {};
       let body = '';
@@ -171,73 +164,20 @@ describe('blob client', () => {
           path = req.path;
           headers = req.headers as Record<string, string>;
           body = req.body as string;
-          return [mockedFileMeta, mockedFileMeta];
+          return [mockedFileMeta.url, mockedFileMeta.url];
         });
 
       await expect(
         del([
-          `${BASE_URL}/storeid/foo-id1.txt`,
-          `${BASE_URL}/storeid/foo-id2.txt`,
+          `${BLOB_STORE_BASE_URL}/foo-id1.txt`,
+          `${BLOB_STORE_BASE_URL}/foo-id2.txt`,
         ]),
-      ).resolves.toMatchInlineSnapshot(`
-        [
-          {
-            "contentDisposition": "attachment; filename="foo.txt"",
-            "contentType": "text/plain",
-            "pathname": "foo.txt",
-            "size": 12345,
-            "uploadedAt": 2023-05-04T15:12:07.818Z,
-            "url": "https://blob.vercel-storage.com/storeid/foo-id.txt",
-          },
-          {
-            "contentDisposition": "attachment; filename="foo.txt"",
-            "contentType": "text/plain",
-            "pathname": "foo.txt",
-            "size": 12345,
-            "uploadedAt": 2023-05-04T15:12:07.818Z,
-            "url": "https://blob.vercel-storage.com/storeid/foo-id.txt",
-          },
-        ]
-      `);
+      ).resolves.toBeUndefined();
       expect(path).toEqual('/delete');
       expect(headers.authorization).toEqual('Bearer TEST_TOKEN');
       expect(body).toMatchInlineSnapshot(
-        `"{"urls":["https://blob.vercel-storage.com/storeid/foo-id1.txt","https://blob.vercel-storage.com/storeid/foo-id2.txt"]}"`,
+        `"{"urls":["https://storeId.public.blob.vercel-storage.com/foo-id1.txt","https://storeId.public.blob.vercel-storage.com/foo-id2.txt"]}"`,
       );
-    });
-
-    it('should return null when the file is not found', async () => {
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'POST',
-        })
-        .reply(200, [null]);
-
-      await expect(
-        del(`${BASE_URL}/storeid/foo-id2.txt`),
-      ).resolves.toMatchInlineSnapshot(`null`);
-    });
-
-    it('should return null when multiple files are not found', async () => {
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'POST',
-        })
-        .reply(200, [null, null]);
-
-      await expect(
-        del([
-          `${BASE_URL}/storeid/foo-id2.txt`,
-          `${BASE_URL}/storeid/foo-id2.txt`,
-        ]),
-      ).resolves.toMatchInlineSnapshot(`
-        [
-          null,
-          null,
-        ]
-      `);
     });
 
     it('should throw when calling `del()` with an invalid token', async () => {
@@ -248,7 +188,7 @@ describe('blob client', () => {
         })
         .reply(403, 'Invalid token');
 
-      await expect(del(`${BASE_URL}/storeid/foo-id.txt`)).rejects.toThrow(
+      await expect(del(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
           'Vercel Blob: Access denied, please provide a valid token for this resource',
         ),
@@ -263,7 +203,7 @@ describe('blob client', () => {
         })
         .reply(500, 'Invalid token');
 
-      await expect(del(`${BASE_URL}/storeid/foo-id.txt`)).rejects.toThrow(
+      await expect(del(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
           'Vercel Blob: Unknown error, please visit https://vercel.com/help',
         ),
@@ -272,6 +212,13 @@ describe('blob client', () => {
   });
 
   describe('list', () => {
+    const mockedFileMetaList = {
+      url: mockedFileMeta.url,
+      pathname: mockedFileMeta.pathname,
+      size: mockedFileMeta.size,
+      uploadedAt: mockedFileMeta.uploadedAt,
+    };
+
     it('should return a list of Blob metadata when calling `list()`', async () => {
       let path: string | null = null;
       let headers: Record<string, string> = {};
@@ -284,7 +231,7 @@ describe('blob client', () => {
           path = req.path;
           headers = req.headers as Record<string, string>;
           return {
-            blobs: [mockedFileMeta, mockedFileMeta],
+            blobs: [mockedFileMetaList, mockedFileMetaList],
             cursor: 'cursor-123',
             hasMore: true,
           };
@@ -296,20 +243,16 @@ describe('blob client', () => {
         {
           "blobs": [
             {
-              "contentDisposition": "attachment; filename="foo.txt"",
-              "contentType": "text/plain",
               "pathname": "foo.txt",
               "size": 12345,
               "uploadedAt": 2023-05-04T15:12:07.818Z,
-              "url": "https://blob.vercel-storage.com/storeid/foo-id.txt",
+              "url": "https://storeId.public.blob.vercel-storage.com/foo-id.txt",
             },
             {
-              "contentDisposition": "attachment; filename="foo.txt"",
-              "contentType": "text/plain",
               "pathname": "foo.txt",
               "size": 12345,
               "uploadedAt": 2023-05-04T15:12:07.818Z,
-              "url": "https://blob.vercel-storage.com/storeid/foo-id.txt",
+              "url": "https://storeId.public.blob.vercel-storage.com/foo-id.txt",
             },
           ],
           "cursor": "cursor-123",
@@ -351,6 +294,13 @@ describe('blob client', () => {
   });
 
   describe('put', () => {
+    const mockedFileMetaPut = {
+      url: mockedFileMeta.url,
+      pathname: mockedFileMeta.pathname,
+      contentType: mockedFileMeta.contentType,
+      contentDisposition: mockedFileMeta.contentDisposition,
+    };
+
     it('should upload a file with a custom token', async () => {
       let path: string | null = null;
       let headers: Record<string, string> = {};
@@ -364,7 +314,7 @@ describe('blob client', () => {
           path = req.path;
           headers = req.headers as Record<string, string>;
           body = req.body as string;
-          return mockedFileMeta;
+          return mockedFileMetaPut;
         });
 
       await expect(
@@ -377,9 +327,7 @@ describe('blob client', () => {
           "contentDisposition": "attachment; filename="foo.txt"",
           "contentType": "text/plain",
           "pathname": "foo.txt",
-          "size": 12345,
-          "uploadedAt": 2023-05-04T15:12:07.818Z,
-          "url": "https://blob.vercel-storage.com/storeid/foo-id.txt",
+          "url": "https://storeId.public.blob.vercel-storage.com/foo-id.txt",
         }
       `);
       expect(path).toBe('/foo.txt');
@@ -397,7 +345,7 @@ describe('blob client', () => {
         })
         .reply(200, (req) => {
           headers = req.headers as Record<string, string>;
-          return mockedFileMeta;
+          return mockedFileMetaPut;
         });
 
       await put('foo.txt', 'Test Body', {
@@ -452,7 +400,7 @@ describe('blob client', () => {
           path: () => true,
           method: 'PUT',
         })
-        .reply(200, mockedFileMeta);
+        .reply(200, mockedFileMetaPut);
 
       await expect(
         put('', 'Test Body', {
@@ -467,7 +415,7 @@ describe('blob client', () => {
           path: () => true,
           method: 'PUT',
         })
-        .reply(200, mockedFileMeta);
+        .reply(200, mockedFileMetaPut);
 
       await expect(
         put('path.txt', '', {
@@ -482,7 +430,7 @@ describe('blob client', () => {
           path: () => true,
           method: 'PUT',
         })
-        .reply(200, mockedFileMeta);
+        .reply(200, mockedFileMetaPut);
 
       await expect(
         put('foo.txt', 'Test Body', {
@@ -502,7 +450,7 @@ describe('blob client', () => {
     beforeEach(() => {
       jest.useFakeTimers().setSystemTime(new Date('2023-01-01'));
     });
-    test('should generate an upload token with the correct payload', async () => {
+    test('should generate a client token with the correct payload', async () => {
       const uploadToken = await generateClientTokenFromReadWriteToken({
         pathname: 'foo.txt',
         onUploadCompleted: {
@@ -640,7 +588,7 @@ describe('blob client', () => {
           body: {
             type: 'blob.upload-completed',
             payload: {
-              blob: { pathname: 'newfile.txt' } as BlobResult,
+              blob: { pathname: 'newfile.txt' } as HeadBlobResult,
               metadata: 'custom-metadata',
             },
           },
@@ -657,7 +605,7 @@ describe('blob client', () => {
         type: 'blob.upload-completed',
       });
       expect(spy).toHaveBeenCalledWith({
-        blob: { pathname: 'newfile.txt' } as BlobResult,
+        blob: { pathname: 'newfile.txt' } as HeadBlobResult,
         metadata: 'custom-metadata',
       });
     });

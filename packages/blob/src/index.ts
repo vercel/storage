@@ -24,36 +24,30 @@ export {
   type HandleBlobUploadOptions,
 } from './client-upload';
 
-export interface BlobResult {
-  url: string;
-  size: string;
-  uploadedAt: Date;
-  pathname: string;
-  contentType: string;
-  contentDisposition: string;
-}
-
-export interface ListBlobResult {
-  blobs: BlobResult[];
-  cursor?: string;
-  hasMore: boolean;
-}
-
-export interface ListCommandOptions extends BlobCommandOptions {
-  limit?: number;
-  prefix?: string;
-  cursor?: string;
-}
+// This version is used to ensure that the client and server are compatible
+// The server (Vercel Blob API) uses this information to change its behavior like the
+// response format
+const BLOB_API_VERSION = 2;
 
 export interface BlobCommandOptions {
   token?: string;
 }
 
+// vercelBlob.put()
 export interface PutCommandOptions extends BlobCommandOptions {
   access: 'public';
   contentType?: string;
   handleBlobUploadUrl?: string;
 }
+
+export interface PutBlobResult {
+  url: string;
+  pathname: string;
+  contentType: string;
+  contentDisposition: string;
+}
+
+type PutBlobApiResponse = PutBlobResult;
 
 export async function put(
   pathname: string,
@@ -66,7 +60,7 @@ export async function put(
     | ReadableStream
     | File,
   options: PutCommandOptions,
-): Promise<BlobResult> {
+): Promise<PutBlobResult> {
   if (!pathname) {
     throw new BlobError('pathname is required');
   }
@@ -88,6 +82,7 @@ export async function put(
     : getToken(options);
 
   const headers: Record<string, string> = {
+    ...getApiVersionHeader(),
     authorization: `Bearer ${token}`,
   };
 
@@ -95,7 +90,7 @@ export async function put(
     headers['x-content-type'] = options.contentType;
   }
 
-  const blobApiResponse = await fetch(`${getApiUrl()}/${pathname}`, {
+  const blobApiResponse = await fetch(getApiUrl(`/${pathname}`), {
     method: 'PUT',
     body: body as BodyInit,
     headers,
@@ -112,21 +107,25 @@ export async function put(
     }
   }
 
-  const blobResult = (await blobApiResponse.json()) as BlobMetadataApi;
-  return mapBlobResult(blobResult);
+  const blobResult = (await blobApiResponse.json()) as PutBlobApiResponse;
+
+  return blobResult;
 }
 
-type BlobDelResult<T extends string | string[]> = T extends string
-  ? BlobResult | null
-  : (BlobResult | null)[];
+// vercelBlob.del()
 
-export async function del<T extends string | string[]>(
-  url: T,
+type DeleteBlobApiResponse = null;
+
+// del accepts either a single url or an array of urls
+// we use function overloads to define the return type accordingly
+export async function del(
+  url: string[] | string,
   options?: BlobCommandOptions,
-): Promise<BlobDelResult<T>> {
-  const blobApiResponse = await fetch(`${getApiUrl()}/delete`, {
+): Promise<void> {
+  const blobApiResponse = await fetch(getApiUrl('/delete'), {
     method: 'POST',
     headers: {
+      ...getApiVersionHeader(),
       authorization: `Bearer ${getToken(options)}`,
       'content-type': 'application/json',
     },
@@ -141,37 +140,35 @@ export async function del<T extends string | string[]>(
     }
   }
 
-  const delResult =
-    (await blobApiResponse.json()) as (BlobMetadataApi | null)[];
-
-  if (Array.isArray(url)) {
-    return delResult.map((deletedBlob) =>
-      deletedBlob ? mapBlobResult(deletedBlob) : null,
-    ) as BlobDelResult<T>;
-  }
-  if (delResult[0]) {
-    return mapBlobResult(delResult[0]) as BlobDelResult<T>;
-  }
-  return null as BlobDelResult<T>;
+  (await blobApiResponse.json()) as DeleteBlobApiResponse;
 }
 
-interface BlobMetadataApi extends Omit<BlobResult, 'uploadedAt'> {
+// vercelBlob.head()
+
+export interface HeadBlobResult {
+  url: string;
+  size: number;
+  uploadedAt: Date;
+  pathname: string;
+  contentType: string;
+  contentDisposition: string;
+}
+
+interface HeadBlobApiResponse extends Omit<HeadBlobResult, 'uploadedAt'> {
   uploadedAt: string;
-}
-interface ListBlobResultApi extends Omit<ListBlobResult, 'blobs'> {
-  blobs: BlobMetadataApi[];
 }
 
 export async function head(
   url: string,
   options?: BlobCommandOptions,
-): Promise<BlobResult | null> {
+): Promise<HeadBlobResult | null> {
   const headApiUrl = new URL(getApiUrl());
   headApiUrl.searchParams.set('url', url);
 
   const blobApiResponse = await fetch(headApiUrl, {
     method: 'GET', // HEAD can't have body as a response, so we use GET
     headers: {
+      ...getApiVersionHeader(),
       authorization: `Bearer ${getToken(options)}`,
     },
   });
@@ -188,9 +185,38 @@ export async function head(
     }
   }
 
-  const headResult = (await blobApiResponse.json()) as BlobMetadataApi;
+  const headResult = (await blobApiResponse.json()) as HeadBlobApiResponse;
 
   return mapBlobResult(headResult);
+}
+
+// vercelBlob.list()
+interface ListBlobResultBlob {
+  url: string;
+  pathname: string;
+  size: number;
+  uploadedAt: Date;
+}
+
+export interface ListBlobResult {
+  blobs: ListBlobResultBlob[];
+  cursor?: string;
+  hasMore: boolean;
+}
+
+interface ListBlobApiResponseBlob
+  extends Omit<ListBlobResultBlob, 'uploadedAt'> {
+  uploadedAt: string;
+}
+
+interface ListBlobApiResponse extends Omit<ListBlobResult, 'blobs'> {
+  blobs: ListBlobApiResponseBlob[];
+}
+
+export interface ListCommandOptions extends BlobCommandOptions {
+  limit?: number;
+  prefix?: string;
+  cursor?: string;
 }
 
 export async function list(
@@ -209,6 +235,7 @@ export async function list(
   const blobApiResponse = await fetch(listApiUrl, {
     method: 'GET',
     headers: {
+      ...getApiVersionHeader(),
       authorization: `Bearer ${getToken(options)}`,
     },
   });
@@ -221,7 +248,7 @@ export async function list(
     }
   }
 
-  const results = (await blobApiResponse.json()) as ListBlobResultApi;
+  const results = (await blobApiResponse.json()) as ListBlobApiResponse;
 
   return {
     ...results,
@@ -229,15 +256,20 @@ export async function list(
   };
 }
 
-function getApiUrl(): string {
-  return (
+function getApiUrl(pathname = ''): string {
+  const baseUrl =
     process.env.VERCEL_BLOB_API_URL ||
     process.env.NEXT_PUBLIC_VERCEL_BLOB_API_URL ||
-    'https://blob.vercel-storage.com'
-  );
+    'https://blob.vercel-storage.com';
+
+  return `${baseUrl}${pathname}`;
 }
 
-function mapBlobResult(blobResult: BlobMetadataApi): BlobResult {
+function mapBlobResult(blobResult: HeadBlobApiResponse): HeadBlobResult;
+function mapBlobResult(blobResult: ListBlobApiResponseBlob): ListBlobResultBlob;
+function mapBlobResult(
+  blobResult: ListBlobApiResponseBlob | HeadBlobApiResponse,
+): ListBlobResultBlob | HeadBlobResult {
   return {
     ...blobResult,
     uploadedAt: new Date(blobResult.uploadedAt),
@@ -289,4 +321,12 @@ function shouldFetchClientToken(
   options: PutCommandOptions,
 ): options is ReturnPutCommandOptions {
   return Boolean(!options.token && options.handleBlobUploadUrl);
+}
+
+function getApiVersionHeader(): { 'x-api-version'?: string } {
+  const versionOverride = process.env.VERCEL_BLOB_API_VERSION_OVERRIDE;
+
+  return {
+    'x-api-version': `${versionOverride ?? BLOB_API_VERSION}`,
+  };
 }

@@ -1,21 +1,20 @@
 import { put } from './index';
 
+const BLOB_STORE_BASE_URL = 'https://storeId.public.blob.vercel-storage.com';
+
 jest.mock('undici', () => ({
   fetch: (): unknown =>
     Promise.resolve({
       status: 200,
       json: () =>
         Promise.resolve({
-          url: `${BASE_URL}/storeid/foo-id.txt`,
-          size: 12345,
-          uploadedAt: '2023-05-04T15:12:07.818Z',
+          url: `${BLOB_STORE_BASE_URL}/foo-id.txt`,
           pathname: 'foo.txt',
           contentType: 'text/plain',
           contentDisposition: 'attachment; filename="foo.txt"',
         }),
     }),
 }));
-const BASE_URL = 'https://blob.vercel-storage.com';
 
 describe('blob client', () => {
   beforeEach(() => {
@@ -38,9 +37,7 @@ describe('blob client', () => {
           "contentDisposition": "attachment; filename="foo.txt"",
           "contentType": "text/plain",
           "pathname": "foo.txt",
-          "size": 12345,
-          "uploadedAt": 2023-05-04T15:12:07.818Z,
-          "url": "https://blob.vercel-storage.com/storeid/foo-id.txt",
+          "url": "https://storeId.public.blob.vercel-storage.com/foo-id.txt",
         }
       `);
     });

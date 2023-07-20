@@ -191,8 +191,8 @@ importers:
   packages/postgres:
     dependencies:
       '@neondatabase/serverless':
-        specifier: 0.4.23
-        version: 0.4.23
+        specifier: 0.5.6
+        version: 0.5.6
       bufferutil:
         specifier: 4.0.7
         version: 4.0.7
@@ -262,8 +262,8 @@ importers:
         specifier: 2.1.5
         version: 2.1.5
       '@neondatabase/serverless':
-        specifier: 0.4.23
-        version: 0.4.23
+        specifier: 0.5.6
+        version: 0.5.6
       '@types/jest':
         specifier: 29.5.3
         version: 29.5.3
@@ -1570,8 +1570,8 @@ packages:
   /@microsoft/tsdoc@0.14.2:
     resolution: {integrity: sha512-9b8mPpKrfeGRuhFH5iO1iwCLeIIsV6+H1sRfxbkoGXIyQE2BTsPd9zqSqQJ+pv5sJ/hT5M1zvOFL02MnEezFug==}
 
-  /@neondatabase/serverless@0.4.23:
-    resolution: {integrity: sha512-nfN6Mqhm89f5LGygc4i4dmlPeHYIHqK0H8An5dmWCXvcrqIRorb7dmKVk1rxUYd4TJquOIGSGSxGrMbpc/Na6w==}
+  /@neondatabase/serverless@0.5.6:
+    resolution: {integrity: sha512-Ru0lG6W/nQtHRkDFVQFF+1PJYx8wd3jereln0Ep0YkiHey50hjTLVUycQoE4X977605pXMuFWORweuktzph+Xg==}
     dependencies:
       '@types/pg': 8.6.6
 

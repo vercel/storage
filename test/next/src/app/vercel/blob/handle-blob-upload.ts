@@ -7,7 +7,7 @@ async function auth(
   request: Request,
   _pathname: string,
 ): Promise<{ user: { id: string } | null; userCanUpload: boolean }> {
-  if (!validateUploadToken(request)) {
+  if (!validateUploadToken(request) && process.env.NODE_ENV !== 'development') {
     return {
       userCanUpload: false,
       user: null,

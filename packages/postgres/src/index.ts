@@ -9,7 +9,7 @@ export { postgresConnectionString } from './postgres-connection-string';
 
 let pool: VercelPool | undefined;
 
-// for future peons who aren't briliant like Malte, this means
+// for code campers who haven't read the very minimal documentation like Malte, this means
 // "make an object that will pretend to be a pool but not initialize itself
 // until someone tries to access a property on it"
 // this also makes it callable, so you can call `sql` as a function

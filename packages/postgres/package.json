@@ -1,6 +1,6 @@
 {
   "name": "@vercel/postgres",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Connect to Vercel Postgres databases on the Edge",
   "homepage": "https://vercel.com",
   "repository": {

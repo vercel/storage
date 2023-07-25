@@ -25,25 +25,20 @@ type VercelPostgresDialectConfig = VercelPostgresPoolConfig & {
   pool: Pool;
 };
 
-class VercelPostgresAdapter
-  extends PostgresAdapter
-  implements DialectAdapterBase
-{
+class VercelPostgresAdapter implements DialectAdapterBase {
   get supportsTransactionalDdl(): boolean {
     return false;
   }
 
-  async acquireMigrationLock(
-    db: Kysely<any>,
-    _opt: MigrationLockOptions,
-  ): Promise<void> {
+  get supportsReturning(): boolean {
+    return true;
+  }
+
+  async acquireMigrationLock(db: Kysely<any>): Promise<void> {
     await sql`select pg_advisory_lock(${sql.lit(LOCK_ID)})`.execute(db);
   }
 
-  async releaseMigrationLock(
-    db: Kysely<any>,
-    _opt: MigrationLockOptions,
-  ): Promise<void> {
+  async releaseMigrationLock(db: Kysely<any>): Promise<void> {
     await sql`select pg_advisory_unlock(${sql.lit(LOCK_ID)})`.execute(db);
   }
 }

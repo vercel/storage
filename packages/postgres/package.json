@@ -12,7 +12,6 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
       "import": {
         "edge-light": "./dist/index.js",
         "node": "./dist/index-node.js",
@@ -27,11 +26,8 @@
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "files": [
-    "dist/*.js",
-    "dist/*.cjs",
-    "dist/*.d.ts"
+    "dist"
   ],
   "scripts": {
     "build": "tsup",

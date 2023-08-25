@@ -257,12 +257,17 @@ export async function list(
 }
 
 function getApiUrl(pathname = ''): string {
-  const baseUrl =
-    process.env.VERCEL_BLOB_API_URL ||
-    process.env.NEXT_PUBLIC_VERCEL_BLOB_API_URL ||
-    'https://blob.vercel-storage.com';
-
-  return `${baseUrl}${pathname}`;
+  let baseUrl = null;
+  try {
+    // wrapping this code in a try/catch as this function is used in the browser and Vite doesn't define the process.env.
+    // As this varaible is NOT used in production, it will always default to production endpoint
+    baseUrl =
+      process.env.VERCEL_BLOB_API_URL ||
+      process.env.NEXT_PUBLIC_VERCEL_BLOB_API_URL;
+  } catch {
+    // noop
+  }
+  return `${baseUrl || 'https://blob.vercel-storage.com'}${pathname}`;
 }
 
 function mapBlobResult(blobResult: HeadBlobApiResponse): HeadBlobResult;
@@ -324,7 +329,16 @@ function shouldFetchClientToken(
 }
 
 function getApiVersionHeader(): { 'x-api-version'?: string } {
-  const versionOverride = process.env.VERCEL_BLOB_API_VERSION_OVERRIDE;
+  let versionOverride = null;
+  try {
+    // wrapping this code in a try/catch as this function is used in the browser and Vite doesn't define the process.env.
+    // As this varaible is NOT used in production, it will always default to the BLOB_API_VERSION
+    versionOverride =
+      process.env.VERCEL_BLOB_API_VERSION_OVERRIDE ||
+      process.env.NEXT_PUBLIC_VERCEL_BLOB_API_VERSION_OVERRIDE;
+  } catch {
+    // noop
+  }
 
   return {
     'x-api-version': `${versionOverride ?? BLOB_API_VERSION}`,

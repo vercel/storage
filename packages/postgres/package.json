@@ -1,6 +1,6 @@
 {
   "name": "@vercel/postgres",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Connect to Vercel Postgres databases on the Edge",
   "homepage": "https://vercel.com",
   "repository": {
@@ -48,7 +48,7 @@
     "testEnvironment": "node"
   },
   "dependencies": {
-    "@neondatabase/serverless": "0.4.23",
+    "@neondatabase/serverless": "0.5.6",
     "bufferutil": "4.0.7",
     "utf-8-validate": "6.0.3",
     "ws": "8.13.0"
@@ -58,11 +58,11 @@
     "@edge-runtime/jest-environment": "2.2.5",
     "@edge-runtime/types": "2.1.5",
     "@types/jest": "29.5.3",
-    "@types/node": "18.16.19",
+    "@types/node": "18.17.1",
     "@types/ws": "8.5.5",
     "eslint": "8.45.0",
     "eslint-config-custom": "workspace:*",
-    "jest": "29.6.1",
+    "jest": "29.6.2",
     "prettier": "2.8.8",
     "ts-jest": "29.1.1",
     "tsconfig": "workspace:*",

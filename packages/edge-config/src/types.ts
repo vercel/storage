@@ -4,11 +4,34 @@ export interface EmbeddedEdgeConfig {
 }
 
 /**
+ * The parsed info contained in a connection string.
+ */
+export type Connection =
+  | {
+      baseUrl: string;
+      id: string;
+      token: string;
+      version: string;
+      type: 'vercel';
+    }
+  | {
+      baseUrl: string;
+      id: string;
+      token: string;
+      version: string;
+      type: 'external';
+    };
+
+/**
  * An Edge Config Client.
  *
  * You can create new Edge Config clients using createClient().
  */
 export interface EdgeConfigClient {
+  /**
+   * The parsed info from the connection string which was used to create this client.
+   */
+  connection: Connection;
   /**
    * Read a single value.
    *

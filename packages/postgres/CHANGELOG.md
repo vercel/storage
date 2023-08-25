@@ -1,5 +1,11 @@
 # @vercel/postgres
 
+## 0.4.1
+
+### Patch Changes
+
+- 6104c9f: Upgrade to latest neon database driver
+
 ## 0.4.0
 
 ### Minor Changes

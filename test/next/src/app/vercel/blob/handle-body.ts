@@ -14,6 +14,7 @@ export async function handleBody(request: Request): Promise<NextResponse> {
       },
     );
   }
+
   if (!validateUploadToken(request)) {
     return NextResponse.json(
       { message: 'Not authorized' },

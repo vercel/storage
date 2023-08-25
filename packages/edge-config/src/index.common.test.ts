@@ -216,6 +216,18 @@ describe('connectionStrings', () => {
       expect(typeof pkg.createClient).toBe('function');
     });
 
+    describe('connection', () => {
+      it('should contain the info parsed from the connection string', () => {
+        expect(edgeConfig.connection).toEqual({
+          baseUrl: 'https://example.com/ecfg-2',
+          id: 'ecfg-2',
+          token: 'token-2',
+          type: 'external',
+          version: '1',
+        });
+      });
+    });
+
     describe('get', () => {
       describe('when item exists', () => {
         it('should fetch using information from the passed token', async () => {

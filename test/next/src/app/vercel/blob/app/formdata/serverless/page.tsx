@@ -27,7 +27,7 @@ export default function AppFormDataServerless(): JSX.Element {
         .
       </p>
       <p>
-        Note: When deployed on Vercel, there&apos;s a 4MB file upload limit.
+        Note: When deployed on Vercel, there&apos;s a 4.5 MB file upload limit.
       </p>
       <FormDataUpload action="/vercel/blob/api/app/formdata/serverless" />
     </>

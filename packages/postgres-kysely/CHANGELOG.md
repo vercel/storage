@@ -1,5 +1,13 @@
 # @vercel/postgres-kysely
 
+## 0.4.1
+
+### Patch Changes
+
+- 6104c9f: Upgrade to latest neon database driver
+- Updated dependencies [6104c9f]
+  - @vercel/postgres@0.4.1
+
 ## 0.4.0
 
 ### Minor Changes

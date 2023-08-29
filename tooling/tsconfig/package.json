@@ -6,7 +6,7 @@
   "devDependencies": {
     "@vercel/style-guide": "5.0.0",
     "eslint": "8.48.0",
-    "typescript": "5.1.6"
+    "typescript": "5.2.2"
   },
   "publishConfig": {
     "access": "public"

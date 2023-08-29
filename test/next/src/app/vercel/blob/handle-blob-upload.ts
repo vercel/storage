@@ -2,7 +2,7 @@ import { handleBlobUpload, type HandleBlobUploadBody } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 import { validateUploadToken } from './validate-upload-token';
 
-// eslint-disable-next-line @typescript-eslint/require-await
+// eslint-disable-next-line @typescript-eslint/require-await -- [@vercel/style-guide@5 migration]
 async function auth(
   request: Request,
   _pathname: string,
@@ -48,9 +48,9 @@ export async function handleBlobUploadHandler(
           }),
         };
       },
-      // eslint-disable-next-line @typescript-eslint/require-await
+      // eslint-disable-next-line @typescript-eslint/require-await -- [@vercel/style-guide@5 migration]
       onUploadCompleted: async ({ blob, metadata }) => {
-        // eslint-disable-next-line no-console
+        // eslint-disable-next-line no-console -- [@vercel/style-guide@5 migration]
         console.log('Upload completed', blob, metadata);
         try {
           //   await db.update({ avatar: blob.url, userId: metadata.userId });

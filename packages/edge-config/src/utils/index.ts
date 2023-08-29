@@ -98,7 +98,7 @@ export function parseConnectionString(
  *
  * https://github.com/vercel/storage/issues/119
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- [@vercel/style-guide@5 migration]
 export const isDynamicServerError = (error: any): boolean =>
   error instanceof Error &&
   hasOwnProperty(error, 'digest') &&

@@ -46,7 +46,7 @@ test.describe('@vercel/postgres', () => {
           await expect(page.locator('html#__next_error__')).toHaveCount(0);
           const textContent = await page.locator('pre').textContent();
           expect(textContent).not.toBeNull();
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- [@vercel/style-guide@5 migration]
           expect(JSON.parse(textContent!)).toEqual(expectedRows);
         });
         test('node', async ({ page }) => {
@@ -54,7 +54,7 @@ test.describe('@vercel/postgres', () => {
           await expect(page.locator('html#__next_error__')).toHaveCount(0);
           const textContent = await page.locator('pre').textContent();
           expect(textContent).not.toBeNull();
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- [@vercel/style-guide@5 migration]
           expect(JSON.parse(textContent!)).toEqual(expectedRows);
         });
       });
@@ -76,7 +76,7 @@ test.describe('@vercel/postgres', () => {
           await expect(page.locator('html#__next_error__')).toHaveCount(0);
           const textContent = await page.locator('pre').textContent();
           expect(textContent).not.toBeNull();
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- [@vercel/style-guide@5 migration]
           expect(JSON.parse(textContent!)).toEqual(expectedRows);
         });
         test('node', async ({ page }) => {
@@ -84,7 +84,7 @@ test.describe('@vercel/postgres', () => {
           await expect(page.locator('html#__next_error__')).toHaveCount(0);
           const textContent = await page.locator('pre').textContent();
           expect(textContent).not.toBeNull();
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- [@vercel/style-guide@5 migration]
           expect(JSON.parse(textContent!)).toEqual(expectedRows);
         });
       });

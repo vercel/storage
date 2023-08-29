@@ -54,7 +54,7 @@ export class VercelPool extends Pool {
     callback: (
       err: Error,
       client: VercelPoolClient,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- [@vercel/style-guide@5 migration]
       done: (release?: any) => void,
     ) => void,
   ): void;
@@ -62,16 +62,16 @@ export class VercelPool extends Pool {
     callback?: (
       err: Error,
       client: VercelPoolClient,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- [@vercel/style-guide@5 migration]
       done: (release?: any) => void,
     ) => void,
-    // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+    // eslint-disable-next-line @typescript-eslint/no-invalid-void-type -- [@vercel/style-guide@5 migration]
   ): void | Promise<VercelPoolClient> {
     return super.connect(
       callback as (
         err: Error,
         client: PoolClient,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- [@vercel/style-guide@5 migration]
         done: (release?: any) => void,
       ) => void,
     );
@@ -100,13 +100,13 @@ export function createPool(config?: VercelPostgresPoolConfig): VercelPool {
   let max = config?.max;
   if (typeof EdgeRuntime !== 'undefined') {
     if (maxUses && maxUses !== 1) {
-      // eslint-disable-next-line no-console
+      // eslint-disable-next-line no-console -- [@vercel/style-guide@5 migration]
       console.warn(
         '@vercel/postgres: Overriding `maxUses` to 1 because the EdgeRuntime does not support client reuse.',
       );
     }
     if (max && max !== 10_000) {
-      // eslint-disable-next-line no-console
+      // eslint-disable-next-line no-console -- [@vercel/style-guide@5 migration]
       console.warn(
         '@vercel/postgres: Overriding `max` to 10,000 because the EdgeRuntime does not support client reuse.',
       );

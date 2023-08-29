@@ -19,7 +19,7 @@ export default async function handleBody(
     const jsonResponse = await handleBlobUpload({
       body: JSON.parse(body) as HandleBlobUploadBody,
       request,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/require-await
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/require-await -- [@vercel/style-guide@5 migration]
       onBeforeGenerateToken: async (pathname) => {
         return {
           maximumSizeInBytes: 10_000_000,
@@ -34,9 +34,9 @@ export default async function handleBody(
           }),
         };
       },
-      // eslint-disable-next-line @typescript-eslint/require-await
+      // eslint-disable-next-line @typescript-eslint/require-await -- [@vercel/style-guide@5 migration]
       onUploadCompleted: async ({ blob, metadata }) => {
-        // eslint-disable-next-line no-console
+        // eslint-disable-next-line no-console -- [@vercel/style-guide@5 migration]
         console.log('Upload completed', blob, metadata);
         try {
           //   await db.update({ avatar: blob.url, userId: metadata.userId });

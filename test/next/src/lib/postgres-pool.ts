@@ -1,4 +1,4 @@
-// eslint-disable-next-line eslint-comments/disable-enable-pair
+// eslint-disable-next-line eslint-comments/disable-enable-pair -- [@vercel/style-guide@5 migration]
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
 import type { QueryResult } from '@vercel/postgres';
 import { sql } from '@vercel/postgres';
@@ -6,7 +6,7 @@ import stringify from 'json-stable-stringify';
 
 function timeout(msg: string): Promise<never> {
   return new Promise<never>((_, reject) =>
-    // eslint-disable-next-line no-promise-executor-return
+    // eslint-disable-next-line no-promise-executor-return -- [@vercel/style-guide@5 migration]
     setTimeout(
       () => reject(new Error(`SELECT hung for more than 20 seconds in ${msg}`)),
       20000,

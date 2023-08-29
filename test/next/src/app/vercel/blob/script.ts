@@ -1,4 +1,4 @@
-// eslint-disable-next-line eslint-comments/disable-enable-pair
+// eslint-disable-next-line eslint-comments/disable-enable-pair -- [@vercel/style-guide@5 migration]
 /* eslint-disable no-console */
 // Run from the current directory, with:
 // npx tsx -r dotenv/config script.ts dotenv_config_path=.env.local
@@ -42,7 +42,7 @@ async function run(): Promise<void> {
   let hasMore = true;
   let cursor: string | undefined;
   while (hasMore) {
-    // eslint-disable-next-line no-await-in-loop
+    // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
     const listResult = await vercelBlob.list({
       cursor,
     });
@@ -175,7 +175,7 @@ async function gotExample(): Promise<string> {
   return blob.url;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+// eslint-disable-next-line @typescript-eslint/no-invalid-void-type -- [@vercel/style-guide@5 migration]
 async function fetchExample(): Promise<string | void> {
   const start = Date.now();
 

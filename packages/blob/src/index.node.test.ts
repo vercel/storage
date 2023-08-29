@@ -543,9 +543,9 @@ describe('blob client', () => {
         },
         onBeforeGenerateToken: async (pathname) => {
           await Promise.resolve();
-          return {
+          return Promise.resolve({
             metadata: pathname,
-          };
+          });
         },
         onUploadCompleted: async (body) => {
           await Promise.resolve();

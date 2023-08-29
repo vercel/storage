@@ -9,7 +9,7 @@ test.describe('@vercel/edge-config', () => {
           await expect(page.locator('html#__next_error__')).toHaveCount(0);
           const textContent = await page.locator('pre').textContent();
           expect(textContent).not.toBeNull();
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- [@vercel/style-guide@5 migration]
           expect(JSON.parse(textContent!)).toEqual('valueForTest');
         });
         test('node', async ({ page }) => {
@@ -17,7 +17,7 @@ test.describe('@vercel/edge-config', () => {
           await expect(page.locator('html#__next_error__')).toHaveCount(0);
           const textContent = await page.locator('pre').textContent();
           expect(textContent).not.toBeNull();
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- [@vercel/style-guide@5 migration]
           expect(JSON.parse(textContent!)).toEqual('valueForTest');
         });
       });

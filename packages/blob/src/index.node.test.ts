@@ -14,10 +14,6 @@ import {
 
 const BLOB_API_URL = 'https://blob.vercel-storage.com';
 const BLOB_STORE_BASE_URL = 'https://storeId.public.blob.vercel-storage.com';
-const mockAgent = new MockAgent();
-mockAgent.disableNetConnect();
-
-setGlobalDispatcher(mockAgent);
 
 const mockedFileMeta = {
   url: `${BLOB_STORE_BASE_URL}/foo-id.txt`,
@@ -33,6 +29,9 @@ describe('blob client', () => {
 
   beforeEach(() => {
     process.env.BLOB_READ_WRITE_TOKEN = 'TEST_TOKEN';
+    const mockAgent = new MockAgent();
+    mockAgent.disableNetConnect();
+    setGlobalDispatcher(mockAgent);
     mockClient = mockAgent.get(BLOB_API_URL);
     jest.resetAllMocks();
   });

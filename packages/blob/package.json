@@ -44,7 +44,7 @@
     "undici": "5.23.0"
   },
   "devDependencies": {
-    "@edge-runtime/jest-environment": "2.2.5",
+    "@edge-runtime/jest-environment": "2.3.0",
     "@edge-runtime/types": "2.1.5",
     "@types/jest": "29.5.3",
     "@types/node": "18.17.12",

@@ -66,7 +66,7 @@ async function signPayload(
   payload: string,
   token: string,
 ): Promise<string | undefined> {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Node.js < 20: globalThis.crypto is undefined (in a real script.js, because the REPL has it linked to the crypto module). Node.js >= 20, Browsers and Cloudflare workers: globalThis.crypto is defined and is the Web Crypto API.
   if (!globalThis.crypto) {
     return crypto.createHmac('sha256', token).update(payload).digest('hex');
   }
@@ -91,7 +91,7 @@ export async function verifyCallbackSignature({
   // callback signature is signed using the server token
   const secret = getToken({ token });
   // Browsers, Edge runtime and Node >=20 implement the Web Crypto API
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Node.js < 20: globalThis.crypto is undefined (in a real script.js, because the REPL has it linked to the crypto module). Node.js >= 20, Browsers and Cloudflare workers: globalThis.crypto is defined and is the Web Crypto API.
   if (!globalThis.crypto) {
     // Node <20 falls back to the Node.js crypto module
     const digest = crypto
@@ -192,8 +192,6 @@ export async function handleBlobUpload({
   | { type: GenerateClientTokenEvent['type']; clientToken: string }
   | { type: BlobUploadCompletedEvent['type']; response: 'ok' }
 > {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (!body.type) throw new Error('Invalid event type');
   const type = body.type;
   switch (type) {
     case 'blob.generate-client-token': {

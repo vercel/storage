@@ -541,14 +541,14 @@ describe('blob client', () => {
             callbackUrl: 'https://example.com',
           },
         },
-        // eslint-disable-next-line @typescript-eslint/require-await
         onBeforeGenerateToken: async (pathname) => {
+          await Promise.resolve();
           return {
             metadata: pathname,
           };
         },
-        // eslint-disable-next-line @typescript-eslint/require-await
         onUploadCompleted: async (body) => {
+          await Promise.resolve();
           spy.call(body);
         },
       });
@@ -559,7 +559,7 @@ describe('blob client', () => {
       });
       expect(spy).not.toHaveBeenCalled();
       expect(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any -- Either the test is incomplete, or we're messing up with TS
         getPayloadFromClientToken((jsonResponse as any).clientToken),
       ).toEqual({
         metadata: 'newfile.txt',
@@ -592,8 +592,8 @@ describe('blob client', () => {
               metadata: 'custom-metadata',
             },
           },
-          // eslint-disable-next-line @typescript-eslint/require-await
           onBeforeGenerateToken: async (pathname) => {
+            await Promise.resolve();
             return {
               metadata: pathname,
             };

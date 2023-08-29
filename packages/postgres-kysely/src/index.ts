@@ -25,7 +25,7 @@ class VercelPostgresPoolDriver extends PostgresDriver {
   async acquireConnection(): Promise<DatabaseConnection> {
     const connection = await super.acquireConnection();
     return new Proxy(connection, {
-      // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+      // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- [@vercel/style-guide@5 migration]
       get(target, p) {
         const original = target[p as keyof DatabaseConnection];
         if (p === 'streamQuery' && typeof original === 'function') {

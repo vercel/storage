@@ -8,7 +8,7 @@ import { get, has, digest, createClient, getAll } from './index';
 const sdkVersion = typeof pkgVersion === 'string' ? pkgVersion : '';
 const baseUrl = 'https://edge-config.vercel.com/ecfg-1';
 
-// eslint-disable-next-line jest/require-top-level-describe
+// eslint-disable-next-line jest/require-top-level-describe -- [@vercel/style-guide@5 migration]
 beforeEach(() => {
   fetchMock.resetMocks();
   cache.clear();
@@ -507,7 +507,7 @@ describe('createClient', () => {
           const edgeConfig = createClient(process.env.EDGE_CONFIG);
           const someArray = await edgeConfig.get<string[]>('someArray');
           expect(someArray).toEqual([]);
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- [@vercel/style-guide@5 migration]
           someArray!.push('intruder');
           // the pushed value on the old return value may not make it onto the
           // next get

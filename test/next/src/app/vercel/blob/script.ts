@@ -19,6 +19,7 @@ console.log();
 async function run(): Promise<void> {
   const urls = await Promise.all([
     textFileExample(),
+    textFileNoRandomSuffixExample(),
     imageExample(),
     videoExample(),
     webpageExample(),
@@ -32,7 +33,7 @@ async function run(): Promise<void> {
 
   await Promise.all(
     urls.map(async (url) => {
-      const blobDetails = await vercelBlob.head(url as string);
+      const blobDetails = await vercelBlob.head(url);
       console.log(blobDetails, url);
     })
   );
@@ -53,13 +54,23 @@ async function run(): Promise<void> {
 
   console.log(count, 'blobs in this store');
 
-  await Promise.all(urls.map((url) => vercelBlob.del(url as string)));
+  await Promise.all(urls.map((url) => vercelBlob.del(url)));
 }
 
 async function textFileExample(): Promise<string> {
   const start = Date.now();
   const blob = await vercelBlob.put('folder/test.txt', 'Hello, world!', {
     access: 'public',
+  });
+  console.log('Text file example:', blob.url, `(${Date.now() - start}ms)`);
+  return blob.url;
+}
+
+async function textFileNoRandomSuffixExample(): Promise<string> {
+  const start = Date.now();
+  const blob = await vercelBlob.put('folder/test.txt', 'Hello, world!', {
+    access: 'public',
+    addRandomSuffix: false,
   });
   console.log('Text file example:', blob.url, `(${Date.now() - start}ms)`);
   return blob.url;
@@ -175,26 +186,23 @@ async function gotExample(): Promise<string> {
   return blob.url;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-invalid-void-type -- [@vercel/style-guide@5 migration]
-async function fetchExample(): Promise<string | void> {
+async function fetchExample(): Promise<string> {
   const start = Date.now();
 
   const response = await fetch(
     'https://example-files.online-convert.com/video/mp4/example_2s.mp4'
   );
 
-  if (response.body) {
-    const blob = await vercelBlob.put(
-      'example_2s.mp4',
-      response.body as ReadableStream,
-      {
-        access: 'public',
-      }
-    );
+  const blob = await vercelBlob.put(
+    'example_2s.mp4',
+    response.body as ReadableStream,
+    {
+      access: 'public',
+    }
+  );
 
-    console.log('fetch example:', blob.url, `(${Date.now() - start}ms)`);
-    return blob.url;
-  }
+  console.log('fetch example:', blob.url, `(${Date.now() - start}ms)`);
+  return blob.url;
 }
 
 run().catch((err) => {

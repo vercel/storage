@@ -109,7 +109,8 @@ async function handleBlobUpload(options?: {
   onBeforeGenerateToken: (pathname: string) => Promise<{
     allowedContentTypes?: string[]; // optional, defaults to no restriction
     maximumSizeInBytes?: number; // optional, defaults and maximum is 500MB (524,288,000 bytes)
-    validUntil?: number; // optional, timestamp in ms, by default now + 30s
+    validUntil?: number; // optional, timestamp in ms, by default now + 30s (30,000)
+    addRandomSuffix?: boolean; // optional, allows to disable or enable random suffixes
     metadata?: string;
   }>;
   onUploadCompleted: (body: {
@@ -155,7 +156,8 @@ async function generateClientTokenFromReadWriteToken(options?: {
   };
   maximumSizeInBytes?: number;
   allowedContentTypes?: string[];
-  validUntil?: number; // timestamp in ms, by default 30s
+  validUntil?: number; // optional, timestamp in ms, by default now + 30s (30,000)
+  addRandomSuffix?: boolean; // optional, allows to disable or enable random suffixes, `true` by default
 }): string {}
 ```
 

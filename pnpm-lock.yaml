@@ -82,8 +82,8 @@ importers:
         specifier: workspace:*
         version: link:../../tooling/tsconfig
       tsup:
-        specifier: 7.1.0
-        version: 7.1.0(typescript@5.1.6)
+        specifier: 7.2.0
+        version: 7.2.0(typescript@5.1.6)
 
   packages/edge-config:
     dependencies:
@@ -128,8 +128,8 @@ importers:
         specifier: workspace:*
         version: link:../../tooling/tsconfig
       tsup:
-        specifier: 7.1.0
-        version: 7.1.0(typescript@5.1.6)
+        specifier: 7.2.0
+        version: 7.2.0(typescript@5.1.6)
       typescript:
         specifier: 5.1.6
         version: 5.1.6
@@ -182,8 +182,8 @@ importers:
         specifier: workspace:*
         version: link:../../tooling/tsconfig
       tsup:
-        specifier: 7.1.0
-        version: 7.1.0(typescript@5.1.6)
+        specifier: 7.2.0
+        version: 7.2.0(typescript@5.1.6)
       typescript:
         specifier: 5.1.6
         version: 5.1.6
@@ -240,8 +240,8 @@ importers:
         specifier: workspace:*
         version: link:../../tooling/tsconfig
       tsup:
-        specifier: 7.1.0
-        version: 7.1.0(typescript@5.1.6)
+        specifier: 7.2.0
+        version: 7.2.0(typescript@5.1.6)
       typescript:
         specifier: 5.1.6
         version: 5.1.6
@@ -292,8 +292,8 @@ importers:
         specifier: workspace:*
         version: link:../../tooling/tsconfig
       tsup:
-        specifier: 7.1.0
-        version: 7.1.0(typescript@5.1.6)
+        specifier: 7.2.0
+        version: 7.2.0(typescript@5.1.6)
       typescript:
         specifier: 5.1.6
         version: 5.1.6
@@ -1358,7 +1358,7 @@ packages:
       eslint: ^6.0.0 || ^7.0.0 || >=8.0.0
     dependencies:
       eslint: 8.40.0
-      eslint-visitor-keys: 3.4.1
+      eslint-visitor-keys: 3.4.3
 
   /@eslint-community/eslint-utils@4.4.0(eslint@8.48.0):
     resolution: {integrity: sha512-1/sA4dwrzBAyeUoQ6oxahHKmrZvsnLCg4RfxW3ZFGGmQkSNQPFNLV9CUEFQP1x9EYXHTo5p6xdhZM1Ne9p/AfA==}
@@ -4669,6 +4669,7 @@ packages:
       glob-parent: 5.1.2
       merge2: 1.4.1
       micromatch: 4.0.5
+    dev: false
 
   /fast-glob@3.3.1:
     resolution: {integrity: sha512-kNFPyjhh5cKjrUltxs+wFx+ZkbRaxxmZ+X0ZU31SOsxCEtP9VPgtq2teZw1DebupL5GmDaNQ6yKMMVcM41iqDg==}
@@ -4942,7 +4943,7 @@ packages:
     dependencies:
       array-union: 2.1.0
       dir-glob: 3.0.1
-      fast-glob: 3.2.12
+      fast-glob: 3.3.1
       ignore: 5.2.4
       merge2: 1.4.1
       slash: 3.0.0
@@ -7961,8 +7962,8 @@ packages:
   /tslib@2.5.0:
     resolution: {integrity: sha512-336iVw3rtn2BUK7ORdIAHTyxHGRIHVReokCR3XjbckJMK7ms8FysBfhLR8IXnAgy7T0PTPNBWKiH514FOW/WSg==}
 
-  /tsup@7.1.0(typescript@5.1.6):
-    resolution: {integrity: sha512-mazl/GRAk70j8S43/AbSYXGgvRP54oQeX8Un4iZxzATHt0roW0t6HYDVZIXMw0ZQIpvr1nFMniIVnN5186lW7w==}
+  /tsup@7.2.0(typescript@5.1.6):
+    resolution: {integrity: sha512-vDHlczXbgUvY3rWvqFEbSqmC1L7woozbzngMqTtL2PGBODTtWlRwGDDawhvWzr5c1QjKe4OAKqJGfE1xeXUvtQ==}
     engines: {node: '>=16.14'}
     hasBin: true
     peerDependencies:

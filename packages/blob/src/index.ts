@@ -69,7 +69,7 @@ export async function put(
     throw new BlobError('body is required');
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- options are required in Types, but at runtime someone not using Typescript could forget them
   if (!options || options.access !== 'public') {
     throw new BlobError('access must be "public"');
   }

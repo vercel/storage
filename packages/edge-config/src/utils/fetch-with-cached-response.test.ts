@@ -24,7 +24,7 @@ describe('fetchWithCachedResponse', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith('https://example.com/api/data', {});
     expect(data1.headers).toEqual(
-      new Headers({ ETag: 'abc123', 'content-type': 'application/json' }),
+      new Headers({ ETag: 'abc123', 'content-type': 'application/json' })
     );
     await expect(data1.json()).resolves.toEqual({ name: 'John' });
     expect(data1.cachedResponseBody).toBeUndefined();
@@ -41,7 +41,7 @@ describe('fetchWithCachedResponse', () => {
       headers: new Headers({ 'If-None-Match': 'abc123' }),
     });
     expect(data2.headers).toEqual(
-      new Headers({ ETag: 'abc123', 'content-type': 'application/json' }),
+      new Headers({ ETag: 'abc123', 'content-type': 'application/json' })
     );
 
     expect(data2).toHaveProperty('status', 304);
@@ -58,7 +58,7 @@ describe('fetchWithCachedResponse', () => {
       'https://example.com/api/data',
       {
         headers: new Headers({ authorization: 'bearer A' }),
-      },
+      }
     );
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -66,7 +66,7 @@ describe('fetchWithCachedResponse', () => {
       headers: new Headers({ authorization: 'bearer A' }),
     });
     expect(data1.headers).toEqual(
-      new Headers({ ETag: 'abc123', 'content-type': 'application/json' }),
+      new Headers({ ETag: 'abc123', 'content-type': 'application/json' })
     );
     await expect(data1.json()).resolves.toEqual({ name: 'John' });
 
@@ -79,7 +79,7 @@ describe('fetchWithCachedResponse', () => {
       {
         // using a different authorization header here
         headers: new Headers({ authorization: 'bearer B' }),
-      },
+      }
     );
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -87,7 +87,7 @@ describe('fetchWithCachedResponse', () => {
       headers: new Headers({ authorization: 'bearer B' }),
     });
     expect(data2.headers).toEqual(
-      new Headers({ ETag: 'abc123', 'content-type': 'application/json' }),
+      new Headers({ ETag: 'abc123', 'content-type': 'application/json' })
     );
     expect(data2).toHaveProperty('status', 200);
     expect(data2.cachedResponseBody).toBeUndefined();
@@ -104,7 +104,7 @@ describe('fetchWithCachedResponse', () => {
       'https://example.com/api/data',
       {
         headers: new Headers({ authorization: 'bearer A' }),
-      },
+      }
     );
 
     expect(fetchMock).toHaveBeenCalledTimes(3);
@@ -115,7 +115,7 @@ describe('fetchWithCachedResponse', () => {
       }),
     });
     expect(data3.headers).toEqual(
-      new Headers({ ETag: 'abc123', 'content-type': 'application/json' }),
+      new Headers({ ETag: 'abc123', 'content-type': 'application/json' })
     );
 
     expect(data3).toHaveProperty('status', 304);

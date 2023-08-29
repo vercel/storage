@@ -25,13 +25,12 @@ class VercelPostgresPoolDriver extends PostgresDriver {
   async acquireConnection(): Promise<DatabaseConnection> {
     const connection = await super.acquireConnection();
     return new Proxy(connection, {
-      // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- [@vercel/style-guide@5 migration]
       get(target, p) {
         const original = target[p as keyof DatabaseConnection];
         if (p === 'streamQuery' && typeof original === 'function') {
           throw new VercelPostgresKyselyError(
             'kysely_streaming_not_supported',
-            'Streaming is not supported yet.',
+            'Streaming is not supported yet.'
           );
         }
         if (typeof original === 'function') {
@@ -45,21 +44,21 @@ class VercelPostgresPoolDriver extends PostgresDriver {
   beginTransaction(): Promise<void> {
     throw new VercelPostgresKyselyError(
       'kysely_transactions_not_supported',
-      'Transactions are not supported yet.',
+      'Transactions are not supported yet.'
     );
   }
 
   commitTransaction(): Promise<void> {
     throw new VercelPostgresKyselyError(
       'kysely_transactions_not_supported',
-      'Transactions are not supported yet.',
+      'Transactions are not supported yet.'
     );
   }
 
   rollbackTransaction(): Promise<void> {
     throw new VercelPostgresKyselyError(
       'kysely_transactions_not_supported',
-      'Transactions are not supported yet.',
+      'Transactions are not supported yet.'
     );
   }
 }

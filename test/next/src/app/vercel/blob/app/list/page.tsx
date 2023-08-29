@@ -20,20 +20,20 @@ export default function AppList(): JSX.Element {
         search.set('cursor', cursor);
       }
       const data = (await fetch(`${API_ROOT}/list?${search.toString()}`).then(
-        (r) => r.json(),
+        (r) => r.json()
       )) as vercelBlob.ListBlobResult;
       setResult({
         ...data,
         blobs: cursor ? [...(result?.blobs || []), ...data.blobs] : data.blobs,
       });
     },
-    [result?.blobs, searchPrefix],
+    [result?.blobs, searchPrefix]
   );
 
   useEffect(() => {
     const doCall = async (): Promise<void> => {
       const data = (await fetch(`${API_ROOT}/list?limit=10`).then((r) =>
-        r.json(),
+        r.json()
       )) as vercelBlob.ListBlobResult;
       setResult(data);
     };

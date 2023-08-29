@@ -13,7 +13,7 @@ export const cache = new Map<string, CachedResponsePair>();
 
 export async function fetchWithCachedResponse(
   url: string,
-  options: FetchOptions = {},
+  options: FetchOptions = {}
 ): Promise<ResponseWithCachedResponse> {
   const { headers: customHeaders = new Headers(), ...customOptions } = options;
   const authHeader = customHeaders.get('Authorization');

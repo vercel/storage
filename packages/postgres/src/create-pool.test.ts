@@ -44,7 +44,7 @@ describe('createPool', () => {
       connectionString: MOCKED_POOLED_CONNECTION_STRING,
     });
     expect(await pool.query('SELECT now()')).toEqual(
-      MOCKED_POOLED_CONNECTION_STRING,
+      MOCKED_POOLED_CONNECTION_STRING
     );
   });
 
@@ -52,7 +52,7 @@ describe('createPool', () => {
     process.env.POSTGRES_URL = MOCKED_POOLED_CONNECTION_STRING;
     const pool = createPool();
     expect(await pool.query('SELECT now()')).toEqual(
-      MOCKED_POOLED_CONNECTION_STRING,
+      MOCKED_POOLED_CONNECTION_STRING
     );
   });
 
@@ -62,7 +62,7 @@ describe('createPool', () => {
       connectionString: MOCKED_POOLED_CONNECTION_STRING,
     });
     expect(await pool.query('SELECT now()')).toEqual(
-      MOCKED_POOLED_CONNECTION_STRING,
+      MOCKED_POOLED_CONNECTION_STRING
     );
   });
 

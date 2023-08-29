@@ -29,7 +29,7 @@ describe('blob client', () => {
         token: 'vercel_blob_client_123456789_TEST_TOKEN',
       });
       expect(uploadToken).toEqual(
-        'vercel_blob_client_123456789_YWVlNmY1ZjVkZGU5YWZiYjczOGE1YmM0ZTNiOGFjNTI3MGNlMTJhOTNiNDc1YTlmZjBmYjkyZTFlZWVhNGE2OS5leUp3WVhSb2JtRnRaU0k2SW1admJ5NTBlSFFpTENKdmJsVndiRzloWkVOdmJYQnNaWFJsWkNJNmV5SmpZV3hzWW1GamExVnliQ0k2SW1oMGRIQnpPaTh2WlhoaGJYQnNaUzVqYjIwaUxDSnRaWFJoWkdGMFlTSTZJbnRjSW1admIxd2lPbHdpWW1GeVhDSjlJbjBzSW5aaGJHbGtWVzUwYVd3aU9qRTJOekkxTXpFeU16QXdNREI5',
+        'vercel_blob_client_123456789_YWVlNmY1ZjVkZGU5YWZiYjczOGE1YmM0ZTNiOGFjNTI3MGNlMTJhOTNiNDc1YTlmZjBmYjkyZTFlZWVhNGE2OS5leUp3WVhSb2JtRnRaU0k2SW1admJ5NTBlSFFpTENKdmJsVndiRzloWkVOdmJYQnNaWFJsWkNJNmV5SmpZV3hzWW1GamExVnliQ0k2SW1oMGRIQnpPaTh2WlhoaGJYQnNaUzVqYjIwaUxDSnRaWFJoWkdGMFlTSTZJbnRjSW1admIxd2lPbHdpWW1GeVhDSjlJbjBzSW5aaGJHbGtWVzUwYVd3aU9qRTJOekkxTXpFeU16QXdNREI5'
       );
 
       expect(getPayloadFromClientToken(uploadToken)).toEqual({
@@ -60,7 +60,7 @@ describe('blob client', () => {
           body,
           signature:
             '3fac10916b6b4af8678e189a3843706ec8185162c15238f0557f113531969053',
-        }),
+        })
       ).toBeTruthy();
     });
 
@@ -80,7 +80,7 @@ describe('blob client', () => {
           body,
           signature:
             '3fac10916b6b4af8678e189a3843706ec8185162c15238f0557f113531969053',
-        }),
+        })
       ).toBeFalsy();
     });
   });

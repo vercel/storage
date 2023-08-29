@@ -8,7 +8,7 @@ export const config = {
 
 export default async function handleBody(
   request: NextApiRequest,
-  response: NextApiResponse,
+  response: NextApiResponse
 ): Promise<void> {
   if (!validateUploadToken(request)) {
     return response.status(401).json({ message: 'Not authorized' });

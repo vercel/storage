@@ -41,19 +41,19 @@
   },
   "dependencies": {
     "jest-environment-jsdom": "29.6.2",
-    "undici": "5.22.1"
+    "undici": "5.23.0"
   },
   "devDependencies": {
     "@edge-runtime/jest-environment": "2.2.5",
     "@edge-runtime/types": "2.1.5",
     "@types/jest": "29.5.3",
-    "@types/node": "18.17.1",
+    "@types/node": "18.17.12",
     "eslint": "8.48.0",
     "eslint-config-custom": "workspace:*",
     "jest": "29.6.2",
     "ts-jest": "29.1.1",
     "tsconfig": "workspace:*",
-    "tsup": "7.1.0"
+    "tsup": "7.2.0"
   },
   "engines": {
     "node": ">=16.14"

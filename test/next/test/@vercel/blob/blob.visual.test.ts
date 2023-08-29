@@ -11,7 +11,7 @@ test.describe('@vercel/blob', () => {
       // eslint-disable-next-line no-console -- [@vercel/style-guide@5 migration]
       console.log(`vercel/pages/blob/image?prefix=${prefix}`);
       const response = await page.goto(
-        `vercel/pages/blob/image?prefix=${prefix}`,
+        `vercel/pages/blob/image?prefix=${prefix}`
       );
       await expect(page).toHaveScreenshot('blob-image.png');
       expect(response?.status()).toBe(200);

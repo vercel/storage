@@ -55,25 +55,26 @@ export class VercelPool extends Pool {
       err: Error,
       client: VercelPoolClient,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- [@vercel/style-guide@5 migration]
-      done: (release?: any) => void,
-    ) => void,
+      done: (release?: any) => void
+    ) => void
   ): void;
   connect(
     callback?: (
       err: Error,
       client: VercelPoolClient,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- [@vercel/style-guide@5 migration]
-      done: (release?: any) => void,
-    ) => void,
+      done: (release?: any) => void
+    ) => void
     // eslint-disable-next-line @typescript-eslint/no-invalid-void-type -- [@vercel/style-guide@5 migration]
   ): void | Promise<VercelPoolClient> {
+    // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression -- [@vercel/style-guide@5 migration]
     return super.connect(
       callback as (
         err: Error,
         client: PoolClient,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- [@vercel/style-guide@5 migration]
-        done: (release?: any) => void,
-      ) => void,
+        done: (release?: any) => void
+      ) => void
     );
   }
 }
@@ -84,7 +85,7 @@ export function createPool(config?: VercelPostgresPoolConfig): VercelPool {
   if (!connectionString)
     throw new VercelPostgresError(
       'missing_connection_string',
-      "You did not supply a 'connectionString' and no 'POSTGRES_URL' env var was found.",
+      "You did not supply a 'connectionString' and no 'POSTGRES_URL' env var was found."
     );
 
   if (
@@ -93,7 +94,7 @@ export function createPool(config?: VercelPostgresPoolConfig): VercelPool {
   )
     throw new VercelPostgresError(
       'invalid_connection_string',
-      'This connection string is meant to be used with a direct connection. Make sure to use a pooled connection string or try `createClient()` instead.',
+      'This connection string is meant to be used with a direct connection. Make sure to use a pooled connection string or try `createClient()` instead.'
     );
 
   let maxUses = config?.maxUses;
@@ -102,13 +103,13 @@ export function createPool(config?: VercelPostgresPoolConfig): VercelPool {
     if (maxUses && maxUses !== 1) {
       // eslint-disable-next-line no-console -- [@vercel/style-guide@5 migration]
       console.warn(
-        '@vercel/postgres: Overriding `maxUses` to 1 because the EdgeRuntime does not support client reuse.',
+        '@vercel/postgres: Overriding `maxUses` to 1 because the EdgeRuntime does not support client reuse.'
       );
     }
     if (max && max !== 10_000) {
       // eslint-disable-next-line no-console -- [@vercel/style-guide@5 migration]
       console.warn(
-        '@vercel/postgres: Overriding `max` to 10,000 because the EdgeRuntime does not support client reuse.',
+        '@vercel/postgres: Overriding `max` to 10,000 because the EdgeRuntime does not support client reuse.'
       );
     }
     // Client reuse is not supported in the EdgeRuntime because it does not support IO across requests.

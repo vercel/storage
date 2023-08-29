@@ -32,7 +32,7 @@ export {
  * This is used at runtime on serverless functions.
  */
 async function getFileSystemEdgeConfig(
-  connection: Connection,
+  connection: Connection
 ): Promise<EmbeddedEdgeConfig | null> {
   // can't optimize non-vercel hosted edge configs
   if (connection.type !== 'vercel') return null;
@@ -42,7 +42,7 @@ async function getFileSystemEdgeConfig(
   try {
     const content = await readFile(
       `/opt/edge-config/${connection.id}.json`,
-      'utf-8',
+      'utf-8'
     );
     return JSON.parse(content) as EmbeddedEdgeConfig;
   } catch {
@@ -51,7 +51,7 @@ async function getFileSystemEdgeConfig(
 }
 
 async function consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(
-  res: Response,
+  res: Response
 ): Promise<void> {
   if (typeof EdgeRuntime !== 'undefined') return;
 
@@ -79,7 +79,7 @@ async function consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(
  */
 function getConnection(connectionString: string): Connection | null {
   const isVercelConnectionString = connectionString.startsWith(
-    'https://edge-config.vercel.com/',
+    'https://edge-config.vercel.com/'
   );
 
   const connection = isVercelConnectionString
@@ -138,7 +138,7 @@ function getConnection(connectionString: string): Connection | null {
  * @returns An Edge Config Client instance
  */
 export function createClient(
-  connectionString: string | undefined,
+  connectionString: string | undefined
 ): EdgeConfigClient {
   if (!connectionString)
     throw new Error('@vercel/edge-config: No connection string provided');
@@ -154,6 +154,7 @@ export function createClient(
     Authorization: `Bearer ${connection.token}`,
   };
 
+  // eslint-disable-next-line @typescript-eslint/prefer-optional-chain -- [@vercel/style-guide@5 migration]
   if (typeof process !== 'undefined' && process.env.VERCEL_ENV)
     headers['x-edge-config-vercel-env'] = process.env.VERCEL_ENV;
 
@@ -180,7 +181,7 @@ export function createClient(
         {
           headers: new Headers(headers),
           cache: 'no-store',
-        },
+        }
       ).then<T | undefined, undefined>(
         async (res) => {
           if (res.ok) return res.json();
@@ -202,7 +203,7 @@ export function createClient(
         (error) => {
           if (isDynamicServerError(error)) throw error;
           throw new Error(ERRORS.NETWORK);
-        },
+        }
       );
     },
     async has(key): Promise<boolean> {
@@ -235,7 +236,7 @@ export function createClient(
         (error) => {
           if (isDynamicServerError(error)) throw error;
           throw new Error(ERRORS.NETWORK);
-        },
+        }
       );
     },
     async getAll<T = EdgeConfigItems>(keys?: (keyof T)[]): Promise<T> {
@@ -254,7 +255,7 @@ export function createClient(
 
       const search = Array.isArray(keys)
         ? new URLSearchParams(
-            keys.map((key) => ['key', key] as [string, string]),
+            keys.map((key) => ['key', key] as [string, string])
           ).toString()
         : null;
 
@@ -269,7 +270,7 @@ export function createClient(
         {
           headers: new Headers(headers),
           cache: 'no-store',
-        },
+        }
       ).then<T>(
         async (res) => {
           if (res.ok) return res.json();
@@ -286,7 +287,7 @@ export function createClient(
         (error) => {
           if (isDynamicServerError(error)) throw error;
           throw new Error(ERRORS.NETWORK);
-        },
+        }
       );
     },
     async digest(): Promise<string> {
@@ -311,7 +312,7 @@ export function createClient(
         (error) => {
           if (isDynamicServerError(error)) throw error;
           throw new Error(ERRORS.NETWORK);
-        },
+        }
       );
     },
   };

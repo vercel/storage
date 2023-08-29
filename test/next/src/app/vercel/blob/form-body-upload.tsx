@@ -28,7 +28,7 @@ export default function FormBodyUpload({
             {
               method: 'POST',
               body: file,
-            },
+            }
           );
           const blobResult = (await response.json()) as PutBlobResult;
           setBlob(blobResult);

@@ -7,7 +7,7 @@ export const config = {
 
 export default async function handler(
   _: NextApiRequest,
-  res: NextApiResponse,
+  res: NextApiResponse
 ): Promise<void> {
   try {
     const users = await queryUsers();

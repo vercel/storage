@@ -37,7 +37,8 @@ export interface BlobCommandOptions {
 export interface PutCommandOptions extends BlobCommandOptions {
   access: 'public';
   contentType?: string;
-  handleBlobUploadUrl?: string;
+  handleBlobUploadUrl?: string; // only used in the browser
+  addRandomSuffix?: boolean;
 }
 
 export interface PutBlobResult {
@@ -88,6 +89,10 @@ export async function put(
 
   if (options.contentType) {
     headers['x-content-type'] = options.contentType;
+  }
+
+  if (options.addRandomSuffix !== undefined) {
+    headers['x-add-random-suffix'] = options.addRandomSuffix ? '1' : '0';
   }
 
   const blobApiResponse = await fetch(getApiUrl(`/${pathname}`), {

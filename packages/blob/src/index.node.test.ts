@@ -439,6 +439,26 @@ describe('blob client', () => {
         })
       ).rejects.toThrow(new Error('Vercel Blob: access must be "public"'));
     });
+
+    it('sets the correct header when using the addRandomSuffix option', async () => {
+      let headers: Record<string, string> = {};
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'PUT',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedFileMetaPut;
+        });
+
+      await put('foo.txt', 'Test Body', {
+        access: 'public',
+        addRandomSuffix: false,
+      });
+      expect(headers['x-add-random-suffix']).toEqual('0');
+    });
   });
 
   describe('generateClientTokenFromReadWriteToken', () => {

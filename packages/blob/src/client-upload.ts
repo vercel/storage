@@ -13,6 +13,7 @@ export interface GenerateClientTokenOptions extends BlobCommandOptions {
   maximumSizeInBytes?: number;
   allowedContentTypes?: string[];
   validUntil?: number;
+  addRandomSuffix?: boolean;
 }
 
 export async function generateClientTokenFromReadWriteToken({
@@ -172,7 +173,10 @@ export interface HandleBlobUploadOptions {
   ) => Promise<
     Pick<
       GenerateClientTokenOptions,
-      'allowedContentTypes' | 'maximumSizeInBytes' | 'validUntil'
+      | 'allowedContentTypes'
+      | 'maximumSizeInBytes'
+      | 'validUntil'
+      | 'addRandomSuffix'
     > & { metadata?: string }
   >;
   onUploadCompleted: (

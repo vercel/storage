@@ -19,6 +19,7 @@ console.log();
 async function run(): Promise<void> {
   const urls = await Promise.all([
     textFileExample(),
+    textFileNoRandomSuffixExample(),
     imageExample(),
     videoExample(),
     webpageExample(),
@@ -32,7 +33,7 @@ async function run(): Promise<void> {
 
   await Promise.all(
     urls.map(async (url) => {
-      const blobDetails = await vercelBlob.head(url as string);
+      const blobDetails = await vercelBlob.head(url);
       console.log(blobDetails, url);
     })
   );
@@ -53,14 +54,32 @@ async function run(): Promise<void> {
 
   console.log(count, 'blobs in this store');
 
-  await Promise.all(urls.map((url) => vercelBlob.del(url as string)));
+  await Promise.all(urls.map((url) => vercelBlob.del(url)));
 }
 
 async function textFileExample(): Promise<string> {
   const start = Date.now();
-  const blob = await vercelBlob.put('folder/test.txt', 'Hello, world!', {
-    access: 'public',
-  });
+  const blob = await vercelBlob.put(
+    'folder/test.txt',
+    'Hello, wosdsdsdsa1222rld!',
+    {
+      access: 'public',
+    }
+  );
+  console.log('Text file example:', blob.url, `(${Date.now() - start}ms)`);
+  return blob.url;
+}
+
+async function textFileNoRandomSuffixExample(): Promise<string> {
+  const start = Date.now();
+  const blob = await vercelBlob.put(
+    'folder/test.txt',
+    'Hello, wosdsdsdsa1222rld!',
+    {
+      access: 'public',
+      addRandomSuffix: false,
+    }
+  );
   console.log('Text file example:', blob.url, `(${Date.now() - start}ms)`);
   return blob.url;
 }

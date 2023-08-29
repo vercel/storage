@@ -65,7 +65,7 @@
     "ts-jest": "29.1.1",
     "tsconfig": "workspace:*",
     "tsup": "7.2.0",
-    "typescript": "5.1.6"
+    "typescript": "5.2.2"
   },
   "peerDependencies": {
     "kysely": "^0.24.2 || ^0.25.0 || ^0.26.0"

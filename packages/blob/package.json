@@ -48,7 +48,7 @@
     "@edge-runtime/types": "2.1.5",
     "@types/jest": "29.5.3",
     "@types/node": "18.17.1",
-    "eslint": "8.45.0",
+    "eslint": "8.48.0",
     "eslint-config-custom": "workspace:*",
     "jest": "29.6.2",
     "ts-jest": "29.1.1",

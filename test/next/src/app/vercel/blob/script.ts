@@ -59,27 +59,19 @@ async function run(): Promise<void> {
 
 async function textFileExample(): Promise<string> {
   const start = Date.now();
-  const blob = await vercelBlob.put(
-    'folder/test.txt',
-    'Hello, wosdsdsdsa1222rld!',
-    {
-      access: 'public',
-    }
-  );
+  const blob = await vercelBlob.put('folder/test.txt', 'Hello, world!', {
+    access: 'public',
+  });
   console.log('Text file example:', blob.url, `(${Date.now() - start}ms)`);
   return blob.url;
 }
 
 async function textFileNoRandomSuffixExample(): Promise<string> {
   const start = Date.now();
-  const blob = await vercelBlob.put(
-    'folder/test.txt',
-    'Hello, wosdsdsdsa1222rld!',
-    {
-      access: 'public',
-      addRandomSuffix: false,
-    }
-  );
+  const blob = await vercelBlob.put('folder/test.txt', 'Hello, world!', {
+    access: 'public',
+    addRandomSuffix: false,
+  });
   console.log('Text file example:', blob.url, `(${Date.now() - start}ms)`);
   return blob.url;
 }

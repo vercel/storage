@@ -194,26 +194,23 @@ async function gotExample(): Promise<string> {
   return blob.url;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-invalid-void-type -- [@vercel/style-guide@5 migration]
-async function fetchExample(): Promise<string | void> {
+async function fetchExample(): Promise<string> {
   const start = Date.now();
 
   const response = await fetch(
     'https://example-files.online-convert.com/video/mp4/example_2s.mp4'
   );
 
-  if (response.body) {
-    const blob = await vercelBlob.put(
-      'example_2s.mp4',
-      response.body as ReadableStream,
-      {
-        access: 'public',
-      }
-    );
+  const blob = await vercelBlob.put(
+    'example_2s.mp4',
+    response.body as ReadableStream,
+    {
+      access: 'public',
+    }
+  );
 
-    console.log('fetch example:', blob.url, `(${Date.now() - start}ms)`);
-    return blob.url;
-  }
+  console.log('fetch example:', blob.url, `(${Date.now() - start}ms)`);
+  return blob.url;
 }
 
 run().catch((err) => {

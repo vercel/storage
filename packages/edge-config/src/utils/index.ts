@@ -10,7 +10,7 @@ export const ERRORS = {
  */
 export function hasOwnProperty<X, Y extends PropertyKey>(
   obj: X,
-  prop: Y,
+  prop: Y
 ): obj is X & Record<Y, unknown> {
   return Object.prototype.hasOwnProperty.call(obj, prop);
 }
@@ -32,7 +32,7 @@ export function assertIsKey(key: unknown): asserts key is string {
 export function assertIsKeys(keys: unknown): asserts keys is string[] {
   if (!Array.isArray(keys) || keys.some((key) => typeof key !== 'string')) {
     throw new Error(
-      '@vercel/edge-config: Expected keys to be an array of string',
+      '@vercel/edge-config: Expected keys to be an array of string'
     );
   }
 }
@@ -60,7 +60,7 @@ export function clone<T>(value: T): T {
  * the given text was not a valid Edge Config Connection String.
  */
 export function parseConnectionString(
-  text: string,
+  text: string
 ): { id: string; token: string } | null {
   try {
     const url = new URL(text);

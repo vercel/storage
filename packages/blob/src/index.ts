@@ -59,7 +59,7 @@ export async function put(
     | FormData
     | ReadableStream
     | File,
-  options: PutCommandOptions,
+  options: PutCommandOptions
 ): Promise<PutBlobResult> {
   if (!pathname) {
     throw new BlobError('pathname is required');
@@ -120,7 +120,7 @@ type DeleteBlobApiResponse = null;
 // we use function overloads to define the return type accordingly
 export async function del(
   url: string[] | string,
-  options?: BlobCommandOptions,
+  options?: BlobCommandOptions
 ): Promise<void> {
   const blobApiResponse = await fetch(getApiUrl('/delete'), {
     method: 'POST',
@@ -160,7 +160,7 @@ interface HeadBlobApiResponse extends Omit<HeadBlobResult, 'uploadedAt'> {
 
 export async function head(
   url: string,
-  options?: BlobCommandOptions,
+  options?: BlobCommandOptions
 ): Promise<HeadBlobResult | null> {
   const headApiUrl = new URL(getApiUrl());
   headApiUrl.searchParams.set('url', url);
@@ -220,7 +220,7 @@ export interface ListCommandOptions extends BlobCommandOptions {
 }
 
 export async function list(
-  options?: ListCommandOptions,
+  options?: ListCommandOptions
 ): Promise<ListBlobResult> {
   const listApiUrl = new URL(getApiUrl());
   if (options?.limit) {
@@ -273,7 +273,7 @@ function getApiUrl(pathname = ''): string {
 function mapBlobResult(blobResult: HeadBlobApiResponse): HeadBlobResult;
 function mapBlobResult(blobResult: ListBlobApiResponseBlob): ListBlobResultBlob;
 function mapBlobResult(
-  blobResult: ListBlobApiResponseBlob | HeadBlobApiResponse,
+  blobResult: ListBlobApiResponseBlob | HeadBlobApiResponse
 ): ListBlobResultBlob | HeadBlobResult {
   return {
     ...blobResult,
@@ -323,7 +323,7 @@ interface ReturnPutCommandOptions {
 }
 
 function shouldFetchClientToken(
-  options: PutCommandOptions,
+  options: PutCommandOptions
 ): options is ReturnPutCommandOptions {
   return Boolean(!options.token && options.handleBlobUploadUrl);
 }

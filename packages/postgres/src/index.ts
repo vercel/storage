@@ -17,7 +17,6 @@ export const sql = new Proxy(
   // eslint-disable-next-line @typescript-eslint/no-empty-function -- [@vercel/style-guide@5 migration]
   () => {},
   {
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- [@vercel/style-guide@5 migration]
     get(_, prop) {
       if (!pool) {
         pool = createPool();
@@ -34,7 +33,6 @@ export const sql = new Proxy(
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- [@vercel/style-guide@5 migration]
       return val;
     },
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- [@vercel/style-guide@5 migration]
     apply(_, __, argumentsList) {
       if (!pool) {
         pool = createPool();
@@ -44,7 +42,7 @@ export const sql = new Proxy(
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- [@vercel/style-guide@5 migration]
       return pool.sql(...argumentsList);
     },
-  },
+  }
 ) as unknown as VercelPool &
   (<O extends QueryResultRow>(
     strings: TemplateStringsArray,

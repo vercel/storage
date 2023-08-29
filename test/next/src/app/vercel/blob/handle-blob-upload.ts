@@ -5,7 +5,7 @@ import { validateUploadToken } from './validate-upload-token';
 // eslint-disable-next-line @typescript-eslint/require-await -- [@vercel/style-guide@5 migration]
 async function auth(
   request: Request,
-  _pathname: string,
+  _pathname: string
 ): Promise<{ user: { id: string } | null; userCanUpload: boolean }> {
   if (!validateUploadToken(request)) {
     return {
@@ -20,7 +20,7 @@ async function auth(
 }
 
 export async function handleBlobUploadHandler(
-  request: Request,
+  request: Request
 ): Promise<NextResponse> {
   const body = (await request.json()) as HandleBlobUploadBody;
   try {
@@ -65,7 +65,7 @@ export async function handleBlobUploadHandler(
     const message = (error as Error).message;
     return NextResponse.json(
       { error: message },
-      { status: message === 'Not authorized' ? 401 : 400 },
+      { status: message === 'Not authorized' ? 401 : 400 }
     );
   }
 }

@@ -15,7 +15,7 @@ export function getToken(options?: BlobCommandOptions): string {
 
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     throw new Error(
-      'BLOB_READ_WRITE_TOKEN environment variable is not set. Please set it to your write token.',
+      'BLOB_READ_WRITE_TOKEN environment variable is not set. Please set it to your write token.'
     );
   }
 
@@ -31,7 +31,7 @@ export class BlobError extends Error {
 export class BlobAccessError extends Error {
   constructor() {
     super(
-      'Vercel Blob: Access denied, please provide a valid token for this resource',
+      'Vercel Blob: Access denied, please provide a valid token for this resource'
     );
   }
 }

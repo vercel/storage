@@ -12,7 +12,7 @@ export default async function handler(): Promise<Response> {
   } catch (e) {
     return NextResponse.json(
       { message: (e as Error).message },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

@@ -9,8 +9,8 @@ function timeout(msg: string): Promise<never> {
     // eslint-disable-next-line no-promise-executor-return -- [@vercel/style-guide@5 migration]
     setTimeout(
       () => reject(new Error(`SELECT hung for more than 20 seconds in ${msg}`)),
-      20000,
-    ),
+      20000
+    )
   );
 }
 

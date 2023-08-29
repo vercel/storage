@@ -14,7 +14,7 @@ const sdkVersion = typeof pkgVersion === 'string' ? pkgVersion : '';
 describe('test conditions', () => {
   it('should have an env var called EDGE_CONFIG', () => {
     expect(process.env.EDGE_CONFIG).toEqual(
-      'https://edge-config.vercel.com/ecfg-1?token=token-1',
+      'https://edge-config.vercel.com/ecfg-1?token=token-1'
     );
   });
 });
@@ -29,16 +29,16 @@ describe('parseConnectionString', () => {
   it('should return null when the given Connection String has no token', () => {
     expect(
       pkg.parseConnectionString(
-        'https://edge-config.vercel.com/ecfg_cljia81u2q1gappdgptj881dwwtc',
-      ),
+        'https://edge-config.vercel.com/ecfg_cljia81u2q1gappdgptj881dwwtc'
+      )
     ).toBeNull();
   });
 
   it('should return the id and token when a valid Connection String is given', () => {
     expect(
       pkg.parseConnectionString(
-        'https://edge-config.vercel.com/ecfg_cljia81u2q1gappdgptj881dwwtc?token=00000000-0000-0000-0000-000000000000',
-      ),
+        'https://edge-config.vercel.com/ecfg_cljia81u2q1gappdgptj881dwwtc?token=00000000-0000-0000-0000-000000000000'
+      )
     ).toEqual({
       id: 'ecfg_cljia81u2q1gappdgptj881dwwtc',
       token: '00000000-0000-0000-0000-000000000000',
@@ -65,7 +65,7 @@ describe('when running without lambda layer or via edge function', () => {
   describe('when called without a baseUrl', () => {
     it('should throw', () => {
       expect(() => pkg.createClient(undefined)).toThrow(
-        '@vercel/edge-config: No connection string provided',
+        '@vercel/edge-config: No connection string provided'
       );
     });
   });
@@ -87,7 +87,7 @@ describe('when running without lambda layer or via edge function', () => {
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
             }),
             cache: 'no-store',
-          },
+          }
         );
       });
     });
@@ -111,7 +111,7 @@ describe('when running without lambda layer or via edge function', () => {
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
             }),
             cache: 'no-store',
-          },
+          }
         );
       });
     });
@@ -134,7 +134,7 @@ describe('when running without lambda layer or via edge function', () => {
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
             }),
             cache: 'no-store',
-          },
+          }
         );
       });
     });
@@ -182,7 +182,7 @@ describe('etags and if-none-match', () => {
             'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
           }),
           cache: 'no-store',
-        },
+        }
       );
       expect(fetchMock).toHaveBeenCalledWith(
         `${modifiedBaseUrl}/item/foo?version=1`,
@@ -194,7 +194,7 @@ describe('etags and if-none-match', () => {
             'if-none-match': 'a',
           }),
           cache: 'no-store',
-        },
+        }
       );
     });
   });
@@ -245,7 +245,7 @@ describe('connectionStrings', () => {
                 'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
               }),
               cache: 'no-store',
-            },
+            }
           );
         });
       });

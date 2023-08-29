@@ -31,7 +31,7 @@ describe('blob client', () => {
         put('foo.txt', 'Test Body', {
           access: 'public',
           token: 'vercel_blob_client_123_token',
-        }),
+        })
       ).resolves.toMatchInlineSnapshot(`
         {
           "contentDisposition": "attachment; filename="foo.txt"",
@@ -48,9 +48,9 @@ describe('blob client', () => {
           access: 'public',
           contentType: 'text/plain',
           token: 'vercel_blob_rw_123_TEST_TOKEN',
-        }),
+        })
       ).rejects.toThrow(
-        new Error('Vercel Blob: client upload only supports client tokens'),
+        new Error('Vercel Blob: client upload only supports client tokens')
       );
     });
   });

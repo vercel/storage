@@ -64,7 +64,7 @@ describe('blob client', () => {
               }
           `);
       expect(path).toEqual(
-        '/?url=https%3A%2F%2FstoreId.public.blob.vercel-storage.com%2Ffoo-id.txt',
+        '/?url=https%3A%2F%2FstoreId.public.blob.vercel-storage.com%2Ffoo-id.txt'
       );
       expect(headers.authorization).toEqual('Bearer TEST_TOKEN');
     });
@@ -78,7 +78,7 @@ describe('blob client', () => {
         .reply(404, 'Not found');
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).resolves.toEqual(
-        null,
+        null
       );
     });
 
@@ -92,8 +92,8 @@ describe('blob client', () => {
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
-          'Vercel Blob: Access denied, please provide a valid token for this resource',
-        ),
+          'Vercel Blob: Access denied, please provide a valid token for this resource'
+        )
       );
     });
 
@@ -107,8 +107,8 @@ describe('blob client', () => {
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
-          'Vercel Blob: Unknown error, please visit https://vercel.com/help',
-        ),
+          'Vercel Blob: Unknown error, please visit https://vercel.com/help'
+        )
       );
     });
 
@@ -117,8 +117,8 @@ describe('blob client', () => {
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
-          'BLOB_READ_WRITE_TOKEN environment variable is not set. Please set it to your write token.',
-        ),
+          'BLOB_READ_WRITE_TOKEN environment variable is not set. Please set it to your write token.'
+        )
       );
     });
   });
@@ -141,13 +141,13 @@ describe('blob client', () => {
         });
 
       await expect(
-        del(`${BLOB_STORE_BASE_URL}/foo-id.txt`),
+        del(`${BLOB_STORE_BASE_URL}/foo-id.txt`)
       ).resolves.toBeUndefined();
 
       expect(path).toEqual('/delete');
       expect(headers.authorization).toEqual('Bearer TEST_TOKEN');
       expect(body).toMatchInlineSnapshot(
-        `"{"urls":["https://storeId.public.blob.vercel-storage.com/foo-id.txt"]}"`,
+        `"{"urls":["https://storeId.public.blob.vercel-storage.com/foo-id.txt"]}"`
       );
     });
 
@@ -171,12 +171,12 @@ describe('blob client', () => {
         del([
           `${BLOB_STORE_BASE_URL}/foo-id1.txt`,
           `${BLOB_STORE_BASE_URL}/foo-id2.txt`,
-        ]),
+        ])
       ).resolves.toBeUndefined();
       expect(path).toEqual('/delete');
       expect(headers.authorization).toEqual('Bearer TEST_TOKEN');
       expect(body).toMatchInlineSnapshot(
-        `"{"urls":["https://storeId.public.blob.vercel-storage.com/foo-id1.txt","https://storeId.public.blob.vercel-storage.com/foo-id2.txt"]}"`,
+        `"{"urls":["https://storeId.public.blob.vercel-storage.com/foo-id1.txt","https://storeId.public.blob.vercel-storage.com/foo-id2.txt"]}"`
       );
     });
 
@@ -190,8 +190,8 @@ describe('blob client', () => {
 
       await expect(del(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
-          'Vercel Blob: Access denied, please provide a valid token for this resource',
-        ),
+          'Vercel Blob: Access denied, please provide a valid token for this resource'
+        )
       );
     });
 
@@ -205,8 +205,8 @@ describe('blob client', () => {
 
       await expect(del(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
-          'Vercel Blob: Unknown error, please visit https://vercel.com/help',
-        ),
+          'Vercel Blob: Unknown error, please visit https://vercel.com/help'
+        )
       );
     });
   });
@@ -238,7 +238,7 @@ describe('blob client', () => {
         });
 
       await expect(
-        list({ cursor: 'cursor-abc', limit: 10, prefix: 'test-prefix' }),
+        list({ cursor: 'cursor-abc', limit: 10, prefix: 'test-prefix' })
       ).resolves.toMatchInlineSnapshot(`
         {
           "blobs": [
@@ -273,8 +273,8 @@ describe('blob client', () => {
 
       await expect(list()).rejects.toThrow(
         new Error(
-          'Vercel Blob: Access denied, please provide a valid token for this resource',
-        ),
+          'Vercel Blob: Access denied, please provide a valid token for this resource'
+        )
       );
     });
 
@@ -287,8 +287,8 @@ describe('blob client', () => {
         .reply(500, 'Invalid token');
       await expect(list()).rejects.toThrow(
         new Error(
-          'Vercel Blob: Unknown error, please visit https://vercel.com/help',
-        ),
+          'Vercel Blob: Unknown error, please visit https://vercel.com/help'
+        )
       );
     });
   });
@@ -321,7 +321,7 @@ describe('blob client', () => {
         put('foo.txt', 'Test Body', {
           access: 'public',
           token: 'NEW_TOKEN',
-        }),
+        })
       ).resolves.toMatchInlineSnapshot(`
         {
           "contentDisposition": "attachment; filename="foo.txt"",
@@ -367,11 +367,11 @@ describe('blob client', () => {
         put('foo.txt', 'Test Body', {
           access: 'public',
           contentType: 'text/plain',
-        }),
+        })
       ).rejects.toThrow(
         new Error(
-          'Vercel Blob: Access denied, please provide a valid token for this resource',
-        ),
+          'Vercel Blob: Access denied, please provide a valid token for this resource'
+        )
       );
     });
 
@@ -386,11 +386,11 @@ describe('blob client', () => {
         put('foo.txt', 'Test Body', {
           access: 'public',
           contentType: 'text/plain',
-        }),
+        })
       ).rejects.toThrow(
         new Error(
-          'Vercel Blob: Unknown error, please visit https://vercel.com/help',
-        ),
+          'Vercel Blob: Unknown error, please visit https://vercel.com/help'
+        )
       );
     });
 
@@ -405,7 +405,7 @@ describe('blob client', () => {
       await expect(
         put('', 'Test Body', {
           access: 'public',
-        }),
+        })
       ).rejects.toThrow(new Error('Vercel Blob: pathname is required'));
     });
 
@@ -420,7 +420,7 @@ describe('blob client', () => {
       await expect(
         put('path.txt', '', {
           access: 'public',
-        }),
+        })
       ).rejects.toThrow(new Error('Vercel Blob: body is required'));
     });
 
@@ -436,7 +436,7 @@ describe('blob client', () => {
         put('foo.txt', 'Test Body', {
           // @ts-expect-error: access is only public for now, testing that a different value throws
           access: 'private',
-        }),
+        })
       ).rejects.toThrow(new Error('Vercel Blob: access must be "public"'));
     });
   });
@@ -461,7 +461,7 @@ describe('blob client', () => {
       });
 
       expect(uploadToken).toEqual(
-        'vercel_blob_client_123456789_YWVlNmY1ZjVkZGU5YWZiYjczOGE1YmM0ZTNiOGFjNTI3MGNlMTJhOTNiNDc1YTlmZjBmYjkyZTFlZWVhNGE2OS5leUp3WVhSb2JtRnRaU0k2SW1admJ5NTBlSFFpTENKdmJsVndiRzloWkVOdmJYQnNaWFJsWkNJNmV5SmpZV3hzWW1GamExVnliQ0k2SW1oMGRIQnpPaTh2WlhoaGJYQnNaUzVqYjIwaUxDSnRaWFJoWkdGMFlTSTZJbnRjSW1admIxd2lPbHdpWW1GeVhDSjlJbjBzSW5aaGJHbGtWVzUwYVd3aU9qRTJOekkxTXpFeU16QXdNREI5',
+        'vercel_blob_client_123456789_YWVlNmY1ZjVkZGU5YWZiYjczOGE1YmM0ZTNiOGFjNTI3MGNlMTJhOTNiNDc1YTlmZjBmYjkyZTFlZWVhNGE2OS5leUp3WVhSb2JtRnRaU0k2SW1admJ5NTBlSFFpTENKdmJsVndiRzloWkVOdmJYQnNaWFJsWkNJNmV5SmpZV3hzWW1GamExVnliQ0k2SW1oMGRIQnpPaTh2WlhoaGJYQnNaUzVqYjIwaUxDSnRaWFJoWkdGMFlTSTZJbnRjSW1admIxd2lPbHdpWW1GeVhDSjlJbjBzSW5aaGJHbGtWVzUwYVd3aU9qRTJOekkxTXpFeU16QXdNREI5'
       );
 
       expect(getPayloadFromClientToken(uploadToken)).toEqual({
@@ -492,7 +492,7 @@ describe('blob client', () => {
           body,
           signature:
             '3fac10916b6b4af8678e189a3843706ec8185162c15238f0557f113531969053',
-        }),
+        })
       ).toBeTruthy();
     });
 
@@ -512,7 +512,7 @@ describe('blob client', () => {
           body,
           signature:
             '3fac10916b6b4af8678e189a3843706ec8185162c15238f0557f113531969053',
-        }),
+        })
       ).toBeFalsy();
     });
   });
@@ -560,7 +560,7 @@ describe('blob client', () => {
       expect(spy).not.toHaveBeenCalled();
       expect(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any -- Either the test is incomplete, or we're messing up with TS
-        getPayloadFromClientToken((jsonResponse as any).clientToken),
+        getPayloadFromClientToken((jsonResponse as any).clientToken)
       ).toEqual({
         metadata: 'newfile.txt',
         onUploadCompleted: {
@@ -599,7 +599,7 @@ describe('blob client', () => {
             };
           },
           onUploadCompleted: spy,
-        }),
+        })
       ).toEqual({
         response: 'ok',
         type: 'blob.upload-completed',

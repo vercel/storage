@@ -21,7 +21,7 @@ export async function generateClientTokenFromReadWriteToken({
 }: GenerateClientTokenOptions): Promise<string> {
   if (typeof window !== 'undefined') {
     throw new Error(
-      '"generateClientTokenFromReadWriteToken" must be called from a server environment',
+      '"generateClientTokenFromReadWriteToken" must be called from a server environment'
     );
   }
   const timestamp = new Date();
@@ -32,7 +32,7 @@ export async function generateClientTokenFromReadWriteToken({
 
   if (!storeId) {
     throw new Error(
-      token ? 'Invalid "token" parameter' : 'Invalid BLOB_READ_WRITE_TOKEN',
+      token ? 'Invalid "token" parameter' : 'Invalid BLOB_READ_WRITE_TOKEN'
     );
   }
 
@@ -40,7 +40,7 @@ export async function generateClientTokenFromReadWriteToken({
     JSON.stringify({
       ...args,
       validUntil: args.validUntil ?? timestamp.getTime(),
-    }),
+    })
   ).toString('base64');
 
   const securedKey = await signPayload(payload, blobToken);
@@ -48,7 +48,7 @@ export async function generateClientTokenFromReadWriteToken({
     throw new Error('Unable to sign client token');
   }
   return `vercel_blob_client_${storeId}_${Buffer.from(
-    `${securedKey}.${payload}`,
+    `${securedKey}.${payload}`
   ).toString('base64')}`;
 }
 
@@ -58,13 +58,13 @@ async function importKey(token?: string): Promise<CryptoKey> {
     new TextEncoder().encode(getToken({ token })),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
-    ['sign', 'verify'],
+    ['sign', 'verify']
   );
 }
 
 async function signPayload(
   payload: string,
-  token: string,
+  token: string
 ): Promise<string | undefined> {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Node.js < 20: globalThis.crypto is undefined (in a real script.js, because the REPL has it linked to the crypto module). Node.js >= 20, Browsers and Cloudflare workers: globalThis.crypto is defined and is the Web Crypto API.
   if (!globalThis.crypto) {
@@ -74,7 +74,7 @@ async function signPayload(
   const signature = await globalThis.crypto.subtle.sign(
     'HMAC',
     await importKey(token),
-    new TextEncoder().encode(payload),
+    new TextEncoder().encode(payload)
   );
   return Buffer.from(new Uint8Array(signature)).toString('hex');
 }
@@ -110,7 +110,7 @@ export async function verifyCallbackSignature({
     'HMAC',
     await importKey(token),
     hexToArrayByte(signature),
-    new TextEncoder().encode(body),
+    new TextEncoder().encode(body)
   );
   return verified;
 }
@@ -133,7 +133,7 @@ type DecodedClientTokenPayload = Omit<GenerateClientTokenOptions, 'token'> & {
 };
 
 export function getPayloadFromClientToken(
-  clientToken: string,
+  clientToken: string
 ): DecodedClientTokenPayload {
   const [, , , , encodedToken] = clientToken.split('_');
   const encodedPayload = Buffer.from(encodedToken ?? '', 'base64')
@@ -168,7 +168,7 @@ type RequestType = IncomingMessage | Request;
 export interface HandleBlobUploadOptions {
   body: HandleBlobUploadBody;
   onBeforeGenerateToken: (
-    pathname: string,
+    pathname: string
   ) => Promise<
     Pick<
       GenerateClientTokenOptions,
@@ -176,7 +176,7 @@ export interface HandleBlobUploadOptions {
     > & { metadata?: string }
   >;
   onUploadCompleted: (
-    body: BlobUploadCompletedEvent['payload'],
+    body: BlobUploadCompletedEvent['payload']
   ) => Promise<void>;
   token?: string;
   request: RequestType;

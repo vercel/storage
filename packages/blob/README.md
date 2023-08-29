@@ -52,7 +52,7 @@ async function del(
   url: string | string[],
   options?: {
     token?: string;
-  },
+  }
 ): Promise<void> {}
 ```
 
@@ -65,7 +65,7 @@ async function head(
   url: string,
   options?: {
     token?: string;
-  },
+  }
 ): Promise<{
   size: number;
   uploadedAt: Date;

@@ -14,6 +14,7 @@ export interface GenerateClientTokenOptions extends BlobCommandOptions {
   allowedContentTypes?: string[];
   validUntil?: number;
   addRandomSuffix?: boolean;
+  cacheControlMaxAge?: number;
 }
 
 export async function generateClientTokenFromReadWriteToken({
@@ -177,6 +178,7 @@ export interface HandleBlobUploadOptions {
       | 'maximumSizeInBytes'
       | 'validUntil'
       | 'addRandomSuffix'
+      | 'cacheControlMaxAge'
     > & { metadata?: string }
   >;
   onUploadCompleted: (

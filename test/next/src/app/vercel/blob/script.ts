@@ -76,6 +76,16 @@ async function textFileNoRandomSuffixExample(): Promise<string> {
   return blob.url;
 }
 
+async function textFileExampleWithCacheControlMaxAge(): Promise<string> {
+  const start = Date.now();
+  const blob = await vercelBlob.put('folder/test.txt', 'Hello, world!', {
+    access: 'public',
+    cacheControlMaxAge: 120,
+  });
+  console.log('Text file example:', blob.url, `(${Date.now() - start}ms)`);
+  return blob.url;
+}
+
 async function imageExample(): Promise<string> {
   const start = Date.now();
   const pathname = 'zeit.png';

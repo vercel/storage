@@ -20,6 +20,7 @@ async function run(): Promise<void> {
   const urls = await Promise.all([
     textFileExample(),
     textFileNoRandomSuffixExample(),
+    textFileExampleWithCacheControlMaxAge(),
     imageExample(),
     videoExample(),
     webpageExample(),

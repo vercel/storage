@@ -39,6 +39,7 @@ export interface PutCommandOptions extends BlobCommandOptions {
   contentType?: string;
   handleBlobUploadUrl?: string; // only used in the browser
   addRandomSuffix?: boolean;
+  cacheControlMaxAge?: number;
 }
 
 export interface PutBlobResult {
@@ -93,6 +94,10 @@ export async function put(
 
   if (options.addRandomSuffix !== undefined) {
     headers['x-add-random-suffix'] = options.addRandomSuffix ? '1' : '0';
+  }
+
+  if (options.cacheControlMaxAge !== undefined) {
+    headers['x-cache-control-max-age'] = options.cacheControlMaxAge.toString();
   }
 
   const blobApiResponse = await fetch(getApiUrl(`/${pathname}`), {

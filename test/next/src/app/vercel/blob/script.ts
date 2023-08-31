@@ -20,6 +20,7 @@ async function run(): Promise<void> {
   const urls = await Promise.all([
     textFileExample(),
     textFileNoRandomSuffixExample(),
+    textFileExampleWithCacheControlMaxAge(),
     imageExample(),
     videoExample(),
     webpageExample(),
@@ -71,6 +72,16 @@ async function textFileNoRandomSuffixExample(): Promise<string> {
   const blob = await vercelBlob.put('folder/test.txt', 'Hello, world!', {
     access: 'public',
     addRandomSuffix: false,
+  });
+  console.log('Text file example:', blob.url, `(${Date.now() - start}ms)`);
+  return blob.url;
+}
+
+async function textFileExampleWithCacheControlMaxAge(): Promise<string> {
+  const start = Date.now();
+  const blob = await vercelBlob.put('folder/test.txt', 'Hello, world!', {
+    access: 'public',
+    cacheControlMaxAge: 120,
   });
   console.log('Text file example:', blob.url, `(${Date.now() - start}ms)`);
   return blob.url;

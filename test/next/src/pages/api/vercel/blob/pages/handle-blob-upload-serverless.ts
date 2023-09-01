@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { type HandleBlobUploadBody, handleBlobUpload } from '@vercel/blob';
+import { type HandleClientUploadBody, handleClientUpload } from '@vercel/blob';
 import { validateUploadToken } from '@/app/vercel/blob/validate-upload-token';
 
 export const config = {
@@ -16,8 +16,8 @@ export default async function handleBody(
 
   const body = request.body as string;
   try {
-    const jsonResponse = await handleBlobUpload({
-      body: JSON.parse(body) as HandleBlobUploadBody,
+    const jsonResponse = await handleClientUpload({
+      body: JSON.parse(body) as HandleClientUploadBody,
       request,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/require-await -- [@vercel/style-guide@5 migration]
       onBeforeGenerateToken: async (pathname) => {

@@ -8,7 +8,7 @@ import {
   generateClientTokenFromReadWriteToken,
   getPayloadFromClientToken,
   verifyCallbackSignature,
-  handleBlobUpload,
+  handleClientUpload,
   type HeadBlobResult,
 } from './index';
 
@@ -116,7 +116,7 @@ describe('blob client', () => {
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
-          'BLOB_READ_WRITE_TOKEN environment variable is not set. Please set it to your write token.'
+          'Vercel Blob: No token found. Either configure the `BLOB_READ_WRITE_TOKEN` environment variable, or pass a `token` option to your calls.'
         )
       );
     });
@@ -556,7 +556,7 @@ describe('blob client', () => {
     });
   });
 
-  describe('handleBlobUpload', () => {
+  describe('handleClientUpload', () => {
     afterEach(() => {
       jest.runOnlyPendingTimers();
       jest.useRealTimers();
@@ -568,7 +568,7 @@ describe('blob client', () => {
     test('should return client token when called with blob.generate-client-token', async () => {
       const token = 'vercel_blob_client_123456789_TEST_TOKEN';
       const spy = jest.fn();
-      const jsonResponse = await handleBlobUpload({
+      const jsonResponse = await handleClientUpload({
         token,
         request: {
           headers: { 'x-vercel-signature': '123' },
@@ -616,7 +616,7 @@ describe('blob client', () => {
       const spy = jest.fn();
 
       expect(
-        await handleBlobUpload({
+        await handleClientUpload({
           token,
           request: {
             headers: {

@@ -1,7 +1,7 @@
 // eslint-disable-next-line unicorn/prefer-node-protocol -- node:crypto does not resolve correctly in browser and edge runtime
 import * as crypto from 'crypto';
 import type { IncomingMessage } from 'node:http';
-import { getToken } from './helpers';
+import { getTokenFromOptionsOrEnv } from './helpers';
 import { type HeadBlobResult, type BlobCommandOptions } from '.';
 
 export interface GenerateClientTokenOptions extends BlobCommandOptions {
@@ -19,33 +19,34 @@ export interface GenerateClientTokenOptions extends BlobCommandOptions {
 
 export async function generateClientTokenFromReadWriteToken({
   token,
-  ...args
+  ...argsWithoutToken
 }: GenerateClientTokenOptions): Promise<string> {
   if (typeof window !== 'undefined') {
     throw new Error(
       '"generateClientTokenFromReadWriteToken" must be called from a server environment'
     );
   }
+
   const timestamp = new Date();
   timestamp.setSeconds(timestamp.getSeconds() + 30);
-  const blobToken = getToken({ token });
+  const readWriteToken = getTokenFromOptionsOrEnv({ token });
 
-  const [, , , storeId = null] = blobToken.split('_');
+  const [, , , storeId = null] = readWriteToken.split('_');
 
   if (!storeId) {
     throw new Error(
-      token ? 'Invalid "token" parameter' : 'Invalid BLOB_READ_WRITE_TOKEN'
+      token ? 'Invalid `token` parameter' : 'Invalid `BLOB_READ_WRITE_TOKEN`'
     );
   }
 
   const payload = Buffer.from(
     JSON.stringify({
-      ...args,
-      validUntil: args.validUntil ?? timestamp.getTime(),
+      ...argsWithoutToken,
+      validUntil: argsWithoutToken.validUntil ?? timestamp.getTime(),
     })
   ).toString('base64');
 
-  const securedKey = await signPayload(payload, blobToken);
+  const securedKey = await signPayload(payload, readWriteToken);
   if (!securedKey) {
     throw new Error('Unable to sign client token');
   }
@@ -57,7 +58,7 @@ export async function generateClientTokenFromReadWriteToken({
 async function importKey(token?: string): Promise<CryptoKey> {
   return globalThis.crypto.subtle.importKey(
     'raw',
-    new TextEncoder().encode(getToken({ token })),
+    new TextEncoder().encode(getTokenFromOptionsOrEnv({ token })),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign', 'verify']
@@ -91,7 +92,7 @@ export async function verifyCallbackSignature({
   body: string;
 }): Promise<boolean> {
   // callback signature is signed using the server token
-  const secret = getToken({ token });
+  const secret = getTokenFromOptionsOrEnv({ token });
   // Browsers, Edge runtime and Node >=20 implement the Web Crypto API
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Node.js < 20: globalThis.crypto is undefined (in a real script.js, because the REPL has it linked to the crypto module). Node.js >= 20, Browsers and Cloudflare workers: globalThis.crypto is defined and is the Web Crypto API.
   if (!globalThis.crypto) {
@@ -154,7 +155,7 @@ export interface GenerateClientTokenEvent {
   type: (typeof EventTypes)['generateClientToken'];
   payload: { pathname: string; callbackUrl: string };
 }
-export interface BlobUploadCompletedEvent {
+export interface ClientUploadCompletedEvent {
   type: (typeof EventTypes)['uploadCompleted'];
   payload: {
     blob: HeadBlobResult;
@@ -162,13 +163,13 @@ export interface BlobUploadCompletedEvent {
   };
 }
 
-export type HandleBlobUploadBody =
+export type HandleClientUploadBody =
   | GenerateClientTokenEvent
-  | BlobUploadCompletedEvent;
+  | ClientUploadCompletedEvent;
 
 type RequestType = IncomingMessage | Request;
-export interface HandleBlobUploadOptions {
-  body: HandleBlobUploadBody;
+export interface HandleClientUploadOptions {
+  body: HandleClientUploadBody;
   onBeforeGenerateToken: (
     pathname: string
   ) => Promise<
@@ -182,21 +183,21 @@ export interface HandleBlobUploadOptions {
     > & { metadata?: string }
   >;
   onUploadCompleted: (
-    body: BlobUploadCompletedEvent['payload']
+    body: ClientUploadCompletedEvent['payload']
   ) => Promise<void>;
   token?: string;
   request: RequestType;
 }
 
-export async function handleBlobUpload({
+export async function handleClientUpload({
   token,
   request,
   body,
   onBeforeGenerateToken,
   onUploadCompleted,
-}: HandleBlobUploadOptions): Promise<
+}: HandleClientUploadOptions): Promise<
   | { type: GenerateClientTokenEvent['type']; clientToken: string }
-  | { type: BlobUploadCompletedEvent['type']; response: 'ok' }
+  | { type: ClientUploadCompletedEvent['type']; response: 'ok' }
 > {
   const type = body.type;
   switch (type) {

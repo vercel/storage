@@ -8,7 +8,7 @@ import {
   BlobAccessError,
   BlobError,
   BlobUnknownError,
-  getToken,
+  getTokenFromOptionsOrEnv,
 } from './helpers';
 import { EventTypes, type GenerateClientTokenEvent } from './client-upload';
 
@@ -17,11 +17,11 @@ export {
   generateClientTokenFromReadWriteToken,
   getPayloadFromClientToken,
   verifyCallbackSignature,
-  handleBlobUpload,
-  type BlobUploadCompletedEvent,
+  handleClientUpload,
+  type ClientUploadCompletedEvent,
   type GenerateClientTokenOptions,
-  type HandleBlobUploadBody,
-  type HandleBlobUploadOptions,
+  type HandleClientUploadBody,
+  type HandleClientUploadOptions,
 } from './client-upload';
 
 // This version is used to ensure that the client and server are compatible
@@ -37,7 +37,6 @@ export interface BlobCommandOptions {
 export interface PutCommandOptions extends BlobCommandOptions {
   access: 'public';
   contentType?: string;
-  handleBlobUploadUrl?: string; // only used in the browser
   addRandomSuffix?: boolean;
   cacheControlMaxAge?: number;
 }
@@ -76,12 +75,7 @@ export async function put(
     throw new BlobError('access must be "public"');
   }
 
-  const token = shouldFetchClientToken(options)
-    ? await retrieveClientToken({
-        handleBlobUploadUrl: options.handleBlobUploadUrl,
-        pathname,
-      })
-    : getToken(options);
+  const token = getTokenFromOptionsOrEnv(options);
 
   const headers: Record<string, string> = {
     ...getApiVersionHeader(),
@@ -122,6 +116,96 @@ export async function put(
   return blobResult;
 }
 
+// vercelBlob.clientPut()
+// This is a wrapper that will fetch the client token for you and then upload the file
+export interface ClientPutCommandOptions extends BlobCommandOptions {
+  access: 'public';
+  contentType?: string;
+  handleClientUploadUrl: string;
+}
+
+export async function clientPut(
+  pathname: string,
+  body:
+    | string
+    | Readable
+    | Blob
+    | ArrayBuffer
+    | FormData
+    | ReadableStream
+    | File,
+  options: ClientPutCommandOptions
+): Promise<PutBlobResult> {
+  if (!pathname) {
+    throw new BlobError('pathname is required');
+  }
+
+  if (!body) {
+    throw new BlobError('body is required');
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX. options are required in Types, but at runtime someone not using Typescript could forget them.
+  if (!options) {
+    throw new BlobError('Missing parameters, see usage');
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX.
+  if (options.access !== 'public') {
+    throw new BlobError('`access` must be "public"');
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX.
+  if (options.handleClientUploadUrl === undefined) {
+    throw new BlobError('Missing `handleClientUploadUrl` parameter');
+  }
+
+  if (
+    // @ts-expect-error -- Runtime check for DX.
+    options.addRandomSuffix !== undefined ||
+    // @ts-expect-error -- Runtime check for DX.
+    options.cacheControlMaxAge !== undefined
+  ) {
+    throw new BlobError(
+      'addRandomSuffix and cacheControlMaxAge are not supported in client side uploads. Configure these options at the server side when generating client tokens.'
+    );
+  }
+
+  const clientToken = await retrieveClientToken({
+    handleClientUploadUrl: options.handleClientUploadUrl,
+    pathname,
+  });
+
+  const headers: Record<string, string> = {
+    ...getApiVersionHeader(),
+    authorization: `Bearer ${clientToken}`,
+  };
+
+  if (options.contentType) {
+    headers['x-content-type'] = options.contentType;
+  }
+
+  const blobApiResponse = await fetch(getApiUrl(`/${pathname}`), {
+    method: 'PUT',
+    body: body as BodyInit,
+    headers,
+    // required in order to stream some body types to Cloudflare
+    // currently only supported in Node.js, we may have to feature detect this
+    duplex: 'half',
+  });
+
+  if (blobApiResponse.status !== 200) {
+    if (blobApiResponse.status === 403) {
+      throw new BlobAccessError();
+    } else {
+      throw new BlobUnknownError();
+    }
+  }
+
+  const blobResult = (await blobApiResponse.json()) as PutBlobApiResponse;
+
+  return blobResult;
+}
+
 // vercelBlob.del()
 
 type DeleteBlobApiResponse = null;
@@ -136,7 +220,7 @@ export async function del(
     method: 'POST',
     headers: {
       ...getApiVersionHeader(),
-      authorization: `Bearer ${getToken(options)}`,
+      authorization: `Bearer ${getTokenFromOptionsOrEnv(options)}`,
       'content-type': 'application/json',
     },
     body: JSON.stringify({ urls: Array.isArray(url) ? url : [url] }),
@@ -179,7 +263,7 @@ export async function head(
     method: 'GET', // HEAD can't have body as a response, so we use GET
     headers: {
       ...getApiVersionHeader(),
-      authorization: `Bearer ${getToken(options)}`,
+      authorization: `Bearer ${getTokenFromOptionsOrEnv(options)}`,
     },
   });
 
@@ -246,7 +330,7 @@ export async function list(
     method: 'GET',
     headers: {
       ...getApiVersionHeader(),
-      authorization: `Bearer ${getToken(options)}`,
+      authorization: `Bearer ${getTokenFromOptionsOrEnv(options)}`,
     },
   });
 
@@ -301,12 +385,12 @@ function isAbsoluteUrl(url: string): boolean {
 
 async function retrieveClientToken(options: {
   pathname: string;
-  handleBlobUploadUrl: string;
+  handleClientUploadUrl: string;
 }): Promise<string> {
-  const { handleBlobUploadUrl, pathname } = options;
-  const url = isAbsoluteUrl(handleBlobUploadUrl)
-    ? handleBlobUploadUrl
-    : `${window.location.origin}${handleBlobUploadUrl}`;
+  const { handleClientUploadUrl, pathname } = options;
+  const url = isAbsoluteUrl(handleClientUploadUrl)
+    ? handleClientUploadUrl
+    : `${window.location.origin}${handleClientUploadUrl}`;
 
   const res = await fetch(url, {
     method: 'POST',
@@ -324,18 +408,6 @@ async function retrieveClientToken(options: {
   } catch (e) {
     throw new BlobError('Failed to retrieve the client token');
   }
-}
-
-interface ReturnPutCommandOptions {
-  handleBlobUploadUrl: string;
-  access: 'public';
-  token: undefined;
-}
-
-function shouldFetchClientToken(
-  options: PutCommandOptions
-): options is ReturnPutCommandOptions {
-  return Boolean(!options.token && options.handleBlobUploadUrl);
 }
 
 function getApiVersionHeader(): { 'x-api-version'?: string } {

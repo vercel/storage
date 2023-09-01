@@ -1,4 +1,4 @@
-import { handleBlobUpload, type HandleBlobUploadBody } from '@vercel/blob';
+import { handleClientUpload, type HandleClientUploadBody } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 import { validateUploadToken } from './validate-upload-token';
 
@@ -19,12 +19,12 @@ async function auth(
   };
 }
 
-export async function handleBlobUploadHandler(
+export async function handleClientUploadHandler(
   request: Request
 ): Promise<NextResponse> {
-  const body = (await request.json()) as HandleBlobUploadBody;
+  const body = (await request.json()) as HandleClientUploadBody;
   try {
-    const jsonResponse = await handleBlobUpload({
+    const jsonResponse = await handleClientUpload({
       body,
       request,
       // token: VERCEL_BLOB_READ_WRITE_TOKEN,

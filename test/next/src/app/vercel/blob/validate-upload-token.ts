@@ -11,7 +11,7 @@ export function validateUploadToken(
 
   return Boolean(
     cookie &&
-      new RegExp(`blobUpload=${process.env.BLOB_UPLOAD_SECRET ?? ''}`).test(
+      new RegExp(`clientUpload=${process.env.BLOB_UPLOAD_SECRET ?? ''}`).test(
         cookie
       )
   );

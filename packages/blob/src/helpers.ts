@@ -1,25 +1,17 @@
 import { type BlobCommandOptions } from '.';
 
-export function getToken(options?: BlobCommandOptions): string {
-  if (typeof window !== 'undefined') {
-    if (!options?.token) {
-      throw new BlobError('"token" is required');
-    }
-    if (!options.token.startsWith('vercel_blob_client')) {
-      throw new BlobError('client upload only supports client tokens');
-    }
-  }
+export function getTokenFromOptionsOrEnv(options?: BlobCommandOptions): string {
   if (options?.token) {
     return options.token;
   }
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    throw new Error(
-      'BLOB_READ_WRITE_TOKEN environment variable is not set. Please set it to your write token.'
-    );
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    return process.env.BLOB_READ_WRITE_TOKEN;
   }
 
-  return process.env.BLOB_READ_WRITE_TOKEN;
+  throw new BlobError(
+    'No token found. Either configure the `BLOB_READ_WRITE_TOKEN` environment variable, or pass a `token` option to your calls.'
+  );
 }
 
 export class BlobError extends Error {

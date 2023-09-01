@@ -41,17 +41,5 @@ describe('blob client', () => {
         }
       `);
     });
-
-    it('should throw when calling `put()` with a server token', async () => {
-      await expect(
-        put('foo.txt', 'Test Body', {
-          access: 'public',
-          contentType: 'text/plain',
-          token: 'vercel_blob_rw_123_TEST_TOKEN',
-        })
-      ).rejects.toThrow(
-        new Error('Vercel Blob: client upload only supports client tokens')
-      );
-    });
   });
 });

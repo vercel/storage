@@ -34,7 +34,7 @@ async function put(
     // You could also pass a client token here if you generated it yourself with `generateClientTokenFromReadWriteToken`
     token?: string,
     addRandomSuffix?: boolean; // optional, allows to disable or enable random suffixes (defaults to `true`)
-    cacheControlMaxAge?: number, // optional, a duration in seconds to configure the edge and browser caches. Defaults to one year. Can only be configured server side (either on server side put or during client token generation).
+    cacheControlMaxAge?: number, // optional, a duration in seconds to configure the edge and browser caches. Defaults to one year for browsers and 5 minutes for edge cache. Can only be configured server side (either on server side put or during client token generation). The Edge cache maximum value is always 5 minutes.
   }): Promise<{
       pathname: string;
       contentType: string;

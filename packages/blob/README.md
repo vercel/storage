@@ -187,7 +187,7 @@ Note: This is a server-side method.
 ## Examples
 
 - [Next.js App Router examples](../../test/next/src/app/vercel/blob/)
-- [https.get, axios, and got](../../test/next/src/app/vercel/blob/script.ts)
+- [https.get, axios, and got](../../test/next/src/app/vercel/blob/script.mts)
 
 ## How to list all your blobs
 

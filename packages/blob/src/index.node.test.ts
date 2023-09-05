@@ -1,12 +1,5 @@
-import type { IncomingMessage } from 'node:http';
 import { type Interceptable, MockAgent, setGlobalDispatcher } from 'undici';
-import {
-  generateClientTokenFromReadWriteToken,
-  getPayloadFromClientToken,
-  verifyCallbackSignature,
-  handleUpload,
-} from './client-upload';
-import { list, head, del, put, type HeadBlobResult } from './index';
+import { list, head, del, put } from './index';
 
 const BLOB_API_URL = 'https://blob.vercel-storage.com';
 const BLOB_STORE_BASE_URL = 'https://storeId.public.blob.vercel-storage.com';

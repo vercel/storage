@@ -1,3 +1,3 @@
-import { handleClientUploadHandler } from '@/app/vercel/blob/handle-blob-upload';
+import { handleUploadHandler } from '@/app/vercel/blob/handle-blob-upload';
 
-export const POST = handleClientUploadHandler;
+export const POST = handleUploadHandler;

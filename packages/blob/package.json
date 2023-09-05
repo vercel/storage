@@ -11,8 +11,18 @@
   "license": "Apache-2.0",
   "sideEffects": false,
   "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    },
+    "./client-upload": {
+      "import": "./dist/client-upload.js",
+      "require": "./dist/client-upload.cjs",
+      "types": "./dist/client-upload.d.ts"
+    }
+  },
   "browser": {
     "undici": "./dist/undici-browser.js",
     "crypto": "./dist/crypto-browser.js"

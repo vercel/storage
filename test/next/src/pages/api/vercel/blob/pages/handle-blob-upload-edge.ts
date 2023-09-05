@@ -1,6 +1,6 @@
-import { handleClientUploadHandler } from '@/app/vercel/blob/handle-blob-upload';
+import { handleUploadHandler } from '@/app/vercel/blob/handle-blob-upload';
 
-export default handleClientUploadHandler;
+export default handleUploadHandler;
 
 export const config = {
   runtime: 'edge',

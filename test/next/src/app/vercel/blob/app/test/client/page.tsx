@@ -15,7 +15,7 @@ export default function AppBodyClient({
     const doUpload = async (): Promise<void> => {
       const blobResult = await clientPut(filename, `Hello from ${filename}`, {
         access: 'public',
-        handleClientUploadUrl: callback,
+        handleUploadUrl: callback,
       });
       setBlob(blobResult);
       setContent(await fetch(blobResult.url).then((r) => r.text()));

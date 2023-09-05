@@ -45,7 +45,7 @@ async function put(
 
 ### `clientPut(pathname, body, options)`
 
-A wrapper around `put` that fetches a client token via the `handleClientUploadUrl` before uploading the blob. Read the [client uploads](https://vercel.com/docs/storage/vercel-blob/quickstart#client-uploads) documentation to know more.
+A wrapper around `put` that fetches a client token via the `handleUploadUrl` before uploading the blob. Read the [client uploads](https://vercel.com/docs/storage/vercel-blob/quickstart#client-uploads) documentation to know more.
 
 ```ts
 async function clientPut(
@@ -54,7 +54,7 @@ async function clientPut(
   options: {
     access: 'public', // mandatory, as we will provide private blobs in the future
     contentType?: string, // by default inferred from pathname
-    handleClientUploadUrl?: string,
+    handleUploadUrl?: string,
   }): Promise<{
       pathname: string;
       contentType: string;

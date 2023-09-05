@@ -10,7 +10,9 @@
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
-    "moduleResolution": "node",
+    // The next line informs TypeScript to use the `exports` field of `package.json` to resolve modules.
+    // Otherwise things like import { handleUpload } from '@vercel/blob/client-upload' won't work.
+    "moduleResolution": "nodenext",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",

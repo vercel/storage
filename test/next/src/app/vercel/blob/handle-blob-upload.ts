@@ -1,8 +1,10 @@
-import { handleClientUpload, type HandleClientUploadBody } from '@vercel/blob';
+import {
+  handleUpload,
+  type HandleUploadBody,
+} from '@vercel/blob/client-upload';
 import { NextResponse } from 'next/server';
 import { validateUploadToken } from './validate-upload-token';
 
-// eslint-disable-next-line @typescript-eslint/require-await -- [@vercel/style-guide@5 migration]
 async function auth(
   request: Request,
   _pathname: string
@@ -13,18 +15,22 @@ async function auth(
       user: null,
     };
   }
+
+  // faking an async auth call
+  await Promise.resolve();
+
   return {
     user: { id: '12345' },
     userCanUpload: true,
   };
 }
 
-export async function handleClientUploadHandler(
+export async function handleUploadHandler(
   request: Request
 ): Promise<NextResponse> {
-  const body = (await request.json()) as HandleClientUploadBody;
+  const body = (await request.json()) as HandleUploadBody;
   try {
-    const jsonResponse = await handleClientUpload({
+    const jsonResponse = await handleUpload({
       body,
       request,
       // token: VERCEL_BLOB_READ_WRITE_TOKEN,

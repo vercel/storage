@@ -2,7 +2,7 @@ import {
   generateClientTokenFromReadWriteToken,
   getPayloadFromClientToken,
   verifyCallbackSignature,
-} from './index';
+} from './client-upload';
 
 describe('blob client', () => {
   beforeEach(() => {

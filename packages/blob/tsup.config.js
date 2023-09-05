@@ -2,7 +2,7 @@ import { defineConfig } from 'tsup';
 
 // eslint-disable-next-line import/no-default-export -- tsup requires default export
 export default defineConfig({
-  entry: ['src/index.ts'],
+  entry: ['src/index.ts', 'src/client-upload.ts'],
   format: ['esm', 'cjs'],
   splitting: true,
   sourcemap: true,

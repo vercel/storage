@@ -4,34 +4,18 @@ import type { BodyInit } from 'undici';
 // the `undici` module will be replaced with https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
 // for browser contexts. See ./undici-browser.js and ./package.json
 import { fetch } from 'undici';
+import type { BlobCommandOptions } from './helpers';
 import {
   BlobAccessError,
   BlobError,
   BlobUnknownError,
+  getApiUrl,
+  getApiVersionHeader,
   getTokenFromOptionsOrEnv,
 } from './helpers';
-import { EventTypes, type GenerateClientTokenEvent } from './client-upload';
 
+// expose the BlobError types
 export { BlobAccessError, BlobError, BlobUnknownError };
-export {
-  generateClientTokenFromReadWriteToken,
-  getPayloadFromClientToken,
-  verifyCallbackSignature,
-  handleClientUpload,
-  type ClientUploadCompletedEvent,
-  type GenerateClientTokenOptions,
-  type HandleClientUploadBody,
-  type HandleClientUploadOptions,
-} from './client-upload';
-
-// This version is used to ensure that the client and server are compatible
-// The server (Vercel Blob API) uses this information to change its behavior like the
-// response format
-const BLOB_API_VERSION = 2;
-
-export interface BlobCommandOptions {
-  token?: string;
-}
 
 // vercelBlob.put()
 export interface PutCommandOptions extends BlobCommandOptions {
@@ -92,96 +76,6 @@ export async function put(
 
   if (options.cacheControlMaxAge !== undefined) {
     headers['x-cache-control-max-age'] = options.cacheControlMaxAge.toString();
-  }
-
-  const blobApiResponse = await fetch(getApiUrl(`/${pathname}`), {
-    method: 'PUT',
-    body: body as BodyInit,
-    headers,
-    // required in order to stream some body types to Cloudflare
-    // currently only supported in Node.js, we may have to feature detect this
-    duplex: 'half',
-  });
-
-  if (blobApiResponse.status !== 200) {
-    if (blobApiResponse.status === 403) {
-      throw new BlobAccessError();
-    } else {
-      throw new BlobUnknownError();
-    }
-  }
-
-  const blobResult = (await blobApiResponse.json()) as PutBlobApiResponse;
-
-  return blobResult;
-}
-
-// vercelBlob.clientPut()
-// This is a wrapper that will fetch the client token for you and then upload the file
-export interface ClientPutCommandOptions extends BlobCommandOptions {
-  access: 'public';
-  contentType?: string;
-  handleClientUploadUrl: string;
-}
-
-export async function clientPut(
-  pathname: string,
-  body:
-    | string
-    | Readable
-    | Blob
-    | ArrayBuffer
-    | FormData
-    | ReadableStream
-    | File,
-  options: ClientPutCommandOptions
-): Promise<PutBlobResult> {
-  if (!pathname) {
-    throw new BlobError('pathname is required');
-  }
-
-  if (!body) {
-    throw new BlobError('body is required');
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX. options are required in Types, but at runtime someone not using Typescript could forget them.
-  if (!options) {
-    throw new BlobError('Missing parameters, see usage');
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX.
-  if (options.access !== 'public') {
-    throw new BlobError('`access` must be "public"');
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX.
-  if (options.handleClientUploadUrl === undefined) {
-    throw new BlobError('Missing `handleClientUploadUrl` parameter');
-  }
-
-  if (
-    // @ts-expect-error -- Runtime check for DX.
-    options.addRandomSuffix !== undefined ||
-    // @ts-expect-error -- Runtime check for DX.
-    options.cacheControlMaxAge !== undefined
-  ) {
-    throw new BlobError(
-      'addRandomSuffix and cacheControlMaxAge are not supported in client side uploads. Configure these options at the server side when generating client tokens.'
-    );
-  }
-
-  const clientToken = await retrieveClientToken({
-    handleClientUploadUrl: options.handleClientUploadUrl,
-    pathname,
-  });
-
-  const headers: Record<string, string> = {
-    ...getApiVersionHeader(),
-    authorization: `Bearer ${clientToken}`,
-  };
-
-  if (options.contentType) {
-    headers['x-content-type'] = options.contentType;
   }
 
   const blobApiResponse = await fetch(getApiUrl(`/${pathname}`), {
@@ -350,20 +244,6 @@ export async function list(
   };
 }
 
-function getApiUrl(pathname = ''): string {
-  let baseUrl = null;
-  try {
-    // wrapping this code in a try/catch as this function is used in the browser and Vite doesn't define the process.env.
-    // As this varaible is NOT used in production, it will always default to production endpoint
-    baseUrl =
-      process.env.VERCEL_BLOB_API_URL ||
-      process.env.NEXT_PUBLIC_VERCEL_BLOB_API_URL;
-  } catch {
-    // noop
-  }
-  return `${baseUrl || 'https://blob.vercel-storage.com'}${pathname}`;
-}
-
 function mapBlobResult(blobResult: HeadBlobApiResponse): HeadBlobResult;
 function mapBlobResult(blobResult: ListBlobApiResponseBlob): ListBlobResultBlob;
 function mapBlobResult(
@@ -372,57 +252,5 @@ function mapBlobResult(
   return {
     ...blobResult,
     uploadedAt: new Date(blobResult.uploadedAt),
-  };
-}
-
-function isAbsoluteUrl(url: string): boolean {
-  try {
-    return Boolean(new URL(url));
-  } catch (e) {
-    return false;
-  }
-}
-
-async function retrieveClientToken(options: {
-  pathname: string;
-  handleClientUploadUrl: string;
-}): Promise<string> {
-  const { handleClientUploadUrl, pathname } = options;
-  const url = isAbsoluteUrl(handleClientUploadUrl)
-    ? handleClientUploadUrl
-    : `${window.location.origin}${handleClientUploadUrl}`;
-
-  const res = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify({
-      type: EventTypes.generateClientToken,
-      payload: { pathname, callbackUrl: url },
-    } as GenerateClientTokenEvent),
-  });
-  if (!res.ok) {
-    throw new BlobError('Failed to  retrieve the client token');
-  }
-  try {
-    const { clientToken } = (await res.json()) as { clientToken: string };
-    return clientToken;
-  } catch (e) {
-    throw new BlobError('Failed to retrieve the client token');
-  }
-}
-
-function getApiVersionHeader(): { 'x-api-version'?: string } {
-  let versionOverride = null;
-  try {
-    // wrapping this code in a try/catch as this function is used in the browser and Vite doesn't define the process.env.
-    // As this varaible is NOT used in production, it will always default to the BLOB_API_VERSION
-    versionOverride =
-      process.env.VERCEL_BLOB_API_VERSION_OVERRIDE ||
-      process.env.NEXT_PUBLIC_VERCEL_BLOB_API_VERSION_OVERRIDE;
-  } catch {
-    // noop
-  }
-
-  return {
-    'x-api-version': `${versionOverride ?? BLOB_API_VERSION}`,
   };
 }

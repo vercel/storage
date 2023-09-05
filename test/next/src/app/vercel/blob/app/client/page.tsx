@@ -22,7 +22,7 @@ export default function AppClientUpload(): JSX.Element {
 
           const blobResult = await clientPut(file.name, file, {
             access: 'public',
-            handleClientUploadUrl: `/vercel/blob/api/app/handle-blob-upload/edge`,
+            handleUploadUrl: `/vercel/blob/api/app/handle-blob-upload/edge`,
           });
 
           setBlob(blobResult);

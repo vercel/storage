@@ -1,5 +1,6 @@
 'use client';
-import { clientPut, type PutBlobResult } from '@vercel/blob';
+import { type PutBlobResult } from '@vercel/blob';
+import { upload } from '@vercel/blob/client-upload';
 import { useEffect, useState } from 'react';
 
 export default function AppBodyClient({
@@ -13,7 +14,7 @@ export default function AppBodyClient({
 
   useEffect(() => {
     const doUpload = async (): Promise<void> => {
-      const blobResult = await clientPut(filename, `Hello from ${filename}`, {
+      const blobResult = await upload(filename, `Hello from ${filename}`, {
         access: 'public',
         handleUploadUrl: callback,
       });

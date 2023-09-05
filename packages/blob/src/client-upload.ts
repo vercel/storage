@@ -119,6 +119,23 @@ async function importKey(token?: string): Promise<CryptoKey> {
   );
 }
 
+async function signPayload(
+  payload: string,
+  token: string
+): Promise<string | undefined> {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Node.js < 20: globalThis.crypto is undefined (in a real script.js, because the REPL has it linked to the crypto module). Node.js >= 20, Browsers and Cloudflare workers: globalThis.crypto is defined and is the Web Crypto API.
+  if (!globalThis.crypto) {
+    return crypto.createHmac('sha256', token).update(payload).digest('hex');
+  }
+
+  const signature = await globalThis.crypto.subtle.sign(
+    'HMAC',
+    await importKey(token),
+    new TextEncoder().encode(payload)
+  );
+  return Buffer.from(new Uint8Array(signature)).toString('hex');
+}
+
 export async function verifyCallbackSignature({
   token,
   signature,
@@ -348,23 +365,6 @@ export async function generateClientTokenFromReadWriteToken({
   return `vercel_blob_client_${storeId}_${Buffer.from(
     `${securedKey}.${payload}`
   ).toString('base64')}`;
-}
-
-async function signPayload(
-  payload: string,
-  token: string
-): Promise<string | undefined> {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Node.js < 20: globalThis.crypto is undefined (in a real script.js, because the REPL has it linked to the crypto module). Node.js >= 20, Browsers and Cloudflare workers: globalThis.crypto is defined and is the Web Crypto API.
-  if (!globalThis.crypto) {
-    return crypto.createHmac('sha256', token).update(payload).digest('hex');
-  }
-
-  const signature = await globalThis.crypto.subtle.sign(
-    'HMAC',
-    await importKey(token),
-    new TextEncoder().encode(payload)
-  );
-  return Buffer.from(new Uint8Array(signature)).toString('hex');
 }
 
 export interface GenerateClientTokenOptions extends BlobCommandOptions {

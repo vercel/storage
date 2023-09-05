@@ -10,7 +10,6 @@ import type { HeadBlobResult } from '.';
 describe('client uploads', () => {
   beforeEach(() => {
     process.env.BLOB_READ_WRITE_TOKEN = 'TEST_TOKEN';
-    jest.resetAllMocks();
   });
 
   describe('generateClientTokenFromReadWriteToken', () => {

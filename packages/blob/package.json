@@ -23,6 +23,8 @@
       "require": "./dist/client-upload.cjs"
     }
   },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
   "browser": {
     "undici": "./dist/undici-browser.js",
     "crypto": "./dist/crypto-browser.js"

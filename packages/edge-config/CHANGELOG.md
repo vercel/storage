@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.3.0
+
+### Minor Changes
+
+- cedd4b9: adds connection info to edge config clients
+
 ## 0.2.1
 
 ### Patch Changes

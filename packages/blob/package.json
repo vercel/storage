@@ -17,10 +17,10 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
-    "./client-upload": {
-      "types": "./dist/client-upload.d.ts",
-      "import": "./dist/client-upload.js",
-      "require": "./dist/client-upload.cjs"
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js",
+      "require": "./dist/client.cjs"
     }
   },
   "main": "./dist/index.cjs",

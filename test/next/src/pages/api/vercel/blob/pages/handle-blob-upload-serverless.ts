@@ -1,8 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import {
-  type HandleUploadBody,
-  handleUpload,
-} from '@vercel/blob/client-upload';
+import { type HandleUploadBody, handleUpload } from '@vercel/blob/client';
 import { validateUploadToken } from '@/app/vercel/blob/validate-upload-token';
 
 export const config = {

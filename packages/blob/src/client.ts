@@ -3,8 +3,11 @@ import * as crypto from 'crypto';
 import type { IncomingMessage } from 'node:http';
 import type { Readable } from 'node:stream';
 import type { BodyInit } from 'undici';
+// When bundled via a bundler supporting the `browser` field, then
+// the `undici` module will be replaced with https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
+// for browser contexts. See ./undici-browser.js and ./package.json
 import { fetch } from 'undici';
-import type { BlobCommandOptions, PutBlobApiResponse } from './helpers';
+import type { BlobCommandOptions } from './helpers';
 import {
   BlobAccessError,
   BlobError,
@@ -13,11 +16,13 @@ import {
   getApiVersionHeader,
   getTokenFromOptionsOrEnv,
 } from './helpers';
-import type { PutBlobResult, HeadBlobResult } from '.';
+import type { PutBlobApiResponse, PutBlobResult } from './put';
+import { createPutMethod } from './put';
+import type { HeadBlobResult } from '.';
 
 // upload()
 // This is a client-side wrapper that will fetch the client token for you and then upload the file
-export interface UploadOptions extends BlobCommandOptions {
+export interface UploadOptions {
   access: 'public';
   contentType?: string;
   handleUploadUrl: string;
@@ -379,3 +384,10 @@ export interface GenerateClientTokenOptions extends BlobCommandOptions {
   addRandomSuffix?: boolean;
   cacheControlMaxAge?: number;
 }
+
+export interface ClientPutCommandOptions extends BlobCommandOptions {
+  access: 'public';
+  contentType?: string;
+}
+
+export const put = createPutMethod(['contentType']);

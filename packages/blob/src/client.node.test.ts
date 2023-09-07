@@ -4,7 +4,7 @@ import {
   getPayloadFromClientToken,
   verifyCallbackSignature,
   handleUpload,
-} from './client-upload';
+} from './client';
 import type { HeadBlobResult } from '.';
 
 describe('client uploads', () => {

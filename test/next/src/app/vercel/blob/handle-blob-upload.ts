@@ -1,7 +1,4 @@
-import {
-  handleUpload,
-  type HandleUploadBody,
-} from '@vercel/blob/client-upload';
+import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
 import { NextResponse } from 'next/server';
 import { validateUploadToken } from './validate-upload-token';
 

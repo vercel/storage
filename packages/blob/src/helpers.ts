@@ -1,8 +1,5 @@
 // common util interface for blob raw commands, not meant to be used directly
-
-import type { PutBlobResult } from '.';
-
-// this is why it's not exported from index/client-upload
+// this is why it's not exported from index/client
 export interface BlobCommandOptions {
   token?: string;
 }
@@ -76,5 +73,3 @@ export function getApiUrl(pathname = ''): string {
   }
   return `${baseUrl || 'https://blob.vercel-storage.com'}${pathname}`;
 }
-
-export type PutBlobApiResponse = PutBlobResult;

@@ -1,6 +1,6 @@
 'use client';
 import { type PutBlobResult } from '@vercel/blob';
-import { upload } from '@vercel/blob/client-upload';
+import { upload } from '@vercel/blob/client';
 import { useEffect, useState } from 'react';
 
 export default function AppBodyClient({

@@ -139,7 +139,8 @@ async function handleUpload(options?: {
     allowedContentTypes?: string[]; // optional, defaults to no restriction
     maximumSizeInBytes?: number; // optional, defaults and maximum is 500MB (524,288,000 bytes)
     validUntil?: number; // optional, timestamp in ms, by default now + 30s (30,000)
-    addRandomSuffix?: boolean; // optional, allows to disable or enable random suffixes
+    addRandomSuffix?: boolean; // see `put` options
+    cacheControlMaxAge?: number; // see `put` options
     metadata?: string;
   }>;
   onUploadCompleted: (body: {
@@ -166,32 +167,6 @@ async function handleUpload(options?: {
   | { type: 'blob.upload-completed'; response: 'ok' }
 > {}
 ```
-
-Note: This method should be called server-side, not client-side.
-
-### generateClientTokenFromReadWriteToken(options)
-
-Generates a single-use token that can be used from within the client. This method is called internally by `handleClientUpload`.
-
-Once created, a client token is valid by default for 30 seconds (can be customized by configuring the `validUntil` field). This means you have 30 seconds to initiate an upload with this token.
-
-```ts
-async function generateClientTokenFromReadWriteToken(options?: {
-  token?: string;
-  pathname?: string;
-  onUploadCompleted?: {
-    callbackUrl: string;
-    metadata?: string;
-  };
-  maximumSizeInBytes?: number;
-  allowedContentTypes?: string[];
-  validUntil?: number; // optional, timestamp in ms, by default now + 30s (30,000)
-  addRandomSuffix?: boolean; // see `put` options
-  cacheControlMaxAge?: number; // see `put` options
-}): string {}
-```
-
-Note: This is a server-side method.
 
 ## Examples
 

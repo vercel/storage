@@ -26,6 +26,10 @@ export const put = createPutMethod<ClientPutCommandOptions>({
       );
     }
 
+    if (!options.token.startsWith('vercel_blob_client_')) {
+      throw new BlobError('client/`put` must be called with a client token');
+    }
+
     if (
       // @ts-expect-error -- Runtime check for DX.
       options.addRandomSuffix !== undefined ||

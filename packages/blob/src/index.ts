@@ -24,11 +24,9 @@ export interface PutCommandOptions extends BlobCommandOptions {
 }
 
 // vercelBlob.put()
-export const put = createPutMethod<PutCommandOptions>([
-  'cacheControlMaxAge',
-  'addRandomSuffix',
-  'contentType',
-]);
+export const put = createPutMethod<PutCommandOptions>({
+  allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
+});
 
 // vercelBlob.del()
 

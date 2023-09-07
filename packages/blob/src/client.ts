@@ -1,24 +1,25 @@
 // eslint-disable-next-line unicorn/prefer-node-protocol -- node:crypto does not resolve correctly in browser and edge runtime
 import * as crypto from 'crypto';
 import type { IncomingMessage } from 'node:http';
-import type { Readable } from 'node:stream';
-import type { BodyInit } from 'undici';
 // When bundled via a bundler supporting the `browser` field, then
 // the `undici` module will be replaced with https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
 // for browser contexts. See ./undici-browser.js and ./package.json
 import { fetch } from 'undici';
 import type { BlobCommandOptions } from './helpers';
-import {
-  BlobAccessError,
-  BlobError,
-  BlobUnknownError,
-  getApiUrl,
-  getApiVersionHeader,
-  getTokenFromOptionsOrEnv,
-} from './helpers';
-import type { PutBlobApiResponse, PutBlobResult } from './put';
+import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
 import { createPutMethod } from './put';
 import type { HeadBlobResult } from '.';
+
+// client.put()
+export interface ClientPutCommandOptions {
+  access: 'public';
+  token: string;
+  contentType?: string;
+}
+
+export const put = createPutMethod<ClientPutCommandOptions>({
+  allowedOptions: ['contentType'],
+});
 
 // upload()
 // This is a client-side wrapper that will fetch the client token for you and then upload the file
@@ -28,91 +29,37 @@ export interface UploadOptions {
   handleUploadUrl: string;
 }
 
-export async function upload(
-  pathname: string,
-  body:
-    | string
-    | Readable
-    | Blob
-    | ArrayBuffer
-    | FormData
-    | ReadableStream
-    | File,
-  options: UploadOptions
-): Promise<PutBlobResult> {
-  if (typeof window === 'undefined') {
-    throw new BlobError('`upload` must be called from a client environment');
-  }
-
-  if (!pathname) {
-    throw new BlobError('pathname is required');
-  }
-
-  if (!body) {
-    throw new BlobError('body is required');
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX. options are required in Types, but at runtime someone not using Typescript could forget them.
-  if (!options) {
-    throw new BlobError('Missing parameters, see usage');
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX.
-  if (options.access !== 'public') {
-    throw new BlobError('`access` must be "public"');
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX.
-  if (options.handleUploadUrl === undefined) {
-    throw new BlobError('Missing `handleUploadUrl` parameter');
-  }
-
-  if (
-    // @ts-expect-error -- Runtime check for DX.
-    options.addRandomSuffix !== undefined ||
-    // @ts-expect-error -- Runtime check for DX.
-    options.cacheControlMaxAge !== undefined
-  ) {
-    throw new BlobError(
-      'addRandomSuffix and cacheControlMaxAge are not supported in client uploads. Configure these options at the server side when generating client tokens.'
-    );
-  }
-
-  const clientToken = await retrieveClientToken({
-    handleUploadUrl: options.handleUploadUrl,
-    pathname,
-  });
-
-  const headers: Record<string, string> = {
-    ...getApiVersionHeader(),
-    authorization: `Bearer ${clientToken}`,
-  };
-
-  if (options.contentType) {
-    headers['x-content-type'] = options.contentType;
-  }
-
-  const blobApiResponse = await fetch(getApiUrl(`/${pathname}`), {
-    method: 'PUT',
-    body: body as BodyInit,
-    headers,
-    // required in order to stream some body types to Cloudflare
-    // currently only supported in Node.js, we may have to feature detect this
-    duplex: 'half',
-  });
-
-  if (blobApiResponse.status !== 200) {
-    if (blobApiResponse.status === 403) {
-      throw new BlobAccessError();
-    } else {
-      throw new BlobUnknownError();
+export const upload = createPutMethod<UploadOptions>({
+  allowedOptions: ['contentType'],
+  extraChecks(options: UploadOptions) {
+    if (typeof window === 'undefined') {
+      throw new BlobError('`upload` must be called from a client environment');
     }
-  }
 
-  const blobResult = (await blobApiResponse.json()) as PutBlobApiResponse;
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX.
+    if (options.handleUploadUrl === undefined) {
+      throw new BlobError('Missing `handleUploadUrl` parameter');
+    }
 
-  return blobResult;
-}
+    if (
+      // @ts-expect-error -- Runtime check for DX.
+      options.addRandomSuffix !== undefined ||
+      // @ts-expect-error -- Runtime check for DX.
+      options.cacheControlMaxAge !== undefined
+    ) {
+      throw new BlobError(
+        'addRandomSuffix and cacheControlMaxAge are not supported in client uploads. Configure these options at the server side when generating client tokens.'
+      );
+    }
+  },
+  async getToken(pathname: string, options: UploadOptions) {
+    const clientToken = await retrieveClientToken({
+      handleUploadUrl: options.handleUploadUrl,
+      pathname,
+    });
+    return clientToken;
+  },
+});
 
 async function importKey(token?: string): Promise<CryptoKey> {
   return globalThis.crypto.subtle.importKey(
@@ -384,10 +331,3 @@ export interface GenerateClientTokenOptions extends BlobCommandOptions {
   addRandomSuffix?: boolean;
   cacheControlMaxAge?: number;
 }
-
-export interface ClientPutCommandOptions extends BlobCommandOptions {
-  access: 'public';
-  contentType?: string;
-}
-
-export const put = createPutMethod(['contentType']);

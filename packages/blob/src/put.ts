@@ -27,9 +27,19 @@ export interface PutBlobResult {
 
 export type PutBlobApiResponse = PutBlobResult;
 
+type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+
 export function createPutMethod<
-  T extends PutCommandOptions & ClientPutCommandOptions
->(allowedOptions: (keyof typeof putOptionHeaderMap)[]) {
+  T extends PartialBy<PutCommandOptions & ClientPutCommandOptions, 'token'>
+>({
+  allowedOptions,
+  getToken,
+  extraChecks,
+}: {
+  allowedOptions: (keyof typeof putOptionHeaderMap)[];
+  getToken?: (pathname: string, options: T) => Promise<string>;
+  extraChecks?: (options: T) => void;
+}) {
   return async function put(
     pathname: string,
     body:
@@ -59,7 +69,13 @@ export function createPutMethod<
       throw new BlobError('access must be "public"');
     }
 
-    const token = getTokenFromOptionsOrEnv(options);
+    if (extraChecks) {
+      extraChecks(options);
+    }
+
+    const token = getToken
+      ? await getToken(pathname, options)
+      : getTokenFromOptionsOrEnv(options);
 
     const headers: Record<string, string> = {
       ...getApiVersionHeader(),

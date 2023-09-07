@@ -31,30 +31,9 @@ async function put(
     // `token` defaults to process.env.BLOB_READ_WRITE_TOKEN on Vercel
     // and can be configured when you connect more stores to a project
     // or using Vercel Blob outside of Vercel
-    // You could also pass a client token here if you generated it yourself with `generateClientTokenFromReadWriteToken`
     token?: string,
     addRandomSuffix?: boolean; // optional, allows to disable or enable random suffixes (defaults to `true`)
     cacheControlMaxAge?: number, // optional, a duration in seconds to configure the edge and browser caches. Defaults to one year for browsers and 5 minutes for edge cache. Can only be configured server side (either on server side put or during client token generation). The Edge cache maximum value is always 5 minutes.
-  }): Promise<{
-      pathname: string;
-      contentType: string;
-      contentDisposition: string;
-      url: string;
-    }> {}
-```
-
-### `clientPut(pathname, body, options)`
-
-A wrapper around `put` that fetches a client token via the `handleUploadUrl` before uploading the blob. Read the [client uploads](https://vercel.com/docs/storage/vercel-blob/quickstart#client-uploads) documentation to know more.
-
-```ts
-async function clientPut(
-  pathname: string,
-  body: ReadableStream | String | ArrayBuffer | Blob | File // All fetch body types are supported: https://developer.mozilla.org/en-US/docs/Web/API/fetch#body
-  options: {
-    access: 'public', // mandatory, as we will provide private blobs in the future
-    contentType?: string, // by default inferred from pathname
-    handleUploadUrl?: string,
   }): Promise<{
       pathname: string;
       contentType: string;
@@ -118,9 +97,17 @@ async function list(options?: {
 }> {}
 ```
 
-### handleClientUpload(options)
+### client/upload(options)
 
-Handles the requests to generate a client token and respond to the upload completed event. This is useful when [uploading from browsers](#browser-upload) to circumvent the 4.5 MB limitation of going through a Vercel-hosted route.
+This is a wrapper around `put` that allows you to upload files from the client (browser) to Vercel Blob. It's useful when you need to upload files larger than 4.5 MB.
+
+```ts
+async function upload() {}
+```
+
+### client/handleUpload(options)
+
+Handles the requests to generate a client token and respond to the upload completed event. This is useful when [uploading from browsers](#client-upload) to circumvent the 4.5 MB limitation of going through a Vercel-hosted route.
 
 ```ts
 async function handleClientUpload(options?: {
@@ -241,7 +228,7 @@ Once such a commit gets merged in main, then GitHub will open a versioning PR yo
 
 ## A note about Vercel file upload limitations
 
-When transferring a file to a Serverless or Edge Functions route on Vercel, then the request body is limited to 4.5 MB. If you need to send larger files then use the [browser-upload](#browser-upload) method.
+When transferring a file to a Serverless or Edge Functions route on Vercel, then the request body is limited to 4.5 MB. If you need to send larger files then use the [client-upload](#client-upload) method.
 
 ## Running examples locally
 

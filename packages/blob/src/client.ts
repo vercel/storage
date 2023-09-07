@@ -21,7 +21,9 @@ export const put = createPutMethod<ClientPutCommandOptions>({
   allowedOptions: ['contentType'],
   extraChecks(options: ClientPutCommandOptions) {
     if (typeof window === 'undefined') {
-      throw new BlobError('`upload` must be called from a client environment');
+      throw new BlobError(
+        'client/`put` must be called from a client environment'
+      );
     }
 
     if (
@@ -49,7 +51,9 @@ export const upload = createPutMethod<UploadOptions>({
   allowedOptions: ['contentType'],
   extraChecks(options: UploadOptions) {
     if (typeof window === 'undefined') {
-      throw new BlobError('`upload` must be called from a client environment');
+      throw new BlobError(
+        'client/`upload` must be called from a client environment'
+      );
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX.

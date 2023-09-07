@@ -19,6 +19,22 @@ export interface ClientPutCommandOptions {
 
 export const put = createPutMethod<ClientPutCommandOptions>({
   allowedOptions: ['contentType'],
+  extraChecks(options: ClientPutCommandOptions) {
+    if (typeof window === 'undefined') {
+      throw new BlobError('`upload` must be called from a client environment');
+    }
+
+    if (
+      // @ts-expect-error -- Runtime check for DX.
+      options.addRandomSuffix !== undefined ||
+      // @ts-expect-error -- Runtime check for DX.
+      options.cacheControlMaxAge !== undefined
+    ) {
+      throw new BlobError(
+        'addRandomSuffix and cacheControlMaxAge are not supported in client uploads. Configure these options at the server side when generating client tokens.'
+      );
+    }
+  },
 });
 
 // upload()

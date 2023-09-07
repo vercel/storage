@@ -112,7 +112,7 @@ async function signPayload(
   return Buffer.from(new Uint8Array(signature)).toString('hex');
 }
 
-export async function verifyCallbackSignature({
+async function verifyCallbackSignature({
   token,
   signature,
   body,
@@ -161,7 +161,10 @@ function hexToArrayByte(input: string): ArrayBuffer {
   return Buffer.from(view);
 }
 
-type DecodedClientTokenPayload = Omit<GenerateClientTokenOptions, 'token'> & {
+export type DecodedClientTokenPayload = Omit<
+  GenerateClientTokenOptions,
+  'token'
+> & {
   validUntil: number;
 };
 
@@ -176,16 +179,16 @@ export function getPayloadFromClientToken(
   return JSON.parse(decodedPayload) as DecodedClientTokenPayload;
 }
 
-export const EventTypes = {
+const EventTypes = {
   generateClientToken: 'blob.generate-client-token',
   uploadCompleted: 'blob.upload-completed',
 } as const;
 
-export interface GenerateClientTokenEvent {
+interface GenerateClientTokenEvent {
   type: (typeof EventTypes)['generateClientToken'];
   payload: { pathname: string; callbackUrl: string };
 }
-export interface UploadCompletedEvent {
+interface UploadCompletedEvent {
   type: (typeof EventTypes)['uploadCompleted'];
   payload: {
     // TODO @Fabio: is this correct? I guess it should be a PutBlobResult and not HeadBlobResult unless
@@ -195,9 +198,10 @@ export interface UploadCompletedEvent {
   };
 }
 
-export type HandleUploadBody = GenerateClientTokenEvent | UploadCompletedEvent;
+type HandleUploadBody = GenerateClientTokenEvent | UploadCompletedEvent;
 
 type RequestType = IncomingMessage | Request;
+
 export interface HandleUploadOptions {
   body: HandleUploadBody;
   onBeforeGenerateToken: (

@@ -8,7 +8,7 @@ import { fetch } from 'undici';
 import type { BlobCommandOptions } from './helpers';
 import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
 import { createPutMethod } from './put';
-import type { HeadBlobResult } from '.';
+import type { PutBlobResult } from '.';
 
 // client.put()
 export interface ClientPutCommandOptions {
@@ -191,9 +191,7 @@ interface GenerateClientTokenEvent {
 interface UploadCompletedEvent {
   type: (typeof EventTypes)['uploadCompleted'];
   payload: {
-    // TODO @Fabio: is this correct? I guess it should be a PutBlobResult and not HeadBlobResult unless
-    // we're doing an extra head() call somewhere?
-    blob: HeadBlobResult;
+    blob: PutBlobResult;
     metadata?: string;
   };
 }

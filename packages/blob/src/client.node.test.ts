@@ -4,7 +4,7 @@ import {
   getPayloadFromClientToken,
   handleUpload,
 } from './client';
-import type { HeadBlobResult } from '.';
+import type { PutBlobResult } from '.';
 
 describe('client uploads', () => {
   beforeEach(() => {
@@ -117,7 +117,7 @@ describe('client uploads', () => {
           body: {
             type: 'blob.upload-completed',
             payload: {
-              blob: { pathname: 'newfile.txt' } as HeadBlobResult,
+              blob: { pathname: 'newfile.txt' } as PutBlobResult,
               metadata: 'custom-metadata',
             },
           },
@@ -134,7 +134,7 @@ describe('client uploads', () => {
         type: 'blob.upload-completed',
       });
       expect(spy).toHaveBeenCalledWith({
-        blob: { pathname: 'newfile.txt' } as HeadBlobResult,
+        blob: { pathname: 'newfile.txt' } as PutBlobResult,
         metadata: 'custom-metadata',
       });
     });

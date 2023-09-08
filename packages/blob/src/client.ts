@@ -196,7 +196,7 @@ interface UploadCompletedEvent {
   };
 }
 
-type HandleUploadBody = GenerateClientTokenEvent | UploadCompletedEvent;
+export type HandleUploadBody = GenerateClientTokenEvent | UploadCompletedEvent;
 
 type RequestType = IncomingMessage | Request;
 

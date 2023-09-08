@@ -122,7 +122,7 @@ async function upload(
     }> {}
 ```
 
-### client/handleUpload(options)
+### client/`handleUpload(options)`
 
 This is a server-side route helper to manage client uploads, it has two responsibilities:
 

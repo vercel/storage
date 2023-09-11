@@ -8,7 +8,7 @@ export default function Layout({
   return (
     <div>
       <div className="flex gap-2">
-        <a href="/">← Home</a> <a href="/vercel/pages/blob">← Blob</a>
+        <a href="/">← Home</a> <a href="/vercel/blob">← Blob</a>
       </div>
       {children}
     </div>

@@ -97,7 +97,7 @@ async function importKey(token?: string): Promise<CryptoKey> {
   );
 }
 
-export async function signPayload(
+async function signPayload(
   payload: string,
   token: string
 ): Promise<string | undefined> {

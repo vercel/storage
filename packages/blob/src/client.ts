@@ -8,7 +8,7 @@ import { fetch } from 'undici';
 import type { BlobCommandOptions } from './helpers';
 import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
 import { createPutMethod } from './put';
-import type { PutBlobResult } from '.';
+import type { PutBlobResult } from './put';
 
 // client.put()
 export interface ClientPutCommandOptions {
@@ -49,6 +49,7 @@ export interface UploadOptions {
   access: 'public';
   contentType?: string;
   handleUploadUrl: string;
+  clientPayload?: string;
 }
 
 export const upload = createPutMethod<UploadOptions>({
@@ -80,6 +81,7 @@ export const upload = createPutMethod<UploadOptions>({
     const clientToken = await retrieveClientToken({
       handleUploadUrl: options.handleUploadUrl,
       pathname,
+      clientPayload: options.clientPayload,
     });
     return clientToken;
   },
@@ -95,7 +97,7 @@ async function importKey(token?: string): Promise<CryptoKey> {
   );
 }
 
-async function signPayload(
+export async function signPayload(
   payload: string,
   token: string
 ): Promise<string | undefined> {
@@ -139,6 +141,7 @@ async function verifyCallbackSignature({
       crypto.timingSafeEqual(digestBuffer, signatureBuffer)
     );
   }
+
   const verified = await globalThis.crypto.subtle.verify(
     'HMAC',
     await importKey(token),
@@ -186,13 +189,13 @@ const EventTypes = {
 
 interface GenerateClientTokenEvent {
   type: (typeof EventTypes)['generateClientToken'];
-  payload: { pathname: string; callbackUrl: string };
+  payload: { pathname: string; callbackUrl: string; clientPayload?: string };
 }
 interface UploadCompletedEvent {
   type: (typeof EventTypes)['uploadCompleted'];
   payload: {
     blob: PutBlobResult;
-    metadata?: string;
+    tokenPayload?: string;
   };
 }
 
@@ -203,7 +206,8 @@ type RequestType = IncomingMessage | Request;
 export interface HandleUploadOptions {
   body: HandleUploadBody;
   onBeforeGenerateToken: (
-    pathname: string
+    pathname: string,
+    clientPayload?: string
   ) => Promise<
     Pick<
       GenerateClientTokenOptions,
@@ -212,7 +216,7 @@ export interface HandleUploadOptions {
       | 'validUntil'
       | 'addRandomSuffix'
       | 'cacheControlMaxAge'
-    > & { metadata?: string }
+    > & { tokenPayload?: string }
   >;
   onUploadCompleted: (body: UploadCompletedEvent['payload']) => Promise<void>;
   token?: string;
@@ -232,8 +236,12 @@ export async function handleUpload({
   const type = body.type;
   switch (type) {
     case 'blob.generate-client-token': {
-      const { pathname, callbackUrl } = body.payload;
-      const payload = await onBeforeGenerateToken(pathname);
+      const { pathname, callbackUrl, clientPayload } = body.payload;
+      const payload = await onBeforeGenerateToken(pathname, clientPayload);
+      // TODO @Fabio: the next line `?? null` previously, which always made sure that tokenPayload was `null`
+      // Why so?
+      const tokenPayload = payload.tokenPayload ?? clientPayload;
+
       return {
         type,
         clientToken: await generateClientTokenFromReadWriteToken({
@@ -242,7 +250,7 @@ export async function handleUpload({
           pathname,
           onUploadCompleted: {
             callbackUrl,
-            metadata: payload.metadata ?? null,
+            tokenPayload,
           },
         }),
       };
@@ -254,13 +262,17 @@ export async function handleUpload({
           ? request.headers.get(signatureHeader) ?? ''
           : request.headers[signatureHeader] ?? ''
       ) as string;
+
       if (!signature) {
-        throw new BlobError('Invalid callback signature');
+        throw new BlobError('Missing callback signature');
       }
+
       const isVerified = await verifyCallbackSignature({
+        token,
         signature,
         body: JSON.stringify(body),
       });
+
       if (!isVerified) {
         throw new BlobError('Invalid callback signature');
       }
@@ -275,18 +287,25 @@ export async function handleUpload({
 async function retrieveClientToken(options: {
   pathname: string;
   handleUploadUrl: string;
+  clientPayload?: string;
 }): Promise<string> {
   const { handleUploadUrl, pathname } = options;
   const url = isAbsoluteUrl(handleUploadUrl)
     ? handleUploadUrl
     : `${window.location.origin}${handleUploadUrl}`;
 
+  const event: GenerateClientTokenEvent = {
+    type: EventTypes.generateClientToken,
+    payload: {
+      pathname,
+      callbackUrl: url,
+      clientPayload: options.clientPayload,
+    },
+  };
+
   const res = await fetch(url, {
     method: 'POST',
-    body: JSON.stringify({
-      type: EventTypes.generateClientToken,
-      payload: { pathname, callbackUrl: url },
-    } as GenerateClientTokenEvent),
+    body: JSON.stringify(event),
   });
   if (!res.ok) {
     throw new BlobError('Failed to  retrieve the client token');
@@ -337,6 +356,7 @@ export async function generateClientTokenFromReadWriteToken({
   ).toString('base64');
 
   const securedKey = await signPayload(payload, readWriteToken);
+
   if (!securedKey) {
     throw new BlobError('Unable to sign client token');
   }
@@ -349,7 +369,7 @@ export interface GenerateClientTokenOptions extends BlobCommandOptions {
   pathname: string;
   onUploadCompleted?: {
     callbackUrl: string;
-    metadata?: string | null;
+    tokenPayload?: string | null;
   };
   maximumSizeInBytes?: number;
   allowedContentTypes?: string[];

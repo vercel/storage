@@ -7,10 +7,6 @@ import {
 import type { PutBlobResult } from '.';
 
 describe('client uploads', () => {
-  beforeEach(() => {
-    process.env.BLOB_READ_WRITE_TOKEN = 'TEST_TOKEN';
-  });
-
   describe('generateClientTokenFromReadWriteToken', () => {
     afterEach(() => {
       jest.runOnlyPendingTimers();
@@ -21,25 +17,25 @@ describe('client uploads', () => {
       jest.useFakeTimers().setSystemTime(new Date('2023-01-01'));
     });
 
-    test('should generate a client token with the correct payload', async () => {
+    it('should generate a client token with the correct payload', async () => {
       const uploadToken = await generateClientTokenFromReadWriteToken({
         pathname: 'foo.txt',
         onUploadCompleted: {
           callbackUrl: 'https://example.com',
-          metadata: JSON.stringify({ foo: 'bar' }),
+          tokenPayload: JSON.stringify({ foo: 'bar' }),
         },
-        token: 'vercel_blob_client_123456789_TEST_TOKEN',
+        token: 'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678',
       });
 
-      expect(uploadToken).toEqual(
-        'vercel_blob_client_123456789_YWVlNmY1ZjVkZGU5YWZiYjczOGE1YmM0ZTNiOGFjNTI3MGNlMTJhOTNiNDc1YTlmZjBmYjkyZTFlZWVhNGE2OS5leUp3WVhSb2JtRnRaU0k2SW1admJ5NTBlSFFpTENKdmJsVndiRzloWkVOdmJYQnNaWFJsWkNJNmV5SmpZV3hzWW1GamExVnliQ0k2SW1oMGRIQnpPaTh2WlhoaGJYQnNaUzVqYjIwaUxDSnRaWFJoWkdGMFlTSTZJbnRjSW1admIxd2lPbHdpWW1GeVhDSjlJbjBzSW5aaGJHbGtWVzUwYVd3aU9qRTJOekkxTXpFeU16QXdNREI5'
+      expect(uploadToken).toMatchInlineSnapshot(
+        `"vercel_blob_client_12345fakeStoreId_N2I2NTAxOGI1Y2IwZDhlY2VlZGUyYTQ2YjE1ZmJhODRlYjU3M2Q5MjBlNjNiYmI4NmQ0ZTRhOTJhZmM1NTVjMi5leUp3WVhSb2JtRnRaU0k2SW1admJ5NTBlSFFpTENKdmJsVndiRzloWkVOdmJYQnNaWFJsWkNJNmV5SmpZV3hzWW1GamExVnliQ0k2SW1oMGRIQnpPaTh2WlhoaGJYQnNaUzVqYjIwaUxDSjBiMnRsYmxCaGVXeHZZV1FpT2lKN1hDSm1iMjljSWpwY0ltSmhjbHdpZlNKOUxDSjJZV3hwWkZWdWRHbHNJam94TmpjeU5UTXhNak13TURBd2ZRPT0="`
       );
 
       expect(getPayloadFromClientToken(uploadToken)).toEqual({
         pathname: 'foo.txt',
         onUploadCompleted: {
           callbackUrl: 'https://example.com',
-          metadata: '{"foo":"bar"}',
+          tokenPayload: '{"foo":"bar"}',
         },
         validUntil: 1672531230000,
       });
@@ -55,8 +51,9 @@ describe('client uploads', () => {
     beforeEach(() => {
       jest.useFakeTimers().setSystemTime(new Date('2023-01-01'));
     });
-    test('should return client token when called with blob.generate-client-token', async () => {
-      const token = 'vercel_blob_client_123456789_TEST_TOKEN';
+    it('should return client token when called with blob.generate-client-token', async () => {
+      const token =
+        'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
       const spy = jest.fn();
       const jsonResponse = await handleUpload({
         token,
@@ -73,7 +70,7 @@ describe('client uploads', () => {
         onBeforeGenerateToken: async (pathname) => {
           await Promise.resolve();
           return Promise.resolve({
-            metadata: pathname,
+            tokenPayload: pathname,
           });
         },
         onUploadCompleted: async (body) => {
@@ -81,27 +78,28 @@ describe('client uploads', () => {
           spy.call(body);
         },
       });
-      expect(jsonResponse).toEqual({
-        clientToken:
-          'vercel_blob_client_123456789_MThhNDRkM2VjZDliYmY3YWE3YmRlNTRiNGMwOTdjNDhiOGQ0NzI3M2NhMmIxOGY2OTEyNTZmOTVkZGJlZjMwNC5leUp0WlhSaFpHRjBZU0k2SW01bGQyWnBiR1V1ZEhoMElpd2ljR0YwYUc1aGJXVWlPaUp1WlhkbWFXeGxMblI0ZENJc0ltOXVWWEJzYjJGa1EyOXRjR3hsZEdWa0lqcDdJbU5oYkd4aVlXTnJWWEpzSWpvaWFIUjBjSE02THk5bGVHRnRjR3hsTG1OdmJTSXNJbTFsZEdGa1lYUmhJam9pYm1WM1ptbHNaUzUwZUhRaWZTd2lkbUZzYVdSVmJuUnBiQ0k2TVRZM01qVXpNVEl6TURBd01IMD0=',
-        type: 'blob.generate-client-token',
-      });
+      expect(jsonResponse).toMatchInlineSnapshot(`
+        {
+          "clientToken": "vercel_blob_client_12345fakeStoreId_ODBiNjcyZDgyZTNkOTYyNTcwMTQ4NTFhNzJlOTEzZmI0MzQ4NWEzNzE0NzhjNGE0ZGRlN2IxMzRmYjI0NTkxOS5leUowYjJ0bGJsQmhlV3h2WVdRaU9pSnVaWGRtYVd4bExuUjRkQ0lzSW5CaGRHaHVZVzFsSWpvaWJtVjNabWxzWlM1MGVIUWlMQ0p2YmxWd2JHOWhaRU52YlhCc1pYUmxaQ0k2ZXlKallXeHNZbUZqYTFWeWJDSTZJbWgwZEhCek9pOHZaWGhoYlhCc1pTNWpiMjBpTENKMGIydGxibEJoZVd4dllXUWlPaUp1WlhkbWFXeGxMblI0ZENKOUxDSjJZV3hwWkZWdWRHbHNJam94TmpjeU5UTXhNak13TURBd2ZRPT0=",
+          "type": "blob.generate-client-token",
+        }
+      `);
       expect(spy).not.toHaveBeenCalled();
       expect(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any -- Either the test is incomplete, or we're messing up with TS
         getPayloadFromClientToken((jsonResponse as any).clientToken)
       ).toEqual({
-        metadata: 'newfile.txt',
+        tokenPayload: 'newfile.txt',
         onUploadCompleted: {
           callbackUrl: 'https://example.com',
-          metadata: 'newfile.txt',
+          tokenPayload: 'newfile.txt',
         },
         pathname: 'newfile.txt',
         validUntil: 1672531230000,
       });
     });
 
-    test('should run onCompleted when called with blob.upload-completed', async () => {
+    it('should run onCompleted when called with blob.upload-completed', async () => {
       const token = 'vercel_blob_client_123456789_TEST_TOKEN';
       const spy = jest.fn();
 
@@ -110,21 +108,23 @@ describe('client uploads', () => {
           token,
           request: {
             headers: {
+              // The next signature was generated via signPayload, export it when necessary
               'x-vercel-signature':
-                '973bfbb82f375e9360675b8271b16e1f44e3dd8c3996560b65c0f0fb3316def2',
+                'a4eac582498d4548d701eb8ff3e754f33f078e75298b9a1a0cdbac128981b28d',
             },
           } as unknown as IncomingMessage,
           body: {
             type: 'blob.upload-completed',
             payload: {
               blob: { pathname: 'newfile.txt' } as PutBlobResult,
-              metadata: 'custom-metadata',
+              tokenPayload: 'custom-metadata',
             },
           },
+          // Next option is only here for type completeness, not used in the test itself
           onBeforeGenerateToken: async (pathname) => {
             await Promise.resolve();
             return {
-              metadata: pathname,
+              tokenPayload: pathname,
             };
           },
           onUploadCompleted: spy,
@@ -135,7 +135,91 @@ describe('client uploads', () => {
       });
       expect(spy).toHaveBeenCalledWith({
         blob: { pathname: 'newfile.txt' } as PutBlobResult,
-        metadata: 'custom-metadata',
+        tokenPayload: 'custom-metadata',
+      });
+    });
+
+    it('uses clientPayload for tokenPayload by default', async () => {
+      const token =
+        'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
+      const spy = jest.fn();
+      const jsonResponse = await handleUpload({
+        token,
+        request: {
+          headers: { 'x-vercel-signature': '123' },
+        } as unknown as IncomingMessage,
+        body: {
+          type: 'blob.generate-client-token',
+          payload: {
+            pathname: 'newfile.txt',
+            callbackUrl: 'https://example.com',
+            clientPayload: 'custom-metadata-from-client',
+          },
+        },
+        onBeforeGenerateToken: async () => {
+          await Promise.resolve();
+          return Promise.resolve({
+            addRandomSuffix: false,
+          });
+        },
+        onUploadCompleted: async (body) => {
+          await Promise.resolve();
+          spy.call(body);
+        },
+      });
+      expect(jsonResponse).toMatchInlineSnapshot(`
+        {
+          "clientToken": "vercel_blob_client_12345fakeStoreId_YjgzZDU4YzFkZjM3MmNlN2JhMTk1MmVlYjE4YWMwOTczNGI3NjhlOTljMmE0ZTdiM2M0MTliOGJlNDg5YTFiZS5leUpoWkdSU1lXNWtiMjFUZFdabWFYZ2lPbVpoYkhObExDSndZWFJvYm1GdFpTSTZJbTVsZDJacGJHVXVkSGgwSWl3aWIyNVZjR3h2WVdSRGIyMXdiR1YwWldRaU9uc2lZMkZzYkdKaFkydFZjbXdpT2lKb2RIUndjem92TDJWNFlXMXdiR1V1WTI5dElpd2lkRzlyWlc1UVlYbHNiMkZrSWpvaVkzVnpkRzl0TFcxbGRHRmtZWFJoTFdaeWIyMHRZMnhwWlc1MEluMHNJblpoYkdsa1ZXNTBhV3dpT2pFMk56STFNekV5TXpBd01EQjk=",
+          "type": "blob.generate-client-token",
+        }
+      `);
+      expect(spy).not.toHaveBeenCalled();
+      expect(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any -- Either the test is incomplete, or we're messing up with TS
+        getPayloadFromClientToken((jsonResponse as any).clientToken)
+      ).toMatchInlineSnapshot(`
+        {
+          "addRandomSuffix": false,
+          "onUploadCompleted": {
+            "callbackUrl": "https://example.com",
+            "tokenPayload": "custom-metadata-from-client",
+          },
+          "pathname": "newfile.txt",
+          "validUntil": 1672531230000,
+        }
+      `);
+    });
+
+    it('provides `clientPayload` in onBeforeGenerateToken', async () => {
+      expect.assertions(1);
+
+      const token =
+        'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
+      await handleUpload({
+        token,
+        request: {
+          headers: { 'x-vercel-signature': '123' },
+        } as unknown as IncomingMessage,
+        body: {
+          type: 'blob.generate-client-token',
+          payload: {
+            pathname: 'newfile.txt',
+            callbackUrl: 'https://example.com',
+            clientPayload: 'custom-metadata-from-client-we-expect',
+          },
+        },
+        onBeforeGenerateToken: async (pathname, clientPayload) => {
+          expect(clientPayload).toEqual(
+            'custom-metadata-from-client-we-expect'
+          );
+          await Promise.resolve();
+          return Promise.resolve({
+            addRandomSuffix: false,
+          });
+        },
+        onUploadCompleted: async () => {
+          await Promise.resolve();
+        },
       });
     });
   });

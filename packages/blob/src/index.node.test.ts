@@ -17,7 +17,8 @@ describe('blob client', () => {
   let mockClient: Interceptable;
 
   beforeEach(() => {
-    process.env.BLOB_READ_WRITE_TOKEN = 'TEST_TOKEN';
+    process.env.BLOB_READ_WRITE_TOKEN =
+      'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
     const mockAgent = new MockAgent();
     mockAgent.disableNetConnect();
     setGlobalDispatcher(mockAgent);
@@ -54,7 +55,9 @@ describe('blob client', () => {
       expect(path).toEqual(
         '/?url=https%3A%2F%2FstoreId.public.blob.vercel-storage.com%2Ffoo-id.txt'
       );
-      expect(headers.authorization).toEqual('Bearer TEST_TOKEN');
+      expect(headers.authorization).toEqual(
+        'Bearer vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678'
+      );
     });
 
     it('should return null when calling `head()` with an url that does not exist', async () => {
@@ -133,7 +136,9 @@ describe('blob client', () => {
       ).resolves.toBeUndefined();
 
       expect(path).toEqual('/delete');
-      expect(headers.authorization).toEqual('Bearer TEST_TOKEN');
+      expect(headers.authorization).toEqual(
+        'Bearer vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678'
+      );
       expect(body).toMatchInlineSnapshot(
         `"{"urls":["https://storeId.public.blob.vercel-storage.com/foo-id.txt"]}"`
       );
@@ -162,7 +167,9 @@ describe('blob client', () => {
         ])
       ).resolves.toBeUndefined();
       expect(path).toEqual('/delete');
-      expect(headers.authorization).toEqual('Bearer TEST_TOKEN');
+      expect(headers.authorization).toEqual(
+        'Bearer vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678'
+      );
       expect(body).toMatchInlineSnapshot(
         `"{"urls":["https://storeId.public.blob.vercel-storage.com/foo-id1.txt","https://storeId.public.blob.vercel-storage.com/foo-id2.txt"]}"`
       );
@@ -248,7 +255,9 @@ describe('blob client', () => {
         }
       `);
       expect(path).toBe('/?limit=10&prefix=test-prefix&cursor=cursor-abc');
-      expect(headers.authorization).toEqual('Bearer TEST_TOKEN');
+      expect(headers.authorization).toEqual(
+        'Bearer vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678'
+      );
     });
 
     it('should throw when calling `list()` with an invalid token', async () => {

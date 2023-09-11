@@ -46,17 +46,17 @@ export async function handleUploadHandler(
             'image/gif',
             'text/plain',
           ],
-          metadata: JSON.stringify({
+          tokenPayload: JSON.stringify({
             userId: user?.id,
           }),
         };
       },
       // eslint-disable-next-line @typescript-eslint/require-await -- [@vercel/style-guide@5 migration]
-      onUploadCompleted: async ({ blob, metadata }) => {
+      onUploadCompleted: async ({ blob, tokenPayload }) => {
         // eslint-disable-next-line no-console -- [@vercel/style-guide@5 migration]
-        console.log('Upload completed', blob, metadata);
+        console.log('Upload completed', blob, tokenPayload);
         try {
-          //   await db.update({ avatar: blob.url, userId: metadata.userId });
+          //   await db.update({ avatar: blob.url, userId: tokenPayload.userId });
         } catch (error) {
           throw new Error('Could not update user');
         }

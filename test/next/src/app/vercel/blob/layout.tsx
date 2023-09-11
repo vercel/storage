@@ -7,7 +7,9 @@ export default function Layout({
 }): JSX.Element {
   return (
     <div>
-      <a href="/">← Home</a>
+      <div className="flex gap-2">
+        <a href="/">← Home</a> <a href="/vercel/pages/blob">← Blob</a>
+      </div>
       {children}
     </div>
   );

@@ -8,9 +8,14 @@ export default function AppList(): JSX.Element {
   const [result, setResult] = useState<vercelBlob.ListBlobResult>();
   const [searchPrefix, setSearchPrefix] = useState('');
   const [urlsToRemove, setUrlsToRemove] = useState<string[]>([]);
+  const [head, setHead] = useState<vercelBlob.HeadBlobResult>();
 
   const getList = useCallback(
-    async (cursor: string, prefix: string = searchPrefix) => {
+    async (
+      cursor: string | null,
+      prefix: string = searchPrefix,
+      reset = false
+    ) => {
       const search = new URLSearchParams();
       search.set('limit', '10');
       if (prefix) {
@@ -19,9 +24,13 @@ export default function AppList(): JSX.Element {
       if (cursor) {
         search.set('cursor', cursor);
       }
+      if (reset) {
+        setResult(undefined);
+      }
       const data = (await fetch(`${API_ROOT}/list?${search.toString()}`).then(
         (r) => r.json()
       )) as vercelBlob.ListBlobResult;
+
       setResult({
         ...data,
         blobs: cursor ? [...(result?.blobs || []), ...data.blobs] : data.blobs,
@@ -48,7 +57,23 @@ export default function AppList(): JSX.Element {
         'Content-Type': 'application/json',
       },
     });
-    await getList('', searchPrefix);
+    if (result) {
+      setResult({
+        ...result,
+        blobs: result.blobs.filter((b) => !urls.includes(b.url)),
+      });
+    }
+  };
+
+  const handleHead = async (url: string): Promise<void> => {
+    const data = (await fetch(`${API_ROOT}/head`, {
+      method: 'POST',
+      body: JSON.stringify({ url }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }).then((r) => r.json())) as vercelBlob.HeadBlobResult;
+    setHead(data);
   };
 
   if (!result) {
@@ -56,31 +81,43 @@ export default function AppList(): JSX.Element {
   }
 
   return (
-    <>
+    <div className="p-4 flex flex-col gap-4">
       <h1>App Router List blob items</h1>
-      <input
-        onChange={(e): void => setSearchPrefix(e.target.value)}
-        placeholder="prefix"
-        type="text"
-        value={searchPrefix}
-      />
-      <button
-        onClick={(): void => void getList('', searchPrefix)}
-        type="button"
-      >
-        Search
-      </button>
-
-      <button
-        onClick={(): void => void handleDelete(urlsToRemove)}
-        type="button"
-      >
-        Multi-delete
-      </button>
-      <ul>
+      <div className="flex gap-2">
+        <input
+          className="shadow appearance-none border rounded  py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          onChange={(e): void => setSearchPrefix(e.target.value)}
+          placeholder="prefix"
+          type="text"
+          value={searchPrefix}
+        />
+        <button
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          onClick={(): void => void getList('', searchPrefix)}
+          type="button"
+        >
+          Search
+        </button>
+        <button
+          className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+          onClick={(): void => void handleDelete(urlsToRemove)}
+          type="button"
+        >
+          Multi-delete
+        </button>
+      </div>
+      <ul className="flex flex-col gap-2">
+        <li className="grid grid-cols-7 gap-2">
+          <p>Select</p>
+          <p>path</p>
+          <p>size</p>
+          <p>download</p>
+          <p>date</p>
+        </li>
         {result.blobs.map((blob) => (
-          <li key={blob.pathname}>
+          <li className="grid grid-cols-7 gap-2" key={blob.pathname}>
             <input
+              className="w-auto"
               onChange={(e): void => {
                 if (e.target.checked) {
                   setUrlsToRemove([...urlsToRemove, blob.url]);
@@ -90,9 +127,26 @@ export default function AppList(): JSX.Element {
               }}
               type="checkbox"
             />
-            {blob.pathname} - {blob.size} -
-            {new Date(blob.uploadedAt).toISOString()} - {blob.url}
+            <p>{blob.pathname}</p>
+            <p>{blob.size}</p>
+            <a
+              className="text-underline text-blue-500 hover:text-blue-800"
+              href={blob.url}
+              rel="noopener"
+              target="_blank"
+            >
+              download
+            </a>
+            <p>{new Date(blob.uploadedAt).toISOString()} </p>
             <button
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              onClick={(): void => void handleHead(blob.url)}
+              type="button"
+            >
+              Head
+            </button>
+            <button
+              className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
               onClick={(): void => void handleDelete([blob.url])}
               type="button"
             >
@@ -102,8 +156,9 @@ export default function AppList(): JSX.Element {
         ))}
       </ul>
       {result.hasMore && result.cursor ? (
-        <>
+        <div>
           <button
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
             onClick={(): void =>
               void getList(result.cursor ?? '', searchPrefix)
             }
@@ -112,8 +167,9 @@ export default function AppList(): JSX.Element {
             Load More
           </button>
           <div>Cursor: {result.cursor}</div>
-        </>
+        </div>
       ) : null}
-    </>
+      {head ? <div>{JSON.stringify(head)}</div> : null}
+    </div>
   );
 }

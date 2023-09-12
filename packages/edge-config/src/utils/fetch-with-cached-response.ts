@@ -1,4 +1,4 @@
-export interface CachedResponsePair {
+interface CachedResponseEntry {
   etag: string;
   response: string;
   headers: Record<string, string>;
@@ -11,27 +11,39 @@ interface ResponseWithCachedResponse extends Response {
   cachedResponseBody?: unknown;
 }
 
-export const cache = new Map<string, CachedResponsePair>();
+/**
+ * A cache of request urls & auth headers and the resulting responses.
+ *
+ * This cache does not use Response instances as the cache value as reusing
+ * responses across requests leads to issues in Cloudflare Workers.
+ */
+export const cache = new Map<string, CachedResponseEntry>();
+
+/**
+ * Creates a new response based on a cache entry
+ */
+function createResponse(
+  cachedResponseEntry: CachedResponseEntry
+): ResponseWithCachedResponse {
+  return new Response(cachedResponseEntry.response, {
+    headers: cachedResponseEntry.headers,
+    status: cachedResponseEntry.status,
+  });
+}
 
 /**
  * Used for bad responses like 500s
  */
-function createHandleStaleIfError(cachedResponsePair: CachedResponsePair) {
-  return function handleStaleIfError<T extends ResponseWithCachedResponse>(
-    response: T
-  ): T | PromiseLike<T> {
+function createHandleStaleIfError(cachedResponseEntry: CachedResponseEntry) {
+  return function handleStaleIfError(
+    response: ResponseWithCachedResponse
+  ): ResponseWithCachedResponse {
     switch (response.status) {
       case 500:
       case 502:
       case 503:
-      case 504: {
-        const staleResponse = new Response(cachedResponsePair.response, {
-          headers: cachedResponsePair.headers,
-          status: cachedResponsePair.status,
-        }) as T;
-
-        return staleResponse;
-      }
+      case 504:
+        return createResponse(cachedResponseEntry);
       default:
         return response;
     }
@@ -42,17 +54,10 @@ function createHandleStaleIfError(cachedResponsePair: CachedResponsePair) {
  * Used on network errors which end up throwing
  */
 function createHandleStaleIfErrorException(
-  cachedResponsePair: CachedResponsePair
+  cachedResponseEntry: CachedResponseEntry
 ) {
-  return function handleStaleIfError<
-    T extends ResponseWithCachedResponse
-  >(): T {
-    const staleResponse = new Response(cachedResponsePair.response, {
-      headers: cachedResponsePair.headers,
-      status: cachedResponsePair.status,
-    }) as T;
-
-    return staleResponse;
+  return function handleStaleIfError(): ResponseWithCachedResponse {
+    return createResponse(cachedResponseEntry);
   };
 }
 
@@ -68,10 +73,10 @@ export async function fetchWithCachedResponse(
   const authHeader = customHeaders.get('Authorization');
   const cacheKey = `${url},${authHeader || ''}`;
 
-  const cachedResponsePair = cache.get(cacheKey);
+  const cachedResponseEntry = cache.get(cacheKey);
 
-  if (cachedResponsePair) {
-    const { etag, response: cachedResponse } = cachedResponsePair;
+  if (cachedResponseEntry) {
+    const { etag, response: cachedResponse } = cachedResponseEntry;
     const headers = new Headers(customHeaders);
     headers.set('If-None-Match', etag);
 
@@ -79,8 +84,8 @@ export async function fetchWithCachedResponse(
       ...customOptions,
       headers,
     }).then(
-      createHandleStaleIfError(cachedResponsePair),
-      createHandleStaleIfErrorException(cachedResponsePair)
+      createHandleStaleIfError(cachedResponseEntry),
+      createHandleStaleIfErrorException(cachedResponseEntry)
     );
 
     if (res.status === 304) {

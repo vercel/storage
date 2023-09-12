@@ -1,6 +1,8 @@
 export interface CachedResponsePair {
   etag: string;
   response: string;
+  headers: Record<string, string>;
+  status: number;
 }
 
 type FetchOptions = Omit<RequestInit, 'headers'> & { headers?: Headers };
@@ -11,6 +13,53 @@ interface ResponseWithCachedResponse extends Response {
 
 export const cache = new Map<string, CachedResponsePair>();
 
+/**
+ * Used for bad responses like 500s
+ */
+function createHandleStaleIfError(cachedResponsePair: CachedResponsePair) {
+  return function handleStaleIfError<T extends ResponseWithCachedResponse>(
+    response: T
+  ): T | PromiseLike<T> {
+    switch (response.status) {
+      case 500:
+      case 502:
+      case 503:
+      case 504: {
+        const staleResponse = new Response(cachedResponsePair.response, {
+          headers: cachedResponsePair.headers,
+          status: cachedResponsePair.status,
+        }) as T;
+
+        return staleResponse;
+      }
+      default:
+        return response;
+    }
+  };
+}
+
+/**
+ * Used on network errors which end up throwing
+ */
+function createHandleStaleIfErrorException(
+  cachedResponsePair: CachedResponsePair
+) {
+  return function handleStaleIfError<
+    T extends ResponseWithCachedResponse
+  >(): T {
+    const staleResponse = new Response(cachedResponsePair.response, {
+      headers: cachedResponsePair.headers,
+      status: cachedResponsePair.status,
+    }) as T;
+
+    return staleResponse;
+  };
+}
+
+/**
+ * This is similar to fetch, but it also implements ETag semantics, and
+ * it implmenets stale-if-error semantics.
+ */
 export async function fetchWithCachedResponse(
   url: string,
   options: FetchOptions = {}
@@ -29,7 +78,10 @@ export async function fetchWithCachedResponse(
     const res: ResponseWithCachedResponse = await fetch(url, {
       ...customOptions,
       headers,
-    });
+    }).then(
+      createHandleStaleIfError(cachedResponsePair),
+      createHandleStaleIfErrorException(cachedResponsePair)
+    );
 
     if (res.status === 304) {
       res.cachedResponseBody = JSON.parse(cachedResponse);
@@ -41,14 +93,22 @@ export async function fetchWithCachedResponse(
       cache.set(cacheKey, {
         etag: newETag,
         response: await res.clone().text(),
+        headers: Object.fromEntries(res.headers.entries()),
+        status: res.status,
       });
     return res;
   }
 
   const res = await fetch(url, options);
   const etag = res.headers.get('ETag');
-  if (res.ok && etag)
-    cache.set(cacheKey, { etag, response: await res.clone().text() });
+  if (res.ok && etag) {
+    cache.set(cacheKey, {
+      etag,
+      response: await res.clone().text(),
+      headers: Object.fromEntries(res.headers.entries()),
+      status: res.status,
+    });
+  }
 
   return res;
 }

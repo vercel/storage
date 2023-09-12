@@ -200,6 +200,104 @@ describe('etags and if-none-match', () => {
   });
 });
 
+describe('stale-if-error semantics', () => {
+  const modifiedConnectionString =
+    'https://edge-config.vercel.com/ecfg-2?token=token-2';
+  const modifiedBaseUrl = 'https://edge-config.vercel.com/ecfg-2';
+  let edgeConfig: EdgeConfigClient;
+
+  beforeEach(() => {
+    fetchMock.resetMocks();
+    cache.clear();
+    edgeConfig = pkg.createClient(modifiedConnectionString);
+  });
+
+  describe('when reading the same item twice but the second read has an internal server error', () => {
+    it('should reuse the cached/stale response', async () => {
+      fetchMock.mockResponseOnce(JSON.stringify('bar'), {
+        headers: { ETag: 'a' },
+      });
+
+      await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
+
+      // the server would not actually send a response body the second time
+      // as the etag matches
+      fetchMock.mockResponseOnce('', { status: 502 });
+
+      // second call should reuse earlier response
+      await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(fetchMock).toHaveBeenCalledWith(
+        `${modifiedBaseUrl}/item/foo?version=1`,
+        {
+          headers: new Headers({
+            Authorization: 'Bearer token-2',
+            'x-edge-config-vercel-env': 'test',
+            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+          }),
+          cache: 'no-store',
+        }
+      );
+      expect(fetchMock).toHaveBeenCalledWith(
+        `${modifiedBaseUrl}/item/foo?version=1`,
+        {
+          headers: new Headers({
+            Authorization: 'Bearer token-2',
+            'x-edge-config-vercel-env': 'test',
+            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'if-none-match': 'a',
+          }),
+          cache: 'no-store',
+        }
+      );
+    });
+  });
+
+  describe('when reading the same item twice but the second read throws a network error', () => {
+    it('should reuse the cached/stale response', async () => {
+      fetchMock.mockResponseOnce(JSON.stringify('bar'), {
+        headers: { ETag: 'a' },
+      });
+
+      await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
+
+      // the server would not actually send a response body the second time
+      // as the etag matches
+      // fetchMock.mockResponseOnce('', { status: 502 });
+      fetchMock.mockAbortOnce();
+
+      // second call should reuse earlier response
+      await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(fetchMock).toHaveBeenCalledWith(
+        `${modifiedBaseUrl}/item/foo?version=1`,
+        {
+          headers: new Headers({
+            Authorization: 'Bearer token-2',
+            'x-edge-config-vercel-env': 'test',
+            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+          }),
+          cache: 'no-store',
+        }
+      );
+      expect(fetchMock).toHaveBeenCalledWith(
+        `${modifiedBaseUrl}/item/foo?version=1`,
+        {
+          headers: new Headers({
+            Authorization: 'Bearer token-2',
+            'x-edge-config-vercel-env': 'test',
+            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'if-none-match': 'a',
+          }),
+          cache: 'no-store',
+        }
+      );
+    });
+  });
+});
+
 describe('connectionStrings', () => {
   describe('when used with external connection strings', () => {
     const modifiedConnectionString = 'https://example.com/ecfg-2?token=token-2';

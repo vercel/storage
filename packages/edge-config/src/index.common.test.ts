@@ -85,6 +85,7 @@ describe('when running without lambda layer or via edge function', () => {
               Authorization: 'Bearer token-2',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
           }
@@ -109,6 +110,7 @@ describe('when running without lambda layer or via edge function', () => {
               Authorization: 'Bearer token-2',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
           }
@@ -132,6 +134,7 @@ describe('when running without lambda layer or via edge function', () => {
               Authorization: 'Bearer token-2',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
           }
@@ -141,7 +144,7 @@ describe('when running without lambda layer or via edge function', () => {
   });
 });
 
-describe('etags and if-none-match', () => {
+describe('etags and If-None-Match', () => {
   const modifiedConnectionString =
     'https://edge-config.vercel.com/ecfg-2?token=token-2';
   const modifiedBaseUrl = 'https://edge-config.vercel.com/ecfg-2';
@@ -180,6 +183,7 @@ describe('etags and if-none-match', () => {
             Authorization: 'Bearer token-2',
             'x-edge-config-vercel-env': 'test',
             'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
           }),
           cache: 'no-store',
         }
@@ -191,7 +195,8 @@ describe('etags and if-none-match', () => {
             Authorization: 'Bearer token-2',
             'x-edge-config-vercel-env': 'test',
             'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
-            'if-none-match': 'a',
+            'cache-control': 'stale-if-error=604800',
+            'If-None-Match': 'a',
           }),
           cache: 'no-store',
         }
@@ -234,6 +239,7 @@ describe('stale-if-error semantics', () => {
             Authorization: 'Bearer token-2',
             'x-edge-config-vercel-env': 'test',
             'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
           }),
           cache: 'no-store',
         }
@@ -245,7 +251,8 @@ describe('stale-if-error semantics', () => {
             Authorization: 'Bearer token-2',
             'x-edge-config-vercel-env': 'test',
             'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
-            'if-none-match': 'a',
+            'cache-control': 'stale-if-error=604800',
+            'If-None-Match': 'a',
           }),
           cache: 'no-store',
         }
@@ -275,6 +282,7 @@ describe('stale-if-error semantics', () => {
             Authorization: 'Bearer token-2',
             'x-edge-config-vercel-env': 'test',
             'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
           }),
           cache: 'no-store',
         }
@@ -286,7 +294,8 @@ describe('stale-if-error semantics', () => {
             Authorization: 'Bearer token-2',
             'x-edge-config-vercel-env': 'test',
             'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
-            'if-none-match': 'a',
+            'cache-control': 'stale-if-error=604800',
+            'If-None-Match': 'a',
           }),
           cache: 'no-store',
         }
@@ -338,6 +347,7 @@ describe('connectionStrings', () => {
                 Authorization: 'Bearer token-2',
                 'x-edge-config-vercel-env': 'test',
                 'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+                'cache-control': 'stale-if-error=604800',
               }),
               cache: 'no-store',
             }

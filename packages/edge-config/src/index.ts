@@ -17,7 +17,7 @@ import type {
   EdgeConfigValue,
   EmbeddedEdgeConfig,
 } from './types';
-import { createFetchWithCachedResponse } from './utils/fetch-with-cached-response';
+import { fetchWithCachedResponse } from './utils/fetch-with-cached-response';
 
 export {
   parseConnectionString,
@@ -135,12 +135,11 @@ interface EdgeConfigClientOptions {
    *
    * Any response with a status code of 500, 502, 503, or 504 is considered an error.
    *
-   * Pass `Infinity` to always use stale cached entries on error.
-   * Pass a negative number to turn disable stale-if-error semantics.
+   * Pass a negative number, 0, or false to turn disable stale-if-error semantics.
    *
-   * The time is supplied in seconds. Defaults to `Infinity`.
+   * The time is supplied in seconds. Defaults to one week (`604800`).
    */
-  staleIfError: number;
+  staleIfError: number | false;
 }
 
 /**
@@ -155,7 +154,7 @@ interface EdgeConfigClientOptions {
  */
 export function createClient(
   connectionString: string | undefined,
-  options: EdgeConfigClientOptions = { staleIfError: Infinity }
+  options: EdgeConfigClientOptions = { staleIfError: 604800 /* one week */ }
 ): EdgeConfigClient {
   if (!connectionString)
     throw new Error('@vercel/edge-config: No connection string provided');
@@ -178,9 +177,8 @@ export function createClient(
   if (typeof sdkName === 'string' && typeof sdkVersion === 'string')
     headers['x-edge-config-sdk'] = `${sdkName}@${sdkVersion}`;
 
-  const fetchWithCachedResponse = createFetchWithCachedResponse({
-    staleIfError: options.staleIfError,
-  });
+  if (typeof options.staleIfError === 'number' && options.staleIfError > 0)
+    headers['cache-control'] = `stale-if-error=${options.staleIfError}`;
 
   return {
     connection,

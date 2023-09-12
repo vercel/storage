@@ -1,17 +1,10 @@
 import fetchMock from 'jest-fetch-mock';
-import {
-  createFetchWithCachedResponse,
-  cache,
-} from './fetch-with-cached-response';
+import { fetchWithCachedResponse, cache } from './fetch-with-cached-response';
 
 describe('cache', () => {
   it('should be an object', () => {
     expect(typeof cache).toEqual('object');
   });
-});
-
-const fetchWithCachedResponse = createFetchWithCachedResponse({
-  staleIfError: Infinity,
 });
 
 describe('fetchWithCachedResponse', () => {
@@ -31,7 +24,10 @@ describe('fetchWithCachedResponse', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith('https://example.com/api/data', {});
     expect(data1.headers).toEqual(
-      new Headers({ ETag: 'abc123', 'content-type': 'application/json' })
+      new Headers({
+        ETag: 'abc123',
+        'content-type': 'application/json',
+      })
     );
     await expect(data1.json()).resolves.toEqual({ name: 'John' });
     expect(data1.cachedResponseBody).toBeUndefined();
@@ -39,7 +35,10 @@ describe('fetchWithCachedResponse', () => {
     // Second request (should come from cache)
     fetchMock.mockResponseOnce('', {
       status: 304,
-      headers: { ETag: 'abc123', 'content-type': 'application/json' },
+      headers: {
+        ETag: 'abc123',
+        'content-type': 'application/json',
+      },
     });
     const data2 = await fetchWithCachedResponse('https://example.com/api/data');
 
@@ -57,7 +56,10 @@ describe('fetchWithCachedResponse', () => {
 
   it('should differentiate caches by authorization header', async () => {
     fetchMock.mockResponseOnce(JSON.stringify({ name: 'John' }), {
-      headers: { ETag: 'abc123', 'content-type': 'application/json' },
+      headers: {
+        ETag: 'abc123',
+        'content-type': 'application/json',
+      },
     });
 
     // First request

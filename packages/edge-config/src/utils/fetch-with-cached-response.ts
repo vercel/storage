@@ -3,6 +3,7 @@ interface CachedResponseEntry {
   response: string;
   headers: Record<string, string>;
   status: number;
+  time: number;
 }
 
 type FetchOptions = Omit<RequestInit, 'headers'> & { headers?: Headers };
@@ -10,14 +11,6 @@ type FetchOptions = Omit<RequestInit, 'headers'> & { headers?: Headers };
 interface ResponseWithCachedResponse extends Response {
   cachedResponseBody?: unknown;
 }
-
-/**
- * A cache of request urls & auth headers and the resulting responses.
- *
- * This cache does not use Response instances as the cache value as reusing
- * responses across requests leads to issues in Cloudflare Workers.
- */
-export const cache = new Map<string, CachedResponseEntry>();
 
 /**
  * Creates a new response based on a cache entry
@@ -34,7 +27,10 @@ function createResponse(
 /**
  * Used for bad responses like 500s
  */
-function createHandleStaleIfError(cachedResponseEntry: CachedResponseEntry) {
+function createHandleStaleIfError(
+  cachedResponseEntry: CachedResponseEntry,
+  staleIfError: number
+) {
   return function handleStaleIfError(
     response: ResponseWithCachedResponse
   ): ResponseWithCachedResponse {
@@ -43,7 +39,9 @@ function createHandleStaleIfError(cachedResponseEntry: CachedResponseEntry) {
       case 502:
       case 503:
       case 504:
-        return createResponse(cachedResponseEntry);
+        return cachedResponseEntry.time < Date.now() + staleIfError * 1000
+          ? createResponse(cachedResponseEntry)
+          : response;
       default:
         return response;
     }
@@ -54,66 +52,93 @@ function createHandleStaleIfError(cachedResponseEntry: CachedResponseEntry) {
  * Used on network errors which end up throwing
  */
 function createHandleStaleIfErrorException(
-  cachedResponseEntry: CachedResponseEntry
+  cachedResponseEntry: CachedResponseEntry,
+  staleIfError: number
 ) {
-  return function handleStaleIfError(): ResponseWithCachedResponse {
-    return createResponse(cachedResponseEntry);
+  return function handleStaleIfError(
+    reason: unknown
+  ): ResponseWithCachedResponse {
+    if (cachedResponseEntry.time < Date.now() + staleIfError * 1000) {
+      return createResponse(cachedResponseEntry);
+    }
+    throw reason;
   };
 }
+
+/**
+ * A cache of request urls & auth headers and the resulting responses.
+ *
+ * This cache does not use Response instances as the cache value as reusing
+ * responses across requests leads to issues in Cloudflare Workers.
+ */
+export const cache = new Map<string, CachedResponseEntry>();
 
 /**
  * This is similar to fetch, but it also implements ETag semantics, and
  * it implmenets stale-if-error semantics.
  */
-export async function fetchWithCachedResponse(
+export function createFetchWithCachedResponse(params: {
+  staleIfError: number;
+}): (
   url: string,
-  options: FetchOptions = {}
-): Promise<ResponseWithCachedResponse> {
-  const { headers: customHeaders = new Headers(), ...customOptions } = options;
-  const authHeader = customHeaders.get('Authorization');
-  const cacheKey = `${url},${authHeader || ''}`;
+  options?: FetchOptions
+) => Promise<ResponseWithCachedResponse> {
+  return async function fetchWithCachedResponse(
+    url: string,
+    options: FetchOptions = {}
+  ): Promise<ResponseWithCachedResponse> {
+    const { headers: customHeaders = new Headers(), ...customOptions } =
+      options;
+    const authHeader = customHeaders.get('Authorization');
+    const cacheKey = `${url},${authHeader || ''}`;
 
-  const cachedResponseEntry = cache.get(cacheKey);
+    const cachedResponseEntry = cache.get(cacheKey);
 
-  if (cachedResponseEntry) {
-    const { etag, response: cachedResponse } = cachedResponseEntry;
-    const headers = new Headers(customHeaders);
-    headers.set('If-None-Match', etag);
+    if (cachedResponseEntry) {
+      const { etag, response: cachedResponse } = cachedResponseEntry;
+      const headers = new Headers(customHeaders);
+      headers.set('If-None-Match', etag);
 
-    const res: ResponseWithCachedResponse = await fetch(url, {
-      ...customOptions,
-      headers,
-    }).then(
-      createHandleStaleIfError(cachedResponseEntry),
-      createHandleStaleIfErrorException(cachedResponseEntry)
-    );
+      const res: ResponseWithCachedResponse = await fetch(url, {
+        ...customOptions,
+        headers,
+      }).then(
+        createHandleStaleIfError(cachedResponseEntry, params.staleIfError),
+        createHandleStaleIfErrorException(
+          cachedResponseEntry,
+          params.staleIfError
+        )
+      );
 
-    if (res.status === 304) {
-      res.cachedResponseBody = JSON.parse(cachedResponse);
+      if (res.status === 304) {
+        res.cachedResponseBody = JSON.parse(cachedResponse);
+        return res;
+      }
+
+      const newETag = res.headers.get('ETag');
+      if (res.ok && newETag)
+        cache.set(cacheKey, {
+          etag: newETag,
+          response: await res.clone().text(),
+          headers: Object.fromEntries(res.headers.entries()),
+          status: res.status,
+          time: Date.now(),
+        });
       return res;
     }
 
-    const newETag = res.headers.get('ETag');
-    if (res.ok && newETag)
+    const res = await fetch(url, options);
+    const etag = res.headers.get('ETag');
+    if (res.ok && etag) {
       cache.set(cacheKey, {
-        etag: newETag,
+        etag,
         response: await res.clone().text(),
         headers: Object.fromEntries(res.headers.entries()),
         status: res.status,
+        time: Date.now(),
       });
+    }
+
     return res;
-  }
-
-  const res = await fetch(url, options);
-  const etag = res.headers.get('ETag');
-  if (res.ok && etag) {
-    cache.set(cacheKey, {
-      etag,
-      response: await res.clone().text(),
-      headers: Object.fromEntries(res.headers.entries()),
-      status: res.status,
-    });
-  }
-
-  return res;
+  };
 }

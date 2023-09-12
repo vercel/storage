@@ -1,10 +1,17 @@
 import fetchMock from 'jest-fetch-mock';
-import { fetchWithCachedResponse, cache } from './fetch-with-cached-response';
+import {
+  createFetchWithCachedResponse,
+  cache,
+} from './fetch-with-cached-response';
 
 describe('cache', () => {
   it('should be an object', () => {
     expect(typeof cache).toEqual('object');
   });
+});
+
+const fetchWithCachedResponse = createFetchWithCachedResponse({
+  staleIfError: Infinity,
 });
 
 describe('fetchWithCachedResponse', () => {

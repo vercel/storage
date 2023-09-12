@@ -8,7 +8,7 @@ import { fetch } from 'undici';
 import type { BlobCommandOptions } from './helpers';
 import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
 import { createPutMethod } from './put';
-import type { PutBlobResult } from '.';
+import type { PutBlobResult } from './put';
 
 // client.put()
 export interface ClientPutCommandOptions {
@@ -49,6 +49,7 @@ export interface UploadOptions {
   access: 'public';
   contentType?: string;
   handleUploadUrl: string;
+  clientPayload?: string;
 }
 
 export const upload = createPutMethod<UploadOptions>({
@@ -80,15 +81,16 @@ export const upload = createPutMethod<UploadOptions>({
     const clientToken = await retrieveClientToken({
       handleUploadUrl: options.handleUploadUrl,
       pathname,
+      clientPayload: options.clientPayload,
     });
     return clientToken;
   },
 });
 
-async function importKey(token?: string): Promise<CryptoKey> {
+async function importKey(token: string): Promise<CryptoKey> {
   return globalThis.crypto.subtle.importKey(
     'raw',
-    new TextEncoder().encode(getTokenFromOptionsOrEnv({ token })),
+    new TextEncoder().encode(token),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign', 'verify']
@@ -117,12 +119,12 @@ async function verifyCallbackSignature({
   signature,
   body,
 }: {
-  token?: string;
+  token: string;
   signature: string;
   body: string;
 }): Promise<boolean> {
   // callback signature is signed using the server token
-  const secret = getTokenFromOptionsOrEnv({ token });
+  const secret = token;
   // Browsers, Edge runtime and Node >=20 implement the Web Crypto API
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Node.js < 20: globalThis.crypto is undefined (in a real script.js, because the REPL has it linked to the crypto module). Node.js >= 20, Browsers and Cloudflare workers: globalThis.crypto is defined and is the Web Crypto API.
   if (!globalThis.crypto) {
@@ -139,6 +141,7 @@ async function verifyCallbackSignature({
       crypto.timingSafeEqual(digestBuffer, signatureBuffer)
     );
   }
+
   const verified = await globalThis.crypto.subtle.verify(
     'HMAC',
     await importKey(token),
@@ -186,13 +189,13 @@ const EventTypes = {
 
 interface GenerateClientTokenEvent {
   type: (typeof EventTypes)['generateClientToken'];
-  payload: { pathname: string; callbackUrl: string };
+  payload: { pathname: string; callbackUrl: string; clientPayload?: string };
 }
 interface UploadCompletedEvent {
   type: (typeof EventTypes)['uploadCompleted'];
   payload: {
     blob: PutBlobResult;
-    metadata?: string;
+    tokenPayload?: string;
   };
 }
 
@@ -203,7 +206,8 @@ type RequestType = IncomingMessage | Request;
 export interface HandleUploadOptions {
   body: HandleUploadBody;
   onBeforeGenerateToken: (
-    pathname: string
+    pathname: string,
+    clientPayload?: string
   ) => Promise<
     Pick<
       GenerateClientTokenOptions,
@@ -212,7 +216,7 @@ export interface HandleUploadOptions {
       | 'validUntil'
       | 'addRandomSuffix'
       | 'cacheControlMaxAge'
-    > & { metadata?: string }
+    > & { tokenPayload?: string }
   >;
   onUploadCompleted: (body: UploadCompletedEvent['payload']) => Promise<void>;
   token?: string;
@@ -229,20 +233,24 @@ export async function handleUpload({
   | { type: GenerateClientTokenEvent['type']; clientToken: string }
   | { type: UploadCompletedEvent['type']; response: 'ok' }
 > {
+  const resolvedToken = getTokenFromOptionsOrEnv({ token });
+
   const type = body.type;
   switch (type) {
     case 'blob.generate-client-token': {
-      const { pathname, callbackUrl } = body.payload;
-      const payload = await onBeforeGenerateToken(pathname);
+      const { pathname, callbackUrl, clientPayload } = body.payload;
+      const payload = await onBeforeGenerateToken(pathname, clientPayload);
+      const tokenPayload = payload.tokenPayload ?? clientPayload;
+
       return {
         type,
         clientToken: await generateClientTokenFromReadWriteToken({
           ...payload,
-          token,
+          token: resolvedToken,
           pathname,
           onUploadCompleted: {
             callbackUrl,
-            metadata: payload.metadata ?? null,
+            tokenPayload,
           },
         }),
       };
@@ -254,13 +262,17 @@ export async function handleUpload({
           ? request.headers.get(signatureHeader) ?? ''
           : request.headers[signatureHeader] ?? ''
       ) as string;
+
       if (!signature) {
-        throw new BlobError('Invalid callback signature');
+        throw new BlobError('Missing callback signature');
       }
+
       const isVerified = await verifyCallbackSignature({
+        token: resolvedToken,
         signature,
         body: JSON.stringify(body),
       });
+
       if (!isVerified) {
         throw new BlobError('Invalid callback signature');
       }
@@ -275,18 +287,25 @@ export async function handleUpload({
 async function retrieveClientToken(options: {
   pathname: string;
   handleUploadUrl: string;
+  clientPayload?: string;
 }): Promise<string> {
   const { handleUploadUrl, pathname } = options;
   const url = isAbsoluteUrl(handleUploadUrl)
     ? handleUploadUrl
     : `${window.location.origin}${handleUploadUrl}`;
 
+  const event: GenerateClientTokenEvent = {
+    type: EventTypes.generateClientToken,
+    payload: {
+      pathname,
+      callbackUrl: url,
+      clientPayload: options.clientPayload,
+    },
+  };
+
   const res = await fetch(url, {
     method: 'POST',
-    body: JSON.stringify({
-      type: EventTypes.generateClientToken,
-      payload: { pathname, callbackUrl: url },
-    } as GenerateClientTokenEvent),
+    body: JSON.stringify(event),
   });
   if (!res.ok) {
     throw new BlobError('Failed to  retrieve the client token');
@@ -337,6 +356,7 @@ export async function generateClientTokenFromReadWriteToken({
   ).toString('base64');
 
   const securedKey = await signPayload(payload, readWriteToken);
+
   if (!securedKey) {
     throw new BlobError('Unable to sign client token');
   }
@@ -349,7 +369,7 @@ export interface GenerateClientTokenOptions extends BlobCommandOptions {
   pathname: string;
   onUploadCompleted?: {
     callbackUrl: string;
-    metadata?: string | null;
+    tokenPayload?: string;
   };
   maximumSizeInBytes?: number;
   allowedContentTypes?: string[];

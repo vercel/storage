@@ -5,7 +5,6 @@ import {
 
 describe('blob client', () => {
   beforeEach(() => {
-    process.env.BLOB_READ_WRITE_TOKEN = 'TEST_TOKEN';
     jest.resetAllMocks();
   });
 
@@ -23,22 +22,24 @@ describe('blob client', () => {
         pathname: 'foo.txt',
         onUploadCompleted: {
           callbackUrl: 'https://example.com',
-          metadata: JSON.stringify({ foo: 'bar' }),
+          tokenPayload: JSON.stringify({ foo: 'bar' }),
         },
-        token: 'vercel_blob_client_123456789_TEST_TOKEN',
+        token: 'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678',
       });
-      expect(uploadToken).toEqual(
-        'vercel_blob_client_123456789_YWVlNmY1ZjVkZGU5YWZiYjczOGE1YmM0ZTNiOGFjNTI3MGNlMTJhOTNiNDc1YTlmZjBmYjkyZTFlZWVhNGE2OS5leUp3WVhSb2JtRnRaU0k2SW1admJ5NTBlSFFpTENKdmJsVndiRzloWkVOdmJYQnNaWFJsWkNJNmV5SmpZV3hzWW1GamExVnliQ0k2SW1oMGRIQnpPaTh2WlhoaGJYQnNaUzVqYjIwaUxDSnRaWFJoWkdGMFlTSTZJbnRjSW1admIxd2lPbHdpWW1GeVhDSjlJbjBzSW5aaGJHbGtWVzUwYVd3aU9qRTJOekkxTXpFeU16QXdNREI5'
+      expect(uploadToken).toMatchInlineSnapshot(
+        `"vercel_blob_client_12345fakeStoreId_N2I2NTAxOGI1Y2IwZDhlY2VlZGUyYTQ2YjE1ZmJhODRlYjU3M2Q5MjBlNjNiYmI4NmQ0ZTRhOTJhZmM1NTVjMi5leUp3WVhSb2JtRnRaU0k2SW1admJ5NTBlSFFpTENKdmJsVndiRzloWkVOdmJYQnNaWFJsWkNJNmV5SmpZV3hzWW1GamExVnliQ0k2SW1oMGRIQnpPaTh2WlhoaGJYQnNaUzVqYjIwaUxDSjBiMnRsYmxCaGVXeHZZV1FpT2lKN1hDSm1iMjljSWpwY0ltSmhjbHdpZlNKOUxDSjJZV3hwWkZWdWRHbHNJam94TmpjeU5UTXhNak13TURBd2ZRPT0="`
       );
 
-      expect(getPayloadFromClientToken(uploadToken)).toEqual({
-        pathname: 'foo.txt',
-        onUploadCompleted: {
-          callbackUrl: 'https://example.com',
-          metadata: '{"foo":"bar"}',
-        },
-        validUntil: 1672531230000,
-      });
+      expect(getPayloadFromClientToken(uploadToken)).toMatchInlineSnapshot(`
+        {
+          "onUploadCompleted": {
+            "callbackUrl": "https://example.com",
+            "tokenPayload": "{"foo":"bar"}",
+          },
+          "pathname": "foo.txt",
+          "validUntil": 1672531230000,
+        }
+      `);
     });
   });
 });

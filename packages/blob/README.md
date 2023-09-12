@@ -114,6 +114,7 @@ async function upload(
     // and can be configured when you connect more stores to a project
     // or using Vercel Blob outside of Vercel
     handleUploadUrl?: string, // A string specifying the route to call for generating client tokens for client uploads
+    clientPayload?: string, // A string that will be passed to the `onUploadCompleted` callback as `tokenPayload`. It can be used to attach data to the upload, like `JSON.stringify({ postId: 123 })`.
   }): Promise<{
       pathname: string;
       contentType: string;
@@ -135,19 +136,22 @@ Read the [client uploads](https://vercel.com/docs/storage/vercel-blob/quickstart
 async function handleUpload(options?: {
   token?: string; // default to process.env.BLOB_READ_WRITE_TOKEN
   request: IncomingMessage | Request;
-  onBeforeGenerateToken: (pathname: string) => Promise<{
+  onBeforeGenerateToken: (
+    pathname: string,
+    clientPayload?: string
+  ) => Promise<{
     allowedContentTypes?: string[]; // optional, defaults to no restriction
     maximumSizeInBytes?: number; // optional, defaults and maximum is 500MB (524,288,000 bytes)
     validUntil?: number; // optional, timestamp in ms, by default now + 30s (30,000)
     addRandomSuffix?: boolean; // see `put` options
     cacheControlMaxAge?: number; // see `put` options
-    metadata?: string;
+    tokenPayload?: string; // optional, defaults to whatever the client sent as `clientPayload`
   }>;
   onUploadCompleted: (body: {
     type: 'blob.upload-completed';
     payload: {
       blob: PutBlobResult;
-      metadata?: string;
+      tokenPayload?: string;
     };
   }) => Promise<void>;
   body:
@@ -155,12 +159,16 @@ async function handleUpload(options?: {
         type: 'blob.upload-completed';
         payload: {
           blob: PutBlobResult;
-          metadata?: string;
+          tokenPayload?: string;
         };
       }
     | {
         type: 'blob.generate-client-token';
-        payload: { pathname: string; callbackUrl: string };
+        payload: {
+          pathname: string;
+          callbackUrl: string;
+          clientPayload: string;
+        };
       };
 }): Promise<
   | { type: 'blob.generate-client-token'; clientToken: string }

@@ -10,18 +10,12 @@ import {
   getApiVersionHeader,
   getTokenFromOptionsOrEnv,
 } from './helpers';
+import type { PutCommandOptions } from './put';
 import { createPutMethod } from './put';
 
 // expose the BlobError types
 export { BlobAccessError, BlobError, BlobUnknownError } from './helpers';
 export type { PutBlobResult } from './put';
-
-export interface PutCommandOptions extends BlobCommandOptions {
-  access: 'public';
-  contentType?: string;
-  addRandomSuffix?: boolean;
-  cacheControlMaxAge?: number;
-}
 
 // vercelBlob.put()
 export const put = createPutMethod<PutCommandOptions>({

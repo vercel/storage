@@ -2,6 +2,7 @@ import type { Readable } from 'node:stream';
 import type { BodyInit } from 'undici';
 import { fetch } from 'undici';
 import type { ClientPutCommandOptions } from './client';
+import type { BlobCommandOptions } from './helpers';
 import {
   BlobAccessError,
   BlobUnknownError,
@@ -10,7 +11,13 @@ import {
   getTokenFromOptionsOrEnv,
   BlobError,
 } from './helpers';
-import { type PutCommandOptions } from '.';
+
+export interface PutCommandOptions extends BlobCommandOptions {
+  access: 'public';
+  contentType?: string;
+  addRandomSuffix?: boolean;
+  cacheControlMaxAge?: number;
+}
 
 const putOptionHeaderMap = {
   cacheControlMaxAge: 'x-cache-control-max-age',
@@ -64,7 +71,7 @@ export function createPutMethod<
       throw new BlobError('missing options, see usage');
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX.
     if (options.access !== 'public') {
       throw new BlobError('access must be "public"');
     }

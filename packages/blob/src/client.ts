@@ -87,10 +87,10 @@ export const upload = createPutMethod<UploadOptions>({
   },
 });
 
-async function importKey(token?: string): Promise<CryptoKey> {
+async function importKey(token: string): Promise<CryptoKey> {
   return globalThis.crypto.subtle.importKey(
     'raw',
-    new TextEncoder().encode(getTokenFromOptionsOrEnv({ token })),
+    new TextEncoder().encode(token),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign', 'verify']
@@ -119,12 +119,12 @@ async function verifyCallbackSignature({
   signature,
   body,
 }: {
-  token?: string;
+  token: string;
   signature: string;
   body: string;
 }): Promise<boolean> {
   // callback signature is signed using the server token
-  const secret = getTokenFromOptionsOrEnv({ token });
+  const secret = token;
   // Browsers, Edge runtime and Node >=20 implement the Web Crypto API
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Node.js < 20: globalThis.crypto is undefined (in a real script.js, because the REPL has it linked to the crypto module). Node.js >= 20, Browsers and Cloudflare workers: globalThis.crypto is defined and is the Web Crypto API.
   if (!globalThis.crypto) {
@@ -233,20 +233,20 @@ export async function handleUpload({
   | { type: GenerateClientTokenEvent['type']; clientToken: string }
   | { type: UploadCompletedEvent['type']; response: 'ok' }
 > {
+  const resolvedToken = getTokenFromOptionsOrEnv({ token });
+
   const type = body.type;
   switch (type) {
     case 'blob.generate-client-token': {
       const { pathname, callbackUrl, clientPayload } = body.payload;
       const payload = await onBeforeGenerateToken(pathname, clientPayload);
-      // TODO @Fabio: the next line `?? null` previously, which always made sure that tokenPayload was `null`
-      // Why so?
       const tokenPayload = payload.tokenPayload ?? clientPayload;
 
       return {
         type,
         clientToken: await generateClientTokenFromReadWriteToken({
           ...payload,
-          token,
+          token: resolvedToken,
           pathname,
           onUploadCompleted: {
             callbackUrl,
@@ -268,7 +268,7 @@ export async function handleUpload({
       }
 
       const isVerified = await verifyCallbackSignature({
-        token,
+        token: resolvedToken,
         signature,
         body: JSON.stringify(body),
       });

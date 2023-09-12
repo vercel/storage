@@ -220,8 +220,7 @@ describe('stale-if-error semantics', () => {
 
       await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
 
-      // the server would not actually send a response body the second time
-      // as the etag matches
+      // pretend the server returned a 502 without any response body
       fetchMock.mockResponseOnce('', { status: 502 });
 
       // second call should reuse earlier response
@@ -262,9 +261,7 @@ describe('stale-if-error semantics', () => {
 
       await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
 
-      // the server would not actually send a response body the second time
-      // as the etag matches
-      // fetchMock.mockResponseOnce('', { status: 502 });
+      // pretend there was a network error which led to fetch throwing
       fetchMock.mockAbortOnce();
 
       // second call should reuse earlier response

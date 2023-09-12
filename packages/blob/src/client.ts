@@ -369,7 +369,7 @@ export interface GenerateClientTokenOptions extends BlobCommandOptions {
   pathname: string;
   onUploadCompleted?: {
     callbackUrl: string;
-    tokenPayload?: string | null;
+    tokenPayload?: string;
   };
   maximumSizeInBytes?: number;
   allowedContentTypes?: string[];

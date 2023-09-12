@@ -17,7 +17,29 @@ describe('client uploads', () => {
       jest.useFakeTimers().setSystemTime(new Date('2023-01-01'));
     });
 
-    it('should generate a client token with the correct payload', async () => {
+    it('generates a client token', async () => {
+      const uploadToken = await generateClientTokenFromReadWriteToken({
+        pathname: 'foo.txt',
+        onUploadCompleted: {
+          callbackUrl: 'https://example.com',
+        },
+        token: 'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678',
+      });
+
+      expect(uploadToken).toMatchInlineSnapshot(
+        `"vercel_blob_client_12345fakeStoreId_ZTVmZTJmYWZkOWJhMGNiNTVjOGExOWJkM2VhY2M5NzRhNzM4MmQ2NmEyN2EyMmYwMzFkMjQ0ZDIyMjMzN2Y0Yy5leUp3WVhSb2JtRnRaU0k2SW1admJ5NTBlSFFpTENKdmJsVndiRzloWkVOdmJYQnNaWFJsWkNJNmV5SmpZV3hzWW1GamExVnliQ0k2SW1oMGRIQnpPaTh2WlhoaGJYQnNaUzVqYjIwaWZTd2lkbUZzYVdSVmJuUnBiQ0k2TVRZM01qVXpNVEl6TURBd01IMD0="`
+      );
+
+      expect(getPayloadFromClientToken(uploadToken)).toEqual({
+        pathname: 'foo.txt',
+        onUploadCompleted: {
+          callbackUrl: 'https://example.com',
+        },
+        validUntil: 1672531230000,
+      });
+    });
+
+    it('accepts a tokenPayload property', async () => {
       const uploadToken = await generateClientTokenFromReadWriteToken({
         pathname: 'foo.txt',
         onUploadCompleted: {

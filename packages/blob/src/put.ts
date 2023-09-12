@@ -71,6 +71,7 @@ export function createPutMethod<
       throw new BlobError('missing options, see usage');
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX.
     if (options.access !== 'public') {
       throw new BlobError('access must be "public"');
     }

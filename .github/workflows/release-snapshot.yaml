@@ -26,8 +26,10 @@ jobs:
           node-version-file: '.node-version'
           cache: 'pnpm'
 
-      - name: Setup npmrc
-        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN_ELEVATED }}" > .npmrc
+      - name: Add npm auth token to pnpm
+        run: pnpm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN_ELEVATED}"
+        env:
+          NPM_TOKEN_ELEVATED: ${{secrets.NPM_TOKEN_ELEVATED}}
 
       - name: Install Dependencies
         run: pnpm install

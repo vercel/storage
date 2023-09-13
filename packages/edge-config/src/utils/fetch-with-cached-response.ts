@@ -19,7 +19,13 @@ function createResponse(
   cachedResponseEntry: CachedResponseEntry
 ): ResponseWithCachedResponse {
   return new Response(cachedResponseEntry.response, {
-    headers: cachedResponseEntry.headers,
+    headers: {
+      ...cachedResponseEntry.headers,
+      Age: String(
+        // age header may not be 0 when serving stale content, must be >= 1
+        Math.max(1, Math.floor((Date.now() - cachedResponseEntry.time) / 1000))
+      ),
+    },
     status: cachedResponseEntry.status,
   });
 }

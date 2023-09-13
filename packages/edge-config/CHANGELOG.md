@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.3.1-0ed578253c7c021716e16f121a5074e5be88d194-20230913160020
+
+### Patch Changes
+
+- 0ed5782: change descripiton
+
 ## 0.3.0
 
 ### Minor Changes

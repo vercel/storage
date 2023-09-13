@@ -9,6 +9,6 @@
   "updateInternalDependencies": "patch",
   "ignore": [],
   "snapshot": {
-    "useCalculatedVersion": true
+    "useCalculatedVersion": false
   }
 }

@@ -1,7 +1,7 @@
 // eslint-disable-next-line eslint-comments/disable-enable-pair -- [@vercel/style-guide@5 migration]
 /* eslint-disable no-console */
 // Run from the current directory, with:
-// npx tsx -r dotenv/config script.ts dotenv_config_path=.env.local
+// npx tsx -r dotenv/config script.mts dotenv_config_path=.env.local
 
 import { createReadStream } from 'node:fs';
 import type { IncomingMessage } from 'node:http';

@@ -14,7 +14,7 @@ export default function Home(): JSX.Element {
       </p>
       <p>
         Node.js https.get, axios, and got examples can be found in the{' '}
-        <a href="https://github.com/vercel/blob/tree/main/example/script.ts">
+        <a href="https://github.com/vercel/blob/tree/main/example/script.mts">
           vercel/blob GitHub repository
         </a>
         .

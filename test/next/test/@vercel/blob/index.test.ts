@@ -19,7 +19,7 @@ test.describe('@vercel/blob', () => {
           .post(`${path}?filename=${prefix}/test.txt`, {
             data: `Hello world ${path} ${prefix}`,
             headers: {
-              cookie: `blobUpload=${process.env.BLOB_UPLOAD_SECRET ?? ''}`,
+              cookie: `clientUpload=${process.env.BLOB_UPLOAD_SECRET ?? ''}`,
             },
           })
           .then((r) => r.json())) as PutBlobResult;
@@ -75,7 +75,7 @@ test.describe('@vercel/blob', () => {
           const browserContext = await browser.newContext();
           await browserContext.addCookies([
             {
-              name: 'blobUpload',
+              name: 'clientUpload',
               value: process.env.BLOB_UPLOAD_SECRET ?? '',
               path: '/',
               domain: (

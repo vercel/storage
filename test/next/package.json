@@ -1,6 +1,6 @@
 {
   "name": "vercel-storage-integration-test-suite",
-  "version": "0.1.19",
+  "version": "0.1.20-0ed578253c7c021716e16f121a5074e5be88d194-20230913161220",
   "private": true,
   "scripts": {
     "build": "next build",

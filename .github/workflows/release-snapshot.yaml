@@ -26,6 +26,11 @@ jobs:
           node-version-file: '.node-version'
           cache: 'pnpm'
 
+      - name: Add npm auth token to pnpm
+        run: pnpm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN_ELEVATED}"
+        env:
+          NPM_TOKEN_ELEVATED: ${{secrets.NPM_TOKEN_ELEVATED}}
+
       - name: Install Dependencies
         run: pnpm install
 

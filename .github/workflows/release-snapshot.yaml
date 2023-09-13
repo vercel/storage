@@ -30,11 +30,9 @@ jobs:
         run: pnpm install
 
       - name: Create Snapshot Release
-        id: changesets
-        uses: changesets/action@v1
-        with:
-          version: pnpm changeset version --snapshot ${{ github.sha }}
-          publish: pnpm changeset publish --tag snapshot
+        run: |
+          pnpm changeset version --snapshot ${{ github.sha }}
+          pnpm changeset publish --tag snapshot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN_ELEVATED }}

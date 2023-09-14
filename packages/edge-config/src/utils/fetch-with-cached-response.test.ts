@@ -1,6 +1,8 @@
 import fetchMock from 'jest-fetch-mock';
 import { fetchWithCachedResponse, cache } from './fetch-with-cached-response';
 
+jest.useFakeTimers();
+
 describe('cache', () => {
   it('should be an object', () => {
     expect(typeof cache).toEqual('object');
@@ -24,7 +26,10 @@ describe('fetchWithCachedResponse', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith('https://example.com/api/data', {});
     expect(data1.headers).toEqual(
-      new Headers({ ETag: 'abc123', 'content-type': 'application/json' })
+      new Headers({
+        ETag: 'abc123',
+        'content-type': 'application/json',
+      })
     );
     await expect(data1.json()).resolves.toEqual({ name: 'John' });
     expect(data1.cachedResponseBody).toBeUndefined();
@@ -32,7 +37,10 @@ describe('fetchWithCachedResponse', () => {
     // Second request (should come from cache)
     fetchMock.mockResponseOnce('', {
       status: 304,
-      headers: { ETag: 'abc123', 'content-type': 'application/json' },
+      headers: {
+        ETag: 'abc123',
+        'content-type': 'application/json',
+      },
     });
     const data2 = await fetchWithCachedResponse('https://example.com/api/data');
 
@@ -50,7 +58,10 @@ describe('fetchWithCachedResponse', () => {
 
   it('should differentiate caches by authorization header', async () => {
     fetchMock.mockResponseOnce(JSON.stringify({ name: 'John' }), {
-      headers: { ETag: 'abc123', 'content-type': 'application/json' },
+      headers: {
+        ETag: 'abc123',
+        'content-type': 'application/json',
+      },
     });
 
     // First request
@@ -120,5 +131,95 @@ describe('fetchWithCachedResponse', () => {
 
     expect(data3).toHaveProperty('status', 304);
     expect(data3.cachedResponseBody).toEqual({ name: 'John' });
+  });
+
+  it('should respect stale-if-error on 500s', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify({ name: 'John' }), {
+      headers: { ETag: 'abc123', 'content-type': 'application/json' },
+    });
+
+    // First request
+    const data1 = await fetchWithCachedResponse('https://example.com/api/data');
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith('https://example.com/api/data', {});
+    expect(data1.headers).toEqual(
+      new Headers({
+        ETag: 'abc123',
+        'content-type': 'application/json',
+      })
+    );
+    await expect(data1.json()).resolves.toEqual({ name: 'John' });
+    expect(data1.cachedResponseBody).toBeUndefined();
+
+    jest.advanceTimersByTime(5000);
+
+    // Second request (should come from cache)
+    fetchMock.mockResponseOnce('', { status: 502 });
+    const data2 = await fetchWithCachedResponse(
+      'https://example.com/api/data',
+      { headers: new Headers({ 'Cache-Control': 'stale-if-error=10' }) }
+    );
+
+    jest.advanceTimersByTime(3000);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(data2.headers).toEqual(
+      new Headers({
+        'content-type': 'application/json',
+        // Age is present when a cached response was served as per HTTP spec
+        // And in this case a stale-if-error cached response is being served
+        Age: '5',
+        etag: 'abc123',
+      })
+    );
+
+    expect(data2).toHaveProperty('status', 200);
+    await expect(data2.json()).resolves.toEqual({ name: 'John' });
+  });
+
+  it('should respect stale-if-error on network faults', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify({ name: 'John' }), {
+      headers: { ETag: 'abc123', 'content-type': 'application/json' },
+    });
+
+    // First request
+    const data1 = await fetchWithCachedResponse('https://example.com/api/data');
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith('https://example.com/api/data', {});
+    expect(data1.headers).toEqual(
+      new Headers({
+        ETag: 'abc123',
+        'content-type': 'application/json',
+      })
+    );
+    await expect(data1.json()).resolves.toEqual({ name: 'John' });
+    expect(data1.cachedResponseBody).toBeUndefined();
+
+    jest.advanceTimersByTime(5000);
+
+    // Second request (should come from cache)
+    fetchMock.mockAbortOnce();
+    const data2 = await fetchWithCachedResponse(
+      'https://example.com/api/data',
+      { headers: new Headers({ 'Cache-Control': 'stale-if-error=10' }) }
+    );
+
+    jest.advanceTimersByTime(3000);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(data2.headers).toEqual(
+      new Headers({
+        'content-type': 'application/json',
+        // Age is present when a cached response was served as per HTTP spec
+        // And in this case a stale-if-error cached response is being served
+        Age: '5',
+        etag: 'abc123',
+      })
+    );
+
+    expect(data2).toHaveProperty('status', 200);
+    await expect(data2.json()).resolves.toEqual({ name: 'John' });
   });
 });

@@ -85,6 +85,7 @@ describe('when running without lambda layer or via edge function', () => {
               Authorization: 'Bearer token-2',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
           }
@@ -109,6 +110,7 @@ describe('when running without lambda layer or via edge function', () => {
               Authorization: 'Bearer token-2',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
           }
@@ -132,6 +134,7 @@ describe('when running without lambda layer or via edge function', () => {
               Authorization: 'Bearer token-2',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
           }
@@ -141,7 +144,7 @@ describe('when running without lambda layer or via edge function', () => {
   });
 });
 
-describe('etags and if-none-match', () => {
+describe('etags and If-None-Match', () => {
   const modifiedConnectionString =
     'https://edge-config.vercel.com/ecfg-2?token=token-2';
   const modifiedBaseUrl = 'https://edge-config.vercel.com/ecfg-2';
@@ -180,6 +183,7 @@ describe('etags and if-none-match', () => {
             Authorization: 'Bearer token-2',
             'x-edge-config-vercel-env': 'test',
             'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
           }),
           cache: 'no-store',
         }
@@ -191,7 +195,107 @@ describe('etags and if-none-match', () => {
             Authorization: 'Bearer token-2',
             'x-edge-config-vercel-env': 'test',
             'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
-            'if-none-match': 'a',
+            'cache-control': 'stale-if-error=604800',
+            'If-None-Match': 'a',
+          }),
+          cache: 'no-store',
+        }
+      );
+    });
+  });
+});
+
+describe('stale-if-error semantics', () => {
+  const modifiedConnectionString =
+    'https://edge-config.vercel.com/ecfg-2?token=token-2';
+  const modifiedBaseUrl = 'https://edge-config.vercel.com/ecfg-2';
+  let edgeConfig: EdgeConfigClient;
+
+  beforeEach(() => {
+    fetchMock.resetMocks();
+    cache.clear();
+    edgeConfig = pkg.createClient(modifiedConnectionString);
+  });
+
+  describe('when reading the same item twice but the second read has an internal server error', () => {
+    it('should reuse the cached/stale response', async () => {
+      fetchMock.mockResponseOnce(JSON.stringify('bar'), {
+        headers: { ETag: 'a' },
+      });
+
+      await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
+
+      // pretend the server returned a 502 without any response body
+      fetchMock.mockResponseOnce('', { status: 502 });
+
+      // second call should reuse earlier response
+      await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(fetchMock).toHaveBeenCalledWith(
+        `${modifiedBaseUrl}/item/foo?version=1`,
+        {
+          headers: new Headers({
+            Authorization: 'Bearer token-2',
+            'x-edge-config-vercel-env': 'test',
+            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
+          }),
+          cache: 'no-store',
+        }
+      );
+      expect(fetchMock).toHaveBeenCalledWith(
+        `${modifiedBaseUrl}/item/foo?version=1`,
+        {
+          headers: new Headers({
+            Authorization: 'Bearer token-2',
+            'x-edge-config-vercel-env': 'test',
+            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
+            'If-None-Match': 'a',
+          }),
+          cache: 'no-store',
+        }
+      );
+    });
+  });
+
+  describe('when reading the same item twice but the second read throws a network error', () => {
+    it('should reuse the cached/stale response', async () => {
+      fetchMock.mockResponseOnce(JSON.stringify('bar'), {
+        headers: { ETag: 'a' },
+      });
+
+      await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
+
+      // pretend there was a network error which led to fetch throwing
+      fetchMock.mockAbortOnce();
+
+      // second call should reuse earlier response
+      await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(fetchMock).toHaveBeenCalledWith(
+        `${modifiedBaseUrl}/item/foo?version=1`,
+        {
+          headers: new Headers({
+            Authorization: 'Bearer token-2',
+            'x-edge-config-vercel-env': 'test',
+            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
+          }),
+          cache: 'no-store',
+        }
+      );
+      expect(fetchMock).toHaveBeenCalledWith(
+        `${modifiedBaseUrl}/item/foo?version=1`,
+        {
+          headers: new Headers({
+            Authorization: 'Bearer token-2',
+            'x-edge-config-vercel-env': 'test',
+            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
+            'If-None-Match': 'a',
           }),
           cache: 'no-store',
         }
@@ -243,6 +347,7 @@ describe('connectionStrings', () => {
                 Authorization: 'Bearer token-2',
                 'x-edge-config-vercel-env': 'test',
                 'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+                'cache-control': 'stale-if-error=604800',
               }),
               cache: 'no-store',
             }

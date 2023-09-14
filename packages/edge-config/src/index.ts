@@ -127,6 +127,21 @@ function getConnection(connectionString: string): Connection | null {
   }
 }
 
+interface EdgeConfigClientOptions {
+  /**
+   * The stale-if-error response directive indicates that the cache can reuse a
+   * stale response when an upstream server generates an error, or when the error
+   * is generated locally - for example due to a connection error.
+   *
+   * Any response with a status code of 500, 502, 503, or 504 is considered an error.
+   *
+   * Pass a negative number, 0, or false to turn disable stale-if-error semantics.
+   *
+   * The time is supplied in seconds. Defaults to one week (`604800`).
+   */
+  staleIfError: number | false;
+}
+
 /**
  * Create an Edge Config client.
  *
@@ -138,7 +153,8 @@ function getConnection(connectionString: string): Connection | null {
  * @returns An Edge Config Client instance
  */
 export function createClient(
-  connectionString: string | undefined
+  connectionString: string | undefined,
+  options: EdgeConfigClientOptions = { staleIfError: 604800 /* one week */ }
 ): EdgeConfigClient {
   if (!connectionString)
     throw new Error('@vercel/edge-config: No connection string provided');
@@ -160,6 +176,9 @@ export function createClient(
 
   if (typeof sdkName === 'string' && typeof sdkVersion === 'string')
     headers['x-edge-config-sdk'] = `${sdkName}@${sdkVersion}`;
+
+  if (typeof options.staleIfError === 'number' && options.staleIfError > 0)
+    headers['cache-control'] = `stale-if-error=${options.staleIfError}`;
 
   return {
     connection,

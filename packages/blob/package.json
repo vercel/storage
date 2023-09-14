@@ -63,7 +63,7 @@
   },
   "dependencies": {
     "jest-environment-jsdom": "29.6.4",
-    "undici": "5.23.0"
+    "undici": "5.24.0"
   },
   "devDependencies": {
     "@edge-runtime/jest-environment": "2.3.3",

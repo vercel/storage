@@ -30,6 +30,16 @@
     "crypto": "./dist/crypto-browser.js"
   },
   "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      ".": [
+        "dist/index.d.ts"
+      ],
+      "client": [
+        "dist/client.d.ts"
+      ]
+    }
+  },
   "files": [
     "dist"
   ],

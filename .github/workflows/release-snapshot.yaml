@@ -70,9 +70,12 @@ jobs:
       - name: Install Dependencies
         run: pnpm install
 
+      - name: Add SHORT_SHA env property with commit short sha
+        run: echo "SHORT_SHA=`echo ${{ github.sha }} | cut -c1-8`" >> $GITHUB_ENV
+
       - name: Create Snapshot Release
         run: |
-          pnpm changeset version --snapshot ${{ github.sha }}
+          pnpm changeset version --snapshot ${SHORT_SHA}
           pnpm changeset publish --no-git-tag --tag snapshot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

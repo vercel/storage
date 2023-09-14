@@ -4,7 +4,7 @@
 
 ### Minor Changes
 
-- e01f1ef: add stale-while-revalidate semantics
+- e01f1ef: add stale-if-error semantics
 
 ## 0.3.0
 

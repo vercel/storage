@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.12.1
+
+### Patch Changes
+
+- ae93246: Fix `Cannot find module '@vercel/blob/client' errors for JavaScript projects or TypeScript projects with an old moduleResolution setting.
+
 ## 0.12.0
 
 ### Minor Changes

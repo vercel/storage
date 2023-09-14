@@ -51,7 +51,7 @@
     "@neondatabase/serverless": "0.5.6",
     "bufferutil": "4.0.7",
     "utf-8-validate": "6.0.3",
-    "ws": "8.13.0"
+    "ws": "8.14.1"
   },
   "devDependencies": {
     "@changesets/cli": "2.26.2",

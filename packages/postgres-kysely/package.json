@@ -58,7 +58,7 @@
     "@types/jest": "29.5.4",
     "@types/node": "18.17.15",
     "@types/ws": "8.5.5",
-    "eslint": "8.48.0",
+    "eslint": "8.49.0",
     "eslint-config-custom": "workspace:*",
     "jest": "29.6.4",
     "kysely": "0.26.1",

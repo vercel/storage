@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 0.4.0
+
+### Minor Changes
+
+- e01f1ef: add stale-if-error semantics
+
 ## 0.3.0
 
 ### Minor Changes

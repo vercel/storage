@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.12.2
+
+### Patch Changes
+
+- 15f7eef: Fix types for old module resolution. Before this commit types for the main package would be imported with a dot in the import path on autocompletion.
+
 ## 0.12.1
 
 ### Patch Changes

@@ -13,12 +13,10 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
     "./client": {
-      "types": "./dist/client.d.ts",
       "import": "./dist/client.js",
       "require": "./dist/client.cjs"
     }
@@ -32,9 +30,6 @@
   "types": "./dist/index.d.ts",
   "typesVersions": {
     "*": {
-      ".": [
-        "dist/index.d.ts"
-      ],
       "client": [
         "dist/client.d.ts"
       ]

@@ -52,7 +52,7 @@
     "@edge-runtime/jest-environment": "2.3.3",
     "@edge-runtime/types": "2.2.3",
     "@types/jest": "29.5.4",
-    "@types/node": "18.17.16",
+    "@types/node": "18.17.17",
     "eslint": "8.49.0",
     "eslint-config-custom": "workspace:*",
     "husky": "8.0.3",

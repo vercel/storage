@@ -27,6 +27,13 @@
     "undici": "./dist/undici-browser.js",
     "crypto": "./dist/crypto-browser.js"
   },
+  "typesVersions": {
+    "*": {
+      "client": [
+        "dist/client.d.ts"
+      ]
+    }
+  },
   "files": [
     "dist"
   ],

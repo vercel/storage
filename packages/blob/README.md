@@ -72,6 +72,7 @@ async function head(
   contentType: string;
   contentDisposition: string;
   url: string;
+  cacheControl: string;
 } | null> {}
 ```
 

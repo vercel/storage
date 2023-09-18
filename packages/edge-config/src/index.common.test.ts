@@ -34,14 +34,46 @@ describe('parseConnectionString', () => {
     ).toBeNull();
   });
 
-  it('should return the id and token when a valid Connection String is given', () => {
+  it('should return the id and token when a valid internal Connection String is given', () => {
     expect(
       pkg.parseConnectionString(
         'https://edge-config.vercel.com/ecfg_cljia81u2q1gappdgptj881dwwtc?token=00000000-0000-0000-0000-000000000000'
       )
     ).toEqual({
+      baseUrl:
+        'https://edge-config.vercel.com/ecfg_cljia81u2q1gappdgptj881dwwtc',
       id: 'ecfg_cljia81u2q1gappdgptj881dwwtc',
       token: '00000000-0000-0000-0000-000000000000',
+      type: 'vercel',
+      version: '1',
+    });
+  });
+
+  it('should return the id and token when a valid external Connection String is given using pathname', () => {
+    expect(
+      pkg.parseConnectionString(
+        'https://example.com/ecfg_cljia81u2q1gappdgptj881dwwtc?token=00000000-0000-0000-0000-000000000000'
+      )
+    ).toEqual({
+      id: 'ecfg_cljia81u2q1gappdgptj881dwwtc',
+      token: '00000000-0000-0000-0000-000000000000',
+      version: '1',
+      type: 'external',
+      baseUrl: 'https://example.com/ecfg_cljia81u2q1gappdgptj881dwwtc',
+    });
+  });
+
+  it('should return the id and token when a valid external Connection String is given using search params', () => {
+    expect(
+      pkg.parseConnectionString(
+        'https://example.com/?id=ecfg_cljia81u2q1gappdgptj881dwwtc&token=00000000-0000-0000-0000-000000000000'
+      )
+    ).toEqual({
+      id: 'ecfg_cljia81u2q1gappdgptj881dwwtc',
+      token: '00000000-0000-0000-0000-000000000000',
+      baseUrl: 'https://example.com/',
+      type: 'external',
+      version: '1',
     });
   });
 });

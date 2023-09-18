@@ -62,10 +62,11 @@ export interface HeadBlobResult {
   pathname: string;
   contentType: string;
   contentDisposition: string;
+  cacheControl: string;
 }
 
 interface HeadBlobApiResponse extends Omit<HeadBlobResult, 'uploadedAt'> {
-  uploadedAt: string;
+  uploadedAt: string; // when receiving data from our API, uploadedAt is a string
 }
 
 export async function head(

@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.12.3
+
+### Patch Changes
+
+- c0fe4e7: vercelBlob.head() now sends a `cacheControl` property
+
 ## 0.12.2
 
 ### Patch Changes

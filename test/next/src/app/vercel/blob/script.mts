@@ -1,7 +1,7 @@
-// eslint-disable-next-line eslint-comments/disable-enable-pair
+// eslint-disable-next-line eslint-comments/disable-enable-pair -- [@vercel/style-guide@5 migration]
 /* eslint-disable no-console */
 // Run from the current directory, with:
-// npx tsx -r dotenv/config script.ts dotenv_config_path=.env.local
+// npx tsx -r dotenv/config script.mts dotenv_config_path=.env.local
 
 import { createReadStream } from 'node:fs';
 import type { IncomingMessage } from 'node:http';
@@ -19,6 +19,8 @@ console.log();
 async function run(): Promise<void> {
   const urls = await Promise.all([
     textFileExample(),
+    textFileNoRandomSuffixExample(),
+    textFileExampleWithCacheControlMaxAge(),
     imageExample(),
     videoExample(),
     webpageExample(),
@@ -32,9 +34,9 @@ async function run(): Promise<void> {
 
   await Promise.all(
     urls.map(async (url) => {
-      const blobDetails = await vercelBlob.head(url as string);
+      const blobDetails = await vercelBlob.head(url);
       console.log(blobDetails, url);
-    }),
+    })
   );
 
   // list all blobs
@@ -42,7 +44,7 @@ async function run(): Promise<void> {
   let hasMore = true;
   let cursor: string | undefined;
   while (hasMore) {
-    // eslint-disable-next-line no-await-in-loop
+    // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
     const listResult = await vercelBlob.list({
       cursor,
     });
@@ -53,13 +55,33 @@ async function run(): Promise<void> {
 
   console.log(count, 'blobs in this store');
 
-  await Promise.all(urls.map((url) => vercelBlob.del(url as string)));
+  await Promise.all(urls.map((url) => vercelBlob.del(url)));
 }
 
 async function textFileExample(): Promise<string> {
   const start = Date.now();
   const blob = await vercelBlob.put('folder/test.txt', 'Hello, world!', {
     access: 'public',
+  });
+  console.log('Text file example:', blob.url, `(${Date.now() - start}ms)`);
+  return blob.url;
+}
+
+async function textFileNoRandomSuffixExample(): Promise<string> {
+  const start = Date.now();
+  const blob = await vercelBlob.put('folder/test.txt', 'Hello, world!', {
+    access: 'public',
+    addRandomSuffix: false,
+  });
+  console.log('Text file example:', blob.url, `(${Date.now() - start}ms)`);
+  return blob.url;
+}
+
+async function textFileExampleWithCacheControlMaxAge(): Promise<string> {
+  const start = Date.now();
+  const blob = await vercelBlob.put('folder/test.txt', 'Hello, world!', {
+    access: 'public',
+    cacheControlMaxAge: 120,
   });
   console.log('Text file example:', blob.url, `(${Date.now() - start}ms)`);
   return blob.url;
@@ -108,7 +130,7 @@ async function webpageExample(): Promise<string> {
     '<div>Hello from a webpage!</div>',
     {
       access: 'public',
-    },
+    }
   );
 
   console.log('Webpage example:', blob.url, `(${Date.now() - start}ms)`);
@@ -122,7 +144,7 @@ async function incomingMessageExample(): Promise<string> {
   const incomingMessage: IncomingMessage = await new Promise((resolve) => {
     https.get(
       'https://example-files.online-convert.com/video/mp4/example.mp4',
-      resolve,
+      resolve
     );
   });
 
@@ -133,7 +155,7 @@ async function incomingMessageExample(): Promise<string> {
   console.log(
     'incomingMessage example:',
     blob.url,
-    `(${Date.now() - start}ms)`,
+    `(${Date.now() - start}ms)`
   );
   return blob.url;
 }
@@ -145,7 +167,7 @@ async function axiosExample(): Promise<string> {
     'https://example-files.online-convert.com/video/mp4/example_2s.mp4',
     {
       responseType: 'stream',
-    },
+    }
   );
 
   const blob = await vercelBlob.put(
@@ -153,7 +175,7 @@ async function axiosExample(): Promise<string> {
     response.data as IncomingMessage,
     {
       access: 'public',
-    },
+    }
   );
 
   console.log('axios example:', blob.url, `(${Date.now() - start}ms)`);
@@ -164,7 +186,7 @@ async function gotExample(): Promise<string> {
   const start = Date.now();
 
   const request = got.stream(
-    'https://example-files.online-convert.com/video/mp4/example_2s.mp4',
+    'https://example-files.online-convert.com/video/mp4/example_2s.mp4'
   );
 
   const blob = await vercelBlob.put('example_2s.mp4', request, {
@@ -175,26 +197,23 @@ async function gotExample(): Promise<string> {
   return blob.url;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-async function fetchExample(): Promise<string | void> {
+async function fetchExample(): Promise<string> {
   const start = Date.now();
 
   const response = await fetch(
-    'https://example-files.online-convert.com/video/mp4/example_2s.mp4',
+    'https://example-files.online-convert.com/video/mp4/example_2s.mp4'
   );
 
-  if (response.body) {
-    const blob = await vercelBlob.put(
-      'example_2s.mp4',
-      response.body as ReadableStream,
-      {
-        access: 'public',
-      },
-    );
+  const blob = await vercelBlob.put(
+    'example_2s.mp4',
+    response.body as ReadableStream,
+    {
+      access: 'public',
+    }
+  );
 
-    console.log('fetch example:', blob.url, `(${Date.now() - start}ms)`);
-    return blob.url;
-  }
+  console.log('fetch example:', blob.url, `(${Date.now() - start}ms)`);
+  return blob.url;
 }
 
 run().catch((err) => {
@@ -220,13 +239,13 @@ async function weirdCharactersExample(): Promise<string> {
     'Hello, world!',
     {
       access: 'public',
-    },
+    }
   );
 
   console.log(
     'weird characters example:',
     blob.url,
-    `(${Date.now() - start}ms)`,
+    `(${Date.now() - start}ms)`
   );
   return blob.url;
 }

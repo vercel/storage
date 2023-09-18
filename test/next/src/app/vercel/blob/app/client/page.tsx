@@ -1,6 +1,7 @@
 'use client';
 
-import { put, type PutBlobResult } from '@vercel/blob';
+import { type PutBlobResult } from '@vercel/blob';
+import { upload } from '@vercel/blob/client';
 import { useRef, useState } from 'react';
 
 export default function AppClientUpload(): JSX.Element {
@@ -20,9 +21,9 @@ export default function AppClientUpload(): JSX.Element {
             return;
           }
 
-          const blobResult = await put(file.name, file, {
+          const blobResult = await upload(file.name, file, {
             access: 'public',
-            handleBlobUploadUrl: `/vercel/blob/api/app/handle-blob-upload/edge`,
+            handleUploadUrl: `/vercel/blob/api/app/handle-blob-upload/edge`,
           });
 
           setBlob(blobResult);

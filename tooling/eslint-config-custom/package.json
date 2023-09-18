@@ -5,11 +5,11 @@
   "license": "Apache-2.0",
   "main": "index.js",
   "dependencies": {
-    "@vercel/style-guide": "latest",
-    "eslint": "8.45.0",
-    "eslint-config-prettier": "^8.3.0",
-    "eslint-config-turbo": "latest",
-    "typescript": "5.1.6"
+    "@vercel/style-guide": "5.0.1",
+    "eslint": "8.49.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-config-turbo": "1.10.14",
+    "typescript": "5.2.2"
   },
   "publishConfig": {
     "access": "public"

@@ -36,14 +36,14 @@ export class VercelClient extends Client {
 }
 
 export function createClient(
-  config?: VercelPostgresClientConfig,
+  config?: VercelPostgresClientConfig
 ): VercelClient {
   const connectionString =
     config?.connectionString ?? postgresConnectionString('direct');
   if (!connectionString)
     throw new VercelPostgresError(
       'missing_connection_string',
-      "You did not supply a 'connectionString' and no 'POSTGRES_URL_NON_POOLING' env var was found.",
+      "You did not supply a 'connectionString' and no 'POSTGRES_URL_NON_POOLING' env var was found."
     );
   if (
     !isLocalhostConnectionString(connectionString) &&
@@ -51,7 +51,7 @@ export function createClient(
   )
     throw new VercelPostgresError(
       'invalid_connection_string',
-      'This connection string is meant to be used with a pooled connection. Try `createPool()` instead.',
+      'This connection string is meant to be used with a pooled connection. Try `createPool()` instead.'
     );
   return new VercelClient({
     ...config,

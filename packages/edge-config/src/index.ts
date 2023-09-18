@@ -11,6 +11,7 @@ import {
   pick,
 } from './utils';
 import type {
+  Connection,
   EdgeConfigClient,
   EdgeConfigItems,
   EdgeConfigValue,
@@ -31,7 +32,7 @@ export {
  * This is used at runtime on serverless functions.
  */
 async function getFileSystemEdgeConfig(
-  connection: Connection,
+  connection: Connection
 ): Promise<EmbeddedEdgeConfig | null> {
   // can't optimize non-vercel hosted edge configs
   if (connection.type !== 'vercel') return null;
@@ -41,7 +42,7 @@ async function getFileSystemEdgeConfig(
   try {
     const content = await readFile(
       `/opt/edge-config/${connection.id}.json`,
-      'utf-8',
+      'utf-8'
     );
     return JSON.parse(content) as EmbeddedEdgeConfig;
   } catch {
@@ -50,7 +51,7 @@ async function getFileSystemEdgeConfig(
 }
 
 async function consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(
-  res: Response,
+  res: Response
 ): Promise<void> {
   if (typeof EdgeRuntime !== 'undefined') return;
 
@@ -60,86 +61,19 @@ async function consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(
   await res.arrayBuffer();
 }
 
-type Connection =
-  | {
-      baseUrl: string;
-      id: string;
-      token: string;
-      version: string;
-      type: 'vercel';
-    }
-  | {
-      baseUrl: string;
-      id: string;
-      token: string;
-      version: string;
-      type: 'external';
-    };
-
-/**
- * Parses info contained in connection strings.
- *
- * This works with the vercel-provided connection strings, but it also
- * works with custom connection strings.
- *
- * The reason we support custom connection strings is that it makes testing
- * edge config really straightforward. Users can provide  connection strings
- * pointing to their own servers and then either have a custom server
- * return the desired values or even intercept requests with something like
- * msw.
- *
- * To allow interception we need a custom connection string as the
- * edge-config.vercel.com connection string might not always go over
- * the network, so msw would not have a chance to intercept.
- */
-function getConnection(connectionString: string): Connection | null {
-  const isVercelConnectionString = connectionString.startsWith(
-    'https://edge-config.vercel.com/',
-  );
-
-  const connection = isVercelConnectionString
-    ? parseConnectionString(connectionString)
-    : null;
-
-  if (isVercelConnectionString && connection)
-    return {
-      type: 'vercel',
-      baseUrl: `https://edge-config.vercel.com/${connection.id}`,
-      id: connection.id,
-      version: '1',
-      token: connection.token,
-    };
-
-  try {
-    const url = new URL(connectionString);
-
-    let id: string | null = url.searchParams.get('id');
-    const token = url.searchParams.get('token');
-    const version = url.searchParams.get('version') || '1';
-
-    // try to determine id based on pathname if it wasn't provided explicitly
-    if (!id || url.pathname.startsWith('/ecfg_')) {
-      id = url.pathname.split('/')[1] || null;
-    }
-
-    // clean up URL for use as baseURL
-    for (const key of url.searchParams.keys()) {
-      url.searchParams.delete(key);
-    }
-
-    if (!id || !token) return null;
-
-    // try to parse as external connection string
-    return {
-      type: 'external',
-      baseUrl: url.toString(),
-      id,
-      token,
-      version,
-    };
-  } catch {
-    return null;
-  }
+interface EdgeConfigClientOptions {
+  /**
+   * The stale-if-error response directive indicates that the cache can reuse a
+   * stale response when an upstream server generates an error, or when the error
+   * is generated locally - for example due to a connection error.
+   *
+   * Any response with a status code of 500, 502, 503, or 504 is considered an error.
+   *
+   * Pass a negative number, 0, or false to turn disable stale-if-error semantics.
+   *
+   * The time is supplied in seconds. Defaults to one week (`604800`).
+   */
+  staleIfError: number | false;
 }
 
 /**
@@ -154,11 +88,12 @@ function getConnection(connectionString: string): Connection | null {
  */
 export function createClient(
   connectionString: string | undefined,
+  options: EdgeConfigClientOptions = { staleIfError: 604800 /* one week */ }
 ): EdgeConfigClient {
   if (!connectionString)
     throw new Error('@vercel/edge-config: No connection string provided');
 
-  const connection = getConnection(connectionString);
+  const connection = parseConnectionString(connectionString);
 
   if (!connection)
     throw new Error('@vercel/edge-config: Invalid connection string provided');
@@ -169,13 +104,18 @@ export function createClient(
     Authorization: `Bearer ${connection.token}`,
   };
 
+  // eslint-disable-next-line @typescript-eslint/prefer-optional-chain -- [@vercel/style-guide@5 migration]
   if (typeof process !== 'undefined' && process.env.VERCEL_ENV)
     headers['x-edge-config-vercel-env'] = process.env.VERCEL_ENV;
 
   if (typeof sdkName === 'string' && typeof sdkVersion === 'string')
     headers['x-edge-config-sdk'] = `${sdkName}@${sdkVersion}`;
 
+  if (typeof options.staleIfError === 'number' && options.staleIfError > 0)
+    headers['cache-control'] = `stale-if-error=${options.staleIfError}`;
+
   return {
+    connection,
     async get<T = EdgeConfigValue>(key: string): Promise<T | undefined> {
       const localEdgeConfig = await getFileSystemEdgeConfig(connection);
       if (localEdgeConfig) {
@@ -194,7 +134,7 @@ export function createClient(
         {
           headers: new Headers(headers),
           cache: 'no-store',
-        },
+        }
       ).then<T | undefined, undefined>(
         async (res) => {
           if (res.ok) return res.json();
@@ -216,7 +156,7 @@ export function createClient(
         (error) => {
           if (isDynamicServerError(error)) throw error;
           throw new Error(ERRORS.NETWORK);
-        },
+        }
       );
     },
     async has(key): Promise<boolean> {
@@ -249,7 +189,7 @@ export function createClient(
         (error) => {
           if (isDynamicServerError(error)) throw error;
           throw new Error(ERRORS.NETWORK);
-        },
+        }
       );
     },
     async getAll<T = EdgeConfigItems>(keys?: (keyof T)[]): Promise<T> {
@@ -268,7 +208,7 @@ export function createClient(
 
       const search = Array.isArray(keys)
         ? new URLSearchParams(
-            keys.map((key) => ['key', key] as [string, string]),
+            keys.map((key) => ['key', key] as [string, string])
           ).toString()
         : null;
 
@@ -283,7 +223,7 @@ export function createClient(
         {
           headers: new Headers(headers),
           cache: 'no-store',
-        },
+        }
       ).then<T>(
         async (res) => {
           if (res.ok) return res.json();
@@ -300,7 +240,7 @@ export function createClient(
         (error) => {
           if (isDynamicServerError(error)) throw error;
           throw new Error(ERRORS.NETWORK);
-        },
+        }
       );
     },
     async digest(): Promise<string> {
@@ -325,7 +265,7 @@ export function createClient(
         (error) => {
           if (isDynamicServerError(error)) throw error;
           throw new Error(ERRORS.NETWORK);
-        },
+        }
       );
     },
   };
@@ -336,7 +276,7 @@ let defaultEdgeConfigClient: EdgeConfigClient;
 // lazy init fn so the default edge config does not throw in case
 // process.env.EDGE_CONFIG is not defined and its methods are never used.
 function init(): void {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- [@vercel/style-guide@5 migration]
   if (!defaultEdgeConfigClient) {
     defaultEdgeConfigClient = createClient(process.env.EDGE_CONFIG);
   }

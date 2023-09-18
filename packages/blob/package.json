@@ -1,6 +1,6 @@
 {
   "name": "@vercel/blob",
-  "version": "0.10.0",
+  "version": "0.12.3",
   "description": "The Vercel Blob JavaScript API client",
   "homepage": "https://vercel.com/storage/blob",
   "repository": {
@@ -11,6 +11,16 @@
   "license": "Apache-2.0",
   "sideEffects": false,
   "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./client": {
+      "import": "./dist/client.js",
+      "require": "./dist/client.cjs"
+    }
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "browser": {
@@ -39,20 +49,20 @@
     "testEnvironment": "node"
   },
   "dependencies": {
-    "jest-environment-jsdom": "29.6.2",
-    "undici": "5.22.1"
+    "jest-environment-jsdom": "29.7.0",
+    "undici": "5.24.0"
   },
   "devDependencies": {
-    "@edge-runtime/jest-environment": "2.2.5",
-    "@edge-runtime/types": "2.1.5",
-    "@types/jest": "29.5.3",
-    "@types/node": "18.17.1",
-    "eslint": "8.45.0",
+    "@edge-runtime/jest-environment": "2.3.3",
+    "@edge-runtime/types": "2.2.3",
+    "@types/jest": "29.5.5",
+    "@types/node": "18.17.17",
+    "eslint": "8.49.0",
     "eslint-config-custom": "workspace:*",
-    "jest": "29.6.2",
+    "jest": "29.7.0",
     "ts-jest": "29.1.1",
     "tsconfig": "workspace:*",
-    "tsup": "7.1.0"
+    "tsup": "7.2.0"
   },
   "engines": {
     "node": ">=16.14"

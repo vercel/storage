@@ -13,7 +13,7 @@ export class VercelKV extends Redis {
     let cursor = 0;
     let keys: string[];
     do {
-      // eslint-disable-next-line no-await-in-loop
+      // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
       [cursor, keys] = await this.scan(cursor, options);
       for (const key of keys) {
         yield key;
@@ -26,12 +26,12 @@ export class VercelKV extends Redis {
    */
   async *hscanIterator(
     key: string,
-    options?: ScanCommandOptions,
+    options?: ScanCommandOptions
   ): AsyncIterable<string | number> {
     let cursor = 0;
     let items: (number | string)[];
     do {
-      // eslint-disable-next-line no-await-in-loop
+      // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
       [cursor, items] = await this.hscan(key, cursor, options);
       for (const item of items) {
         yield item;
@@ -44,12 +44,12 @@ export class VercelKV extends Redis {
    */
   async *sscanIterator(
     key: string,
-    options?: ScanCommandOptions,
+    options?: ScanCommandOptions
   ): AsyncIterable<string | number> {
     let cursor = 0;
     let items: (number | string)[];
     do {
-      // eslint-disable-next-line no-await-in-loop
+      // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
       [cursor, items] = await this.sscan(key, cursor, options);
       for (const item of items) {
         yield item;
@@ -62,12 +62,12 @@ export class VercelKV extends Redis {
    */
   async *zscanIterator(
     key: string,
-    options?: ScanCommandOptions,
+    options?: ScanCommandOptions
   ): AsyncIterable<string | number> {
     let cursor = 0;
     let items: (number | string)[];
     do {
-      // eslint-disable-next-line no-await-in-loop
+      // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
       [cursor, items] = await this.zscan(key, cursor, options);
       for (const item of items) {
         yield item;
@@ -80,26 +80,25 @@ export function createClient(config: RedisConfigNodejs): VercelKV {
   return new VercelKV(config);
 }
 
-// eslint-disable-next-line import/no-default-export
+// eslint-disable-next-line import/no-default-export -- [@vercel/style-guide@5 migration]
 export default new Proxy(
   {},
   {
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     get(target, prop, receiver) {
       if (prop === 'then' || prop === 'parse') {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- [@vercel/style-guide@5 migration]
         return Reflect.get(target, prop, receiver);
       }
 
       if (!_kv) {
         if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
           throw new Error(
-            '@vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN',
+            '@vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN'
           );
         }
-        // eslint-disable-next-line no-console
+        // eslint-disable-next-line no-console -- [@vercel/style-guide@5 migration]
         console.warn(
-          '\x1b[33m"The default export has been moved to a named export and it will be removed in version 1, change to import { kv }\x1b[0m"',
+          '\x1b[33m"The default export has been moved to a named export and it will be removed in version 1, change to import { kv }\x1b[0m"'
         );
 
         _kv = createClient({
@@ -108,21 +107,20 @@ export default new Proxy(
         });
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- [@vercel/style-guide@5 migration]
       return Reflect.get(_kv, prop);
     },
-  },
+  }
 ) as VercelKV;
 
 export const kv = new Proxy(
   {},
   {
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     get(target, prop) {
       if (!_kv) {
         if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
           throw new Error(
-            '@vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN',
+            '@vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN'
           );
         }
 
@@ -132,8 +130,8 @@ export const kv = new Proxy(
         });
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- [@vercel/style-guide@5 migration]
       return Reflect.get(_kv, prop);
     },
-  },
+  }
 ) as VercelKV;

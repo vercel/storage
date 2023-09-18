@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { type HandleBlobUploadBody, handleBlobUpload } from '@vercel/blob';
+import { type HandleUploadBody, handleUpload } from '@vercel/blob/client';
 import { validateUploadToken } from '@/app/vercel/blob/validate-upload-token';
 
 export const config = {
@@ -8,7 +8,7 @@ export const config = {
 
 export default async function handleBody(
   request: NextApiRequest,
-  response: NextApiResponse,
+  response: NextApiResponse
 ): Promise<void> {
   if (!validateUploadToken(request)) {
     return response.status(401).json({ message: 'Not authorized' });
@@ -16,10 +16,10 @@ export default async function handleBody(
 
   const body = request.body as string;
   try {
-    const jsonResponse = await handleBlobUpload({
-      body: JSON.parse(body) as HandleBlobUploadBody,
+    const jsonResponse = await handleUpload({
+      body: JSON.parse(body) as HandleUploadBody,
       request,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/require-await
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/require-await -- [@vercel/style-guide@5 migration]
       onBeforeGenerateToken: async (pathname) => {
         return {
           maximumSizeInBytes: 10_000_000,
@@ -29,17 +29,17 @@ export default async function handleBody(
             'image/gif',
             'text/plain',
           ],
-          metadata: JSON.stringify({
+          tokenPayload: JSON.stringify({
             userId: 'user.id',
           }),
         };
       },
-      // eslint-disable-next-line @typescript-eslint/require-await
-      onUploadCompleted: async ({ blob, metadata }) => {
-        // eslint-disable-next-line no-console
-        console.log('Upload completed', blob, metadata);
+      // eslint-disable-next-line @typescript-eslint/require-await -- [@vercel/style-guide@5 migration]
+      onUploadCompleted: async ({ blob, tokenPayload }) => {
+        // eslint-disable-next-line no-console -- [@vercel/style-guide@5 migration]
+        console.log('Upload completed', blob, tokenPayload);
         try {
-          //   await db.update({ avatar: blob.url, userId: metadata.userId });
+          //   await db.update({ avatar: blob.url, userId: tokenPayload.userId });
         } catch (error) {
           throw new Error('Could not update user');
         }

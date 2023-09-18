@@ -1,11 +1,10 @@
-import { handleBlobUpload, type HandleBlobUploadBody } from '@vercel/blob';
+import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
 import { NextResponse } from 'next/server';
 import { validateUploadToken } from './validate-upload-token';
 
-// eslint-disable-next-line @typescript-eslint/require-await
 async function auth(
   request: Request,
-  _pathname: string,
+  _pathname: string
 ): Promise<{ user: { id: string } | null; userCanUpload: boolean }> {
   if (!validateUploadToken(request)) {
     return {
@@ -13,18 +12,22 @@ async function auth(
       user: null,
     };
   }
+
+  // faking an async auth call
+  await Promise.resolve();
+
   return {
     user: { id: '12345' },
     userCanUpload: true,
   };
 }
 
-export async function handleBlobUploadHandler(
-  request: Request,
+export async function handleUploadHandler(
+  request: Request
 ): Promise<NextResponse> {
-  const body = (await request.json()) as HandleBlobUploadBody;
+  const body = (await request.json()) as HandleUploadBody;
   try {
-    const jsonResponse = await handleBlobUpload({
+    const jsonResponse = await handleUpload({
       body,
       request,
       // token: VERCEL_BLOB_READ_WRITE_TOKEN,
@@ -43,17 +46,17 @@ export async function handleBlobUploadHandler(
             'image/gif',
             'text/plain',
           ],
-          metadata: JSON.stringify({
+          tokenPayload: JSON.stringify({
             userId: user?.id,
           }),
         };
       },
-      // eslint-disable-next-line @typescript-eslint/require-await
-      onUploadCompleted: async ({ blob, metadata }) => {
-        // eslint-disable-next-line no-console
-        console.log('Upload completed', blob, metadata);
+      // eslint-disable-next-line @typescript-eslint/require-await -- [@vercel/style-guide@5 migration]
+      onUploadCompleted: async ({ blob, tokenPayload }) => {
+        // eslint-disable-next-line no-console -- [@vercel/style-guide@5 migration]
+        console.log('Upload completed', blob, tokenPayload);
         try {
-          //   await db.update({ avatar: blob.url, userId: metadata.userId });
+          //   await db.update({ avatar: blob.url, userId: tokenPayload.userId });
         } catch (error) {
           throw new Error('Could not update user');
         }
@@ -65,7 +68,7 @@ export async function handleBlobUploadHandler(
     const message = (error as Error).message;
     return NextResponse.json(
       { error: message },
-      { status: message === 'Not authorized' ? 401 : 400 },
+      { status: message === 'Not authorized' ? 401 : 400 }
     );
   }
 }

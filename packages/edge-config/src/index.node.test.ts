@@ -8,7 +8,7 @@ import { get, has, digest, createClient, getAll } from './index';
 const sdkVersion = typeof pkgVersion === 'string' ? pkgVersion : '';
 const baseUrl = 'https://edge-config.vercel.com/ecfg-1';
 
-// eslint-disable-next-line jest/require-top-level-describe
+// eslint-disable-next-line jest/require-top-level-describe -- [@vercel/style-guide@5 migration]
 beforeEach(() => {
   fetchMock.resetMocks();
   cache.clear();
@@ -32,7 +32,7 @@ describe('default Edge Config', () => {
   describe('test conditions', () => {
     it('should have an env var called EDGE_CONFIG', () => {
       expect(process.env.EDGE_CONFIG).toEqual(
-        'https://edge-config.vercel.com/ecfg-1?token=token-1',
+        'https://edge-config.vercel.com/ecfg-1?token=token-1'
       );
     });
   });
@@ -48,6 +48,7 @@ describe('default Edge Config', () => {
         Authorization: 'Bearer token-1',
         'x-edge-config-vercel-env': 'test',
         'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+        'cache-control': 'stale-if-error=604800',
       }),
       cache: 'no-store',
     });
@@ -68,9 +69,10 @@ describe('default Edge Config', () => {
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
-          },
+          }
         );
       });
     });
@@ -90,7 +92,7 @@ describe('default Edge Config', () => {
               'content-type': 'application/json',
               'x-edge-config-digest': 'fake',
             },
-          },
+          }
         );
 
         await expect(get('foo')).resolves.toEqual(undefined);
@@ -103,9 +105,10 @@ describe('default Edge Config', () => {
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
-          },
+          }
         );
       });
     });
@@ -119,11 +122,11 @@ describe('default Edge Config', () => {
               message: 'Could not find the edge config: ecfg-1',
             },
           }),
-          { status: 404, headers: { 'content-type': 'application/json' } },
+          { status: 404, headers: { 'content-type': 'application/json' } }
         );
 
         await expect(get('foo')).rejects.toThrow(
-          '@vercel/edge-config: Edge Config not found',
+          '@vercel/edge-config: Edge Config not found'
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -134,9 +137,10 @@ describe('default Edge Config', () => {
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
-          },
+          }
         );
       });
     });
@@ -146,7 +150,7 @@ describe('default Edge Config', () => {
         fetchMock.mockReject();
 
         await expect(get('foo')).rejects.toThrow(
-          '@vercel/edge-config: Network error',
+          '@vercel/edge-config: Network error'
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -157,9 +161,10 @@ describe('default Edge Config', () => {
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
-          },
+          }
         );
       });
     });
@@ -169,7 +174,7 @@ describe('default Edge Config', () => {
         fetchMock.mockResponse('', { status: 500 });
 
         await expect(get('foo')).rejects.toThrow(
-          '@vercel/edge-config: Unexpected error',
+          '@vercel/edge-config: Unexpected error'
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -180,9 +185,10 @@ describe('default Edge Config', () => {
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
-          },
+          }
         );
       });
     });
@@ -201,6 +207,7 @@ describe('default Edge Config', () => {
             Authorization: 'Bearer token-1',
             'x-edge-config-vercel-env': 'test',
             'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
           }),
           cache: 'no-store',
         });
@@ -224,9 +231,10 @@ describe('default Edge Config', () => {
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
-          },
+          }
         );
       });
     });
@@ -240,11 +248,11 @@ describe('default Edge Config', () => {
               message: 'Could not find the edge config: ecfg-1',
             },
           }),
-          { status: 404, headers: { 'content-type': 'application/json' } },
+          { status: 404, headers: { 'content-type': 'application/json' } }
         );
 
         await expect(getAll(['foo', 'bar'])).rejects.toThrow(
-          '@vercel/edge-config: Edge Config not found',
+          '@vercel/edge-config: Edge Config not found'
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -255,9 +263,10 @@ describe('default Edge Config', () => {
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
-          },
+          }
         );
       });
     });
@@ -267,7 +276,7 @@ describe('default Edge Config', () => {
         fetchMock.mockReject();
 
         await expect(getAll()).rejects.toThrow(
-          '@vercel/edge-config: Network error',
+          '@vercel/edge-config: Network error'
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -276,6 +285,7 @@ describe('default Edge Config', () => {
             Authorization: 'Bearer token-1',
             'x-edge-config-vercel-env': 'test',
             'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
           }),
           cache: 'no-store',
         });
@@ -287,7 +297,7 @@ describe('default Edge Config', () => {
         fetchMock.mockResponse('', { status: 500 });
 
         await expect(getAll()).rejects.toThrow(
-          '@vercel/edge-config: Unexpected error',
+          '@vercel/edge-config: Unexpected error'
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -296,6 +306,7 @@ describe('default Edge Config', () => {
             Authorization: 'Bearer token-1',
             'x-edge-config-vercel-env': 'test',
             'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
           }),
           cache: 'no-store',
         });
@@ -319,9 +330,10 @@ describe('default Edge Config', () => {
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
-          },
+          }
         );
       });
     });
@@ -341,7 +353,7 @@ describe('default Edge Config', () => {
               'content-type': 'application/json',
               'x-edge-config-digest': 'fake',
             },
-          },
+          }
         );
 
         await expect(has('foo')).resolves.toEqual(false);
@@ -355,9 +367,10 @@ describe('default Edge Config', () => {
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
-          },
+          }
         );
       });
     });
@@ -371,11 +384,11 @@ describe('default Edge Config', () => {
               message: 'Could not find the edge config: ecfg-1',
             },
           }),
-          { status: 404, headers: { 'content-type': 'application/json' } },
+          { status: 404, headers: { 'content-type': 'application/json' } }
         );
 
         await expect(has('foo')).rejects.toThrow(
-          '@vercel/edge-config: Edge Config not found',
+          '@vercel/edge-config: Edge Config not found'
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -387,9 +400,10 @@ describe('default Edge Config', () => {
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
-          },
+          }
         );
       });
     });
@@ -408,6 +422,7 @@ describe('default Edge Config', () => {
             Authorization: 'Bearer token-1',
             'x-edge-config-vercel-env': 'test',
             'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
           }),
           cache: 'no-store',
         });
@@ -419,7 +434,7 @@ describe('default Edge Config', () => {
         fetchMock.mockResponse('', { status: 500 });
 
         await expect(digest()).rejects.toThrow(
-          '@vercel/edge-config: Unexpected error',
+          '@vercel/edge-config: Unexpected error'
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -428,6 +443,7 @@ describe('default Edge Config', () => {
             Authorization: 'Bearer token-1',
             'x-edge-config-vercel-env': 'test',
             'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
           }),
           cache: 'no-store',
         });
@@ -437,7 +453,7 @@ describe('default Edge Config', () => {
         fetchMock.mockResponse('', { status: 404 });
 
         await expect(digest()).rejects.toThrow(
-          '@vercel/edge-config: Unexpected error',
+          '@vercel/edge-config: Unexpected error'
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -446,6 +462,7 @@ describe('default Edge Config', () => {
             Authorization: 'Bearer token-1',
             'x-edge-config-vercel-env': 'test',
             'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
           }),
           cache: 'no-store',
         });
@@ -457,7 +474,7 @@ describe('default Edge Config', () => {
         fetchMock.mockReject();
 
         await expect(digest()).rejects.toThrow(
-          '@vercel/edge-config: Network error',
+          '@vercel/edge-config: Network error'
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -466,6 +483,7 @@ describe('default Edge Config', () => {
             Authorization: 'Bearer token-1',
             'x-edge-config-vercel-env': 'test',
             'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
           }),
           cache: 'no-store',
         });
@@ -499,7 +517,7 @@ describe('createClient', () => {
           expect(readFile).toHaveBeenCalledTimes(1);
           expect(readFile).toHaveBeenCalledWith(
             '/opt/edge-config/ecfg-1.json',
-            'utf-8',
+            'utf-8'
           );
         });
 
@@ -507,7 +525,7 @@ describe('createClient', () => {
           const edgeConfig = createClient(process.env.EDGE_CONFIG);
           const someArray = await edgeConfig.get<string[]>('someArray');
           expect(someArray).toEqual([]);
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- [@vercel/style-guide@5 migration]
           someArray!.push('intruder');
           // the pushed value on the old return value may not make it onto the
           // next get
@@ -516,7 +534,7 @@ describe('createClient', () => {
           expect(readFile).toHaveBeenCalledTimes(2);
           expect(readFile).toHaveBeenCalledWith(
             '/opt/edge-config/ecfg-1.json',
-            'utf-8',
+            'utf-8'
           );
         });
       });
@@ -529,7 +547,7 @@ describe('createClient', () => {
           expect(readFile).toHaveBeenCalledTimes(1);
           expect(readFile).toHaveBeenCalledWith(
             '/opt/edge-config/ecfg-1.json',
-            'utf-8',
+            'utf-8'
           );
         });
       });
@@ -544,7 +562,7 @@ describe('createClient', () => {
           expect(readFile).toHaveBeenCalledTimes(1);
           expect(readFile).toHaveBeenCalledWith(
             '/opt/edge-config/ecfg-1.json',
-            'utf-8',
+            'utf-8'
           );
         });
       });
@@ -557,7 +575,7 @@ describe('createClient', () => {
           expect(readFile).toHaveBeenCalledTimes(1);
           expect(readFile).toHaveBeenCalledWith(
             '/opt/edge-config/ecfg-1.json',
-            'utf-8',
+            'utf-8'
           );
         });
       });
@@ -571,7 +589,7 @@ describe('createClient', () => {
         expect(readFile).toHaveBeenCalledTimes(1);
         expect(readFile).toHaveBeenCalledWith(
           '/opt/edge-config/ecfg-1.json',
-          'utf-8',
+          'utf-8'
         );
       });
     });

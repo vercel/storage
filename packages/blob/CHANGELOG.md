@@ -1,5 +1,67 @@
 # @vercel/blob
 
+## 0.12.3
+
+### Patch Changes
+
+- c0fe4e7: vercelBlob.head() now sends a `cacheControl` property
+
+## 0.12.2
+
+### Patch Changes
+
+- 15f7eef: Fix types for old module resolution. Before this commit types for the main package would be imported with a dot in the import path on autocompletion.
+
+## 0.12.1
+
+### Patch Changes
+
+- ae93246: Fix `Cannot find module '@vercel/blob/client' errors for JavaScript projects or TypeScript projects with an old moduleResolution setting.
+
+## 0.12.0
+
+### Minor Changes
+
+- 8251462: This release introduces BREAKING CHANGES. Mostly, we've separated client and server needs better. While ensuring we only export what we currently think is useful to you.
+
+  We have a completely new documentation about client (browser) uploads: https://vercel.com/docs/storage/vercel-blob/quickstart#client-uploads.
+
+  We've moved and renamed client-related utilities, including the ones to generate client tokens, to a separate entry file: `@vercel/blob/client`. Use it this way:
+
+  ```ts
+  import {
+    upload,
+    handleUpload,
+    generateClientTokenFromReadWriteToken,
+  } from '@vercel/blob/client';
+  ```
+
+  Here are the new features:
+
+  - You can now pass a `clientPayload?: string` option during client uploads via the `upload` method. This payload can be used to attach metadata to your file, for example when updating a blog post cover image, you may want to pass: `clientPayload: JSON.stringify({ postId: 123 })`, so you can then use it server side to update the blog post.
+
+  Here are the BREAKING CHANGES:
+
+  - `handleBlobUpload` has moved to client/`handleUpload`
+  - For client (browser) uploads, please use client/`upload` instead of `put`. Also, the `handleBlobUploadUrl` option has been renamed to `handleUploadUrl`.
+  - `verifyCallbackSignature` is no more exported if you think you need it, open an issue
+  - `BlobCommandOptions` type is no longer exported. This is an internal utility type. Other internal types were removed also but nobody was using them
+  - `metadata` in `onBeforeGenerateToken` and `onUploadCompleted` has been renamed to `tokenPayload`
+
+  Enjoy!
+
+## 0.11.0
+
+### Minor Changes
+
+- b409aad: We added two new options on `put()`:
+
+  - `addRandomSuffix: boolean`: Allows to disable or enable (default) random
+    suffixes added to file paths
+  - `cacheControlMaxAge: number`: Allows to configure the browser and edge cache,
+    in seconds. Default to one year (browser) and 5 minutes (edge). The edge cache
+    is currently always set to a maximum of 5 minutes. But can be lowered to 0
+
 ## 0.10.0
 
 ### Minor Changes

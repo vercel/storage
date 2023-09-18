@@ -61,72 +61,6 @@ async function consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(
   await res.arrayBuffer();
 }
 
-/**
- * Parses info contained in connection strings.
- *
- * This works with the vercel-provided connection strings, but it also
- * works with custom connection strings.
- *
- * The reason we support custom connection strings is that it makes testing
- * edge config really straightforward. Users can provide  connection strings
- * pointing to their own servers and then either have a custom server
- * return the desired values or even intercept requests with something like
- * msw.
- *
- * To allow interception we need a custom connection string as the
- * edge-config.vercel.com connection string might not always go over
- * the network, so msw would not have a chance to intercept.
- */
-function getConnection(connectionString: string): Connection | null {
-  const isVercelConnectionString = connectionString.startsWith(
-    'https://edge-config.vercel.com/'
-  );
-
-  const connection = isVercelConnectionString
-    ? parseConnectionString(connectionString)
-    : null;
-
-  if (isVercelConnectionString && connection)
-    return {
-      type: 'vercel',
-      baseUrl: `https://edge-config.vercel.com/${connection.id}`,
-      id: connection.id,
-      version: '1',
-      token: connection.token,
-    };
-
-  try {
-    const url = new URL(connectionString);
-
-    let id: string | null = url.searchParams.get('id');
-    const token = url.searchParams.get('token');
-    const version = url.searchParams.get('version') || '1';
-
-    // try to determine id based on pathname if it wasn't provided explicitly
-    if (!id || url.pathname.startsWith('/ecfg_')) {
-      id = url.pathname.split('/')[1] || null;
-    }
-
-    // clean up URL for use as baseURL
-    for (const key of url.searchParams.keys()) {
-      url.searchParams.delete(key);
-    }
-
-    if (!id || !token) return null;
-
-    // try to parse as external connection string
-    return {
-      type: 'external',
-      baseUrl: url.toString(),
-      id,
-      token,
-      version,
-    };
-  } catch {
-    return null;
-  }
-}
-
 interface EdgeConfigClientOptions {
   /**
    * The stale-if-error response directive indicates that the cache can reuse a
@@ -159,7 +93,7 @@ export function createClient(
   if (!connectionString)
     throw new Error('@vercel/edge-config: No connection string provided');
 
-  const connection = getConnection(connectionString);
+  const connection = parseConnectionString(connectionString);
 
   if (!connection)
     throw new Error('@vercel/edge-config: Invalid connection string provided');

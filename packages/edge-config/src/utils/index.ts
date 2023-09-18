@@ -1,3 +1,5 @@
+import type { Connection } from '../types';
+
 export const ERRORS = {
   UNEXPECTED: '@vercel/edge-config: Unexpected error',
   UNAUTHORIZED: '@vercel/edge-config: Unauthorized',
@@ -50,18 +52,14 @@ export function clone<T>(value: T): T {
 }
 
 /**
- * Parse the edgeConfigId and token from an Edge Config Connection String.
+ * Parses internal edge config connection strings
  *
- * Edge Config Connection Strings look like this:
+ * Internal edge config connection strings are those which are native to Vercel.
+ *
+ * Internal Edge Config Connection Strings look like this:
  * https://edge-config.vercel.com/<edgeConfigId>?token=<token>
- *
- * @param text - A potential Edge Config Connection String
- * @returns The id and token parsed from the given Connection String or null if
- * the given text was not a valid Edge Config Connection String.
  */
-export function parseConnectionString(
-  text: string
-): { id: string; token: string } | null {
+function parseVercelConnectionString(text: string): Connection | null {
   try {
     const url = new URL(text);
     if (url.host !== 'edge-config.vercel.com') return null;
@@ -74,10 +72,91 @@ export function parseConnectionString(
     const token = url.searchParams.get('token');
     if (!token || token === '') return null;
 
-    return { id, token };
+    return {
+      type: 'vercel',
+      baseUrl: `https://edge-config.vercel.com/${id}`,
+      id,
+      version: '1',
+      token,
+    };
   } catch {
     return null;
   }
+}
+
+/**
+ * Parses info contained in connection strings.
+ *
+ * This works with the vercel-provided connection strings, but it also
+ * works with custom connection strings.
+ *
+ * The reason we support custom connection strings is that it makes testing
+ * edge config really straightforward. Users can provide  connection strings
+ * pointing to their own servers and then either have a custom server
+ * return the desired values or even intercept requests with something like
+ * msw.
+ *
+ * To allow interception we need a custom connection string as the
+ * edge-config.vercel.com connection string might not always go over
+ * the network, so msw would not have a chance to intercept.
+ */
+/**
+ * Parses external edge config connection strings
+ *
+ * External edge config connection strings are those which are foreign to Vercel.
+ *
+ * External Edge Config Connection Strings look like this:
+ * - https://example.com/?id=<edgeConfigId>&token=<token>
+ * - https://example.com/<edgeConfigId>?token=<token>
+ */
+function parseExternalConnectionString(
+  connectionString: string
+): Connection | null {
+  try {
+    const url = new URL(connectionString);
+
+    let id: string | null = url.searchParams.get('id');
+    const token = url.searchParams.get('token');
+    const version = url.searchParams.get('version') || '1';
+
+    // try to determine id based on pathname if it wasn't provided explicitly
+    if (!id || url.pathname.startsWith('/ecfg_')) {
+      id = url.pathname.split('/')[1] || null;
+    }
+
+    if (!id || !token) return null;
+
+    // remove all search params for use as baseURL
+    url.search = '';
+
+    // try to parse as external connection string
+    return {
+      type: 'external',
+      baseUrl: url.toString(),
+      id,
+      token,
+      version,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Parse the edgeConfigId and token from an Edge Config Connection String.
+ *
+ * Edge Config Connection Strings usually look like this:
+ * https://edge-config.vercel.com/<edgeConfigId>?token=<token>
+ *
+ * @param text - A potential Edge Config Connection String
+ * @returns The connection parsed from the given Connection String or null.
+ */
+export function parseConnectionString(
+  connectionString: string
+): Connection | null {
+  const connection = parseVercelConnectionString(connectionString);
+  if (connection) return connection;
+  return parseExternalConnectionString(connectionString);
 }
 
 /**

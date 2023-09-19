@@ -45,6 +45,14 @@ const validCases = [
       [123, 'admin'],
     ],
   },
+  {
+    input: (() => {
+      const column = fragment`foo`;
+      const filter = fragment`${column} = ${123}`;
+      return sqlTemplate`SELECT ${column} FROM table WHERE ${filter}`;
+    })(),
+    output: ['SELECT foo FROM table WHERE foo = $1', [123]],
+  },
 ];
 
 describe('sql', () => {

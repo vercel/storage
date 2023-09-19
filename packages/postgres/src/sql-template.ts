@@ -6,7 +6,7 @@ export type Primitive = string | number | boolean | undefined | null;
 export interface QueryFragment {
   [fragmentSymbol]: true;
   strings: TemplateStringsArray;
-  values: Primitive[];
+  values: (Primitive | QueryFragment)[];
 }
 
 const fragmentSymbol = Symbol('fragment');
@@ -68,7 +68,7 @@ function processTemplate(
  */
 export function fragment(
   strings: TemplateStringsArray,
-  ...values: Primitive[]
+  ...values: (Primitive | QueryFragment)[]
 ): QueryFragment {
   if (!isTemplateStringsArray(strings) || !Array.isArray(values)) {
     throw new VercelPostgresError(

@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.12.4
+
+### Patch Changes
+
+- d90e973: Removed `"types"` field from package.json to support `"moduleResolution": "Node16"`
+
 ## 0.12.3
 
 ### Patch Changes

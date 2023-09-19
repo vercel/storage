@@ -22,37 +22,37 @@ export function sqlTemplate(
     );
   }
 
-  let resultQuery = '';
-  const resultValues: Primitive[] = [];
+  const result: [string, Primitive[]] = ['', []];
 
-  function processTemplate(
-    innerStrings: TemplateStringsArray,
-    innerArgs: (Primitive | QueryFragment)[],
-  ): void {
-    for (let i = 0; i < innerStrings.length; i++) {
-      if (i > 0) {
-        const value = innerArgs[i - 1];
-        const valueIsFragment =
-          value && typeof value === 'object' && fragmentSymbol in value;
+  processTemplate(result, strings, values);
 
-        if (valueIsFragment) {
-          processTemplate(value.strings, value.values);
-        } else {
-          let valueIndex = resultValues.indexOf(value);
-          if (valueIndex < 0) {
-            resultValues.push(value);
-            valueIndex = resultValues.length - 1;
-          }
-          resultQuery += `$${valueIndex + 1}`;
+  return result;
+}
+
+function processTemplate(
+  result: [string, Primitive[]],
+  strings: TemplateStringsArray,
+  values: (Primitive | QueryFragment)[],
+): void {
+  for (let i = 0; i < strings.length; i++) {
+    if (i > 0) {
+      const value = values[i - 1];
+      const valueIsFragment =
+        value && typeof value === 'object' && fragmentSymbol in value;
+
+      if (valueIsFragment) {
+        processTemplate(result, value.strings, value.values);
+      } else {
+        let valueIndex = result[1].indexOf(value);
+        if (valueIndex < 0) {
+          valueIndex = result[1].push(value) - 1;
         }
+        result[0] += `$${valueIndex + 1}`;
       }
-      resultQuery += innerStrings[i];
     }
+
+    result[0] += strings[i];
   }
-
-  processTemplate(strings, values);
-
-  return [resultQuery, resultValues];
 }
 
 /**

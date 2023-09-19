@@ -1,5 +1,5 @@
 import { VercelPostgresError } from './error';
-import { sqlTemplate } from './sql-template';
+import { sqlTemplate, fragment } from './sql-template';
 
 const validCases = [
   {
@@ -20,6 +20,10 @@ const validCases = [
   {
     input: sqlTemplate`SELECT * FROM users WHERE name = ${'John AND 1=1'}`,
     output: ['SELECT * FROM users WHERE name = $1', ['John AND 1=1']],
+  },
+  {
+    input: sqlTemplate`SELECT * FROM users WHERE ${fragment`id = ${123}`}`,
+    output: ['SELECT * FROM users WHERE id = $1', [123]],
   },
 ];
 
@@ -46,6 +50,20 @@ describe('sql', () => {
     expect(() => {
       // @ts-expect-error - intentionally incorrect usage
       sqlTemplate(`SELECT * FROM posts WHERE likes > ${likes}`, 123);
+    }).toThrow(VercelPostgresError);
+  });
+});
+
+describe('fragment', () => {
+  it('throws when deliberately not used as a tagged literal to try to make us look dumb', () => {
+    const likes = 100;
+    expect(() => {
+      // @ts-expect-error - intentionally incorrect usage
+      fragment([`likes > ${likes}`]);
+    }).toThrow(VercelPostgresError);
+    expect(() => {
+      // @ts-expect-error - intentionally incorrect usage
+      fragment(`likes > ${likes}`, 123);
     }).toThrow(VercelPostgresError);
   });
 });

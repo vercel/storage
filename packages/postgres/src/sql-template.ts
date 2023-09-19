@@ -32,11 +32,18 @@ export function sqlTemplate(
     for (let i = 0; i < innerStrings.length; i++) {
       if (i > 0) {
         const value = innerArgs[i - 1];
-        if (value && typeof value === 'object' && fragmentSymbol in value) {
+        const valueIsFragment =
+          value && typeof value === 'object' && fragmentSymbol in value;
+
+        if (valueIsFragment) {
           processTemplate(value.strings, value.values);
         } else {
-          resultValues.push(value);
-          resultQuery += `$${resultValues.length}`; // 1-based index
+          let valueIndex = resultValues.indexOf(value);
+          if (valueIndex < 0) {
+            resultValues.push(value);
+            valueIndex = resultValues.length - 1;
+          }
+          resultQuery += `$${valueIndex + 1}`;
         }
       }
       resultQuery += innerStrings[i];

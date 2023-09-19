@@ -25,6 +25,26 @@ const validCases = [
     input: sqlTemplate`SELECT * FROM users WHERE ${fragment`id = ${123}`}`,
     output: ['SELECT * FROM users WHERE id = $1', [123]],
   },
+  {
+    input: (() => {
+      const filterOnFoo = Boolean('true');
+      const filter = filterOnFoo
+        ? fragment`foo = ${123}`
+        : fragment`bar = ${234}`;
+      return sqlTemplate`SELECT * FROM users WHERE ${filter}`;
+    })(),
+    output: ['SELECT * FROM users WHERE foo = $1', [123]],
+  },
+  {
+    input: (() => {
+      const sharedValues = fragment`${123}, ${'admin'}`;
+      return sqlTemplate`INSERT INTO users (id, credits, role) VALUES (1, ${sharedValues}), (2, ${sharedValues})`;
+    })(),
+    output: [
+      'INSERT INTO users (id, credits, role) VALUES (1, $1, $2), (2, $1, $2)',
+      [123, 'admin'],
+    ],
+  },
 ];
 
 describe('sql', () => {

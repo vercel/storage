@@ -4,7 +4,7 @@ import type { Primitive } from './sql-template';
 
 export * from './create-client';
 export * from './create-pool';
-export { fragment } from './sql-template';
+export { type QueryFragment, fragment } from './sql-template';
 export * from './types';
 export { postgresConnectionString } from './postgres-connection-string';
 

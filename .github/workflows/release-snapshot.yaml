@@ -73,6 +73,9 @@ jobs:
       - name: Add SHORT_SHA env property with commit short sha
         run: echo "SHORT_SHA=`echo ${{ github.sha }} | cut -c1-8`" >> $GITHUB_ENV
 
+      - name: Build
+        run: pnpm build
+
       - name: Create Snapshot Release
         run: |
           pnpm changeset version --snapshot ${SHORT_SHA}

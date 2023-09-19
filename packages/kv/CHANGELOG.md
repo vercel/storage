@@ -1,5 +1,11 @@
 # @vercel/kv
 
+## 0.2.3
+
+### Patch Changes
+
+- d90e973: Removed `"types"` field from package.json to support `"moduleResolution": "Node16"`
+
 ## 0.2.2
 
 ### Patch Changes

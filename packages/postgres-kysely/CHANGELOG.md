@@ -1,5 +1,13 @@
 # @vercel/postgres-kysely
 
+## 0.4.2
+
+### Patch Changes
+
+- d90e973: Removed `"types"` field from package.json to support `"moduleResolution": "Node16"`
+- Updated dependencies [d90e973]
+  - @vercel/postgres@0.4.2
+
 ## 0.4.1
 
 ### Patch Changes

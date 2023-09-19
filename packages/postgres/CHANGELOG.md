@@ -1,5 +1,11 @@
 # @vercel/postgres
 
+## 0.4.2
+
+### Patch Changes
+
+- d90e973: Removed `"types"` field from package.json to support `"moduleResolution": "Node16"`
+
 ## 0.4.1
 
 ### Patch Changes

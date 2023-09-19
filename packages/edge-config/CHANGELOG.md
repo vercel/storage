@@ -1,5 +1,12 @@
 # @vercel/edge-config
 
+## 0.4.1
+
+### Patch Changes
+
+- 3105f2b: make parseConnectionString parse both internal and external connection strings
+- d90e973: Removed `"types"` field from package.json to support `"moduleResolution": "Node16"`
+
 ## 0.4.0
 
 ### Minor Changes

@@ -1,5 +1,16 @@
 # vercel-storage-integration-test-suite
 
+## 0.1.24
+
+### Patch Changes
+
+- Updated dependencies [3105f2b]
+- Updated dependencies [d90e973]
+  - @vercel/edge-config@0.4.1
+  - @vercel/postgres-kysely@0.4.2
+  - @vercel/postgres@0.4.2
+  - @vercel/blob@0.12.4
+
 ## 0.1.23
 
 ### Patch Changes

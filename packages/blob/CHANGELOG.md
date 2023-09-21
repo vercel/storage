@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.12.5
+
+### Patch Changes
+
+- f033492: Handle relative urls in upload()'s callbackUrl #399
+
 ## 0.12.4
 
 ### Patch Changes

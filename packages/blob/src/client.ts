@@ -292,7 +292,7 @@ async function retrieveClientToken(options: {
   const { handleUploadUrl, pathname } = options;
   const url = isAbsoluteUrl(handleUploadUrl)
     ? handleUploadUrl
-    : `${window.location.origin}${handleUploadUrl}`;
+    : toAbsoluteUrl(handleUploadUrl);
 
   const event: GenerateClientTokenEvent = {
     type: EventTypes.generateClientToken,
@@ -316,6 +316,10 @@ async function retrieveClientToken(options: {
   } catch (e) {
     throw new BlobError('Failed to retrieve the client token');
   }
+}
+
+function toAbsoluteUrl(url: string): string {
+  return new URL(url, window.location.href).href;
 }
 
 function isAbsoluteUrl(url: string): boolean {

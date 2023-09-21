@@ -44,10 +44,10 @@
     "testEnvironment": "node"
   },
   "dependencies": {
-    "@neondatabase/serverless": "0.5.6",
+    "@neondatabase/serverless": "0.6.0",
     "bufferutil": "4.0.7",
     "utf-8-validate": "6.0.3",
-    "ws": "8.14.1"
+    "ws": "8.14.2"
   },
   "devDependencies": {
     "@changesets/cli": "2.26.2",

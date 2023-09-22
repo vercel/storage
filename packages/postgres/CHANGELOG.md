@@ -1,5 +1,11 @@
 # @vercel/postgres
 
+## 0.5.0
+
+### Minor Changes
+
+- 4701d58: Upgrade neon to latest, reverts cache-control on request to undefined
+
 ## 0.4.2
 
 ### Patch Changes

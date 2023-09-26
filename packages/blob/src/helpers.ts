@@ -1,5 +1,8 @@
 // common util interface for blob raw commands, not meant to be used directly
 // this is why it's not exported from index/client
+
+import { type Response } from 'undici';
+
 export interface BlobCommandOptions {
   token?: string;
 }
@@ -32,9 +35,56 @@ export class BlobAccessError extends Error {
   }
 }
 
+export class BlobNotFoundError extends Error {
+  constructor() {
+    super('Vercel Blob: This store does not exist');
+  }
+}
+
+export class BlobSuspendedError extends Error {
+  constructor() {
+    super('Vercel Blob: This store has been suspended');
+  }
+}
+
 export class BlobUnknownError extends Error {
   constructor() {
     super('Vercel Blob: Unknown error, please visit https://vercel.com/help');
+  }
+}
+
+type BlobApiErrorCodes =
+  | 'suspended_store'
+  | 'forbidden'
+  | 'not_found'
+  | 'bad_request';
+
+export async function validateBlobApiResponse(
+  response: Response
+): Promise<Error | undefined> {
+  if (response.status !== 200) {
+    if (response.status < 500) {
+      const error = (await response.json()) as
+        | { code: BlobApiErrorCodes }
+        | undefined;
+      if (response.status === 404 && error?.code !== 'not_found') {
+        // ignore 404 not caused by not existing stores
+        return;
+      }
+      switch (error?.code) {
+        case 'suspended_store':
+          return new BlobSuspendedError();
+        case 'forbidden':
+          return new BlobAccessError();
+        case 'not_found':
+          return new BlobNotFoundError();
+        case 'bad_request':
+        default:
+          return new BlobUnknownError();
+      }
+    } else {
+      throw new BlobUnknownError();
+    }
   }
 }
 

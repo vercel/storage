@@ -4,12 +4,11 @@ import { fetch } from 'undici';
 import type { ClientPutCommandOptions } from './client';
 import type { BlobCommandOptions } from './helpers';
 import {
-  BlobAccessError,
-  BlobUnknownError,
   getApiUrl,
   getApiVersionHeader,
   getTokenFromOptionsOrEnv,
   BlobError,
+  validateBlobApiResponse,
 } from './helpers';
 
 export interface PutCommandOptions extends BlobCommandOptions {
@@ -117,13 +116,7 @@ export function createPutMethod<
       duplex: 'half',
     });
 
-    if (blobApiResponse.status !== 200) {
-      if (blobApiResponse.status === 403) {
-        throw new BlobAccessError();
-      } else {
-        throw new BlobUnknownError();
-      }
-    }
+    await validateBlobApiResponse(blobApiResponse);
 
     const blobResult = (await blobApiResponse.json()) as PutBlobApiResponse;
 

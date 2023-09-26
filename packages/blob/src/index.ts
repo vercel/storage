@@ -4,17 +4,22 @@
 import { fetch } from 'undici';
 import type { BlobCommandOptions } from './helpers';
 import {
-  BlobAccessError,
-  BlobUnknownError,
   getApiUrl,
   getApiVersionHeader,
   getTokenFromOptionsOrEnv,
+  validateBlobApiResponse,
 } from './helpers';
 import type { PutCommandOptions } from './put';
 import { createPutMethod } from './put';
 
 // expose the BlobError types
-export { BlobAccessError, BlobError, BlobUnknownError } from './helpers';
+export {
+  BlobAccessError,
+  BlobError,
+  BlobUnknownError,
+  BlobNotFoundError,
+  BlobSuspendedError,
+} from './helpers';
 export type { PutBlobResult } from './put';
 
 // vercelBlob.put()
@@ -42,13 +47,7 @@ export async function del(
     body: JSON.stringify({ urls: Array.isArray(url) ? url : [url] }),
   });
 
-  if (blobApiResponse.status !== 200) {
-    if (blobApiResponse.status === 403) {
-      throw new BlobAccessError();
-    } else {
-      throw new BlobUnknownError();
-    }
-  }
+  await validateBlobApiResponse(blobApiResponse);
 
   (await blobApiResponse.json()) as DeleteBlobApiResponse;
 }
@@ -84,16 +83,10 @@ export async function head(
     },
   });
 
+  await validateBlobApiResponse(blobApiResponse);
+
   if (blobApiResponse.status === 404) {
     return null;
-  }
-
-  if (blobApiResponse.status !== 200) {
-    if (blobApiResponse.status === 403) {
-      throw new BlobAccessError();
-    } else {
-      throw new BlobUnknownError();
-    }
   }
 
   const headResult = (await blobApiResponse.json()) as HeadBlobApiResponse;
@@ -151,13 +144,7 @@ export async function list(
     },
   });
 
-  if (blobApiResponse.status !== 200) {
-    if (blobApiResponse.status === 403) {
-      throw new BlobAccessError();
-    } else {
-      throw new BlobUnknownError();
-    }
-  }
+  await validateBlobApiResponse(blobApiResponse);
 
   const results = (await blobApiResponse.json()) as ListBlobApiResponse;
 

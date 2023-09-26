@@ -79,7 +79,7 @@ describe('blob client', () => {
           path: () => true,
           method: 'GET',
         })
-        .reply(403, 'Invalid token');
+        .reply(403, { error: { code: 'forbidden' } });
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
@@ -110,6 +110,32 @@ describe('blob client', () => {
         new Error(
           'Vercel Blob: No token found. Either configure the `BLOB_READ_WRITE_TOKEN` environment variable, or pass a `token` option to your calls.'
         )
+      );
+    });
+
+    it('should throw when store is suspended', async () => {
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'GET',
+        })
+        .reply(403, { error: { code: 'suspended_store' } });
+
+      await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
+        new Error('Vercel Blob: This store has been suspended')
+      );
+    });
+
+    it('should throw when store does NOT exist', async () => {
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'GET',
+        })
+        .reply(403, { error: { code: 'not_found' } });
+
+      await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
+        new Error('Vercel Blob: This store does not exist')
       );
     });
   });
@@ -181,7 +207,7 @@ describe('blob client', () => {
           path: () => true,
           method: 'POST',
         })
-        .reply(403, 'Invalid token');
+        .reply(403, { error: { code: 'forbidden' } });
 
       await expect(del(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
@@ -266,7 +292,7 @@ describe('blob client', () => {
           path: () => true,
           method: 'GET',
         })
-        .reply(403, 'Invalid token');
+        .reply(403, { error: { code: 'forbidden' } });
 
       await expect(list()).rejects.toThrow(
         new Error(
@@ -358,7 +384,7 @@ describe('blob client', () => {
           path: () => true,
           method: 'PUT',
         })
-        .reply(403, 'Invalid token');
+        .reply(403, { error: { code: 'forbidden' } });
 
       await expect(
         put('foo.txt', 'Test Body', {

@@ -63,20 +63,21 @@ type BlobApiError = { error?: { code: BlobApiErrorCodes } } | undefined;
 
 export async function validateBlobApiResponse(
   response: Response
-): Promise<Error | undefined> {
+): Promise<unknown> {
   if (response.status !== 200) {
     if (response.status < 500) {
-      let data: BlobApiError;
+      let data: unknown;
       try {
-        data = (await response.json()) as BlobApiError;
+        data = await response.json();
       } catch {
         // ignore
       }
-      if (response.status === 404 && data?.error?.code !== 'not_found') {
+      const code = (data as BlobApiError)?.error?.code;
+      if (response.status === 404 && code !== 'not_found') {
         // ignore 404 not caused by not existing stores
-        return;
+        return data;
       }
-      switch (data?.error?.code) {
+      switch (code) {
         case 'suspended_store':
           throw new BlobSuspendedError();
         case 'forbidden':

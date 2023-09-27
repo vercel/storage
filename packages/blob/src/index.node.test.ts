@@ -66,7 +66,7 @@ describe('blob client', () => {
           path: () => true,
           method: 'GET',
         })
-        .reply(404, 'Not found');
+        .reply(404, { message: 'Not found' });
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).resolves.toEqual(
         null

@@ -70,7 +70,7 @@ export async function validateBlobApiResponse(
       try {
         data = await response.json();
       } catch {
-        // ignore
+        throw new BlobUnknownError();
       }
       const code = (data as BlobApiError)?.error?.code;
       if (response.status === 404 && code !== 'not_found') {

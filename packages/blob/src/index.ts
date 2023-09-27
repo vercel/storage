@@ -19,6 +19,7 @@ export {
   BlobUnknownError,
   BlobStoreNotFoundError,
   BlobStoreSuspendedError,
+  BlobNotFoundError,
 } from './helpers';
 export type { PutBlobResult } from './put';
 
@@ -84,10 +85,6 @@ export async function head(
   });
 
   await validateBlobApiResponse(blobApiResponse);
-
-  if (blobApiResponse.status === 404) {
-    return null;
-  }
 
   const headResult = (await blobApiResponse.json()) as HeadBlobApiResponse;
 

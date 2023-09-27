@@ -27,69 +27,80 @@ export class BlobError extends Error {
   }
 }
 
-export class BlobAccessError extends Error {
+export class BlobAccessError extends BlobError {
   constructor() {
-    super(
-      'Vercel Blob: Access denied, please provide a valid token for this resource'
-    );
+    super('Access denied, please provide a valid token for this resource');
   }
 }
 
-export class BlobStoreNotFoundError extends Error {
+export class BlobStoreNotFoundError extends BlobError {
   constructor() {
-    super('Vercel Blob: This store does not exist');
+    super('This store does not exist');
   }
 }
 
-export class BlobStoreSuspendedError extends Error {
+export class BlobStoreSuspendedError extends BlobError {
   constructor() {
-    super('Vercel Blob: This store has been suspended');
+    super('This store has been suspended');
   }
 }
 
-export class BlobUnknownError extends Error {
+export class BlobUnknownError extends BlobError {
   constructor() {
-    super('Vercel Blob: Unknown error, please visit https://vercel.com/help');
+    super('Unknown error, please visit https://vercel.com/help');
+  }
+}
+
+export class BlobNotFoundError extends BlobError {
+  constructor() {
+    super('The requested blob does not exist');
   }
 }
 
 type BlobApiErrorCodes =
-  | 'suspended_store'
+  | 'store_suspended'
   | 'forbidden'
   | 'not_found'
-  | 'bad_request';
+  | 'unknown_error'
+  | 'bad_request'
+  | 'store_not_found'
+  | 'not_allowed';
 
-type BlobApiError = { error?: { code: BlobApiErrorCodes } } | undefined;
+interface BlobApiError {
+  error?: { code?: BlobApiErrorCodes; message?: string };
+}
 
 export async function validateBlobApiResponse(
   response: Response
-): Promise<unknown> {
-  if (response.status !== 200) {
-    if (response.status < 500) {
+): Promise<void> {
+  if (!response.ok) {
+    if (response.status >= 500) {
+      throw new BlobUnknownError();
+    } else {
       let data: unknown;
       try {
         data = await response.json();
       } catch {
         throw new BlobUnknownError();
       }
-      const code = (data as BlobApiError)?.error?.code;
-      if (response.status === 404 && code !== 'not_found') {
-        // ignore 404 not caused by not existing stores
-        return data;
-      }
-      switch (code) {
-        case 'suspended_store':
+      const error = (data as BlobApiError).error;
+
+      switch (error?.code) {
+        case 'store_suspended':
           throw new BlobStoreSuspendedError();
         case 'forbidden':
           throw new BlobAccessError();
         case 'not_found':
+          throw new BlobNotFoundError();
+        case 'store_not_found':
           throw new BlobStoreNotFoundError();
         case 'bad_request':
+          throw new BlobError(error.message ?? 'Bad request');
+        case 'unknown_error':
+        case 'not_allowed':
         default:
           throw new BlobUnknownError();
       }
-    } else {
-      throw new BlobUnknownError();
     }
   }
 }

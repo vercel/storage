@@ -66,10 +66,10 @@ describe('blob client', () => {
           path: () => true,
           method: 'GET',
         })
-        .reply(404, { message: 'Not found' });
+        .reply(404, { error: { code: 'not_found', message: 'Not found' } });
 
-      await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).resolves.toEqual(
-        null
+      await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
+        new Error('Vercel Blob: The requested blob does not exist')
       );
     });
 
@@ -132,7 +132,7 @@ describe('blob client', () => {
           path: () => true,
           method: 'GET',
         })
-        .reply(403, { error: { code: 'not_found' } });
+        .reply(403, { error: { code: 'store_not_found' } });
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error('Vercel Blob: This store does not exist')

@@ -119,7 +119,7 @@ describe('blob client', () => {
           path: () => true,
           method: 'GET',
         })
-        .reply(403, { error: { code: 'suspended_store' } });
+        .reply(403, { error: { code: 'store_suspended' } });
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error('Vercel Blob: This store has been suspended')

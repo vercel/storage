@@ -57,7 +57,7 @@ async function del(
 
 ### head(url, options)
 
-Get the metadata of a blob by its full URL. Returns `null` when the blob does not exist.
+Get the metadata of a blob by its full URL. Throws a `BlobNotFoundError` when the blob does not exist.
 
 ```ts
 async function head(
@@ -73,7 +73,7 @@ async function head(
   contentDisposition: string;
   url: string;
   cacheControl: string;
-} | null> {}
+}> {}
 ```
 
 ### list(options)
@@ -206,6 +206,8 @@ All methods of this module will throw if the request fails for either:
 
 - missing parameters
 - bad token or token doesn't have access to the resource
+- suspended Blob store
+- Blob file or Blob store not found
 - or in the event of unknown errors
 
 You should acknowledge that in your code by wrapping our methods in a try/catch block:
@@ -279,10 +281,9 @@ export default defineConfig(({ mode }) => {
 import { put } from '@vercel/blob';
 + import { BLOB_TOKEN } from '$env/static/private';
 
-const kv = await head("filepath", {
+const blob = await head("filepath", {
 -  token: '<token>',
 +  token: BLOB_TOKEN,
 });
 
-await kv.set('key', 'value');
 ```

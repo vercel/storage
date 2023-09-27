@@ -72,7 +72,7 @@ interface HeadBlobApiResponse extends Omit<HeadBlobResult, 'uploadedAt'> {
 export async function head(
   url: string,
   options?: BlobCommandOptions
-): Promise<HeadBlobResult | null> {
+): Promise<HeadBlobResult> {
   const headApiUrl = new URL(getApiUrl());
   headApiUrl.searchParams.set('url', url);
 

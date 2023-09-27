@@ -1,5 +1,8 @@
 // common util interface for blob raw commands, not meant to be used directly
 // this is why it's not exported from index/client
+
+import { type Response } from 'undici';
+
 export interface BlobCommandOptions {
   token?: string;
 }
@@ -24,17 +27,81 @@ export class BlobError extends Error {
   }
 }
 
-export class BlobAccessError extends Error {
+export class BlobAccessError extends BlobError {
   constructor() {
-    super(
-      'Vercel Blob: Access denied, please provide a valid token for this resource'
-    );
+    super('Access denied, please provide a valid token for this resource');
   }
 }
 
-export class BlobUnknownError extends Error {
+export class BlobStoreNotFoundError extends BlobError {
   constructor() {
-    super('Vercel Blob: Unknown error, please visit https://vercel.com/help');
+    super('This store does not exist');
+  }
+}
+
+export class BlobStoreSuspendedError extends BlobError {
+  constructor() {
+    super('This store has been suspended');
+  }
+}
+
+export class BlobUnknownError extends BlobError {
+  constructor() {
+    super('Unknown error, please visit https://vercel.com/help');
+  }
+}
+
+export class BlobNotFoundError extends BlobError {
+  constructor() {
+    super('The requested blob does not exist');
+  }
+}
+
+type BlobApiErrorCodes =
+  | 'store_suspended'
+  | 'forbidden'
+  | 'not_found'
+  | 'unknown_error'
+  | 'bad_request'
+  | 'store_not_found'
+  | 'not_allowed';
+
+interface BlobApiError {
+  error?: { code?: BlobApiErrorCodes; message?: string };
+}
+
+export async function validateBlobApiResponse(
+  response: Response
+): Promise<void> {
+  if (!response.ok) {
+    if (response.status >= 500) {
+      throw new BlobUnknownError();
+    } else {
+      let data: unknown;
+      try {
+        data = await response.json();
+      } catch {
+        throw new BlobUnknownError();
+      }
+      const error = (data as BlobApiError).error;
+
+      switch (error?.code) {
+        case 'store_suspended':
+          throw new BlobStoreSuspendedError();
+        case 'forbidden':
+          throw new BlobAccessError();
+        case 'not_found':
+          throw new BlobNotFoundError();
+        case 'store_not_found':
+          throw new BlobStoreNotFoundError();
+        case 'bad_request':
+          throw new BlobError(error.message ?? 'Bad request');
+        case 'unknown_error':
+        case 'not_allowed':
+        default:
+          throw new BlobUnknownError();
+      }
+    }
   }
 }
 

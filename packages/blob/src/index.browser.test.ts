@@ -6,6 +6,7 @@ jest.mock('undici', () => ({
   fetch: (): unknown =>
     Promise.resolve({
       status: 200,
+      ok: true,
       json: () =>
         Promise.resolve({
           url: `${BLOB_STORE_BASE_URL}/foo-id.txt`,

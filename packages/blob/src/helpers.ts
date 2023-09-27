@@ -35,13 +35,13 @@ export class BlobAccessError extends Error {
   }
 }
 
-export class BlobNotFoundError extends Error {
+export class BlobStoreNotFoundError extends Error {
   constructor() {
     super('Vercel Blob: This store does not exist');
   }
 }
 
-export class BlobSuspendedError extends Error {
+export class BlobStoreSuspendedError extends Error {
   constructor() {
     super('Vercel Blob: This store has been suspended');
   }
@@ -79,11 +79,11 @@ export async function validateBlobApiResponse(
       }
       switch (code) {
         case 'suspended_store':
-          throw new BlobSuspendedError();
+          throw new BlobStoreSuspendedError();
         case 'forbidden':
           throw new BlobAccessError();
         case 'not_found':
-          throw new BlobNotFoundError();
+          throw new BlobStoreNotFoundError();
         case 'bad_request':
         default:
           throw new BlobUnknownError();

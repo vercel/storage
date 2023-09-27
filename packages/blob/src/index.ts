@@ -17,8 +17,8 @@ export {
   BlobAccessError,
   BlobError,
   BlobUnknownError,
-  BlobNotFoundError,
-  BlobSuspendedError,
+  BlobStoreNotFoundError,
+  BlobStoreSuspendedError,
 } from './helpers';
 export type { PutBlobResult } from './put';
 

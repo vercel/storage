@@ -1,5 +1,12 @@
 # @vercel/blob
 
+## 0.13.0
+
+### Minor Changes
+
+- 3cf97b1: This new version brings consistent and detailed errors about request failures (store does not exist, blob does not exist, store is suspended...).
+  BREAKING CHANGE: head() will now throw instead of returning null when the blob does not exist.
+
 ## 0.12.5
 
 ### Patch Changes

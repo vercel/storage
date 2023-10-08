@@ -1,4 +1,5 @@
 import { readFile } from '@vercel/edge-config-fs';
+import { readFileSync } from 'fs';
 import { name as sdkName, version as sdkVersion } from '../package.json';
 import {
   assertIsKey,
@@ -90,6 +91,10 @@ export function createClient(
   connectionString: string | undefined,
   options: EdgeConfigClientOptions = { staleIfError: 604800 /* one week */ }
 ): EdgeConfigClient {
+  const content = readFileSync('./file.txt');
+  // eslint-disable-next-line no-console -- debugging
+  console.log('content', content);
+
   if (!connectionString)
     throw new Error('@vercel/edge-config: No connection string provided');
 

@@ -30,6 +30,7 @@ async function run(): Promise<void> {
     fetchExample(),
     noExtensionExample(),
     weirdCharactersExample(),
+    copyTextFile(),
   ]);
 
   await Promise.all(
@@ -248,4 +249,28 @@ async function weirdCharactersExample(): Promise<string> {
     `(${Date.now() - start}ms)`
   );
   return blob.url;
+}
+
+async function copyTextFile() {
+  const start = Date.now();
+
+  const blob = await vercelBlob.put('folder/test.txt', 'Hello, world!', {
+    access: 'public',
+    contentType: 'application/json',
+    cacheControlMaxAge: 120,
+  });
+
+  const copiedBlob = await vercelBlob.copy(blob.url, 'destination/copy.txt', {
+    access: 'public',
+  });
+
+  console.log(
+    'copy blob example:',
+    copiedBlob.url,
+    `(${Date.now() - start}ms)`
+  );
+
+  await vercelBlob.del(blob.url);
+
+  return copiedBlob.url;
 }

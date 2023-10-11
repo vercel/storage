@@ -10,6 +10,10 @@ import {
 
 export interface CopyCommandOptions extends BlobCommandOptions {
   access: 'public';
+  /**
+   * Adds a random suffix to the filename.
+   * @defaultvalue false
+   */
   addRandomSuffix?: boolean;
   contentType?: string;
   cacheControlMaxAge?: number;

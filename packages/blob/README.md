@@ -98,6 +98,36 @@ async function list(options?: {
 }> {}
 ```
 
+### copy(fromUrl, toPathname, options)
+
+Copy an existing blob to a new location in the store.
+
+The `contentType` and `cacheControlMaxAge` will not be copied from the source blob. If the values should be carried over to the copy, they need to be defined again in the options object.
+
+Contrary to `put()`, `addRandomSuffix` is false by default. This means no automatic random id suffix is added to your blob url, unless you pass `addRandomSuffix: true`. This also means `copy()` overwrites files per default, if the operation targets a pathname that already exists.
+
+```ts
+async function copy(
+  fromUrl: string,
+  toPathname: string,
+  options: {
+    access: 'public'; // mandatory, as we will provide private blobs in the future
+    contentType?: string; // by default inferred from pathname
+    // `token` defaults to process.env.BLOB_READ_WRITE_TOKEN on Vercel
+    // and can be configured when you connect more stores to a project
+    // or using Vercel Blob outside of Vercel
+    token?: string;
+    addRandomSuffix?: boolean; // optional, allows to enable random suffixes (defaults to `false`)
+    cacheControlMaxAge?: number; // optional, a duration in seconds to configure the edge and browser caches. Defaults to one year for browsers and 5 minutes for edge cache. Can only be configured server side (either on server side put or during client token generation). The Edge cache maximum value is 5 minutes.
+  }
+): Promise<{
+  url: string;
+  pathname: string;
+  contentType?: string;
+  contentDisposition: string;
+}> {}
+```
+
 ### client/`upload(pathname, body, options)`
 
 The `upload` method is dedicated to client uploads. It fetches a client token using the `handleUploadUrl` before uploading the blob.

@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.13.1
+
+### Patch Changes
+
+- 15de089: fix(deps): update dependency undici to v5.26.2 [security]
+
 ## 0.13.0
 
 ### Minor Changes

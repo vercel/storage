@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.14.0
+
+### Minor Changes
+
+- 9a6c44f: Add copy method to @vercel/blob package. This method offers the functionality to copy an existing blob file to a new path inside the blob store. #419
+
 ## 0.13.1
 
 ### Patch Changes

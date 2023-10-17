@@ -14,6 +14,10 @@ import {
 export interface PutCommandOptions extends BlobCommandOptions {
   access: 'public';
   contentType?: string;
+  /**
+   * Adds a random suffix to the filename.
+   * @defaultvalue true
+   */
   addRandomSuffix?: boolean;
   cacheControlMaxAge?: number;
 }

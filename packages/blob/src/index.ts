@@ -161,3 +161,7 @@ function mapBlobResult(
     uploadedAt: new Date(blobResult.uploadedAt),
   };
 }
+
+// vercelBlob.copy()
+
+export { copy, type CopyBlobResult } from './copy';

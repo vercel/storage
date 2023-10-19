@@ -23,7 +23,6 @@ export default function Page(): JSX.Element {
     <ProjectDashboardLayout>
       {tests.map((matrix) => (
         <Suspense fallback={<pre>Loading...</pre>} key={JSON.stringify(matrix)}>
-          {/* @ts-expect-error - Async Server Component */}
           <EdgeConfigTestRunner {...matrix} />
         </Suspense>
       ))}

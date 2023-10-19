@@ -16,14 +16,23 @@ import { createPutMethod } from './put';
 export {
   BlobAccessError,
   BlobError,
-  BlobUnknownError,
+  BlobNotFoundError,
   BlobStoreNotFoundError,
   BlobStoreSuspendedError,
-  BlobNotFoundError,
+  BlobUnknownError,
 } from './helpers';
 export type { PutBlobResult } from './put';
 
-// vercelBlob.put()
+/**
+ * Uploads a blob into your store from your server.
+ * Detailed documentation can be found here: https://vercel.com/docs/storage/vercel-blob/using-blob-sdk#upload-a-blob
+ *
+ * If you want to upload from the browser directly, check out the documentation for client uploads: https://vercel.com/docs/storage/vercel-blob/using-blob-sdk#client-uploads
+ *
+ * @param pathname - The pathname to upload the blob to. This includes the filename.
+ * @param body - The contents of your blob. This has to be a supported fetch body type https://developer.mozilla.org/en-US/docs/Web/API/fetch#body.
+ * @param options - Additional options like `token` or `contentType`.
+ */
 export const put = createPutMethod<PutCommandOptions>({
   allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
 });
@@ -32,8 +41,13 @@ export const put = createPutMethod<PutCommandOptions>({
 
 type DeleteBlobApiResponse = null;
 
-// del accepts either a single url or an array of urls
-// we use function overloads to define the return type accordingly
+/**
+ * Deletes one or multiple blobs from your store.
+ * Detailed documentation can be found here: https://vercel.com/docs/storage/vercel-blob/using-blob-sdk#delete-a-blob
+ *
+ * @param url - Blob url or array of blob urls that identify the blobs to be deleted. You can only delete blobs that are located in a store, that your 'BLOB_READ_WRITE_TOKEN' has access to.
+ * @param options - Additional options for the request.
+ */
 export async function del(
   url: string[] | string,
   options?: BlobCommandOptions
@@ -69,6 +83,13 @@ interface HeadBlobApiResponse extends Omit<HeadBlobResult, 'uploadedAt'> {
   uploadedAt: string; // when receiving data from our API, uploadedAt is a string
 }
 
+/**
+ * Fetches metadata of a blob object.
+ * Detailed documentation can be found here: https://vercel.com/docs/storage/vercel-blob/using-blob-sdk#get-blob-metadata
+ *
+ * @param url - Blob url to lookup.
+ * @param options - Additional options for the request.
+ */
 export async function head(
   url: string,
   options?: BlobCommandOptions
@@ -115,11 +136,27 @@ interface ListBlobApiResponse extends Omit<ListBlobResult, 'blobs'> {
 }
 
 export interface ListCommandOptions extends BlobCommandOptions {
+  /**
+   * The maximum number of blobs to return.
+   * @defaultvalue 1000
+   */
   limit?: number;
+  /**
+   * Filters the result to only include blobs located in a certain folder inside your store.
+   */
   prefix?: string;
+  /**
+   * The cursor to use for pagination. Can be obtained from the response of a previous `list` request.
+   */
   cursor?: string;
 }
 
+/**
+ * Fetches a paginated list of blob objects from your store.
+ * Detailed documentation can be found here: https://vercel.com/docs/storage/vercel-blob/using-blob-sdk#list-blobs
+ *
+ * @param options - Additional options for the request.
+ */
 export async function list(
   options?: ListCommandOptions
 ): Promise<ListBlobResult> {

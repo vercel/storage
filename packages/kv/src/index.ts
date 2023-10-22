@@ -4,75 +4,56 @@ import { type ScanCommandOptions } from '@upstash/redis/types/pkg/commands/scan'
 let _kv: Redis | null = null;
 process.env.UPSTASH_DISABLE_TELEMETRY = '1';
 
+type Cursor = number;
+
 export class VercelKV extends Redis {
   // This API is based on https://github.com/redis/node-redis#scan-iterator which is not supported in @upstash/redis
-  /**
-   * Same as `scan` but returns an AsyncIterator to allow iteration via `for await`.
-   */
-  async *scanIterator(options?: ScanCommandOptions): AsyncIterable<string> {
+
+  // Implements async iteration logic for scan operations, allowing for idiomatic syntax in userland:
+  // for await (const key of client.scanIterator()) { console.log(key) }
+  private static async *toAsyncIterableScan<T>(
+    scan: (cursor: Cursor) => Promise<[Cursor, T[]]>
+  ): AsyncIterable<T> {
     let cursor = 0;
-    let keys: string[];
+    let items: T[];
     do {
       // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
-      [cursor, keys] = await this.scan(cursor, options);
-      for (const key of keys) {
-        yield key;
-      }
+      [cursor, items] = await scan(cursor);
+      yield* items;
     } while (cursor !== 0);
   }
 
-  /**
-   * Same as `hscan` but returns an AsyncIterator to allow iteration via `for await`.
-   */
+  async *scanIterator(options?: ScanCommandOptions): AsyncIterable<string> {
+    yield* VercelKV.toAsyncIterableScan<string>((cursor) =>
+      this.scan(cursor, options)
+    );
+  }
+
   async *hscanIterator(
     key: string,
     options?: ScanCommandOptions
   ): AsyncIterable<string | number> {
-    let cursor = 0;
-    let items: (number | string)[];
-    do {
-      // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
-      [cursor, items] = await this.hscan(key, cursor, options);
-      for (const item of items) {
-        yield item;
-      }
-    } while (cursor !== 0);
+    yield* VercelKV.toAsyncIterableScan<string | number>((cursor) =>
+      this.hscan(key, cursor, options)
+    );
   }
 
-  /**
-   * Same as `sscan` but returns an AsyncIterator to allow iteration via `for await`.
-   */
   async *sscanIterator(
     key: string,
     options?: ScanCommandOptions
   ): AsyncIterable<string | number> {
-    let cursor = 0;
-    let items: (number | string)[];
-    do {
-      // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
-      [cursor, items] = await this.sscan(key, cursor, options);
-      for (const item of items) {
-        yield item;
-      }
-    } while (cursor !== 0);
+    yield* VercelKV.toAsyncIterableScan<string | number>((cursor) =>
+      this.sscan(key, cursor, options)
+    );
   }
 
-  /**
-   * Same as `zscan` but returns an AsyncIterator to allow iteration via `for await`.
-   */
   async *zscanIterator(
     key: string,
     options?: ScanCommandOptions
   ): AsyncIterable<string | number> {
-    let cursor = 0;
-    let items: (number | string)[];
-    do {
-      // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
-      [cursor, items] = await this.zscan(key, cursor, options);
-      for (const item of items) {
-        yield item;
-      }
-    } while (cursor !== 0);
+    yield* VercelKV.toAsyncIterableScan<string | number>((cursor) =>
+      this.zscan(key, cursor, options)
+    );
   }
 }
 

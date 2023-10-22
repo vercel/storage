@@ -1,14 +1,21 @@
 import defaultKv, { kv, VercelKV, createClient } from '.';
 
 let scanReturnValues: [number, string[]][] = [[0, []]];
+let hscanReturnValues: [number, (string | number)[]][] = [[0, []]];
+
 jest.mock('@upstash/redis', () => ({
   Redis: jest.fn(() => ({
     get: jest.fn().mockResolvedValue('bar'),
     scan: jest
       .fn()
       .mockImplementation(() => Promise.resolve(scanReturnValues.shift())),
-    // eslint-disable-next-line jest/unbound-method -- [@vercel/style-guide@5 migration]
+    hscan: jest
+      .fn()
+      .mockImplementation(() => Promise.resolve(hscanReturnValues.shift())),
+    /* eslint-disable jest/unbound-method -- [@vercel/style-guide@5 migration] */
     scanIterator: VercelKV.prototype.scanIterator,
+    hscanIterator: VercelKV.prototype.hscanIterator,
+    /* eslint-enable jest/unbound-method -- [@vercel/style-guide@5 migration] */
   })),
 }));
 
@@ -88,6 +95,35 @@ describe('@vercel/kv', () => {
         returnedKeys.push(key);
       }
       expect(returnedKeys).toEqual(['1', '2', '3', '4']);
+    });
+  });
+
+  describe('hscanIterator', () => {
+    it('supports async iteration', async () => {
+      hscanReturnValues = [
+        [2, ['token', 'ed2bb623-ccc0-46ea-a496-88727585b6e1']],
+        [1, ['visited', '2023-10-22T11:51:27.368Z']],
+        [0, []],
+      ];
+      const client = new VercelKV({
+        url: 'https://key-********-3***3.kv.vercel-storage.com',
+        token: 'AX95A***gwNGY=',
+      });
+      const iterator = client.hscanIterator(
+        'user:ed2bb623-ccc0-46ea-a496-88727585b6e1'
+      );
+
+      const expected = [
+        'token',
+        'ed2bb623-ccc0-46ea-a496-88727585b6e1',
+        'visited',
+        '2023-10-22T11:51:27.368Z',
+      ];
+      const received = [];
+
+      for await (const item of iterator) received.push(item);
+
+      expect(received).toEqual(expected);
     });
   });
 });

@@ -2,7 +2,7 @@ import type { Readable } from 'node:stream';
 import type { BodyInit } from 'undici';
 import { fetch } from 'undici';
 import type { ClientPutCommandOptions } from './client';
-import type { BlobCommandOptions } from './helpers';
+import type { CreateBlobCommandOptions } from './helpers';
 import {
   getApiUrl,
   getApiVersionHeader,
@@ -11,16 +11,8 @@ import {
   validateBlobApiResponse,
 } from './helpers';
 
-export interface PutCommandOptions extends BlobCommandOptions {
-  access: 'public';
-  contentType?: string;
-  /**
-   * Adds a random suffix to the filename.
-   * @defaultvalue true
-   */
-  addRandomSuffix?: boolean;
-  cacheControlMaxAge?: number;
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-interface -- expose option interface for each API method for better extensibility in the future
+export interface PutCommandOptions extends CreateBlobCommandOptions {}
 
 const putOptionHeaderMap = {
   cacheControlMaxAge: 'x-cache-control-max-age',

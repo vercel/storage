@@ -46,12 +46,34 @@ export const put = createPutMethod<ClientPutCommandOptions>({
 // upload()
 // This is a client-side wrapper that will fetch the client token for you and then upload the file
 export interface UploadOptions {
+  /**
+   * Whether the blob should be publicly accessible. Support for private blobs is planned.
+   */
   access: 'public';
+  /**
+   * Defines the content type of the blob. By default, this value is inferred from the pathname. Sent as the 'content-type' header when downloading a blob.
+   */
   contentType?: string;
+  /**
+   * A route that implements the `handleUpload` function for generating a client token.
+   */
   handleUploadUrl: string;
+  /**
+   * Additional data which will be sent to your `handleUpload` route.
+   */
   clientPayload?: string;
 }
 
+/**
+ * Uploads a blob into your store from the client.
+ * Detailed documentation can be found here: https://vercel.com/docs/storage/vercel-blob/using-blob-sdk#client-uploads
+ *
+ * If you want to upload from your server instead, check out the documentation for the put operation: https://vercel.com/docs/storage/vercel-blob/using-blob-sdk#upload-a-blob
+ *
+ * @param pathname - The pathname to upload the blob to. This includes the filename.
+ * @param body - The contents of your blob. This has to be a supported fetch body type https://developer.mozilla.org/en-US/docs/Web/API/fetch#body.
+ * @param options - Additional options.
+ */
 export const upload = createPutMethod<UploadOptions>({
   allowedOptions: ['contentType'],
   extraChecks(options: UploadOptions) {

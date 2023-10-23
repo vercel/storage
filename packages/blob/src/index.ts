@@ -92,7 +92,7 @@ export async function head(
 }
 
 // vercelBlob.list()
-interface ListBlobResultBlob {
+export interface ListBlobResultBlob {
   url: string;
   pathname: string;
   size: number;

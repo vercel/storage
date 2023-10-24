@@ -1,5 +1,12 @@
 # @vercel/blob
 
+## 0.14.1
+
+### Patch Changes
+
+- 0e9fc17: Exports the ListBlobResultBlob so it can be imported from the @vercel/blob package.
+- 41c4483: This introduces jsdoc comments for all functions that are publicly accessible in the @vercel/blob npm package.
+
 ## 0.14.0
 
 ### Minor Changes

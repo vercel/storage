@@ -58,8 +58,8 @@ importers:
         specifier: 2.3.5
         version: 2.3.5
       '@edge-runtime/types':
-        specifier: 2.2.5
-        version: 2.2.5
+        specifier: 2.2.6
+        version: 2.2.6
       '@types/jest':
         specifier: 29.5.6
         version: 29.5.6
@@ -98,8 +98,8 @@ importers:
         specifier: 2.3.5
         version: 2.3.5
       '@edge-runtime/types':
-        specifier: 2.2.5
-        version: 2.2.5
+        specifier: 2.2.6
+        version: 2.2.6
       '@types/jest':
         specifier: 29.5.6
         version: 29.5.6
@@ -152,8 +152,8 @@ importers:
         specifier: 2.3.5
         version: 2.3.5
       '@edge-runtime/types':
-        specifier: 2.2.5
-        version: 2.2.5
+        specifier: 2.2.6
+        version: 2.2.6
       '@types/jest':
         specifier: 29.5.6
         version: 29.5.6
@@ -213,8 +213,8 @@ importers:
         specifier: 2.3.5
         version: 2.3.5
       '@edge-runtime/types':
-        specifier: 2.2.5
-        version: 2.2.5
+        specifier: 2.2.6
+        version: 2.2.6
       '@types/jest':
         specifier: 29.5.6
         version: 29.5.6
@@ -262,8 +262,8 @@ importers:
         specifier: 2.3.5
         version: 2.3.5
       '@edge-runtime/types':
-        specifier: 2.2.5
-        version: 2.2.5
+        specifier: 2.2.6
+        version: 2.2.6
       '@neondatabase/serverless':
         specifier: 0.5.6
         version: 0.5.6
@@ -1102,11 +1102,16 @@ packages:
     engines: {node: '>=16'}
     dev: true
 
-  /@edge-runtime/types@2.2.5:
-    resolution: {integrity: sha512-XQv+G9Uo6PKmMRuc+jD8NImQ9hIL2Hg5/seHoWzXi21DHYppry/wKNETKssN3wAX3LygczkIDHIMCcVBYtCwlg==}
+  /@edge-runtime/primitives@4.0.4:
+    resolution: {integrity: sha512-ktlFVHheT3mXz++atzAB13p/+VLMLiinWvn68/wfpLjsat/LuCccOGuNIe8gLPdVbucvw6N8TTn39iRVwz4gxA==}
+    engines: {node: '>=16'}
+    dev: true
+
+  /@edge-runtime/types@2.2.6:
+    resolution: {integrity: sha512-H8O1QBkY9UtqhxffoIFmgRLoQyVEZ6A7UpdYtqK+Za4TaEmgRBkeFewoCUb8W6uE4byYjDnj4BzVpZo9yW439w==}
     engines: {node: '>=16'}
     dependencies:
-      '@edge-runtime/primitives': 4.0.3
+      '@edge-runtime/primitives': 4.0.4
     dev: true
 
   /@edge-runtime/vm@3.1.5:

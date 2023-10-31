@@ -1,6 +1,6 @@
 'use client';
 
-import FormBodyUpload from '../../../form-body-upload';
+import { FormBodyUpload } from '../../../form-body-upload';
 
 export default function AppFormDataServerless(): JSX.Element {
   return (

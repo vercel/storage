@@ -86,7 +86,9 @@ export default function AppList(): JSX.Element {
       <div className="flex gap-2">
         <input
           className="shadow appearance-none border rounded  py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          onChange={(e): void => setSearchPrefix(e.target.value)}
+          onChange={(e): void => {
+            setSearchPrefix(e.target.value);
+          }}
           placeholder="prefix"
           type="text"
           value={searchPrefix}

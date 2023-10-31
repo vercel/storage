@@ -12,7 +12,6 @@ export default function AppClientUpload(): JSX.Element {
       <h1>App Router Client Upload</h1>
 
       <form
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
         onSubmit={async (event): Promise<void> => {
           event.preventDefault();
 
@@ -36,7 +35,7 @@ export default function AppClientUpload(): JSX.Element {
         <div>
           Blob url: <a href={blob.url}>{blob.url}</a>
           {blob.url.endsWith('.mp4') ? (
-            // eslint-disable-next-line jsx-a11y/media-has-caption
+            // eslint-disable-next-line jsx-a11y/media-has-caption -- no caption for tests, this is fine
             <video autoPlay controls>
               <source src={blob.url} type="video/mp4" />
             </video>

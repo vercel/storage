@@ -2,7 +2,6 @@
 import { NextResponse } from 'next/server';
 import { parseConnectionString } from '@vercel/edge-config';
 
-export const runtime = 'edge';
 const delay = (ms = 500): Promise<void> =>
   new Promise((resolve) => {
     setTimeout(resolve, ms);

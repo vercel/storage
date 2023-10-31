@@ -1,5 +1,11 @@
 # @vercel/kv
 
+## 0.2.4
+
+### Patch Changes
+
+- c7b111c: fix(kv): upgrade upstash package to latest 1.24.3
+
 ## 0.2.3
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@vercel/kv",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Durable Redis",
   "homepage": "https://vercel.com",
   "repository": {

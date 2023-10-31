@@ -22,7 +22,7 @@ export const put = createPutMethod<ClientPutCommandOptions>({
   extraChecks(options: ClientPutCommandOptions) {
     if (typeof window === 'undefined') {
       throw new BlobError(
-        'client/`put` must be called from a client environment'
+        'client/`put` must be called from a client environment',
       );
     }
 
@@ -37,7 +37,7 @@ export const put = createPutMethod<ClientPutCommandOptions>({
       options.cacheControlMaxAge !== undefined
     ) {
       throw new BlobError(
-        'addRandomSuffix and cacheControlMaxAge are not supported in client uploads. Configure these options at the server side when generating client tokens.'
+        'addRandomSuffix and cacheControlMaxAge are not supported in client uploads. Configure these options at the server side when generating client tokens.',
       );
     }
   },
@@ -79,7 +79,7 @@ export const upload = createPutMethod<UploadOptions>({
   extraChecks(options: UploadOptions) {
     if (typeof window === 'undefined') {
       throw new BlobError(
-        'client/`upload` must be called from a client environment'
+        'client/`upload` must be called from a client environment',
       );
     }
 
@@ -95,7 +95,7 @@ export const upload = createPutMethod<UploadOptions>({
       options.cacheControlMaxAge !== undefined
     ) {
       throw new BlobError(
-        'addRandomSuffix and cacheControlMaxAge are not supported in client uploads. Configure these options at the server side when generating client tokens.'
+        'addRandomSuffix and cacheControlMaxAge are not supported in client uploads. Configure these options at the server side when generating client tokens.',
       );
     }
   },
@@ -115,13 +115,13 @@ async function importKey(token: string): Promise<CryptoKey> {
     new TextEncoder().encode(token),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
-    ['sign', 'verify']
+    ['sign', 'verify'],
   );
 }
 
 async function signPayload(
   payload: string,
-  token: string
+  token: string,
 ): Promise<string | undefined> {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Node.js < 20: globalThis.crypto is undefined (in a real script.js, because the REPL has it linked to the crypto module). Node.js >= 20, Browsers and Cloudflare workers: globalThis.crypto is defined and is the Web Crypto API.
   if (!globalThis.crypto) {
@@ -131,7 +131,7 @@ async function signPayload(
   const signature = await globalThis.crypto.subtle.sign(
     'HMAC',
     await importKey(token),
-    new TextEncoder().encode(payload)
+    new TextEncoder().encode(payload),
   );
   return Buffer.from(new Uint8Array(signature)).toString('hex');
 }
@@ -168,7 +168,7 @@ async function verifyCallbackSignature({
     'HMAC',
     await importKey(token),
     hexToArrayByte(signature),
-    new TextEncoder().encode(body)
+    new TextEncoder().encode(body),
   );
   return verified;
 }
@@ -194,7 +194,7 @@ export type DecodedClientTokenPayload = Omit<
 };
 
 export function getPayloadFromClientToken(
-  clientToken: string
+  clientToken: string,
 ): DecodedClientTokenPayload {
   const [, , , , encodedToken] = clientToken.split('_');
   const encodedPayload = Buffer.from(encodedToken ?? '', 'base64')
@@ -229,7 +229,7 @@ export interface HandleUploadOptions {
   body: HandleUploadBody;
   onBeforeGenerateToken: (
     pathname: string,
-    clientPayload?: string
+    clientPayload?: string,
   ) => Promise<
     Pick<
       GenerateClientTokenOptions,
@@ -358,7 +358,7 @@ export async function generateClientTokenFromReadWriteToken({
 }: GenerateClientTokenOptions): Promise<string> {
   if (typeof window !== 'undefined') {
     throw new BlobError(
-      '"generateClientTokenFromReadWriteToken" must be called from a server environment'
+      '"generateClientTokenFromReadWriteToken" must be called from a server environment',
     );
   }
 
@@ -370,7 +370,7 @@ export async function generateClientTokenFromReadWriteToken({
 
   if (!storeId) {
     throw new BlobError(
-      token ? 'Invalid `token` parameter' : 'Invalid `BLOB_READ_WRITE_TOKEN`'
+      token ? 'Invalid `token` parameter' : 'Invalid `BLOB_READ_WRITE_TOKEN`',
     );
   }
 
@@ -378,7 +378,7 @@ export async function generateClientTokenFromReadWriteToken({
     JSON.stringify({
       ...argsWithoutToken,
       validUntil: argsWithoutToken.validUntil ?? timestamp.getTime(),
-    })
+    }),
   ).toString('base64');
 
   const securedKey = await signPayload(payload, readWriteToken);
@@ -387,7 +387,7 @@ export async function generateClientTokenFromReadWriteToken({
     throw new BlobError('Unable to sign client token');
   }
   return `vercel_blob_client_${storeId}_${Buffer.from(
-    `${securedKey}.${payload}`
+    `${securedKey}.${payload}`,
   ).toString('base64')}`;
 }
 

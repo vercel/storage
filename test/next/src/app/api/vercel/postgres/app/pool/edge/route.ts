@@ -11,7 +11,7 @@ export async function GET(): Promise<Response> {
   } catch (e) {
     return NextResponse.json(
       { message: (e as Error).message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

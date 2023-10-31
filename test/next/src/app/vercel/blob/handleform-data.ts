@@ -14,7 +14,7 @@ export async function handleFormData(request: Request): Promise<NextResponse> {
       { message: 'No file to upload.' },
       {
         status: 400,
-      }
+      },
     );
   }
 
@@ -23,7 +23,7 @@ export async function handleFormData(request: Request): Promise<NextResponse> {
       { message: 'Not authorized' },
       {
         status: 401,
-      }
+      },
     );
   }
   const blob = await vercelBlob.put(file.name, file, {

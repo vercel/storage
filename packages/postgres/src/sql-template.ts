@@ -9,7 +9,7 @@ export function sqlTemplate(
   if (!isTemplateStringsArray(strings) || !Array.isArray(values)) {
     throw new VercelPostgresError(
       'incorrect_tagged_template_call',
-      "It looks like you tried to call `sql` as a function. Make sure to use it as a tagged template.\n\tExample: sql`SELECT * FROM users`, not sql('SELECT * FROM users')"
+      "It looks like you tried to call `sql` as a function. Make sure to use it as a tagged template.\n\tExample: sql`SELECT * FROM users`, not sql('SELECT * FROM users')",
     );
   }
 
@@ -23,7 +23,7 @@ export function sqlTemplate(
 }
 
 function isTemplateStringsArray(
-  strings: unknown
+  strings: unknown,
 ): strings is TemplateStringsArray {
   return (
     Array.isArray(strings) && 'raw' in strings && Array.isArray(strings.raw)

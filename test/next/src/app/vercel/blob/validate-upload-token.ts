@@ -1,7 +1,7 @@
 import type { IncomingMessage } from 'node:http';
 
 export function validateUploadToken(
-  request: IncomingMessage | Request
+  request: IncomingMessage | Request,
 ): boolean {
   if (process.env.NODE_ENV === 'development') return true;
   const cookie =
@@ -12,7 +12,7 @@ export function validateUploadToken(
   return Boolean(
     cookie &&
       new RegExp(`clientUpload=${process.env.BLOB_UPLOAD_SECRET ?? ''}`).test(
-        cookie
-      )
+        cookie,
+      ),
   );
 }

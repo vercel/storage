@@ -58,12 +58,12 @@ describe('postgresConnectionString', () => {
 describe('isDirectConnectionString', () => {
   it('returns true for a valid direct connection string', () => {
     expect(isDirectConnectionString(MOCKED_DIRECT_CONNECTION_STRING)).toEqual(
-      true
+      true,
     );
   });
   it('returns false for a pooled connection string', () => {
     expect(isDirectConnectionString(MOCKED_POOLED_CONNECTION_STRING)).toEqual(
-      false
+      false,
     );
   });
 });
@@ -71,12 +71,12 @@ describe('isDirectConnectionString', () => {
 describe('isPooledConnectionString', () => {
   it('returns true for a valid pooled connection string', () => {
     expect(isPooledConnectionString(MOCKED_POOLED_CONNECTION_STRING)).toEqual(
-      true
+      true,
     );
   });
   it('returns false for a direct connection string', () => {
     expect(isPooledConnectionString(MOCKED_DIRECT_CONNECTION_STRING)).toEqual(
-      false
+      false,
     );
   });
 });
@@ -86,7 +86,7 @@ describe('isLocalhostConnectionString', () => {
     'returns false for invalid connection strings: %s',
     (connectionString) => {
       expect(isLocalhostConnectionString(connectionString)).toEqual(false);
-    }
+    },
   );
   it.each([
     'postgresql://localhost',
@@ -100,11 +100,11 @@ describe('isLocalhostConnectionString', () => {
     'returns true for a valid localhost connection string',
     (connectionString) => {
       expect(isLocalhostConnectionString(connectionString)).toEqual(true);
-    }
+    },
   );
   it('returns false for a valid non-localhost connection string', () => {
     expect(
-      isLocalhostConnectionString(MOCKED_POOLED_CONNECTION_STRING)
+      isLocalhostConnectionString(MOCKED_POOLED_CONNECTION_STRING),
     ).toEqual(false);
   });
 });

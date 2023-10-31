@@ -32,7 +32,7 @@ export type PutBlobApiResponse = PutBlobResult;
 type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 
 export function createPutMethod<
-  T extends PartialBy<PutCommandOptions & ClientPutCommandOptions, 'token'>
+  T extends PartialBy<PutCommandOptions & ClientPutCommandOptions, 'token'>,
 >({
   allowedOptions,
   getToken,
@@ -52,7 +52,7 @@ export function createPutMethod<
       | FormData
       | ReadableStream
       | File,
-    options?: T
+    options?: T,
   ): Promise<PutBlobResult> {
     if (!pathname) {
       throw new BlobError('pathname is required');

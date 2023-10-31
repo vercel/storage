@@ -14,7 +14,7 @@ export default function AppList(): JSX.Element {
     async (
       cursor: string | null,
       prefix: string = searchPrefix,
-      reset = false
+      reset = false,
     ) => {
       const search = new URLSearchParams();
       search.set('limit', '10');
@@ -28,7 +28,7 @@ export default function AppList(): JSX.Element {
         setResult(undefined);
       }
       const data = (await fetch(`${API_ROOT}/list?${search.toString()}`).then(
-        (r) => r.json()
+        (r) => r.json(),
       )) as vercelBlob.ListBlobResult;
 
       setResult({
@@ -36,13 +36,13 @@ export default function AppList(): JSX.Element {
         blobs: cursor ? [...(result?.blobs || []), ...data.blobs] : data.blobs,
       });
     },
-    [result?.blobs, searchPrefix]
+    [result?.blobs, searchPrefix],
   );
 
   useEffect(() => {
     const doCall = async (): Promise<void> => {
       const data = (await fetch(`${API_ROOT}/list?limit=10`).then((r) =>
-        r.json()
+        r.json(),
       )) as vercelBlob.ListBlobResult;
       setResult(data);
     };

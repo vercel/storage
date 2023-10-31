@@ -29,7 +29,7 @@ describe('fetchWithCachedResponse', () => {
       new Headers({
         ETag: 'abc123',
         'content-type': 'application/json',
-      })
+      }),
     );
     await expect(data1.json()).resolves.toEqual({ name: 'John' });
     expect(data1.cachedResponseBody).toBeUndefined();
@@ -49,7 +49,7 @@ describe('fetchWithCachedResponse', () => {
       headers: new Headers({ 'If-None-Match': 'abc123' }),
     });
     expect(data2.headers).toEqual(
-      new Headers({ ETag: 'abc123', 'content-type': 'application/json' })
+      new Headers({ ETag: 'abc123', 'content-type': 'application/json' }),
     );
 
     expect(data2).toHaveProperty('status', 304);
@@ -69,7 +69,7 @@ describe('fetchWithCachedResponse', () => {
       'https://example.com/api/data',
       {
         headers: new Headers({ authorization: 'bearer A' }),
-      }
+      },
     );
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -77,7 +77,7 @@ describe('fetchWithCachedResponse', () => {
       headers: new Headers({ authorization: 'bearer A' }),
     });
     expect(data1.headers).toEqual(
-      new Headers({ ETag: 'abc123', 'content-type': 'application/json' })
+      new Headers({ ETag: 'abc123', 'content-type': 'application/json' }),
     );
     await expect(data1.json()).resolves.toEqual({ name: 'John' });
 
@@ -90,7 +90,7 @@ describe('fetchWithCachedResponse', () => {
       {
         // using a different authorization header here
         headers: new Headers({ authorization: 'bearer B' }),
-      }
+      },
     );
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -98,7 +98,7 @@ describe('fetchWithCachedResponse', () => {
       headers: new Headers({ authorization: 'bearer B' }),
     });
     expect(data2.headers).toEqual(
-      new Headers({ ETag: 'abc123', 'content-type': 'application/json' })
+      new Headers({ ETag: 'abc123', 'content-type': 'application/json' }),
     );
     expect(data2).toHaveProperty('status', 200);
     expect(data2.cachedResponseBody).toBeUndefined();
@@ -115,7 +115,7 @@ describe('fetchWithCachedResponse', () => {
       'https://example.com/api/data',
       {
         headers: new Headers({ authorization: 'bearer A' }),
-      }
+      },
     );
 
     expect(fetchMock).toHaveBeenCalledTimes(3);
@@ -126,7 +126,7 @@ describe('fetchWithCachedResponse', () => {
       }),
     });
     expect(data3.headers).toEqual(
-      new Headers({ ETag: 'abc123', 'content-type': 'application/json' })
+      new Headers({ ETag: 'abc123', 'content-type': 'application/json' }),
     );
 
     expect(data3).toHaveProperty('status', 304);
@@ -147,7 +147,7 @@ describe('fetchWithCachedResponse', () => {
       new Headers({
         ETag: 'abc123',
         'content-type': 'application/json',
-      })
+      }),
     );
     await expect(data1.json()).resolves.toEqual({ name: 'John' });
     expect(data1.cachedResponseBody).toBeUndefined();
@@ -158,7 +158,7 @@ describe('fetchWithCachedResponse', () => {
     fetchMock.mockResponseOnce('', { status: 502 });
     const data2 = await fetchWithCachedResponse(
       'https://example.com/api/data',
-      { headers: new Headers({ 'Cache-Control': 'stale-if-error=10' }) }
+      { headers: new Headers({ 'Cache-Control': 'stale-if-error=10' }) },
     );
 
     jest.advanceTimersByTime(3000);
@@ -171,7 +171,7 @@ describe('fetchWithCachedResponse', () => {
         // And in this case a stale-if-error cached response is being served
         Age: '5',
         etag: 'abc123',
-      })
+      }),
     );
 
     expect(data2).toHaveProperty('status', 200);
@@ -192,7 +192,7 @@ describe('fetchWithCachedResponse', () => {
       new Headers({
         ETag: 'abc123',
         'content-type': 'application/json',
-      })
+      }),
     );
     await expect(data1.json()).resolves.toEqual({ name: 'John' });
     expect(data1.cachedResponseBody).toBeUndefined();
@@ -203,7 +203,7 @@ describe('fetchWithCachedResponse', () => {
     fetchMock.mockAbortOnce();
     const data2 = await fetchWithCachedResponse(
       'https://example.com/api/data',
-      { headers: new Headers({ 'Cache-Control': 'stale-if-error=10' }) }
+      { headers: new Headers({ 'Cache-Control': 'stale-if-error=10' }) },
     );
 
     jest.advanceTimersByTime(3000);
@@ -216,7 +216,7 @@ describe('fetchWithCachedResponse', () => {
         // And in this case a stale-if-error cached response is being served
         Age: '5',
         etag: 'abc123',
-      })
+      }),
     );
 
     expect(data2).toHaveProperty('status', 200);

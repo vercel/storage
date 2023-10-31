@@ -32,7 +32,7 @@ describe('blob client', () => {
         put('foo.txt', 'Test Body', {
           access: 'public',
           token: 'vercel_blob_client_123_token',
-        })
+        }),
       ).resolves.toMatchInlineSnapshot(`
         {
           "contentDisposition": "attachment; filename="foo.txt"",

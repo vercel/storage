@@ -8,7 +8,7 @@ export const config = {
 
 export default async function handleBody(
   request: NextApiRequest,
-  response: NextApiResponse
+  response: NextApiResponse,
 ): Promise<void> {
   const pathname = request.query.filename as string;
 

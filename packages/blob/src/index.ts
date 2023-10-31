@@ -50,7 +50,7 @@ type DeleteBlobApiResponse = null;
  */
 export async function del(
   url: string[] | string,
-  options?: BlobCommandOptions
+  options?: BlobCommandOptions,
 ): Promise<void> {
   const blobApiResponse = await fetch(getApiUrl('/delete'), {
     method: 'POST',
@@ -92,7 +92,7 @@ interface HeadBlobApiResponse extends Omit<HeadBlobResult, 'uploadedAt'> {
  */
 export async function head(
   url: string,
-  options?: BlobCommandOptions
+  options?: BlobCommandOptions,
 ): Promise<HeadBlobResult> {
   const headApiUrl = new URL(getApiUrl());
   headApiUrl.searchParams.set('url', url);
@@ -158,7 +158,7 @@ export interface ListCommandOptions extends BlobCommandOptions {
  * @param options - Additional options for the request.
  */
 export async function list(
-  options?: ListCommandOptions
+  options?: ListCommandOptions,
 ): Promise<ListBlobResult> {
   const listApiUrl = new URL(getApiUrl());
   if (options?.limit) {
@@ -191,7 +191,7 @@ export async function list(
 function mapBlobResult(blobResult: HeadBlobApiResponse): HeadBlobResult;
 function mapBlobResult(blobResult: ListBlobApiResponseBlob): ListBlobResultBlob;
 function mapBlobResult(
-  blobResult: ListBlobApiResponseBlob | HeadBlobApiResponse
+  blobResult: ListBlobApiResponseBlob | HeadBlobApiResponse,
 ): ListBlobResultBlob | HeadBlobResult {
   return {
     ...blobResult,

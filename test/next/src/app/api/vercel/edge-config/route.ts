@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { parseConnectionString } from '@vercel/edge-config';
 
-export const runtime = 'edge';
+// export const runtime = 'edge';
 const delay = (ms = 500): Promise<void> =>
   new Promise((resolve) => {
     setTimeout(resolve, ms);
@@ -16,7 +16,10 @@ export async function GET(): Promise<Response> {
 
   const websocket = new WebSocket(
     `wss://edge-config.vercel.com/websocket/connect?edgeConfigId=${connectionString.id}`,
-    { headers: { authorization: connectionString.token } }
+    {
+      // @ts-expect-error -- ok
+      headers: { authorization: connectionString.token },
+    }
   );
 
   let data = null;

@@ -23,7 +23,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version-file: '.node-version'
           cache: 'pnpm'
@@ -44,7 +44,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version-file: '.node-version'
           cache: 'pnpm'
@@ -65,7 +65,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version-file: '.node-version'
           cache: 'pnpm'
@@ -86,7 +86,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version-file: '.node-version'
           cache: 'pnpm'

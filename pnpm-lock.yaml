@@ -58,11 +58,11 @@ importers:
         specifier: 2.3.5
         version: 2.3.5
       '@edge-runtime/types':
-        specifier: 2.2.5
-        version: 2.2.5
+        specifier: 2.2.6
+        version: 2.2.6
       '@types/jest':
-        specifier: 29.5.6
-        version: 29.5.6
+        specifier: 29.5.7
+        version: 29.5.7
       '@types/node':
         specifier: 18.18.6
         version: 18.18.6
@@ -98,11 +98,11 @@ importers:
         specifier: 2.3.5
         version: 2.3.5
       '@edge-runtime/types':
-        specifier: 2.2.5
-        version: 2.2.5
+        specifier: 2.2.6
+        version: 2.2.6
       '@types/jest':
-        specifier: 29.5.6
-        version: 29.5.6
+        specifier: 29.5.7
+        version: 29.5.7
       '@types/node':
         specifier: 18.18.6
         version: 18.18.6
@@ -152,11 +152,11 @@ importers:
         specifier: 2.3.5
         version: 2.3.5
       '@edge-runtime/types':
-        specifier: 2.2.5
-        version: 2.2.5
+        specifier: 2.2.6
+        version: 2.2.6
       '@types/jest':
-        specifier: 29.5.6
-        version: 29.5.6
+        specifier: 29.5.7
+        version: 29.5.7
       '@types/node':
         specifier: 18.18.6
         version: 18.18.6
@@ -213,11 +213,11 @@ importers:
         specifier: 2.3.5
         version: 2.3.5
       '@edge-runtime/types':
-        specifier: 2.2.5
-        version: 2.2.5
+        specifier: 2.2.6
+        version: 2.2.6
       '@types/jest':
-        specifier: 29.5.6
-        version: 29.5.6
+        specifier: 29.5.7
+        version: 29.5.7
       '@types/node':
         specifier: 18.18.6
         version: 18.18.6
@@ -262,14 +262,14 @@ importers:
         specifier: 2.3.5
         version: 2.3.5
       '@edge-runtime/types':
-        specifier: 2.2.5
-        version: 2.2.5
+        specifier: 2.2.6
+        version: 2.2.6
       '@neondatabase/serverless':
         specifier: 0.5.6
         version: 0.5.6
       '@types/jest':
-        specifier: 29.5.6
-        version: 29.5.6
+        specifier: 29.5.7
+        version: 29.5.7
       '@types/node':
         specifier: 18.18.6
         version: 18.18.6
@@ -1171,11 +1171,16 @@ packages:
     engines: {node: '>=16'}
     dev: true
 
-  /@edge-runtime/types@2.2.5:
-    resolution: {integrity: sha512-XQv+G9Uo6PKmMRuc+jD8NImQ9hIL2Hg5/seHoWzXi21DHYppry/wKNETKssN3wAX3LygczkIDHIMCcVBYtCwlg==}
+  /@edge-runtime/primitives@4.0.4:
+    resolution: {integrity: sha512-ktlFVHheT3mXz++atzAB13p/+VLMLiinWvn68/wfpLjsat/LuCccOGuNIe8gLPdVbucvw6N8TTn39iRVwz4gxA==}
+    engines: {node: '>=16'}
+    dev: true
+
+  /@edge-runtime/types@2.2.6:
+    resolution: {integrity: sha512-H8O1QBkY9UtqhxffoIFmgRLoQyVEZ6A7UpdYtqK+Za4TaEmgRBkeFewoCUb8W6uE4byYjDnj4BzVpZo9yW439w==}
     engines: {node: '>=16'}
     dependencies:
-      '@edge-runtime/primitives': 4.0.3
+      '@edge-runtime/primitives': 4.0.4
     dev: true
 
   /@edge-runtime/vm@3.1.5:
@@ -1484,7 +1489,7 @@ packages:
       '@types/node': 18.18.6
       ansi-escapes: 4.3.2
       chalk: 4.1.2
-      ci-info: 3.8.0
+      ci-info: 3.9.0
       exit: 0.1.2
       graceful-fs: 4.2.11
       jest-changed-files: 29.7.0
@@ -2009,7 +2014,7 @@ packages:
   /@types/is-ci@3.0.0:
     resolution: {integrity: sha512-Q0Op0hdWbYd1iahB+IFNQcWXFq4O0Q5MwQP7uN0souuQ4rPg1vEYcnIOfr1gY+M+6rc8FGoRaBO1mOOvL29sEQ==}
     dependencies:
-      ci-info: 3.8.0
+      ci-info: 3.9.0
     dev: true
 
   /@types/istanbul-lib-coverage@2.0.4:
@@ -2025,8 +2030,8 @@ packages:
     dependencies:
       '@types/istanbul-lib-report': 3.0.0
 
-  /@types/jest@29.5.6:
-    resolution: {integrity: sha512-/t9NnzkOpXb4Nfvg17ieHE6EeSjDS2SGSpNYfoLbUAeL/EOueU/RSdOWFpfQTXBEM7BguYW1XQ0EbM+6RlIh6w==}
+  /@types/jest@29.5.7:
+    resolution: {integrity: sha512-HLyetab6KVPSiF+7pFcUyMeLsx25LDNDemw9mGsJBkai/oouwrjTycocSDYopMEwFhN2Y4s9oPyOCZNofgSt2g==}
     dependencies:
       expect: 29.7.0
       pretty-format: 29.7.0
@@ -3070,7 +3075,6 @@ packages:
   /ci-info@3.9.0:
     resolution: {integrity: sha512-NIxF55hv4nSqQswkAeiOi1r83xy8JldOFDTWiug55KBu9Jnblncd2U6ViHmYgHf01TPZS77NJBhBMKdWj9HQMQ==}
     engines: {node: '>=8'}
-    dev: true
 
   /cjs-module-lexer@1.2.2:
     resolution: {integrity: sha512-cOU9usZw8/dXIXKtwa8pM0OTJQuJkxMN6w30csNRUerHfeQ5R6U3kkU/FtJeIf3M202OHfY2U8ccInBG7/xogA==}
@@ -4150,7 +4154,7 @@ packages:
       eslint: '>=8.18.0'
     dependencies:
       '@babel/helper-validator-identifier': 7.22.5
-      ci-info: 3.8.0
+      ci-info: 3.9.0
       clean-regexp: 1.0.0
       eslint: 8.51.0
       eslint-utils: 3.0.0(eslint@8.51.0)
@@ -4930,7 +4934,7 @@ packages:
     resolution: {integrity: sha512-ZYvCgrefwqoQ6yTyYUbQu64HsITZ3NfKX1lzaEYdkTDcfKzzCI/wthRRYKkdjHKFVgNiXKAKm65Zo1pk2as/QQ==}
     hasBin: true
     dependencies:
-      ci-info: 3.8.0
+      ci-info: 3.9.0
     dev: true
 
   /is-core-module@2.13.0:
@@ -5244,7 +5248,7 @@ packages:
       '@types/node': 18.18.6
       babel-jest: 29.7.0(@babel/core@7.22.11)
       chalk: 4.1.2
-      ci-info: 3.8.0
+      ci-info: 3.9.0
       deepmerge: 4.3.1
       glob: 7.2.3
       graceful-fs: 4.2.11
@@ -5543,7 +5547,7 @@ packages:
       '@jest/types': 29.6.3
       '@types/node': 18.18.6
       chalk: 4.1.2
-      ci-info: 3.8.0
+      ci-info: 3.9.0
       graceful-fs: 4.2.11
       picomatch: 2.3.1
 

@@ -55,8 +55,8 @@ importers:
         version: 5.26.4
     devDependencies:
       '@edge-runtime/jest-environment':
-        specifier: 2.3.5
-        version: 2.3.5
+        specifier: 2.3.6
+        version: 2.3.6
       '@edge-runtime/types':
         specifier: 2.2.6
         version: 2.2.6
@@ -95,8 +95,8 @@ importers:
         specifier: 2.26.2
         version: 2.26.2
       '@edge-runtime/jest-environment':
-        specifier: 2.3.5
-        version: 2.3.5
+        specifier: 2.3.6
+        version: 2.3.6
       '@edge-runtime/types':
         specifier: 2.2.6
         version: 2.2.6
@@ -149,8 +149,8 @@ importers:
         specifier: 2.26.2
         version: 2.26.2
       '@edge-runtime/jest-environment':
-        specifier: 2.3.5
-        version: 2.3.5
+        specifier: 2.3.6
+        version: 2.3.6
       '@edge-runtime/types':
         specifier: 2.2.6
         version: 2.2.6
@@ -210,8 +210,8 @@ importers:
         specifier: 2.26.2
         version: 2.26.2
       '@edge-runtime/jest-environment':
-        specifier: 2.3.5
-        version: 2.3.5
+        specifier: 2.3.6
+        version: 2.3.6
       '@edge-runtime/types':
         specifier: 2.2.6
         version: 2.2.6
@@ -259,8 +259,8 @@ importers:
         specifier: 2.26.2
         version: 2.26.2
       '@edge-runtime/jest-environment':
-        specifier: 2.3.5
-        version: 2.3.5
+        specifier: 2.3.6
+        version: 2.3.6
       '@edge-runtime/types':
         specifier: 2.2.6
         version: 2.2.6
@@ -1086,20 +1086,15 @@ packages:
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
 
-  /@edge-runtime/jest-environment@2.3.5:
-    resolution: {integrity: sha512-vHE+BZJ6p40ecWrFAZSd3c0SdZoC+yjJFmwn3wSdK/yi2XGVHjcjF8OEYmGcFfIuxaEU99tJ7R8z6cksvcF0jw==}
+  /@edge-runtime/jest-environment@2.3.6:
+    resolution: {integrity: sha512-KItmhFbzBy/EZKGlSGBIxKE+MQCnT6rJBx2v6uzW4Fs7QXCQ67bwFs4ZviCFnuLJ4YNSzs7KcULqFXxyFDWqwQ==}
     engines: {node: '>=16'}
     dependencies:
-      '@edge-runtime/vm': 3.1.5
+      '@edge-runtime/vm': 3.1.6
       '@jest/environment': 29.5.0
       '@jest/fake-timers': 29.5.0
       jest-mock: 29.5.0
       jest-util: 29.5.0
-    dev: true
-
-  /@edge-runtime/primitives@4.0.3:
-    resolution: {integrity: sha512-1qldmcIwxxi69Hg6cmWB5erpyd+4GXUk7zCTBNh2EQJUvYbt5G46vtNyAtr5LbuHgM0gEYvAzdiFt2k2elsTsg==}
-    engines: {node: '>=16'}
     dev: true
 
   /@edge-runtime/primitives@4.0.4:
@@ -1114,11 +1109,11 @@ packages:
       '@edge-runtime/primitives': 4.0.4
     dev: true
 
-  /@edge-runtime/vm@3.1.5:
-    resolution: {integrity: sha512-vjSO7S9+iAeZJd/m8ulpiET2wmd3JpAt/twLPM5vYWe8JO8WH+R/JWGz7Vx9ih62Xq8VZucRcZJSWsi5G8+IRg==}
+  /@edge-runtime/vm@3.1.6:
+    resolution: {integrity: sha512-ChMpk3eBZegGIkHjoDDQhnnx+c5rzolC/2+NNymVJsivHtTVMIYQAOdG4jyTUMhmmrEGnXUgnHxOflR+1M4SIA==}
     engines: {node: '>=16'}
     dependencies:
-      '@edge-runtime/primitives': 4.0.3
+      '@edge-runtime/primitives': 4.0.4
     dev: true
 
   /@esbuild/android-arm64@0.18.3:
@@ -1449,10 +1444,10 @@ packages:
     resolution: {integrity: sha512-5FXw2+wD29YU1d4I2htpRX7jYnAyTRjP2CsXQdo9SAM8g3ifxWPSV0HnClSn71xwctr0U3oZIIH+dtbfmnbXVQ==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     dependencies:
-      '@jest/fake-timers': 29.5.0
+      '@jest/fake-timers': 29.7.0
       '@jest/types': 29.6.3
       '@types/node': 18.18.6
-      jest-mock: 29.5.0
+      jest-mock: 29.7.0
     dev: true
 
   /@jest/environment@29.7.0:
@@ -1487,8 +1482,8 @@ packages:
       '@sinonjs/fake-timers': 10.3.0
       '@types/node': 18.18.6
       jest-message-util: 29.7.0
-      jest-mock: 29.5.0
-      jest-util: 29.5.0
+      jest-mock: 29.7.0
+      jest-util: 29.7.0
     dev: true
 
   /@jest/fake-timers@29.7.0:
@@ -2991,10 +2986,6 @@ packages:
     optionalDependencies:
       fsevents: 2.3.3
 
-  /ci-info@3.8.0:
-    resolution: {integrity: sha512-eXTggHWSooYhq49F2opQhuHWgzucfF2YgODK4e1566GQs5BIfP30B0oenwBJHfWxAs2fyPB1s7Mg949zLf61Yw==}
-    engines: {node: '>=8'}
-
   /ci-info@3.9.0:
     resolution: {integrity: sha512-NIxF55hv4nSqQswkAeiOi1r83xy8JldOFDTWiug55KBu9Jnblncd2U6ViHmYgHf01TPZS77NJBhBMKdWj9HQMQ==}
     engines: {node: '>=8'}
@@ -4095,7 +4086,7 @@ packages:
     dependencies:
       '@babel/helper-validator-identifier': 7.22.5
       '@eslint-community/eslint-utils': 4.4.0(eslint@8.51.0)
-      ci-info: 3.8.0
+      ci-info: 3.9.0
       clean-regexp: 1.0.0
       eslint: 8.51.0
       esquery: 1.5.0
@@ -5321,7 +5312,7 @@ packages:
     dependencies:
       '@jest/types': 29.6.3
       '@types/node': 18.18.6
-      jest-util: 29.5.0
+      jest-util: 29.7.0
     dev: true
 
   /jest-mock@29.7.0:

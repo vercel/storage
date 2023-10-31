@@ -61,6 +61,16 @@ async function consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(
   await res.arrayBuffer();
 }
 
+function isEmbeddedEdgeConfig(data: unknown): data is EmbeddedEdgeConfig {
+  return (
+    typeof data === 'object' &&
+    hasOwnProperty(data, 'digest') &&
+    hasOwnProperty(data, 'items') &&
+    typeof data.digest === 'string' &&
+    typeof data.items === 'object'
+  );
+}
+
 interface EdgeConfigClientOptions {
   /**
    * The stale-if-error response directive indicates that the cache can reuse a
@@ -73,7 +83,7 @@ interface EdgeConfigClientOptions {
    *
    * The time is supplied in seconds. Defaults to one week (`604800`).
    */
-  staleIfError: number | false;
+  staleIfError?: number | false;
 }
 
 /**
@@ -114,10 +124,47 @@ export function createClient(
   if (typeof options.staleIfError === 'number' && options.staleIfError > 0)
     headers['cache-control'] = `stale-if-error=${options.staleIfError}`;
 
+  let websocketEdgeConfig: EmbeddedEdgeConfig | null = null;
+
+  // subscribe to changes
+  if (
+    process.env.NODE_ENV === 'development' &&
+    typeof WebSocket !== 'undefined'
+  ) {
+    const ws = new WebSocket(
+      `wss://edge-config.vercel.com/websocket/connect?edgeConfigId=${connection.id}`,
+      {
+        // @ts-expect-error -- this is defined in undici which is used during dev
+        headers: { authorization: connection.token },
+      }
+    );
+
+    ws.addEventListener('message', (event) => {
+      if (typeof event.data !== 'string') return;
+
+      try {
+        const data = JSON.parse(event.data) as unknown;
+        if (isEmbeddedEdgeConfig(data)) {
+          websocketEdgeConfig = data;
+        }
+      } catch {
+        // eslint-disable-next-line no-console -- actual error
+        console.error('@vercel/edge-config: could not parse websocket message');
+      }
+    });
+
+    ws.addEventListener('close', () => {
+      websocketEdgeConfig = null;
+    });
+  }
+
   return {
     connection,
     async get<T = EdgeConfigValue>(key: string): Promise<T | undefined> {
-      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+      const localEdgeConfig = websocketEdgeConfig
+        ? websocketEdgeConfig
+        : await getFileSystemEdgeConfig(connection);
+
       if (localEdgeConfig) {
         assertIsKey(key);
 
@@ -160,7 +207,10 @@ export function createClient(
       );
     },
     async has(key): Promise<boolean> {
-      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+      const localEdgeConfig = websocketEdgeConfig
+        ? websocketEdgeConfig
+        : await getFileSystemEdgeConfig(connection);
+
       if (localEdgeConfig) {
         assertIsKey(key);
         return Promise.resolve(hasOwnProperty(localEdgeConfig.items, key));
@@ -193,7 +243,9 @@ export function createClient(
       );
     },
     async getAll<T = EdgeConfigItems>(keys?: (keyof T)[]): Promise<T> {
-      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+      const localEdgeConfig = websocketEdgeConfig
+        ? websocketEdgeConfig
+        : await getFileSystemEdgeConfig(connection);
 
       if (localEdgeConfig) {
         if (keys === undefined) {
@@ -244,7 +296,9 @@ export function createClient(
       );
     },
     async digest(): Promise<string> {
-      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+      const localEdgeConfig = websocketEdgeConfig
+        ? websocketEdgeConfig
+        : await getFileSystemEdgeConfig(connection);
 
       if (localEdgeConfig) {
         return Promise.resolve(localEdgeConfig.digest);

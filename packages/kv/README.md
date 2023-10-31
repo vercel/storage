@@ -25,7 +25,7 @@ await kv.set('key2', 'value2', { ex: 1 });
 await kv.zadd(
   'scores',
   { score: 1, member: 'team1' },
-  { score: 2, member: 'team2' }
+  { score: 2, member: 'team2' },
 );
 data = await kv.zrange('scores', 0, 0);
 console.log(data); // [ 'team1' ]

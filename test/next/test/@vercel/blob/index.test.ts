@@ -37,7 +37,7 @@ test.describe('@vercel/blob', () => {
       const textContent = await page.locator('#blob-path').textContent();
       expect(textContent).toBe(`${prefix}/test-page.txt`);
       expect(await page.locator('#blob-content').textContent()).toBe(
-        `Hello from ${prefix}/test-page.txt`
+        `Hello from ${prefix}/test-page.txt`,
       );
     });
   });
@@ -45,22 +45,22 @@ test.describe('@vercel/blob', () => {
   test.describe('app', () => {
     test('edge', async ({ page }) => {
       await page.goto(
-        `vercel/blob/app/test/edge?filename=${prefix}/test-app-edge.txt`
+        `vercel/blob/app/test/edge?filename=${prefix}/test-app-edge.txt`,
       );
       const textContent = await page.locator('#blob-path').textContent();
       expect(textContent).toBe(`${prefix}/test-app-edge.txt`);
       expect(await page.locator('#blob-content').textContent()).toBe(
-        `Hello from ${prefix}/test-app-edge.txt`
+        `Hello from ${prefix}/test-app-edge.txt`,
       );
     });
     test('serverless', async ({ page }) => {
       await page.goto(
-        `vercel/blob/app/test/serverless?filename=${prefix}/test-app-serverless.txt`
+        `vercel/blob/app/test/serverless?filename=${prefix}/test-app-serverless.txt`,
       );
       const textContent = await page.locator('#blob-path').textContent();
       expect(textContent).toBe(`${prefix}/test-app-serverless.txt`);
       expect(await page.locator('#blob-content').textContent()).toBe(
-        `Hello from ${prefix}/test-app-serverless.txt`
+        `Hello from ${prefix}/test-app-serverless.txt`,
       );
     });
 
@@ -85,13 +85,13 @@ test.describe('@vercel/blob', () => {
           ]);
           const page = await browserContext.newPage();
           await page.goto(
-            `vercel/blob/app/test/client?filename=${prefix}/test-app-client.txt&callback=${callback}`
+            `vercel/blob/app/test/client?filename=${prefix}/test-app-client.txt&callback=${callback}`,
           );
 
           const textContent = await page.locator('#blob-path').textContent();
           expect(textContent).toBe(`${prefix}/test-app-client.txt`);
           expect(await page.locator('#blob-content').textContent()).toBe(
-            `Hello from ${prefix}/test-app-client.txt`
+            `Hello from ${prefix}/test-app-client.txt`,
           );
         });
       });

@@ -44,7 +44,7 @@ export function getTokenFromOptionsOrEnv(options?: BlobCommandOptions): string {
   }
 
   throw new BlobError(
-    'No token found. Either configure the `BLOB_READ_WRITE_TOKEN` environment variable, or pass a `token` option to your calls.'
+    'No token found. Either configure the `BLOB_READ_WRITE_TOKEN` environment variable, or pass a `token` option to your calls.',
   );
 }
 
@@ -98,7 +98,7 @@ interface BlobApiError {
 }
 
 export async function validateBlobApiResponse(
-  response: Response
+  response: Response,
 ): Promise<void> {
   if (!response.ok) {
     if (response.status >= 500) {

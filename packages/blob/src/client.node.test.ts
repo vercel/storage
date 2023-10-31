@@ -27,7 +27,7 @@ describe('client uploads', () => {
       });
 
       expect(uploadToken).toMatchInlineSnapshot(
-        `"vercel_blob_client_12345fakeStoreId_ZTVmZTJmYWZkOWJhMGNiNTVjOGExOWJkM2VhY2M5NzRhNzM4MmQ2NmEyN2EyMmYwMzFkMjQ0ZDIyMjMzN2Y0Yy5leUp3WVhSb2JtRnRaU0k2SW1admJ5NTBlSFFpTENKdmJsVndiRzloWkVOdmJYQnNaWFJsWkNJNmV5SmpZV3hzWW1GamExVnliQ0k2SW1oMGRIQnpPaTh2WlhoaGJYQnNaUzVqYjIwaWZTd2lkbUZzYVdSVmJuUnBiQ0k2TVRZM01qVXpNVEl6TURBd01IMD0="`
+        `"vercel_blob_client_12345fakeStoreId_ZTVmZTJmYWZkOWJhMGNiNTVjOGExOWJkM2VhY2M5NzRhNzM4MmQ2NmEyN2EyMmYwMzFkMjQ0ZDIyMjMzN2Y0Yy5leUp3WVhSb2JtRnRaU0k2SW1admJ5NTBlSFFpTENKdmJsVndiRzloWkVOdmJYQnNaWFJsWkNJNmV5SmpZV3hzWW1GamExVnliQ0k2SW1oMGRIQnpPaTh2WlhoaGJYQnNaUzVqYjIwaWZTd2lkbUZzYVdSVmJuUnBiQ0k2TVRZM01qVXpNVEl6TURBd01IMD0="`,
       );
 
       expect(getPayloadFromClientToken(uploadToken)).toEqual({
@@ -50,7 +50,7 @@ describe('client uploads', () => {
       });
 
       expect(uploadToken).toMatchInlineSnapshot(
-        `"vercel_blob_client_12345fakeStoreId_N2I2NTAxOGI1Y2IwZDhlY2VlZGUyYTQ2YjE1ZmJhODRlYjU3M2Q5MjBlNjNiYmI4NmQ0ZTRhOTJhZmM1NTVjMi5leUp3WVhSb2JtRnRaU0k2SW1admJ5NTBlSFFpTENKdmJsVndiRzloWkVOdmJYQnNaWFJsWkNJNmV5SmpZV3hzWW1GamExVnliQ0k2SW1oMGRIQnpPaTh2WlhoaGJYQnNaUzVqYjIwaUxDSjBiMnRsYmxCaGVXeHZZV1FpT2lKN1hDSm1iMjljSWpwY0ltSmhjbHdpZlNKOUxDSjJZV3hwWkZWdWRHbHNJam94TmpjeU5UTXhNak13TURBd2ZRPT0="`
+        `"vercel_blob_client_12345fakeStoreId_N2I2NTAxOGI1Y2IwZDhlY2VlZGUyYTQ2YjE1ZmJhODRlYjU3M2Q5MjBlNjNiYmI4NmQ0ZTRhOTJhZmM1NTVjMi5leUp3WVhSb2JtRnRaU0k2SW1admJ5NTBlSFFpTENKdmJsVndiRzloWkVOdmJYQnNaWFJsWkNJNmV5SmpZV3hzWW1GamExVnliQ0k2SW1oMGRIQnpPaTh2WlhoaGJYQnNaUzVqYjIwaUxDSjBiMnRsYmxCaGVXeHZZV1FpT2lKN1hDSm1iMjljSWpwY0ltSmhjbHdpZlNKOUxDSjJZV3hwWkZWdWRHbHNJam94TmpjeU5UTXhNak13TURBd2ZRPT0="`,
       );
 
       expect(getPayloadFromClientToken(uploadToken)).toEqual({
@@ -109,7 +109,7 @@ describe('client uploads', () => {
       expect(spy).not.toHaveBeenCalled();
       expect(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any -- Either the test is incomplete, or we're messing up with TS
-        getPayloadFromClientToken((jsonResponse as any).clientToken)
+        getPayloadFromClientToken((jsonResponse as any).clientToken),
       ).toEqual({
         tokenPayload: 'newfile.txt',
         onUploadCompleted: {
@@ -150,7 +150,7 @@ describe('client uploads', () => {
             };
           },
           onUploadCompleted: spy,
-        })
+        }),
       ).toEqual({
         response: 'ok',
         type: 'blob.upload-completed',
@@ -198,7 +198,7 @@ describe('client uploads', () => {
       expect(spy).not.toHaveBeenCalled();
       expect(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any -- Either the test is incomplete, or we're messing up with TS
-        getPayloadFromClientToken((jsonResponse as any).clientToken)
+        getPayloadFromClientToken((jsonResponse as any).clientToken),
       ).toMatchInlineSnapshot(`
         {
           "addRandomSuffix": false,
@@ -232,7 +232,7 @@ describe('client uploads', () => {
         },
         onBeforeGenerateToken: async (pathname, clientPayload) => {
           expect(clientPayload).toEqual(
-            'custom-metadata-from-client-we-expect'
+            'custom-metadata-from-client-we-expect',
           );
           await Promise.resolve();
           return Promise.resolve({

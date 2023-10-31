@@ -29,7 +29,7 @@ export interface CopyBlobResult {
 export async function copy(
   fromUrl: string,
   toPathname: string,
-  options: CopyCommandOptions
+  options: CopyCommandOptions,
 ): Promise<CopyBlobResult> {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX.
   if (!options) {
@@ -60,7 +60,7 @@ export async function copy(
 
   const blobApiResponse = await fetch(
     getApiUrl(`/${toPathname}?fromUrl=${fromUrl}`),
-    { method: 'PUT', headers }
+    { method: 'PUT', headers },
   );
 
   await validateBlobApiResponse(blobApiResponse);

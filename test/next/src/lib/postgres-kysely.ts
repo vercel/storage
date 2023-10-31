@@ -37,7 +37,7 @@ export const queryUsers = async (): Promise<
     // eslint-disable-next-line no-promise-executor-return -- [@vercel/style-guide@5 migration]
     setTimeout(() => {
       reject(new Error('SELECT hung for more than 20 seconds'));
-    }, 20000)
+    }, 20000),
   );
   const usersPromise = db.selectFrom('users').selectAll().execute();
   return Promise.race([timeoutPromise, usersPromise]);

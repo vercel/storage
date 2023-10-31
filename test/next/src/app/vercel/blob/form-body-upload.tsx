@@ -22,7 +22,7 @@ export function FormBodyUpload({ action }: { action: string }): JSX.Element {
             {
               method: 'POST',
               body: file,
-            }
+            },
           );
           const blobResult = (await response.json()) as PutBlobResult;
           setBlob(blobResult);

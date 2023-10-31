@@ -39,7 +39,7 @@ describe('createClient', () => {
       connectionString: MOCKED_DIRECT_CONNECTION_STRING,
     });
     expect(await client.query('SELECT now()')).toEqual(
-      MOCKED_DIRECT_CONNECTION_STRING
+      MOCKED_DIRECT_CONNECTION_STRING,
     );
   });
 
@@ -47,7 +47,7 @@ describe('createClient', () => {
     process.env.POSTGRES_URL_NON_POOLING = MOCKED_DIRECT_CONNECTION_STRING;
     const client = createClient();
     expect(await client.query('SELECT now()')).toEqual(
-      MOCKED_DIRECT_CONNECTION_STRING
+      MOCKED_DIRECT_CONNECTION_STRING,
     );
   });
 

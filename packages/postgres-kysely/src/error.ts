@@ -5,7 +5,7 @@ type VercelPostgresKyselyErrorCode =
 export class VercelPostgresKyselyError extends Error {
   public constructor(
     public code: VercelPostgresKyselyErrorCode,
-    message: string
+    message: string,
   ) {
     super(`VercelPostgresError - '${code}': ${message}`);
     this.name = 'VercelPostgresError';

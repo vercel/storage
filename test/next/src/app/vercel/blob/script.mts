@@ -37,7 +37,7 @@ async function run(): Promise<void> {
     urls.map(async (url) => {
       const blobDetails = await vercelBlob.head(url);
       console.log(blobDetails, url);
-    })
+    }),
   );
 
   // list all blobs
@@ -131,7 +131,7 @@ async function webpageExample(): Promise<string> {
     '<div>Hello from a webpage!</div>',
     {
       access: 'public',
-    }
+    },
   );
 
   console.log('Webpage example:', blob.url, `(${Date.now() - start}ms)`);
@@ -145,7 +145,7 @@ async function incomingMessageExample(): Promise<string> {
   const incomingMessage: IncomingMessage = await new Promise((resolve) => {
     https.get(
       'https://example-files.online-convert.com/video/mp4/example.mp4',
-      resolve
+      resolve,
     );
   });
 
@@ -156,7 +156,7 @@ async function incomingMessageExample(): Promise<string> {
   console.log(
     'incomingMessage example:',
     blob.url,
-    `(${Date.now() - start}ms)`
+    `(${Date.now() - start}ms)`,
   );
   return blob.url;
 }
@@ -168,7 +168,7 @@ async function axiosExample(): Promise<string> {
     'https://example-files.online-convert.com/video/mp4/example_2s.mp4',
     {
       responseType: 'stream',
-    }
+    },
   );
 
   const blob = await vercelBlob.put(
@@ -176,7 +176,7 @@ async function axiosExample(): Promise<string> {
     response.data as IncomingMessage,
     {
       access: 'public',
-    }
+    },
   );
 
   console.log('axios example:', blob.url, `(${Date.now() - start}ms)`);
@@ -187,7 +187,7 @@ async function gotExample(): Promise<string> {
   const start = Date.now();
 
   const request = got.stream(
-    'https://example-files.online-convert.com/video/mp4/example_2s.mp4'
+    'https://example-files.online-convert.com/video/mp4/example_2s.mp4',
   );
 
   const blob = await vercelBlob.put('example_2s.mp4', request, {
@@ -202,7 +202,7 @@ async function fetchExample(): Promise<string> {
   const start = Date.now();
 
   const response = await fetch(
-    'https://example-files.online-convert.com/video/mp4/example_2s.mp4'
+    'https://example-files.online-convert.com/video/mp4/example_2s.mp4',
   );
 
   const blob = await vercelBlob.put(
@@ -210,7 +210,7 @@ async function fetchExample(): Promise<string> {
     response.body as ReadableStream,
     {
       access: 'public',
-    }
+    },
   );
 
   console.log('fetch example:', blob.url, `(${Date.now() - start}ms)`);
@@ -240,13 +240,13 @@ async function weirdCharactersExample(): Promise<string> {
     'Hello, world!',
     {
       access: 'public',
-    }
+    },
   );
 
   console.log(
     'weird characters example:',
     blob.url,
-    `(${Date.now() - start}ms)`
+    `(${Date.now() - start}ms)`,
   );
   return blob.url;
 }
@@ -267,7 +267,7 @@ async function copyTextFile() {
   console.log(
     'copy blob example:',
     copiedBlob.url,
-    `(${Date.now() - start}ms)`
+    `(${Date.now() - start}ms)`,
   );
 
   await vercelBlob.del(blob.url);

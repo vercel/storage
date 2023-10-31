@@ -14,7 +14,7 @@ const sdkVersion = typeof pkgVersion === 'string' ? pkgVersion : '';
 describe('test conditions', () => {
   it('should have an env var called EDGE_CONFIG', () => {
     expect(process.env.EDGE_CONFIG).toEqual(
-      'https://edge-config.vercel.com/ecfg-1?token=token-1'
+      'https://edge-config.vercel.com/ecfg-1?token=token-1',
     );
   });
 });
@@ -29,16 +29,16 @@ describe('parseConnectionString', () => {
   it('should return null when the given Connection String has no token', () => {
     expect(
       pkg.parseConnectionString(
-        'https://edge-config.vercel.com/ecfg_cljia81u2q1gappdgptj881dwwtc'
-      )
+        'https://edge-config.vercel.com/ecfg_cljia81u2q1gappdgptj881dwwtc',
+      ),
     ).toBeNull();
   });
 
   it('should return the id and token when a valid internal Connection String is given', () => {
     expect(
       pkg.parseConnectionString(
-        'https://edge-config.vercel.com/ecfg_cljia81u2q1gappdgptj881dwwtc?token=00000000-0000-0000-0000-000000000000'
-      )
+        'https://edge-config.vercel.com/ecfg_cljia81u2q1gappdgptj881dwwtc?token=00000000-0000-0000-0000-000000000000',
+      ),
     ).toEqual({
       baseUrl:
         'https://edge-config.vercel.com/ecfg_cljia81u2q1gappdgptj881dwwtc',
@@ -52,8 +52,8 @@ describe('parseConnectionString', () => {
   it('should return the id and token when a valid external Connection String is given using pathname', () => {
     expect(
       pkg.parseConnectionString(
-        'https://example.com/ecfg_cljia81u2q1gappdgptj881dwwtc?token=00000000-0000-0000-0000-000000000000'
-      )
+        'https://example.com/ecfg_cljia81u2q1gappdgptj881dwwtc?token=00000000-0000-0000-0000-000000000000',
+      ),
     ).toEqual({
       id: 'ecfg_cljia81u2q1gappdgptj881dwwtc',
       token: '00000000-0000-0000-0000-000000000000',
@@ -66,8 +66,8 @@ describe('parseConnectionString', () => {
   it('should return the id and token when a valid external Connection String is given using search params', () => {
     expect(
       pkg.parseConnectionString(
-        'https://example.com/?id=ecfg_cljia81u2q1gappdgptj881dwwtc&token=00000000-0000-0000-0000-000000000000'
-      )
+        'https://example.com/?id=ecfg_cljia81u2q1gappdgptj881dwwtc&token=00000000-0000-0000-0000-000000000000',
+      ),
     ).toEqual({
       id: 'ecfg_cljia81u2q1gappdgptj881dwwtc',
       token: '00000000-0000-0000-0000-000000000000',
@@ -97,7 +97,7 @@ describe('when running without lambda layer or via edge function', () => {
   describe('when called without a baseUrl', () => {
     it('should throw', () => {
       expect(() => pkg.createClient(undefined)).toThrow(
-        '@vercel/edge-config: No connection string provided'
+        '@vercel/edge-config: No connection string provided',
       );
     });
   });
@@ -120,7 +120,7 @@ describe('when running without lambda layer or via edge function', () => {
               'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
-          }
+          },
         );
       });
     });
@@ -145,7 +145,7 @@ describe('when running without lambda layer or via edge function', () => {
               'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
-          }
+          },
         );
       });
     });
@@ -169,7 +169,7 @@ describe('when running without lambda layer or via edge function', () => {
               'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
-          }
+          },
         );
       });
     });
@@ -218,7 +218,7 @@ describe('etags and If-None-Match', () => {
             'cache-control': 'stale-if-error=604800',
           }),
           cache: 'no-store',
-        }
+        },
       );
       expect(fetchMock).toHaveBeenCalledWith(
         `${modifiedBaseUrl}/item/foo?version=1`,
@@ -231,7 +231,7 @@ describe('etags and If-None-Match', () => {
             'If-None-Match': 'a',
           }),
           cache: 'no-store',
-        }
+        },
       );
     });
   });
@@ -274,7 +274,7 @@ describe('stale-if-error semantics', () => {
             'cache-control': 'stale-if-error=604800',
           }),
           cache: 'no-store',
-        }
+        },
       );
       expect(fetchMock).toHaveBeenCalledWith(
         `${modifiedBaseUrl}/item/foo?version=1`,
@@ -287,7 +287,7 @@ describe('stale-if-error semantics', () => {
             'If-None-Match': 'a',
           }),
           cache: 'no-store',
-        }
+        },
       );
     });
   });
@@ -317,7 +317,7 @@ describe('stale-if-error semantics', () => {
             'cache-control': 'stale-if-error=604800',
           }),
           cache: 'no-store',
-        }
+        },
       );
       expect(fetchMock).toHaveBeenCalledWith(
         `${modifiedBaseUrl}/item/foo?version=1`,
@@ -330,7 +330,7 @@ describe('stale-if-error semantics', () => {
             'If-None-Match': 'a',
           }),
           cache: 'no-store',
-        }
+        },
       );
     });
   });
@@ -382,7 +382,7 @@ describe('connectionStrings', () => {
                 'cache-control': 'stale-if-error=604800',
               }),
               cache: 'no-store',
-            }
+            },
           );
         });
       });

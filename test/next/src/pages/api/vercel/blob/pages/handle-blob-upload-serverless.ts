@@ -11,7 +11,8 @@ export default async function handleBody(
   response: NextApiResponse
 ): Promise<void> {
   if (!validateUploadToken(request)) {
-    return response.status(401).json({ message: 'Not authorized' });
+    response.status(401).json({ message: 'Not authorized' });
+    return;
   }
 
   const body = request.body as string;
@@ -46,8 +47,8 @@ export default async function handleBody(
       },
     });
 
-    return response.json(jsonResponse);
+    response.json(jsonResponse);
   } catch (error) {
-    return response.status(400).json({ error: (error as Error).message });
+    response.status(400).json({ error: (error as Error).message });
   }
 }

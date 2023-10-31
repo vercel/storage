@@ -13,11 +13,13 @@ export default async function handleBody(
   const pathname = request.query.filename as string;
 
   if (!request.body || !pathname) {
-    return response.status(400).json({ message: 'No file to upload.' });
+    response.status(400).json({ message: 'No file to upload.' });
+    return;
   }
 
   if (!validateUploadToken(request)) {
-    return response.status(401).json({ message: 'Not authorized' });
+    response.status(401).json({ message: 'Not authorized' });
+    return;
   }
 
   // Note: this will stream the file to Vercel's Blob Store
@@ -25,5 +27,5 @@ export default async function handleBody(
     access: 'public',
   });
 
-  return response.json(blob);
+  response.json(blob);
 }

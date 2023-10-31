@@ -1,5 +1,13 @@
 # @vercel/postgres-kysely
 
+## 0.5.1
+
+### Patch Changes
+
+- 4e8161a: chore(deps): update dependency @neondatabase/serverless to v0.6.0
+- Updated dependencies [4e8161a]
+  - @vercel/postgres@0.5.1
+
 ## 0.5.0
 
 ### Patch Changes

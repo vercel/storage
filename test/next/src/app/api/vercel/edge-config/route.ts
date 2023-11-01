@@ -4,10 +4,8 @@ import { NextResponse } from 'next/server';
 export const runtime = 'edge';
 
 export async function GET(): Promise<Response> {
-  // eslint-disable-next-line no-console
-  console.time('read duration');
+  const before = Date.now();
   const keyForTest = await get<string>('keyForTest');
-  // eslint-disable-next-line no-console
-  console.timeEnd('read duration');
-  return NextResponse.json({ keyForTest });
+  const after = Date.now();
+  return NextResponse.json({ keyForTest, durationMs: after - before });
 }

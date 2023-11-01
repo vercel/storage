@@ -129,6 +129,7 @@ export function createClient(
   // subscribe to changes
   if (
     process.env.NODE_ENV === 'development' &&
+    process.env.EDGE_CONFIG_DISABLE_WEBSOCKET !== '1' &&
     typeof WebSocket !== 'undefined'
   ) {
     const ws = new WebSocket(

@@ -137,7 +137,7 @@ export function createClient(
       {
         // @ts-expect-error -- this is defined in undici which is used during dev
         headers: { authorization: connection.token },
-      }
+      },
     );
 
     ws.addEventListener('message', (event) => {

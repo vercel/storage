@@ -28,11 +28,11 @@ export function swr<T extends (...args: any[]) => Promise<any>>(fn: T): T {
     }
 
     const resultPromise = fn(...args);
-    staleValuePromise = resultPromise.catch((e) => {
+    staleValuePromise = resultPromise.then(clone, (e) => {
       staleValuePromise = null;
       throw e;
     });
-    return resultPromise;
+    return resultPromise.then(clone);
   }) as T;
 }
 /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument -- reenabling the rule */

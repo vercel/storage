@@ -90,4 +90,22 @@ describe('swr-fn', () => {
     await expect(swrFn()).resolves.toEqual('later');
     fn.mockResolvedValueOnce('end');
   });
+
+  it('is not possible to mutate values', async () => {
+    const fn = jest.fn((): Promise<string[]> => Promise.resolve([]));
+    const swrFn = swr(fn);
+
+    const list = ['a'];
+
+    // initial call to fill stale value
+    fn.mockResolvedValueOnce(list);
+    const result = await swrFn();
+    expect(result).toEqual(['a']);
+
+    // mutate
+    result.push('b');
+
+    await expect(swrFn()).resolves.toEqual(['a']);
+    fn.mockResolvedValueOnce([]);
+  });
 });

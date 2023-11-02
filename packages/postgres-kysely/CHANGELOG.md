@@ -1,5 +1,11 @@
 # @vercel/postgres-kysely
 
+## 0.6.0
+
+### Minor Changes
+
+- a247635: feat(postgres-kysely): Allow passing Kysely options
+
 ## 0.5.1
 
 ### Patch Changes

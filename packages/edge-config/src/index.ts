@@ -18,6 +18,7 @@ import type {
   EmbeddedEdgeConfig,
 } from './types';
 import { fetchWithCachedResponse } from './utils/fetch-with-cached-response';
+import { swr } from './utils/swr-fn';
 
 export {
   parseConnectionString,
@@ -59,16 +60,6 @@ async function consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(
   // see https://github.com/nodejs/undici/blob/v5.21.2/README.md#garbage-collection
   // see https://github.com/node-fetch/node-fetch/issues/83
   await res.arrayBuffer();
-}
-
-function isEmbeddedEdgeConfig(data: unknown): data is EmbeddedEdgeConfig {
-  return (
-    typeof data === 'object' &&
-    hasOwnProperty(data, 'digest') &&
-    hasOwnProperty(data, 'items') &&
-    typeof data.digest === 'string' &&
-    typeof data.items === 'object'
-  );
 }
 
 interface EdgeConfigClientOptions {
@@ -124,47 +115,17 @@ export function createClient(
   if (typeof options.staleIfError === 'number' && options.staleIfError > 0)
     headers['cache-control'] = `stale-if-error=${options.staleIfError}`;
 
-  let websocketEdgeConfig: EmbeddedEdgeConfig | null = null;
-
-  // subscribe to changes
-  if (
+  /**
+   * While in development we use SWR-like behavior for the api client to
+   * reduce latency.
+   */
+  const shouldUseSwr =
     process.env.NODE_ENV === 'development' &&
-    process.env.EDGE_CONFIG_DISABLE_WEBSOCKET !== '1' &&
-    typeof WebSocket !== 'undefined'
-  ) {
-    const ws = new WebSocket(
-      `wss://edge-config.vercel.com/websocket/connect?edgeConfigId=${connection.id}`,
-      {
-        // @ts-expect-error -- this is defined in undici which is used during dev
-        headers: { authorization: connection.token },
-      },
-    );
+    process.env.EDGE_CONFIG_DISABLE_WEBSOCKET !== '1';
 
-    ws.addEventListener('message', (event) => {
-      if (typeof event.data !== 'string') return;
-
-      try {
-        const data = JSON.parse(event.data) as unknown;
-        if (isEmbeddedEdgeConfig(data)) {
-          websocketEdgeConfig = data;
-        }
-      } catch {
-        // eslint-disable-next-line no-console -- actual error
-        console.error('@vercel/edge-config: could not parse websocket message');
-      }
-    });
-
-    ws.addEventListener('close', () => {
-      websocketEdgeConfig = null;
-    });
-  }
-
-  return {
-    connection,
+  const api: Omit<EdgeConfigClient, 'connection'> = {
     async get<T = EdgeConfigValue>(key: string): Promise<T | undefined> {
-      const localEdgeConfig = websocketEdgeConfig
-        ? websocketEdgeConfig
-        : await getFileSystemEdgeConfig(connection);
+      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
 
       if (localEdgeConfig) {
         assertIsKey(key);
@@ -208,9 +169,7 @@ export function createClient(
       );
     },
     async has(key): Promise<boolean> {
-      const localEdgeConfig = websocketEdgeConfig
-        ? websocketEdgeConfig
-        : await getFileSystemEdgeConfig(connection);
+      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
 
       if (localEdgeConfig) {
         assertIsKey(key);
@@ -244,9 +203,7 @@ export function createClient(
       );
     },
     async getAll<T = EdgeConfigItems>(keys?: (keyof T)[]): Promise<T> {
-      const localEdgeConfig = websocketEdgeConfig
-        ? websocketEdgeConfig
-        : await getFileSystemEdgeConfig(connection);
+      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
 
       if (localEdgeConfig) {
         if (keys === undefined) {
@@ -297,9 +254,7 @@ export function createClient(
       );
     },
     async digest(): Promise<string> {
-      const localEdgeConfig = websocketEdgeConfig
-        ? websocketEdgeConfig
-        : await getFileSystemEdgeConfig(connection);
+      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
 
       if (localEdgeConfig) {
         return Promise.resolve(localEdgeConfig.digest);
@@ -324,6 +279,16 @@ export function createClient(
       );
     },
   };
+
+  return shouldUseSwr
+    ? {
+        connection,
+        get: swr(api.get),
+        getAll: swr(api.getAll),
+        has: swr(api.has),
+        digest: swr(api.digest),
+      }
+    : { ...api, connection };
 }
 
 let defaultEdgeConfigClient: EdgeConfigClient;

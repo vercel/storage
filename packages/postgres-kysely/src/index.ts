@@ -1,4 +1,4 @@
-import type { DatabaseConnection, Dialect, Driver } from 'kysely';
+import type { DatabaseConnection, Dialect, Driver, KyselyConfig } from 'kysely';
 import { PostgresDialect, PostgresDriver, Kysely } from 'kysely';
 import type { Pool } from '@neondatabase/serverless';
 import { createPool } from '@vercel/postgres';
@@ -63,11 +63,15 @@ class VercelPostgresPoolDriver extends PostgresDriver {
   }
 }
 
-export function createKysely<T>(config?: VercelPostgresPoolConfig): Kysely<T> {
+export function createKysely<T>(
+  poolConfig?: VercelPostgresPoolConfig,
+  kyselyConfig?: Partial<KyselyConfig>,
+): Kysely<T> {
   return new Kysely<T>({
+    ...kyselyConfig,
     dialect: new VercelPostgresDialect({
-      ...config,
-      pool: createPool(config),
+      ...poolConfig,
+      pool: createPool(poolConfig),
     }),
   });
 }

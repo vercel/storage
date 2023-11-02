@@ -5,6 +5,16 @@ const delay = (ms = 500): Promise<void> =>
     setTimeout(resolve, ms);
   });
 
+function lift(): [(value: string) => void, Promise<string>] {
+  let resolve: ((value: string) => void) | undefined;
+  const promise = new Promise((r) => {
+    resolve = r;
+  });
+
+  // @ts-expect-error -- resolve is actually defined
+  return [resolve, promise];
+}
+
 describe('swr-fn', () => {
   it('reuses stale values', async () => {
     const fn = jest.fn();
@@ -28,13 +38,9 @@ describe('swr-fn', () => {
 
     // here we only resolve the value to "b" after the second invocation,
     // and ensure the second invocation responds with the stale "a" value
-    let resolve: null | ((value: string) => void) = null;
-    const p = new Promise((r) => {
-      resolve = r;
-    });
-    fn.mockReturnValue(p);
+    const [resolve, valuePromise] = lift();
+    fn.mockReturnValue(valuePromise);
     await expect(swrFn()).resolves.toEqual('a');
-    // @ts-expect-error -- will be defined
     resolve('b');
 
     // we need to give the promise a chance to update the value before
@@ -54,6 +60,34 @@ describe('swr-fn', () => {
     // here we fall back to the last working value
     fn.mockRejectedValueOnce('error');
     await expect(swrFn()).resolves.toEqual('a');
+    fn.mockResolvedValueOnce('end');
+  });
+
+  it('does not overwrite newer values with earlier ones', async () => {
+    const fn = jest.fn();
+    const swrFn = swr(fn);
+    const [resolveEarlier, earlierPromise] = lift();
+    const [resolveLater, laterPromise] = lift();
+
+    // initial call to fill stale value
+    fn.mockResolvedValueOnce('a');
+    await expect(swrFn()).resolves.toEqual('a');
+
+    // earlier promise has not resolved yet, so it will keep using "a"
+    fn.mockReturnValue(earlierPromise);
+    await expect(swrFn()).resolves.toEqual('a');
+
+    // earlier promise has not resolved yet, so it will keep using "a"
+    fn.mockReturnValue(laterPromise);
+    await expect(swrFn()).resolves.toEqual('a');
+    resolveLater('later');
+    resolveEarlier('earlier');
+
+    await delay(0);
+
+    // even though the "earlier" promise resolved last we will see the
+    // later value, as that was the result of the most recent call
+    await expect(swrFn()).resolves.toEqual('later');
     fn.mockResolvedValueOnce('end');
   });
 });

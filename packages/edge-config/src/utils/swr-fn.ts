@@ -16,11 +16,14 @@ export function swr<T extends (...args: any[]) => Promise<any>>(fn: T): T {
     if (staleValuePromise) {
       // clone to avoid referential equality of the returned value,
       // which would unlock mutations
-      void fn(...args).then((result) => {
-        if (currentInvocationId === latestInvocationId) {
-          staleValuePromise = Promise.resolve(result);
-        }
-      });
+      void fn(...args).then(
+        (result) => {
+          if (currentInvocationId === latestInvocationId) {
+            staleValuePromise = Promise.resolve(result);
+          }
+        },
+        () => void 0,
+      );
       return staleValuePromise.then(clone);
     }
 

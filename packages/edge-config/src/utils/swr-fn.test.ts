@@ -5,13 +5,13 @@ const delay = (ms = 500): Promise<void> =>
     setTimeout(resolve, ms);
   });
 
-function lift(): [(value: string) => void, Promise<string>] {
+function lift(): [(value: string) => void, Promise<unknown>] {
   let resolve: ((value: string) => void) | undefined;
-  const promise = new Promise((r) => {
+  const promise = new Promise<unknown>((r) => {
     resolve = r;
   });
 
-  // @ts-expect-error -- resolve is actually defined
+  if (!resolve) throw new Error('resolve not defined');
   return [resolve, promise];
 }
 

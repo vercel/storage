@@ -121,7 +121,7 @@ export function createClient(
    */
   const shouldUseSwr =
     process.env.NODE_ENV === 'development' &&
-    process.env.EDGE_CONFIG_DISABLE_WEBSOCKET !== '1';
+    process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
 
   const api: Omit<EdgeConfigClient, 'connection'> = {
     async get<T = EdgeConfigValue>(key: string): Promise<T | undefined> {

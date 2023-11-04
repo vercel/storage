@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { performance } from 'node:perf_hooks';
 import { createClient } from '@vercel/edge-config';
 import enableDestroy from 'server-destroy';
 
@@ -38,10 +39,15 @@ export default async function Page(): Promise<JSX.Element> {
   await running;
 
   const callsBefore = calls;
+  performance.mark('A');
   const value1 = await localClient.get('someKey');
+  performance.mark('B');
+
   const callsMiddle = calls;
 
+  performance.mark('C');
   const value2 = await localClient.get('someKey');
+  performance.mark('D');
   const callsAfter = calls;
 
   await new Promise((resolve) => {
@@ -53,7 +59,15 @@ export default async function Page(): Promise<JSX.Element> {
   return (
     <div>
       {JSON.stringify(
-        { value1, value2, callsBefore, callsMiddle, callsAfter },
+        {
+          value1,
+          value2,
+          callsBefore,
+          callsMiddle,
+          callsAfter,
+          duration1Ms: performance.measure('A to B', 'A', 'B').duration,
+          duration2Ms: performance.measure('C to D', 'C', 'D').duration,
+        },
         null,
         2,
       )}

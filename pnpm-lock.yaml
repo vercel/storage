@@ -315,6 +315,9 @@ importers:
       '@types/react-dom':
         specifier: 18.2.14
         version: 18.2.14
+      '@types/server-destroy':
+        specifier: 1.0.2
+        version: 1.0.2
       '@vercel/blob':
         specifier: workspace:*
         version: link:../../packages/blob
@@ -366,6 +369,9 @@ importers:
       react-dom:
         specifier: 18.2.0
         version: 18.2.0(react@18.2.0)
+      server-destroy:
+        specifier: 1.0.1
+        version: 1.0.1
       swr:
         specifier: 2.2.4
         version: 2.2.4(react@18.2.0)
@@ -1889,6 +1895,12 @@ packages:
 
   /@types/semver@7.5.4:
     resolution: {integrity: sha512-MMzuxN3GdFwskAnb6fz0orFvhfqi752yjaXylr0Rp4oDg5H0Zn1IuyRhDVvYOwAXoJirx2xuS16I3WjxnAIHiQ==}
+
+  /@types/server-destroy@1.0.2:
+    resolution: {integrity: sha512-Ac4skQzgViPGKqWU89yrtDDfZHvwDxQOzGnd4aS6Tab9IL3VatvfYk2LScKGNS/EML21yvF/9Zy4lMl74tXkPw==}
+    dependencies:
+      '@types/node': 20.8.10
+    dev: false
 
   /@types/stack-utils@2.0.1:
     resolution: {integrity: sha512-Hl219/BT5fLAaz6NDkSuhzasy49dwQS/DSdu4MdggFB8zcXv7vflBI3xp7FEmkmdDkBUI2bPUNeMttp2knYdxw==}
@@ -6505,6 +6517,10 @@ packages:
     hasBin: true
     dependencies:
       lru-cache: 6.0.0
+
+  /server-destroy@1.0.1:
+    resolution: {integrity: sha512-rb+9B5YBIEzYcD6x2VKidaa+cqYBJQKnU4oe4E3ANwRRN56yk/ua1YCJT1n21NTS8w6CcOclAKNP3PhdCXKYtQ==}
+    dev: false
 
   /set-blocking@2.0.0:
     resolution: {integrity: sha512-KiKBS8AnWGEyLzofFfmvKwpdPzqiy16LvQfK3yv/fVH7Bj13/wl3JSR1J+rfgRE9q7xUJK4qvgS8raSOeLUehw==}

@@ -122,7 +122,11 @@ export function createClient(
     async get<T = EdgeConfigValue>(key: string): Promise<T | undefined> {
       assertIsKey(key);
       const loaders = getLoadersInstance(loaderOptions, loadersCacheMap);
-      return loaders.get.load(key).then(clone) as Promise<T>;
+      return loaders.get.load(key).then((value) => {
+        // prime has()
+        loaders.has.prime(key, true);
+        return clone(value);
+      }) as Promise<T>;
     },
     async has(key): Promise<boolean> {
       assertIsKey(key);
@@ -140,6 +144,7 @@ export function createClient(
         // prime get() calls with the result of getAll()
         Object.entries(items).forEach(([key, value]) => {
           loaders.get.prime(key, value);
+          loaders.has.prime(key, true);
         });
 
         return items;
@@ -157,7 +162,7 @@ export function createClient(
     },
     async digest(): Promise<string> {
       const loaders = getLoadersInstance(loaderOptions, loadersCacheMap);
-      return loaders.digest.load('#');
+      return loaders.digest.load('#').then(clone);
     },
   };
 

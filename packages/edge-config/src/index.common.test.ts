@@ -515,7 +515,7 @@ describe('dataloader', () => {
     );
   });
 
-  it('uses the result of getAll() to prime individual keys', async () => {
+  it('uses the result of getAll() to prime get() and has()', async () => {
     simulateNewRequestContext();
     fetchMock.mockResponseOnce(
       JSON.stringify({
@@ -545,8 +545,150 @@ describe('dataloader', () => {
 
     await expect(edgeConfig.get('key1')).resolves.toEqual('value1');
     await expect(edgeConfig.get('key2')).resolves.toEqual('value2');
+    await expect(edgeConfig.has('key1')).resolves.toEqual(true);
+    await expect(edgeConfig.has('key2')).resolves.toEqual(true);
 
     // only one call to fetchMock as all keys should have been primed
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses the result of get() to prime has()', async () => {
+    simulateNewRequestContext();
+    const value = 'value1';
+    fetchMock.mockResponseOnce(JSON.stringify(value));
+
+    // prime the cache by calling get()
+    await expect(edgeConfig.get('key1')).resolves.toEqual(value);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${modifiedBaseUrl}/item/key1?version=1`,
+      {
+        headers: new Headers({
+          Authorization: 'Bearer token-2',
+          'x-edge-config-vercel-env': 'test',
+          'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+          'cache-control': 'stale-if-error=604800',
+        }),
+        cache: 'no-store',
+      },
+    );
+
+    // this should not result in a new request as get() should have primed has()
+    await expect(edgeConfig.has('key1')).resolves.toEqual(true);
+
+    // only one call to fetchMock as all keys should have been primed
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  describe('methods', () => {
+    it('get', async () => {
+      simulateNewRequestContext();
+      // use a complex object so we can test referential equality
+      const value: string[] = [];
+      fetchMock.mockResponse(JSON.stringify(value));
+
+      const aPromise = edgeConfig.get('key1');
+      await expect(aPromise).resolves.toEqual(value);
+
+      const bPromise = edgeConfig.get('key1');
+      await expect(bPromise).resolves.toEqual(value);
+
+      // returned result should not be referentially equal
+      const [a, b] = await Promise.all([aPromise, bPromise]);
+      expect(a).not.toBe(b);
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledWith(
+        `${modifiedBaseUrl}/item/key1?version=1`,
+        {
+          headers: new Headers({
+            Authorization: 'Bearer token-2',
+            'x-edge-config-vercel-env': 'test',
+            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
+          }),
+          cache: 'no-store',
+        },
+      );
+    });
+
+    it('getAll', async () => {
+      simulateNewRequestContext();
+      const items = {
+        key1: 'value1',
+        key2: 'value2',
+      };
+      fetchMock.mockResponse(JSON.stringify(items));
+
+      const aPromise = edgeConfig.getAll();
+      await expect(aPromise).resolves.toEqual(items);
+
+      const bPromise = edgeConfig.getAll();
+      await expect(bPromise).resolves.toEqual(items);
+
+      // returned result should not be referentially equal
+      const [a, b] = await Promise.all([aPromise, bPromise]);
+      expect(a).not.toBe(b);
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledWith(
+        `${modifiedBaseUrl}/items?version=1`,
+        {
+          headers: new Headers({
+            Authorization: 'Bearer token-2',
+            'x-edge-config-vercel-env': 'test',
+            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
+          }),
+          cache: 'no-store',
+        },
+      );
+    });
+
+    it('has', async () => {
+      simulateNewRequestContext();
+      fetchMock.mockResponse('');
+
+      await expect(edgeConfig.has('key1')).resolves.toEqual(true);
+      await expect(edgeConfig.has('key1')).resolves.toEqual(true);
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledWith(
+        `${modifiedBaseUrl}/item/key1?version=1`,
+        {
+          method: 'HEAD',
+          headers: new Headers({
+            Authorization: 'Bearer token-2',
+            'x-edge-config-vercel-env': 'test',
+            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
+          }),
+          cache: 'no-store',
+        },
+      );
+    });
+
+    it('digest', async () => {
+      simulateNewRequestContext();
+      const digest = 'awe1';
+      fetchMock.mockResponse(JSON.stringify(digest));
+
+      await expect(edgeConfig.digest()).resolves.toEqual(digest);
+      await expect(edgeConfig.digest()).resolves.toEqual(digest);
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledWith(
+        `${modifiedBaseUrl}/digest?version=1`,
+        {
+          headers: new Headers({
+            Authorization: 'Bearer token-2',
+            'x-edge-config-vercel-env': 'test',
+            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
+          }),
+          cache: 'no-store',
+        },
+      );
+    });
   });
 });

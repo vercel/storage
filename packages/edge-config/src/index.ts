@@ -52,7 +52,7 @@ type Loaders = ReturnType<typeof createLoaders>;
 
 function getLoadersInstance(
   options: Parameters<typeof createLoaders>[0],
-  cacheMap: WeakMap<RequestContext, Loaders>,
+  loadersInstanceCache: WeakMap<RequestContext, Loaders>,
 ): ReturnType<typeof createLoaders> {
   const requestContextStore =
     // @ts-expect-error -- this is a vercel primitive which might or might not be defined
@@ -64,17 +64,18 @@ function getLoadersInstance(
 
   // if we have requestContext we can use dataloader to cache and batch per request
   if (requestContext) {
-    console.log('has request context');
-    const cachedLoaders = cacheMap.get(requestContext);
+    console.log('checking requestContext');
+    const cachedLoaders = loadersInstanceCache.get(requestContext);
     if (cachedLoaders) {
+      console.log('found cached loaders instance');
       return cachedLoaders;
     }
 
+    console.log('found no cached loaders instance');
+
     const loaders = createLoaders(options);
-    cacheMap.set(requestContext, loaders);
+    loadersInstanceCache.set(requestContext, loaders);
     return loaders;
-  } else {
-    console.log('has no request context');
   }
 
   // there is no requestConext so we can not cache loader instances per request,

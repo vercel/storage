@@ -11,6 +11,16 @@ import * as pkg from './index';
 
 const sdkVersion = typeof pkgVersion === 'string' ? pkgVersion : '';
 
+function resetFetchMock(): void {
+  fetchMock.resetMocks();
+  // This ensures fetch throws when called without any mock
+  // By default fetchMock would return with an empty string instead, which
+  // is not a great default
+  fetchMock.mockImplementation(() => {
+    throw new Error('received fetch call but ran out of mocks');
+  });
+}
+
 describe('test conditions', () => {
   it('should have an env var called EDGE_CONFIG', () => {
     expect(process.env.EDGE_CONFIG).toEqual(
@@ -85,7 +95,7 @@ describe('when running without lambda layer or via edge function', () => {
   let edgeConfig: EdgeConfigClient;
 
   beforeEach(() => {
-    fetchMock.resetMocks();
+    resetFetchMock();
     cache.clear();
     edgeConfig = pkg.createClient(modifiedConnectionString);
   });
@@ -105,7 +115,7 @@ describe('when running without lambda layer or via edge function', () => {
   describe('get', () => {
     describe('when item exists', () => {
       it('should fetch using information from the passed token', async () => {
-        fetchMock.mockResponse(JSON.stringify('bar'));
+        fetchMock.mockResponseOnce(JSON.stringify('bar'));
 
         await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
 
@@ -129,7 +139,7 @@ describe('when running without lambda layer or via edge function', () => {
   describe('has(key)', () => {
     describe('when item exists', () => {
       it('should return true', async () => {
-        fetchMock.mockResponse('');
+        fetchMock.mockResponseOnce('');
 
         await expect(edgeConfig.has('foo')).resolves.toEqual(true);
 
@@ -154,7 +164,7 @@ describe('when running without lambda layer or via edge function', () => {
   describe('digest()', () => {
     describe('when the request succeeds', () => {
       it('should return the digest', async () => {
-        fetchMock.mockResponse(JSON.stringify('awe1'));
+        fetchMock.mockResponseOnce(JSON.stringify('awe1'));
 
         await expect(edgeConfig.digest()).resolves.toEqual('awe1');
 
@@ -183,7 +193,7 @@ describe('etags and If-None-Match', () => {
   let edgeConfig: EdgeConfigClient;
 
   beforeEach(() => {
-    fetchMock.resetMocks();
+    resetFetchMock();
     cache.clear();
     edgeConfig = pkg.createClient(modifiedConnectionString);
   });
@@ -244,7 +254,7 @@ describe('stale-if-error semantics', () => {
   let edgeConfig: EdgeConfigClient;
 
   beforeEach(() => {
-    fetchMock.resetMocks();
+    resetFetchMock();
     cache.clear();
     edgeConfig = pkg.createClient(modifiedConnectionString);
   });
@@ -343,7 +353,7 @@ describe('connectionStrings', () => {
     let edgeConfig: EdgeConfigClient;
 
     beforeEach(() => {
-      fetchMock.resetMocks();
+      resetFetchMock();
       cache.clear();
       edgeConfig = pkg.createClient(modifiedConnectionString);
     });
@@ -367,7 +377,7 @@ describe('connectionStrings', () => {
     describe('get', () => {
       describe('when item exists', () => {
         it('should fetch using information from the passed token', async () => {
-          fetchMock.mockResponse(JSON.stringify('bar'));
+          fetchMock.mockResponseOnce(JSON.stringify('bar'));
 
           await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
 
@@ -413,7 +423,7 @@ describe('dataloader', () => {
   let edgeConfig: EdgeConfigClient;
 
   beforeEach(() => {
-    fetchMock.resetMocks();
+    resetFetchMock();
     cache.clear();
     edgeConfig = pkg.createClient(modifiedConnectionString);
     resetRequestContext();
@@ -421,11 +431,11 @@ describe('dataloader', () => {
 
   it('caches reads per request', async () => {
     simulateNewRequestContext();
-    fetchMock.mockResponse(JSON.stringify('bar'));
+    fetchMock.mockResponseOnce(JSON.stringify('bar'));
 
     await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
     await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
-    fetchMock.mockResponse(JSON.stringify('baz'));
+    fetchMock.mockResponseOnce(JSON.stringify('baz'));
 
     // still bar as it's the same request
     await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
@@ -463,7 +473,7 @@ describe('dataloader', () => {
 
   it('returns objects with distinct references', async () => {
     simulateNewRequestContext();
-    fetchMock.mockResponse(JSON.stringify({}));
+    fetchMock.mockResponseOnce(JSON.stringify({}));
 
     const aPromise = edgeConfig.get('foo');
     const bPromise = edgeConfig.get('foo');
@@ -482,7 +492,7 @@ describe('dataloader', () => {
 
   it('batches reads of distinct keys', async () => {
     simulateNewRequestContext();
-    fetchMock.mockResponse(
+    fetchMock.mockResponseOnce(
       JSON.stringify({
         key1: 'value1',
         key2: 'value2',
@@ -547,6 +557,25 @@ describe('dataloader', () => {
 
     // only one call to fetchMock as all keys should have been primed
     expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // proof that it resets correctly
+    simulateNewRequestContext();
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        key1: 'value1',
+        key2: 'value2',
+      }),
+    );
+    await expect(edgeConfig.getAll()).resolves.toEqual({
+      key1: 'value1',
+      key2: 'value2',
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    simulateNewRequestContext();
+    fetchMock.mockResponseOnce('');
+    await expect(edgeConfig.has('key1')).resolves.toEqual(true);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it('uses the result of get() to prime has()', async () => {
@@ -583,7 +612,7 @@ describe('dataloader', () => {
         simulateNewRequestContext();
         // use a complex object so we can test referential equality
         const value: string[] = [];
-        fetchMock.mockResponse(JSON.stringify(value));
+        fetchMock.mockResponseOnce(JSON.stringify(value));
 
         const aPromise = edgeConfig.get('key1');
         await expect(aPromise).resolves.toEqual(value);
@@ -612,7 +641,7 @@ describe('dataloader', () => {
 
       it('handles when the item does not exist', async () => {
         simulateNewRequestContext();
-        fetchMock.mockResponse(
+        fetchMock.mockResponseOnce(
           JSON.stringify({
             error: {
               code: 'edge_config_item_not_found',
@@ -654,7 +683,7 @@ describe('dataloader', () => {
           key1: 'value1',
           key2: 'value2',
         };
-        fetchMock.mockResponse(JSON.stringify(items));
+        fetchMock.mockResponseOnce(JSON.stringify(items));
 
         const aPromise = edgeConfig.getAll();
         await expect(aPromise).resolves.toEqual(items);
@@ -684,7 +713,7 @@ describe('dataloader', () => {
       it('handles when some items exist', async () => {
         simulateNewRequestContext();
         const items = { key1: 'value1' };
-        fetchMock.mockResponse(JSON.stringify(items));
+        fetchMock.mockResponseOnce(JSON.stringify(items));
 
         // load for real
         await expect(edgeConfig.getAll()).resolves.toEqual(items);
@@ -716,7 +745,7 @@ describe('dataloader', () => {
     describe('has', () => {
       it('handles when the item exists', async () => {
         simulateNewRequestContext();
-        fetchMock.mockResponse('');
+        fetchMock.mockResponseOnce('');
 
         await expect(edgeConfig.has('key1')).resolves.toEqual(true);
         await expect(edgeConfig.has('key1')).resolves.toEqual(true);
@@ -740,7 +769,7 @@ describe('dataloader', () => {
       it('handles when the item does not exist', async () => {
         simulateNewRequestContext();
 
-        fetchMock.mockResponse('', {
+        fetchMock.mockResponseOnce('', {
           status: 404,
           headers: { 'x-edge-config-digest': 'awe1' },
         });
@@ -768,7 +797,7 @@ describe('dataloader', () => {
     it('digest', async () => {
       simulateNewRequestContext();
       const digest = 'awe1';
-      fetchMock.mockResponse(JSON.stringify(digest));
+      fetchMock.mockResponseOnce(JSON.stringify(digest));
 
       await expect(edgeConfig.digest()).resolves.toEqual(digest);
       await expect(edgeConfig.digest()).resolves.toEqual(digest);

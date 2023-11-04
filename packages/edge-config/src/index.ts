@@ -139,6 +139,11 @@ export function createClient(
       assertIsKeys(keys);
       const values = await loaders.get.loadMany(keys);
 
+      // since we know all keys now, we can prime the cache for individual keys
+      keys.forEach((key, index) => {
+        loaders.get.prime(key as string, values[index]);
+      });
+
       return clone(
         keys.reduce<T>((acc, key, index) => {
           acc[key] = values[index] as T[keyof T];

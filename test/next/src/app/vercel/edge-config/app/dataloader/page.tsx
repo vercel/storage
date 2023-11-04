@@ -41,7 +41,7 @@ export default async function Page(): Promise<JSX.Element> {
   const value1 = await localClient.get('someKey');
   const callsMiddle = calls;
 
-  const value2 = await localClient.get('someKey2');
+  const value2 = await localClient.get('someKey');
   const callsAfter = calls;
 
   await new Promise((resolve) => {

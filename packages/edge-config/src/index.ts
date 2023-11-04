@@ -65,10 +65,10 @@ function getLoadersInstance(
   // if we have requestContext we can use dataloader to cache and batch per request
   if (requestContext) {
     console.log('checking requestContext');
-    const cachedLoaders = loadersInstanceCache.get(requestContext);
-    if (cachedLoaders) {
+    const loadersInstance = loadersInstanceCache.get(requestContext);
+    if (loadersInstance) {
       console.log('found cached loaders instance');
-      return cachedLoaders;
+      return loadersInstance;
     }
 
     console.log('found no cached loaders instance');

@@ -713,27 +713,56 @@ describe('dataloader', () => {
       });
     });
 
-    it('has', async () => {
-      simulateNewRequestContext();
-      fetchMock.mockResponse('');
+    describe('has', () => {
+      it('handles when the item exists', async () => {
+        simulateNewRequestContext();
+        fetchMock.mockResponse('');
 
-      await expect(edgeConfig.has('key1')).resolves.toEqual(true);
-      await expect(edgeConfig.has('key1')).resolves.toEqual(true);
+        await expect(edgeConfig.has('key1')).resolves.toEqual(true);
+        await expect(edgeConfig.has('key1')).resolves.toEqual(true);
 
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-      expect(fetchMock).toHaveBeenCalledWith(
-        `${modifiedBaseUrl}/item/key1?version=1`,
-        {
-          method: 'HEAD',
-          headers: new Headers({
-            Authorization: 'Bearer token-2',
-            'x-edge-config-vercel-env': 'test',
-            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
-            'cache-control': 'stale-if-error=604800',
-          }),
-          cache: 'no-store',
-        },
-      );
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock).toHaveBeenCalledWith(
+          `${modifiedBaseUrl}/item/key1?version=1`,
+          {
+            method: 'HEAD',
+            headers: new Headers({
+              Authorization: 'Bearer token-2',
+              'x-edge-config-vercel-env': 'test',
+              'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
+            }),
+            cache: 'no-store',
+          },
+        );
+      });
+
+      it('handles when the item does not exist', async () => {
+        simulateNewRequestContext();
+
+        fetchMock.mockResponse('', {
+          status: 404,
+          headers: { 'x-edge-config-digest': 'awe1' },
+        });
+
+        await expect(edgeConfig.has('key1')).resolves.toEqual(false);
+        await expect(edgeConfig.has('key1')).resolves.toEqual(false);
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock).toHaveBeenCalledWith(
+          `${modifiedBaseUrl}/item/key1?version=1`,
+          {
+            method: 'HEAD',
+            headers: new Headers({
+              Authorization: 'Bearer token-2',
+              'x-edge-config-vercel-env': 'test',
+              'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
+            }),
+            cache: 'no-store',
+          },
+        );
+      });
     });
 
     it('digest', async () => {

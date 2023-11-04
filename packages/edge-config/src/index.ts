@@ -133,16 +133,20 @@ export function createClient(
     async getAll<T = EdgeConfigItems>(keys?: (keyof T)[]): Promise<T> {
       const loaders = getLoadersInstance(loaderOptions, loadersCacheMap);
       if (keys === undefined) {
-        return loaders.getAll.load('#').then(clone) as Promise<T>;
+        const items = (await loaders.getAll
+          .load('#')
+          .then(clone)) as Promise<T>;
+
+        // prime get() calls with the result of getAll()
+        Object.entries(items).forEach(([key, value]) => {
+          loaders.get.prime(key, value);
+        });
+
+        return items;
       }
 
       assertIsKeys(keys);
       const values = await loaders.get.loadMany(keys);
-
-      // since we know all keys now, we can prime the cache for individual keys
-      keys.forEach((key, index) => {
-        loaders.get.prime(key as string, values[index]);
-      });
 
       return clone(
         keys.reduce<T>((acc, key, index) => {

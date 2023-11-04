@@ -514,4 +514,39 @@ describe('dataloader', () => {
       },
     );
   });
+
+  it('uses the result of getAll() to prime individual keys', async () => {
+    simulateNewRequestContext();
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        key1: 'value1',
+        key2: 'value2',
+      }),
+    );
+
+    // prime the cache by calling getAll()
+    await expect(edgeConfig.getAll()).resolves.toEqual({
+      key1: 'value1',
+      key2: 'value2',
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${modifiedBaseUrl}/items?version=1`,
+      {
+        headers: new Headers({
+          Authorization: 'Bearer token-2',
+          'x-edge-config-vercel-env': 'test',
+          'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+          'cache-control': 'stale-if-error=604800',
+        }),
+        cache: 'no-store',
+      },
+    );
+
+    await expect(edgeConfig.get('key1')).resolves.toEqual('value1');
+    await expect(edgeConfig.get('key2')).resolves.toEqual('value2');
+
+    // only one call to fetchMock as all keys should have been primed
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });

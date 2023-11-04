@@ -464,6 +464,25 @@ describe('dataloader', () => {
     );
   });
 
+  it('returns objects with distinct references', async () => {
+    simulateNewRequestContext();
+    fetchMock.mockResponse(JSON.stringify({}));
+
+    const aPromise = edgeConfig.get('foo');
+    const bPromise = edgeConfig.get('foo');
+
+    await expect(aPromise).resolves.toEqual({});
+    await expect(bPromise).resolves.toEqual({});
+
+    // ensure dataloader kicked in
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    const a = await aPromise;
+    const b = await bPromise;
+    // ensure they do not have referential equality
+    expect(a).not.toBe(b);
+  });
+
   it('batches reads of distinct keys', async () => {
     simulateNewRequestContext();
     fetchMock.mockResponse(

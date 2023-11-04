@@ -1,5 +1,10 @@
 import { name as sdkName, version as sdkVersion } from '../package.json';
-import { assertIsKey, assertIsKeys, parseConnectionString } from './utils';
+import {
+  assertIsKey,
+  assertIsKeys,
+  clone,
+  parseConnectionString,
+} from './utils';
 import type {
   EdgeConfigClient,
   EdgeConfigItems,
@@ -117,18 +122,18 @@ export function createClient(
     async get<T = EdgeConfigValue>(key: string): Promise<T | undefined> {
       assertIsKey(key);
       const loaders = getLoadersInstance(loaderOptions, loadersCacheMap);
-      return loaders.get.load(key) as Promise<T>;
+      return loaders.get.load(key).then(clone) as Promise<T>;
     },
     async has(key): Promise<boolean> {
       assertIsKey(key);
       const loaders = getLoadersInstance(loaderOptions, loadersCacheMap);
       // this is a HEAD request anyhow, no need for fetchWithCachedResponse
-      return loaders.has.load(key);
+      return loaders.has.load(key).then(clone);
     },
     async getAll<T = EdgeConfigItems>(keys?: (keyof T)[]): Promise<T> {
       const loaders = getLoadersInstance(loaderOptions, loadersCacheMap);
       if (keys === undefined) {
-        return loaders.getAll.load('#') as Promise<T>;
+        return loaders.getAll.load('#').then(clone) as Promise<T>;
       }
 
       assertIsKeys(keys);
@@ -136,10 +141,12 @@ export function createClient(
         keys.map((key) => loaders.get.load(key as string)),
       );
 
-      return keys.reduce<T>((acc, key, index) => {
-        acc[key] = values[index] as T[keyof T];
-        return acc;
-      }, {} as T);
+      return clone(
+        keys.reduce<T>((acc, key, index) => {
+          acc[key] = values[index] as T[keyof T];
+          return acc;
+        }, {} as T),
+      );
     },
     async digest(): Promise<string> {
       const loaders = getLoadersInstance(loaderOptions, loadersCacheMap);

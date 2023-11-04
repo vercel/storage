@@ -2,7 +2,7 @@ import DataLoader from 'dataloader';
 import { readFile } from '@vercel/edge-config-fs';
 import type { Connection, EdgeConfigItems, EmbeddedEdgeConfig } from '../types';
 import { fetchWithCachedResponse } from './fetch-with-cached-response';
-import { clone, ERRORS, hasOwnProperty, isDynamicServerError } from '.';
+import { ERRORS, hasOwnProperty, isDynamicServerError } from '.';
 
 async function consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(
   res: Response,
@@ -137,7 +137,7 @@ export function createLoaders({
       const localEdgeConfig = await getFileSystemEdgeConfig(connection);
 
       if (localEdgeConfig) {
-        return [clone(localEdgeConfig.items)];
+        return [localEdgeConfig.items];
       }
 
       const edgeConfigItems = (await fetchWithCachedResponse(
@@ -179,7 +179,7 @@ export function createLoaders({
         // our original value, and so the reference changes.
         //
         // This makes it consistent with the real API.
-        return keys.map((key) => clone(localEdgeConfig.items[key]));
+        return keys.map((key) => localEdgeConfig.items[key]);
       }
 
       if (keys.length === 1) {

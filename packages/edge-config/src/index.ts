@@ -123,8 +123,8 @@ export function createClient(
       assertIsKey(key);
       const loaders = getLoadersInstance(loaderOptions, loadersCacheMap);
       return loaders.get.load(key).then((value) => {
-        // prime has()
-        loaders.has.prime(key, true);
+        // prime has() with the result of get()
+        loaders.has.prime(key, value !== undefined);
         return clone(value);
       }) as Promise<T>;
     },
@@ -144,7 +144,7 @@ export function createClient(
         // prime get() calls with the result of getAll()
         Object.entries(items).forEach(([key, value]) => {
           loaders.get.prime(key, value);
-          loaders.has.prime(key, true);
+          loaders.has.prime(key, value !== undefined);
         });
 
         return items;

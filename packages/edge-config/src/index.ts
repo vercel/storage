@@ -137,9 +137,7 @@ export function createClient(
       }
 
       assertIsKeys(keys);
-      const values = await Promise.all(
-        keys.map((key) => loaders.get.load(key as string)),
-      );
+      const values = await loaders.get.loadMany(keys);
 
       return clone(
         keys.reduce<T>((acc, key, index) => {

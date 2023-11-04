@@ -188,6 +188,9 @@ export function createClient(
       assertIsKeys(keys);
       const values = await loaders.get.loadMany(keys);
 
+      const error = values.find((v): v is Error => v instanceof Error);
+      if (error) throw error;
+
       return clone(
         keys.reduce<T>((acc, key, index) => {
           acc[key] = values[index] as T[keyof T];

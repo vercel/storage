@@ -1,21 +1,15 @@
 import http from 'node:http';
 import { performance } from 'node:perf_hooks';
+import type { AddressInfo } from 'node:net';
 import { createClient } from '@vercel/edge-config';
 import enableDestroy from 'server-destroy';
 
-const port = 8303;
-
 process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR = '1';
-
-const localClient = createClient(
-  `http://localhost:${port}/ecfg_fake?token=fake-token&version=1`,
-);
 
 export default async function Page(): Promise<JSX.Element> {
   process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR = '1';
 
   let calls = 0;
-
   let resolveRunning: ((value: number) => void) | null = null;
   const running = new Promise<number>((r) => {
     resolveRunning = r;
@@ -27,16 +21,26 @@ export default async function Page(): Promise<JSX.Element> {
       res.writeHead(200);
       res.end(JSON.stringify([Date.now(), calls], null, 3));
     })
-    .listen(port, 'localhost', () => {
+    .listen(0, 'localhost', () => {
       const address = server.address();
       if (address && typeof address !== 'string' && resolveRunning) {
         resolveRunning(address.port);
       }
     });
 
-  enableDestroy(server);
-
   await running;
+
+  const { port } = server.address() as AddressInfo;
+
+  // the client is created within the request as we need to know the port
+  // but creating the client within the request means the caching will
+  // automatically be reset per request, so we can not test this reset here.
+  // we can only test that it caches within a request.
+  const localClient = createClient(
+    `http://localhost:${port}/ecfg_fake?token=fake-token&version=1`,
+  );
+
+  enableDestroy(server);
 
   const callsBefore = calls;
   performance.mark('A');
@@ -57,7 +61,7 @@ export default async function Page(): Promise<JSX.Element> {
   });
 
   return (
-    <div>
+    <pre>
       {JSON.stringify(
         {
           value1,
@@ -71,6 +75,6 @@ export default async function Page(): Promise<JSX.Element> {
         null,
         2,
       )}
-    </div>
+    </pre>
   );
 }

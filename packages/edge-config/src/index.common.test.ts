@@ -189,7 +189,7 @@ describe('etags and If-None-Match', () => {
   });
 
   describe('when reading the same item twice', () => {
-    it('should reuse the response', async () => {
+    it('should reuse the response body', async () => {
       fetchMock.mockResponseOnce(JSON.stringify('bar'), {
         headers: { ETag: 'a' },
       });
@@ -387,5 +387,112 @@ describe('connectionStrings', () => {
         });
       });
     });
+  });
+});
+
+describe('dataloader', () => {
+  function simulateNewRequestContext(): void {
+    // referential equality of the returned store matters
+    // same reference means same request
+    const requestContext = {};
+    // @ts-expect-error -- this is a vercel primitive
+    globalThis[Symbol.for('@vercel/request-context')] = {
+      get: () => requestContext,
+    };
+  }
+
+  function resetRequestContext(): void {
+    // @ts-expect-error -- this is a vercel primitive
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete -- ok
+    delete globalThis[Symbol.for('@vercel/request-context')];
+  }
+
+  const modifiedConnectionString =
+    'https://edge-config.vercel.com/ecfg-2?token=token-2';
+  const modifiedBaseUrl = 'https://edge-config.vercel.com/ecfg-2';
+  let edgeConfig: EdgeConfigClient;
+
+  beforeEach(() => {
+    fetchMock.resetMocks();
+    cache.clear();
+    edgeConfig = pkg.createClient(modifiedConnectionString);
+  });
+
+  afterEach(() => {
+    resetRequestContext();
+  });
+
+  it('caches reads per request', async () => {
+    simulateNewRequestContext();
+    fetchMock.mockResponse(JSON.stringify('bar'));
+
+    await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
+    await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
+    fetchMock.mockResponse(JSON.stringify('baz'));
+
+    // still bar as it's the same request
+    await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${modifiedBaseUrl}/item/foo?version=1`,
+      {
+        headers: new Headers({
+          Authorization: 'Bearer token-2',
+          'x-edge-config-vercel-env': 'test',
+          'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+          'cache-control': 'stale-if-error=604800',
+        }),
+        cache: 'no-store',
+      },
+    );
+
+    simulateNewRequestContext();
+    await expect(edgeConfig.get('foo')).resolves.toEqual('baz');
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      `${modifiedBaseUrl}/item/foo?version=1`,
+      {
+        headers: new Headers({
+          Authorization: 'Bearer token-2',
+          'x-edge-config-vercel-env': 'test',
+          'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+          'cache-control': 'stale-if-error=604800',
+        }),
+        cache: 'no-store',
+      },
+    );
+  });
+
+  it('batches reads of distinct keys', async () => {
+    simulateNewRequestContext();
+    fetchMock.mockResponse(
+      JSON.stringify({
+        key1: 'value1',
+        key2: 'value2',
+      }),
+    );
+
+    // kick them off in the same tick so batching kicks in
+    // note that users could just use edgeConfig.getAll(["key1", "key2"]) instead
+    const a = edgeConfig.get('key1');
+    const b = edgeConfig.get('key2');
+
+    await expect(a).resolves.toEqual('value1');
+    await expect(b).resolves.toEqual('value2');
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${modifiedBaseUrl}/items?version=1&key=key1&key=key2`,
+      {
+        headers: new Headers({
+          Authorization: 'Bearer token-2',
+          'x-edge-config-vercel-env': 'test',
+          'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+          'cache-control': 'stale-if-error=604800',
+        }),
+        cache: 'no-store',
+      },
+    );
   });
 });

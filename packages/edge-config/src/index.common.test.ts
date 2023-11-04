@@ -684,7 +684,7 @@ describe('dataloader', () => {
       it('handles when some items exist', async () => {
         simulateNewRequestContext();
         const items = { key1: 'value1' };
-        fetchMock.mockResponseOnce(JSON.stringify(items));
+        fetchMock.mockResponse(JSON.stringify(items));
 
         // load for real
         await expect(edgeConfig.getAll()).resolves.toEqual(items);
@@ -692,6 +692,10 @@ describe('dataloader', () => {
         // reuse the results of getAll()
         await expect(edgeConfig.get('key1')).resolves.toEqual(items.key1);
         await expect(edgeConfig.has('key1')).resolves.toEqual(true);
+
+        // this key does not exist, but getAll() was called so we should know
+        await expect(edgeConfig.get('key2')).resolves.toBeUndefined();
+        await expect(edgeConfig.has('key2')).resolves.toEqual(false);
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(

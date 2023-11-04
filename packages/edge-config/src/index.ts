@@ -3,6 +3,7 @@ import {
   assertIsKey,
   assertIsKeys,
   clone,
+  hasOwnProperty,
   parseConnectionString,
 } from './utils';
 import type {
@@ -108,7 +109,7 @@ export function createClient(
     staleIfError: options.staleIfError,
   };
 
-  const loadersCacheMap = new WeakMap<RequestContext, Loaders>();
+  const loadersInstanceCache = new WeakMap<RequestContext, Loaders>();
 
   /**
    * While in development we use SWR-like behavior for the api client to
@@ -121,7 +122,26 @@ export function createClient(
   const api: Omit<EdgeConfigClient, 'connection'> = {
     async get<T = EdgeConfigValue>(key: string): Promise<T | undefined> {
       assertIsKey(key);
-      const loaders = getLoadersInstance(loaderOptions, loadersCacheMap);
+      const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
+
+      // if we loaded all edge config items before, we can short-circuit
+      //
+      // dataloader's priming would handle immediately returning true
+      // for keys we have seen when loading all items, but it would
+      // not support immediately returning false for keys we have not seen
+      // when loading all items
+      //
+      // so this is necessary to immediately return false for items we have not seen
+      //
+      // what we'd really need here is loaders.getAll.peek() to see if a value exists without
+      // having to actually fetch it. this would allow us to delete getAllEdgeConfigItems
+      const allEdgeConfigItems = loaders.getAllEdgeConfigItems();
+      if (allEdgeConfigItems) {
+        return hasOwnProperty(allEdgeConfigItems, key)
+          ? (allEdgeConfigItems[key] as T)
+          : undefined;
+      }
+
       return loaders.get.load(key).then((value) => {
         // prime has() with the result of get()
         loaders.has.prime(key, value !== undefined);
@@ -130,12 +150,29 @@ export function createClient(
     },
     async has(key): Promise<boolean> {
       assertIsKey(key);
-      const loaders = getLoadersInstance(loaderOptions, loadersCacheMap);
+      const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
+
+      // if we loaded all edge config items before, we can short-circuit
+      //
+      // dataloader's priming would handle immediately returning true
+      // for keys we have seen when loading all items, but it would
+      // not support immediately returning false for keys we have not seen
+      // when loading all items
+      //
+      // so this is necessary to immediately return false for items we have not seen
+      //
+      // what we'd really need here is loaders.getAll.peek() to see if a value exists without
+      // having to actually fetch it. this would allow us to delete getAllEdgeConfigItems
+      const allEdgeConfigItems = loaders.getAllEdgeConfigItems();
+      if (allEdgeConfigItems) {
+        return hasOwnProperty(allEdgeConfigItems, key);
+      }
+
       // this is a HEAD request anyhow, no need for fetchWithCachedResponse
       return loaders.has.load(key).then(clone);
     },
     async getAll<T = EdgeConfigItems>(keys?: (keyof T)[]): Promise<T> {
-      const loaders = getLoadersInstance(loaderOptions, loadersCacheMap);
+      const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
       if (keys === undefined) {
         const items = (await loaders.getAll
           .load('#')
@@ -161,7 +198,7 @@ export function createClient(
       );
     },
     async digest(): Promise<string> {
-      const loaders = getLoadersInstance(loaderOptions, loadersCacheMap);
+      const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
       return loaders.digest.load('#').then(clone);
     },
   };

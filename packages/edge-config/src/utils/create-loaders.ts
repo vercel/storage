@@ -53,6 +53,7 @@ export function createLoaders({
   getAll: DataLoader<string, EdgeConfigItems, string>;
   has: DataLoader<string, boolean, string>;
   digest: DataLoader<string, string, string>;
+  getAllEdgeConfigItems: () => EdgeConfigItems | null;
 } {
   const baseUrl = connection.baseUrl;
   const version = connection.version; // version of the edge config read access api we talk to
@@ -126,6 +127,9 @@ export function createLoaders({
     },
   );
 
+  let allEdgeConfigItems: EdgeConfigItems | null = null;
+
+  const getAllMap = new Map<string, Promise<EdgeConfigItems>>();
   const getAllLoader = new DataLoader(
     async (keys: readonly string[]) => {
       // as every edge config has a single "all" only, we use # as the key
@@ -137,6 +141,7 @@ export function createLoaders({
       const localEdgeConfig = await getFileSystemEdgeConfig(connection);
 
       if (localEdgeConfig) {
+        allEdgeConfigItems = localEdgeConfig.items;
         return [localEdgeConfig.items];
       }
 
@@ -148,15 +153,20 @@ export function createLoaders({
         },
       ).then(
         async (res) => {
-          if (res.ok) return res.json();
+          if (res.ok) {
+            allEdgeConfigItems = (await res.json()) as EdgeConfigItems;
+            return allEdgeConfigItems;
+          }
           await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
 
           if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
           // the /items endpoint never returns 404, so if we get a 404
           // it means the edge config itself did not exist
           if (res.status === 404) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-          if (res.cachedResponseBody !== undefined)
+          if (res.cachedResponseBody !== undefined) {
+            allEdgeConfigItems = res.cachedResponseBody as EdgeConfigItems;
             return res.cachedResponseBody;
+          }
           throw new Error(ERRORS.UNEXPECTED);
         },
         (error) => {
@@ -167,7 +177,7 @@ export function createLoaders({
 
       return [edgeConfigItems];
     },
-    { batchScheduleFn },
+    { batchScheduleFn, cacheMap: getAllMap },
   );
 
   const getLoader = new DataLoader(
@@ -295,5 +305,6 @@ export function createLoaders({
     getAll: getAllLoader,
     has: hasLoader,
     digest: digestLoader,
+    getAllEdgeConfigItems: () => allEdgeConfigItems,
   };
 }

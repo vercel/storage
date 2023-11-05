@@ -186,6 +186,30 @@ export function createClient(
       // this is a HEAD request anyhow, no need for fetchWithCachedResponse
       return loaders.has.load(key).then(clone);
     },
+    async getMany<T = EdgeConfigValue[]>(keys: string[]): Promise<T> {
+      const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
+
+      assertIsKeys(keys);
+      const values = (await loaders.get.loadMany(keys)) as (
+        | EdgeConfigValue
+        | undefined
+        | Error
+      )[];
+
+      // throw error in case the edge config could not be found
+      const error = values.find((v): v is Error => v instanceof Error);
+      if (error) throw error;
+
+      // prime get() and has() calls with the result of getMany()
+      keys.forEach((key, index) => {
+        if (!key) return;
+        const value = values[index];
+        loaders.get.prime(key, value);
+        loaders.has.prime(key, value !== undefined);
+      });
+
+      return clone(values) as T;
+    },
     async getAll<T = EdgeConfigItems>(keys?: (keyof T)[]): Promise<T> {
       const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
       if (keys === undefined) {
@@ -193,7 +217,7 @@ export function createClient(
           .load('#')
           .then(clone)) as Promise<T>;
 
-        // prime get() calls with the result of getAll()
+        // prime get() and has() calls with the result of getAll()
         Object.entries(items).forEach(([key, value]) => {
           loaders.get.prime(key, value);
           loaders.has.prime(key, value !== undefined);
@@ -205,6 +229,7 @@ export function createClient(
       assertIsKeys(keys);
       const values = await loaders.get.loadMany(keys);
 
+      // throw error in case the edge config could not be found
       const error = values.find((v): v is Error => v instanceof Error);
       if (error) throw error;
 
@@ -225,6 +250,7 @@ export function createClient(
     ? {
         connection,
         get: swr(api.get),
+        getMany: swr(api.getMany),
         getAll: swr(api.getAll),
         has: swr(api.has),
         digest: swr(api.digest),

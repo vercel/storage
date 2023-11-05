@@ -50,11 +50,11 @@ Throws on invalid tokens, deleted edge configs or network errors.
 ### Reading items in batch
 
 ```js
-import { getAll } from '@vercel/edge-config';
-await getAll(['keyA', 'keyB']);
+import { getMany } from '@vercel/edge-config';
+await getMany(['keyA', 'keyB']);
 ```
 
-Returns selected Edge Config items.
+Returns values of selected Edge Config items.
 Throws on invalid tokens, deleted edge configs or network errors.
 
 ### Default behaviour

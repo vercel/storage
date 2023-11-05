@@ -578,6 +578,62 @@ describe('dataloader', () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
+  it('uses the result of getMany() to prime get() and has()', async () => {
+    simulateNewRequestContext();
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        key1: 'value1',
+        key2: 'value2',
+      }),
+    );
+
+    // prime the cache by calling getAll()
+    await expect(edgeConfig.getMany(['key1', 'keyX', 'key2'])).resolves.toEqual(
+      ['value1', undefined, 'value2'],
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${modifiedBaseUrl}/items?version=1&key=key1&key=keyX&key=key2`,
+      {
+        headers: new Headers({
+          Authorization: 'Bearer token-2',
+          'x-edge-config-vercel-env': 'test',
+          'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+          'cache-control': 'stale-if-error=604800',
+        }),
+        cache: 'no-store',
+      },
+    );
+
+    await expect(edgeConfig.get('key1')).resolves.toEqual('value1');
+    await expect(edgeConfig.get('key2')).resolves.toEqual('value2');
+    await expect(edgeConfig.get('keyX')).resolves.toEqual(undefined);
+    await expect(edgeConfig.has('key1')).resolves.toEqual(true);
+    await expect(edgeConfig.has('key2')).resolves.toEqual(true);
+    await expect(edgeConfig.has('keyX')).resolves.toEqual(false);
+
+    // only one call to fetchMock as all keys should have been primed
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // proof that it resets correctly
+    simulateNewRequestContext();
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        key1: 'value1',
+        key2: 'value2',
+      }),
+    );
+    await expect(edgeConfig.getMany(['key1', 'keyX', 'key2'])).resolves.toEqual(
+      ['value1', undefined, 'value2'],
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    simulateNewRequestContext();
+    fetchMock.mockResponseOnce('');
+    await expect(edgeConfig.has('key1')).resolves.toEqual(true);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
   it('uses the result of get() to prime has()', async () => {
     simulateNewRequestContext();
     const value = 'value1';
@@ -673,6 +729,51 @@ describe('dataloader', () => {
         await expect(edgeConfig.has('key1')).resolves.toBe(false);
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe('getMany', () => {
+      it('handles when some items exist', async () => {
+        simulateNewRequestContext();
+        const items = {
+          // using an object so we can verify referential equality later
+          key1: { foo: 'value1' },
+          key2: 'value2',
+        };
+        fetchMock.mockResponseOnce(JSON.stringify(items));
+
+        const aPromise = edgeConfig.getMany(['key1', 'keyX', 'key2']);
+        await expect(aPromise).resolves.toEqual([
+          items.key1,
+          undefined,
+          items.key2,
+        ]);
+
+        const bPromise = edgeConfig.getMany(['key1', 'keyX', 'key2']);
+        await expect(bPromise).resolves.toEqual([
+          items.key1,
+          undefined,
+          items.key2,
+        ]);
+
+        // returned result should not be referentially equal
+        const [a, b] = await Promise.all([aPromise, bPromise]);
+        expect(a).not.toBe(b);
+        expect(a[0]).not.toBe(b[0]);
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock).toHaveBeenCalledWith(
+          `${modifiedBaseUrl}/items?version=1&key=key1&key=keyX&key=key2`,
+          {
+            headers: new Headers({
+              Authorization: 'Bearer token-2',
+              'x-edge-config-vercel-env': 'test',
+              'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
+            }),
+            cache: 'no-store',
+          },
+        );
       });
     });
 

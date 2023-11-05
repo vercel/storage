@@ -135,7 +135,7 @@ export function createClient(
     process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
 
   const api: Omit<EdgeConfigClient, 'connection'> = {
-    async get<T = EdgeConfigValue>(key: string): Promise<T | undefined> {
+    async get<T = EdgeConfigValue | undefined>(key: string): Promise<T> {
       assertIsKey(key);
       const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
 
@@ -152,6 +152,11 @@ export function createClient(
       // having to actually fetch it. this would allow us to delete getAllEdgeConfigItems
       const allEdgeConfigItems = loaders.getAllEdgeConfigItems();
       if (allEdgeConfigItems) {
+        // @ts-expect-error user may not pass a T which extends undefined, but
+        // undefined can always be returned so we need to expect an error here
+        //
+        // We do not want to properly type this as some users might want to
+        // rely on a specific value existing to avoid complexity in code and types.
         return hasOwnProperty(allEdgeConfigItems, key)
           ? (allEdgeConfigItems[key] as T)
           : undefined;
@@ -186,7 +191,9 @@ export function createClient(
       // this is a HEAD request anyhow, no need for fetchWithCachedResponse
       return loaders.has.load(key).then(clone);
     },
-    async getMany<T = EdgeConfigValue[]>(keys: string[]): Promise<T> {
+    async getMany<T = (EdgeConfigValue | undefined)[]>(
+      keys: string[],
+    ): Promise<T> {
       const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
 
       assertIsKeys(keys);

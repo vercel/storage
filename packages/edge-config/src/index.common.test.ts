@@ -593,7 +593,7 @@ describe('dataloader', () => {
     );
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith(
-      `${modifiedBaseUrl}/items?version=1&key=key1&key=keyX&key=key2`,
+      `${modifiedBaseUrl}/items?version=1&key=key1&key=key2&key=keyX`,
       {
         headers: new Headers({
           Authorization: 'Bearer token-2',
@@ -763,7 +763,7 @@ describe('dataloader', () => {
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(
-          `${modifiedBaseUrl}/items?version=1&key=key1&key=keyX&key=key2`,
+          `${modifiedBaseUrl}/items?version=1&key=key1&key=key2&key=keyX`,
           {
             headers: new Headers({
               Authorization: 'Bearer token-2',

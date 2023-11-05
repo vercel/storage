@@ -92,6 +92,7 @@ export function createLoaders({
       }
 
       return Promise.all(
+        // TODO introduce an endpoint for batch evaluating has()
         keys.map((key) => {
           return fetch(`${baseUrl}/item/${key}?version=${version}`, {
             method: 'HEAD',
@@ -142,6 +143,7 @@ export function createLoaders({
 
       if (localEdgeConfig) {
         allEdgeConfigItems = localEdgeConfig.items;
+        // returns an array as "#" is the only key
         return [localEdgeConfig.items];
       }
 
@@ -225,7 +227,8 @@ export function createLoaders({
       }
 
       const search = new URLSearchParams(
-        keys.map((key) => ['key', key] as [string, string]),
+        // sort keys to improve chance of ETag cache hits
+        [...keys].sort().map((key) => ['key', key] as [string, string]),
       ).toString();
 
       const edgeConfigItems = (await fetchWithCachedResponse(

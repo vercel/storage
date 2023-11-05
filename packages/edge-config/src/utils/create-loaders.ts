@@ -53,7 +53,7 @@ export function createLoaders({
   getAll: DataLoader<string, EdgeConfigItems, string>;
   has: DataLoader<string, boolean, string>;
   digest: DataLoader<string, string, string>;
-  getAllEdgeConfigItems: () => EdgeConfigItems | null;
+  getAllMap: Map<string, Promise<EdgeConfigItems>>;
 } {
   const baseUrl = connection.baseUrl;
   const version = connection.version; // version of the edge config read access api we talk to
@@ -128,8 +128,6 @@ export function createLoaders({
     },
   );
 
-  let allEdgeConfigItems: EdgeConfigItems | null = null;
-
   const getAllMap = new Map<string, Promise<EdgeConfigItems>>();
   const getAllLoader = new DataLoader(
     async (keys: readonly string[]) => {
@@ -142,7 +140,6 @@ export function createLoaders({
       const localEdgeConfig = await getFileSystemEdgeConfig(connection);
 
       if (localEdgeConfig) {
-        allEdgeConfigItems = localEdgeConfig.items;
         // returns an array as "#" is the only key
         return [localEdgeConfig.items];
       }
@@ -156,8 +153,7 @@ export function createLoaders({
       ).then(
         async (res) => {
           if (res.ok) {
-            allEdgeConfigItems = (await res.json()) as EdgeConfigItems;
-            return allEdgeConfigItems;
+            return (await res.json()) as EdgeConfigItems;
           }
           await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
 
@@ -166,7 +162,6 @@ export function createLoaders({
           // it means the edge config itself did not exist
           if (res.status === 404) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
           if (res.cachedResponseBody !== undefined) {
-            allEdgeConfigItems = res.cachedResponseBody as EdgeConfigItems;
             return res.cachedResponseBody;
           }
           throw new Error(ERRORS.UNEXPECTED);
@@ -308,6 +303,6 @@ export function createLoaders({
     getAll: getAllLoader,
     has: hasLoader,
     digest: digestLoader,
-    getAllEdgeConfigItems: () => allEdgeConfigItems,
+    getAllMap,
   };
 }

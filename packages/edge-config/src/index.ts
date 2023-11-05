@@ -147,19 +147,16 @@ export function createClient(
       // when loading all items
       //
       // so this is necessary to immediately return false for items we have not seen
-      //
-      // what we'd really need here is loaders.getAll.peek() to see if a value exists without
-      // having to actually fetch it. this would allow us to delete getAllEdgeConfigItems
-      const allEdgeConfigItems = loaders.getAllEdgeConfigItems();
-      if (allEdgeConfigItems) {
+      const allItemsPromise = loaders.getAllMap.get('#');
+      const allItems = allItemsPromise ? await allItemsPromise : null;
+
+      if (allItems) {
         // @ts-expect-error user may not pass a T which extends undefined, but
         // undefined can always be returned so we need to expect an error here
         //
         // We do not want to properly type this as some users might want to
         // rely on a specific value existing to avoid complexity in code and types.
-        return hasOwnProperty(allEdgeConfigItems, key)
-          ? (allEdgeConfigItems[key] as T)
-          : undefined;
+        return hasOwnProperty(allItems, key) ? (allItems[key] as T) : undefined;
       }
 
       return loaders.get.load(key).then((value) => {
@@ -180,13 +177,10 @@ export function createClient(
       // when loading all items
       //
       // so this is necessary to immediately return false for items we have not seen
-      //
-      // what we'd really need here is loaders.getAll.peek() to see if a value exists without
-      // having to actually fetch it. this would allow us to delete getAllEdgeConfigItems
-      const allEdgeConfigItems = loaders.getAllEdgeConfigItems();
-      if (allEdgeConfigItems) {
-        return hasOwnProperty(allEdgeConfigItems, key);
-      }
+      // this is not a loader but the loader map
+      const allItemsPromise = loaders.getAllMap.get('#');
+      const allItems = allItemsPromise ? await allItemsPromise : null;
+      if (allItems) return hasOwnProperty(allItems, key);
 
       // this is a HEAD request anyhow, no need for fetchWithCachedResponse
       return loaders.has.load(key).then(clone);

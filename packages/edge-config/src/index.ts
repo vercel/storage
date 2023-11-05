@@ -141,13 +141,17 @@ export function createClient(
 
       const allItemsPromise = loaders.getAllMap.get('#');
       if (allItemsPromise) {
-        const allItems = await allItemsPromise;
-        // @ts-expect-error user may not pass a T which extends undefined, but
-        // undefined can always be returned so we need to expect an error here
-        //
-        // We do not want to properly type this as some users might want to
-        // rely on a specific value existing to avoid complexity in code and types.
-        return hasOwnProperty(allItems, key) ? (allItems[key] as T) : undefined;
+        const allItems = await allItemsPromise.catch(() => null);
+        if (allItems) {
+          // @ts-expect-error user may not pass a T which extends undefined, but
+          // undefined can always be returned so we need to expect an error here
+          //
+          // We do not want to properly type this as some users might want to
+          // rely on a specific value existing to avoid complexity in code and types.
+          return hasOwnProperty(allItems, key)
+            ? (allItems[key] as T)
+            : undefined;
+        }
       }
 
       return loaders.get.load(key).then((value) => {
@@ -171,8 +175,8 @@ export function createClient(
       // this is not a loader but the loader map
       const allItemsPromise = loaders.getAllMap.get('#');
       if (allItemsPromise) {
-        const allItems = await allItemsPromise;
-        return hasOwnProperty(allItems, key);
+        const allItems = await allItemsPromise.catch(() => null);
+        if (allItems) return hasOwnProperty(allItems, key);
       }
 
       // this is a HEAD request anyhow, no need for fetchWithCachedResponse

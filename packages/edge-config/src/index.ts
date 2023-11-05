@@ -139,18 +139,9 @@ export function createClient(
       assertIsKey(key);
       const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
 
-      // if we loaded all edge config items before, we can short-circuit
-      //
-      // dataloader's priming would handle immediately returning true
-      // for keys we have seen when loading all items, but it would
-      // not support immediately returning false for keys we have not seen
-      // when loading all items
-      //
-      // so this is necessary to immediately return false for items we have not seen
       const allItemsPromise = loaders.getAllMap.get('#');
-      const allItems = allItemsPromise ? await allItemsPromise : null;
-
-      if (allItems) {
+      if (allItemsPromise) {
+        const allItems = await allItemsPromise;
         // @ts-expect-error user may not pass a T which extends undefined, but
         // undefined can always be returned so we need to expect an error here
         //
@@ -179,8 +170,10 @@ export function createClient(
       // so this is necessary to immediately return false for items we have not seen
       // this is not a loader but the loader map
       const allItemsPromise = loaders.getAllMap.get('#');
-      const allItems = allItemsPromise ? await allItemsPromise : null;
-      if (allItems) return hasOwnProperty(allItems, key);
+      if (allItemsPromise) {
+        const allItems = await allItemsPromise;
+        return hasOwnProperty(allItems, key);
+      }
 
       // this is a HEAD request anyhow, no need for fetchWithCachedResponse
       return loaders.has.load(key).then(clone);

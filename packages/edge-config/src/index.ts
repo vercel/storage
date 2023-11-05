@@ -36,6 +36,16 @@ interface EdgeConfigClientOptions {
    * The time is supplied in seconds. Defaults to one week (`604800`).
    */
   staleIfError?: number | false;
+  /**
+   * By default all Edge Config reads will be deduped and cached for duration
+   * of the current request when hosted on Vercel. This ensures that reads of
+   * the same key will return the same value for the duration of a request, and
+   * it also reduces latency as the result will be reused.
+   *
+   * You can disable this by passing `disableRequestContextCache: true` which
+   * will result in Edge Config being read every time.
+   */
+  disableRequestContextCache?: boolean;
 }
 
 interface RequestContextStore {
@@ -51,9 +61,13 @@ interface RequestContext {
 type Loaders = ReturnType<typeof createLoaders>;
 
 function getLoadersInstance(
-  options: Parameters<typeof createLoaders>[0],
+  options: Parameters<typeof createLoaders>[0] & {
+    disableRequestContextCache?: boolean;
+  },
   loadersInstanceCache: WeakMap<RequestContext, Loaders>,
 ): ReturnType<typeof createLoaders> {
+  if (options.disableRequestContextCache) return createLoaders(options);
+
   const requestContextStore =
     // @ts-expect-error -- this is a vercel primitive which might or might not be defined
     globalThis[Symbol.for('@vercel/request-context')] as
@@ -90,7 +104,10 @@ function getLoadersInstance(
  */
 export function createClient(
   connectionString: string | undefined,
-  options: EdgeConfigClientOptions = { staleIfError: 604800 /* one week */ },
+  options: EdgeConfigClientOptions = {
+    staleIfError: 604800 /* one week */,
+    disableRequestContextCache: false,
+  },
 ): EdgeConfigClient {
   if (!connectionString)
     throw new Error('@vercel/edge-config: No connection string provided');

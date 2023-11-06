@@ -58,11 +58,6 @@ export function createLoaders({
   getAll: DataLoader<string, EdgeConfigItems, string>;
   has: DataLoader<string, boolean, string>;
   digest: DataLoader<string, string, string>;
-  maps: {
-    getMap: Map<string, Promise<EdgeConfigValue | undefined>>;
-    getAllMap: Map<string, Promise<EdgeConfigItems>>;
-    hasMap: Map<string, Promise<boolean>>;
-  };
 } {
   const baseUrl = connection.baseUrl;
   const version = connection.version; // version of the edge config read access api we talk to
@@ -93,12 +88,25 @@ export function createLoaders({
       : undefined;
 
   const hasMap = new Map<string, Promise<boolean>>();
+  const getAllMap = new Map<string, Promise<EdgeConfigItems>>();
+  const getMap = new Map<string, Promise<EdgeConfigValue | undefined>>();
+
   const hasLoader = new DataLoader(
     async (keys: readonly string[]) => {
       const localEdgeConfig = await getFileSystemEdgeConfig(connection);
 
       if (localEdgeConfig) {
         return keys.map((key) => hasOwnProperty(localEdgeConfig.items, key));
+      }
+
+      const allItemsPromise = getAllMap.get('#');
+      if (allItemsPromise) {
+        try {
+          const allItems = await allItemsPromise;
+          return keys.map((key) => hasOwnProperty(allItems, key));
+        } catch {
+          /* ignored */
+        }
       }
 
       return Promise.all(
@@ -140,7 +148,6 @@ export function createLoaders({
     },
   );
 
-  const getAllMap = new Map<string, Promise<EdgeConfigItems>>();
   const getAllLoader = new DataLoader(
     async (keys: readonly string[]) => {
       // as every edge config has a single "all" only, we use # as the key
@@ -189,7 +196,6 @@ export function createLoaders({
     { batchScheduleFn, cacheMap: getAllMap },
   );
 
-  const getMap = new Map<string, Promise<EdgeConfigValue | undefined>>();
   const getLoader = new DataLoader<string, EdgeConfigValue | undefined, string>(
     async (keys: readonly string[]) => {
       const localEdgeConfig = await getFileSystemEdgeConfig(connection);
@@ -200,6 +206,18 @@ export function createLoaders({
         //
         // This makes it consistent with the real API.
         return keys.map((key) => localEdgeConfig.items[key]);
+      }
+
+      // if a getAll() is already in flight or resolved, we don't need to
+      // kick off a new get()
+      const allItemsPromise = getAllMap.get('#');
+      if (allItemsPromise) {
+        try {
+          const allItems = await allItemsPromise;
+          return keys.map((key) => allItems[key]);
+        } catch {
+          /* ignored */
+        }
       }
 
       if (keys.length === 1) {
@@ -316,10 +334,5 @@ export function createLoaders({
     getAll: getAllLoader,
     has: hasLoader,
     digest: digestLoader,
-    maps: {
-      getAllMap,
-      getMap,
-      hasMap,
-    },
   };
 }

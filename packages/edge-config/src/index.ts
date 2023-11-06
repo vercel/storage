@@ -1,10 +1,8 @@
-import any from 'promise.any';
 import { name as sdkName, version as sdkVersion } from '../package.json';
 import {
   assertIsKey,
   assertIsKeys,
   clone,
-  hasOwnProperty,
   parseConnectionString,
 } from './utils';
 import type {
@@ -94,25 +92,6 @@ function getLoadersInstance(
 }
 
 /**
- * This is like Promise.any(), in that it only takes settled promises into account,
- * but it also first filters out any `undefined` values before starting the race.
- */
-async function race<T>(
-  promises: (Promise<T> | undefined)[],
-): Promise<{ ok: false; value?: never } | { ok: true; value: T }> {
-  const racedPromises = promises.filter(
-    (p): p is Promise<T> => typeof p !== 'undefined',
-  );
-
-  if (racedPromises.length === 0) return { ok: false };
-
-  return any(racedPromises).then(
-    (value) => ({ ok: true, value }),
-    () => ({ ok: false }),
-  );
-}
-
-/**
  * Create an Edge Config client.
  *
  * The client has multiple methods which allow you to read the Edge Config.
@@ -159,24 +138,6 @@ export function createClient(
       assertIsKey(key);
       const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
 
-      // try to resolve early from getAll() unless get() is already in flight or
-      // primed. this avoids a situation where get() already has a value but
-      // getAll() was also called, so we would wait for getAll() even though
-      // get() already has a value
-      const allItemsPromise = loaders.maps.getAllMap.get('#');
-      const getPromise = loaders.maps.getMap.get('#');
-      if (allItemsPromise || getPromise) {
-        const { ok, value } = await race<EdgeConfigValue | undefined>([
-          allItemsPromise?.then((allItems) => allItems[key]),
-          getPromise,
-        ]);
-
-        if (ok) {
-          loaders.get.prime(key, value);
-          return value as T;
-        }
-      }
-
       return loaders.get.load(key).then((value) => {
         // prime has() with the result of get()
         loaders.has.prime(key, value !== undefined);
@@ -186,31 +147,6 @@ export function createClient(
     async has(key): Promise<boolean> {
       assertIsKey(key);
       const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
-
-      // if we loaded all edge config items before, we can short-circuit
-      //
-      // dataloader's priming would handle immediately returning true
-      // for keys we have seen when loading all items, but it would
-      // not support immediately returning false for keys we have not seen
-      // when loading all items
-      //
-      // so this is necessary to immediately return false for items we have not seen
-      // this is not a loader but the loader map
-      const hasPromise = loaders.maps.hasMap.get(key);
-      const allItemsPromise = loaders.maps.getAllMap.get('#');
-      const getPromise = loaders.maps.getMap.get('#');
-      if (hasPromise || allItemsPromise || getPromise) {
-        const { ok, value } = await race<boolean>([
-          hasPromise,
-          allItemsPromise?.then((allItems) => hasOwnProperty(allItems, key)),
-          getPromise?.then((v) => v !== undefined),
-        ]);
-
-        if (ok) {
-          loaders.has.prime(key, value);
-          return value;
-        }
-      }
 
       return loaders.has.load(key);
     },

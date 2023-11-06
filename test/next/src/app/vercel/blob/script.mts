@@ -18,19 +18,19 @@ console.log();
 
 async function run(): Promise<void> {
   const urls = await Promise.all([
-    // textFileExample(),
-    // textFileNoRandomSuffixExample(),
-    // textFileExampleWithCacheControlMaxAge(),
-    // imageExample(),
-    // videoExample(),
-    // webpageExample(),
-    // incomingMessageExample(),
-    // axiosExample(),
-    // gotExample(),
-    // fetchExample(),
-    // noExtensionExample(),
-    // weirdCharactersExample(),
-    // copyTextFile(),
+    textFileExample(),
+    textFileNoRandomSuffixExample(),
+    textFileExampleWithCacheControlMaxAge(),
+    imageExample(),
+    videoExample(),
+    webpageExample(),
+    incomingMessageExample(),
+    axiosExample(),
+    gotExample(),
+    fetchExample(),
+    noExtensionExample(),
+    weirdCharactersExample(),
+    copyTextFile(),
     listFolders(),
   ]);
 

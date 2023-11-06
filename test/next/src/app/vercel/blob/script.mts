@@ -18,19 +18,20 @@ console.log();
 
 async function run(): Promise<void> {
   const urls = await Promise.all([
-    textFileExample(),
-    textFileNoRandomSuffixExample(),
-    textFileExampleWithCacheControlMaxAge(),
-    imageExample(),
-    videoExample(),
-    webpageExample(),
-    incomingMessageExample(),
-    axiosExample(),
-    gotExample(),
-    fetchExample(),
-    noExtensionExample(),
-    weirdCharactersExample(),
-    copyTextFile(),
+    // textFileExample(),
+    // textFileNoRandomSuffixExample(),
+    // textFileExampleWithCacheControlMaxAge(),
+    // imageExample(),
+    // videoExample(),
+    // webpageExample(),
+    // incomingMessageExample(),
+    // axiosExample(),
+    // gotExample(),
+    // fetchExample(),
+    // noExtensionExample(),
+    // weirdCharactersExample(),
+    // copyTextFile(),
+    listFolders(),
   ]);
 
   await Promise.all(
@@ -273,4 +274,20 @@ async function copyTextFile() {
   await vercelBlob.del(blob.url);
 
   return copiedBlob.url;
+}
+
+async function listFolders() {
+  const start = Date.now();
+
+  const blob = await vercelBlob.put('foo/bar.txt', 'Hello, world!', {
+    access: 'public',
+  });
+
+  const response = await vercelBlob.list({
+    mode: 'folded',
+  });
+
+  console.log('fold blobs example:', response, `(${Date.now() - start}ms)`);
+
+  return blob.url;
 }

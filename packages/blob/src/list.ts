@@ -14,11 +14,18 @@ export interface ListBlobResultBlob {
   uploadedAt: Date;
 }
 
-export interface ListBlobResult {
+export interface ExpandedListBlobResult {
   blobs: ListBlobResultBlob[];
   cursor?: string;
   hasMore: boolean;
 }
+
+export interface FoldedListBlobResult extends ExpandedListBlobResult {
+  folders?: string[];
+}
+
+export type ListBlobResult<M extends ListCommandOptionsMode = 'expanded'> =
+  M extends 'folded' ? FoldedListBlobResult : ExpandedListBlobResult;
 
 interface ListBlobApiResponseBlob
   extends Omit<ListBlobResultBlob, 'uploadedAt'> {
@@ -27,22 +34,34 @@ interface ListBlobApiResponseBlob
 
 interface ListBlobApiResponse extends Omit<ListBlobResult, 'blobs'> {
   blobs: ListBlobApiResponseBlob[];
+  folders?: string[];
 }
 
-export interface ListCommandOptions extends BlobCommandOptions {
+type ListCommandOptionsMode = 'expanded' | 'folded';
+
+export interface ListCommandOptions<M extends ListCommandOptionsMode>
+  extends BlobCommandOptions {
   /**
    * The maximum number of blobs to return.
    * @defaultvalue 1000
    */
   limit?: number;
   /**
-   * Filters the result to only include blobs located in a certain folder inside your store.
+   * Filters the result to only include blobs that start with this prefix.
+   * If used together with `mode: 'folded'`, make sure to include a trailing slash after the foldername.
    */
   prefix?: string;
   /**
    * The cursor to use for pagination. Can be obtained from the response of a previous `list` request.
    */
   cursor?: string;
+  /**
+   * Defines how the blobs are listed
+   * - `expanded` the blobs response property contains all blobs.
+   * - `folded` the blobs response property contains only the blobs at the root level of the store. Blobs that are located inside a folder get merged into a single entry in the folder response property.
+   * @defaultvalue 'expanded'
+   */
+  mode?: M;
 }
 
 /**
@@ -51,9 +70,9 @@ export interface ListCommandOptions extends BlobCommandOptions {
  *
  * @param options - Additional options for the request.
  */
-export async function list(
-  options?: ListCommandOptions,
-): Promise<ListBlobResult> {
+export async function list<M extends ListCommandOptionsMode = 'expanded'>(
+  options?: ListCommandOptions<M>,
+): Promise<ListBlobResult<M>> {
   const listApiUrl = new URL(getApiUrl());
   if (options?.limit) {
     listApiUrl.searchParams.set('limit', options.limit.toString());
@@ -64,6 +83,10 @@ export async function list(
   if (options?.cursor) {
     listApiUrl.searchParams.set('cursor', options.cursor);
   }
+  if (options?.mode) {
+    listApiUrl.searchParams.set('mode', options.mode);
+  }
+
   const blobApiResponse = await fetch(listApiUrl, {
     method: 'GET',
     headers: {
@@ -77,12 +100,13 @@ export async function list(
   const results = (await blobApiResponse.json()) as ListBlobApiResponse;
 
   return {
-    ...results,
+    folders: results.folders,
+    cursor: results.cursor,
+    hasMore: results.hasMore,
     blobs: results.blobs.map(mapBlobResult),
-  };
+  } as ListBlobResult<M>;
 }
 
-function mapBlobResult(blobResult: ListBlobApiResponseBlob): ListBlobResultBlob;
 function mapBlobResult(
   blobResult: ListBlobApiResponseBlob,
 ): ListBlobResultBlob {

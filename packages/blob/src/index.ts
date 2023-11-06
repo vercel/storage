@@ -44,7 +44,7 @@ export type {
   ListBlobResultBlob,
   ListBlobResult,
   ListCommandOptions,
-  ListFoldedBlobResult as FoldedListBlobResult,
+  ListFoldedBlobResult,
 } from './list';
 export { list } from './list';
 

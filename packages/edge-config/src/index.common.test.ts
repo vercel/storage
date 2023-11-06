@@ -662,6 +662,45 @@ describe('dataloader', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('uses in-flight getAll() when resolving get()', async () => {
+    type Resolve = (value: Response | PromiseLike<Response>) => void;
+    simulateNewRequestContext();
+    let resolvePending: Resolve;
+
+    fetchMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolvePending = resolve;
+      }),
+    );
+
+    // we kick off a getAll() and a getMany() and we expect getMany() to be
+    // smart enough to wait for the result of getAll instead of kicking off
+    // its own request
+    const getAllPromise = edgeConfig.getAll();
+    const getManyPromise = edgeConfig.getMany(['key1', 'keyX', 'key2']);
+
+    // @ts-expect-error it is assigned here
+    resolvePending(
+      new Response(
+        JSON.stringify({
+          key1: 'value1',
+          key2: 'value2',
+        }),
+      ),
+    );
+
+    // prime the cache by calling getAll()
+    await expect(getManyPromise).resolves.toEqual([
+      'value1',
+      undefined,
+      'value2',
+    ]);
+
+    await getAllPromise;
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   describe('methods', () => {
     describe('get', () => {
       it('handles when the item exists', async () => {

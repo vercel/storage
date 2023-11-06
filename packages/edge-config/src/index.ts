@@ -75,6 +75,16 @@ interface EdgeConfigClientOptions {
    * The time is supplied in seconds. Defaults to one week (`604800`).
    */
   staleIfError?: number | false;
+  /**
+   * In development, a stale-while-revalidate cache is employed as the default caching strategy.
+   *
+   * This cache aims to deliver speedy Edge Config reads during development, though it comes
+   * at the cost of delayed visibility for updates to Edge Config. Typically, you may need to
+   * refresh twice to observe these changes as the stale value is replaced.
+   *
+   * This cache is not used in preview or production deployments as superior optimisations are applied there.
+   */
+  disableDevelopmentCache?: boolean;
 }
 
 /**
@@ -120,6 +130,7 @@ export function createClient(
    * reduce latency.
    */
   const shouldUseSwr =
+    !options.disableDevelopmentCache &&
     process.env.NODE_ENV === 'development' &&
     process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
 

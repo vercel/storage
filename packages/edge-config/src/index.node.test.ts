@@ -225,7 +225,7 @@ describe('default Edge Config', () => {
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(
-          `${baseUrl}/items?version=1&key=foo&key=bar`,
+          `${baseUrl}/items?version=1&key=bar&key=foo`,
           {
             headers: new Headers({
               Authorization: 'Bearer token-1',
@@ -257,7 +257,7 @@ describe('default Edge Config', () => {
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(
-          `${baseUrl}/items?version=1&key=foo&key=bar`,
+          `${baseUrl}/items?version=1&key=bar&key=foo`,
           {
             headers: new Headers({
               Authorization: 'Bearer token-1',

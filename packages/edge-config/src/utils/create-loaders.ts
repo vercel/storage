@@ -141,7 +141,7 @@ export function createLoaders({
     },
     {
       batchScheduleFn,
-      // disable batching until we have an endpoint to btch evaluate "has" calls,
+      // disable batching until we have an endpoint to batch evaluate "has" calls,
       // otherwise the slowest has call will currently delay all others
       maxBatchSize: 1,
       cacheMap: hasMap,

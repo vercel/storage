@@ -284,23 +284,7 @@ async function listFolders() {
   });
 
   const response = await vercelBlob.list({
-    cursor: '123',
-  });
-
-  const response2 = await vercelBlob.list();
-
-  const response3 = await vercelBlob.list({});
-
-  const response4 = await vercelBlob.list({
     mode: 'folded',
-  });
-
-  const respons52 = await vercelBlob.list({
-    mode: 'expanded',
-  });
-
-  const response6 = await vercelBlob.list({
-    mode: '',
   });
 
   console.log('fold blobs example:', response, `(${Date.now() - start}ms)`);

@@ -94,6 +94,7 @@ export function createLoaders({
       return Promise.all(
         // TODO introduce an endpoint for batch evaluating has()
         keys.map((key) => {
+          // this is a HEAD request anyhow, no need for fetchWithCachedResponse
           return fetch(`${baseUrl}/item/${key}?version=${version}`, {
             method: 'HEAD',
             headers: new Headers(headers),

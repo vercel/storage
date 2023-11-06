@@ -179,8 +179,7 @@ export function createClient(
         if (allItems) return hasOwnProperty(allItems, key);
       }
 
-      // this is a HEAD request anyhow, no need for fetchWithCachedResponse
-      return loaders.has.load(key).then(clone);
+      return loaders.has.load(key);
     },
     async getMany<T = (EdgeConfigValue | undefined)[]>(
       keys: string[],

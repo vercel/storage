@@ -45,7 +45,7 @@ export interface EdgeConfigClient {
    * Allows you to read selected keys of an Edge Config at once.
    *
    * @param keys - the keys to read
-   * @returns Returns the values for all given keys.
+   * @returns an array containing the value of each given key
    */
   getMany: <T = EdgeConfigValue[]>(keys: string[]) => Promise<T>;
   /**
@@ -54,7 +54,7 @@ export interface EdgeConfigClient {
    * Allows you to read all or only selected keys of an Edge Config at once.
    *
    * @param keys - the keys to read
-   * @returns Returns all entries when called with no arguments or only entries matching the given keys otherwise.
+   * @returns a subset of the Edge Config's items filtered by the given keys, or all items if no keys were provided
    */
   getAll: <T = EdgeConfigItems>(keys?: (keyof T)[]) => Promise<T>;
   /**

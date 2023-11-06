@@ -256,14 +256,29 @@ export const get: EdgeConfigClient['get'] = (...args) => {
 };
 
 /**
- * Reads multiple or all values.
+ * Reads multiple values as an array.
+ *
+ * This is a convenience method which reads the default Edge Config.
+ * It is conceptually similar to `createClient(process.env.EDGE_CONFIG).getMany()`.
+ *
+ * @see {@link EdgeConfigClient.getMany}
+ * @param keys - the keys to read
+ * @returns an array containing the value of each given key
+ */
+export const getMany: EdgeConfigClient['getMany'] = (...args) => {
+  init();
+  return defaultEdgeConfigClient.getMany(...args);
+};
+
+/**
+ * Reads multiple or all values as a record.
  *
  * This is a convenience method which reads the default Edge Config.
  * It is conceptually similar to `createClient(process.env.EDGE_CONFIG).getAll()`.
  *
  * @see {@link EdgeConfigClient.getAll}
  * @param keys - the keys to read
- * @returns the value stored under the given key, or undefined
+ * @returns a subset of the Edge Config's items filtered by the given keys, or all items if no keys were provided
  */
 export const getAll: EdgeConfigClient['getAll'] = (...args) => {
   init();

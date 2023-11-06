@@ -18,6 +18,7 @@ import type {
   EmbeddedEdgeConfig,
 } from './types';
 import { fetchWithCachedResponse } from './utils/fetch-with-cached-response';
+import { swr } from './utils/swr-fn';
 
 export {
   parseConnectionString,
@@ -73,7 +74,7 @@ interface EdgeConfigClientOptions {
    *
    * The time is supplied in seconds. Defaults to one week (`604800`).
    */
-  staleIfError: number | false;
+  staleIfError?: number | false;
 }
 
 /**
@@ -114,10 +115,18 @@ export function createClient(
   if (typeof options.staleIfError === 'number' && options.staleIfError > 0)
     headers['cache-control'] = `stale-if-error=${options.staleIfError}`;
 
-  return {
-    connection,
+  /**
+   * While in development we use SWR-like behavior for the api client to
+   * reduce latency.
+   */
+  const shouldUseSwr =
+    process.env.NODE_ENV === 'development' &&
+    process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
+
+  const api: Omit<EdgeConfigClient, 'connection'> = {
     async get<T = EdgeConfigValue>(key: string): Promise<T | undefined> {
       const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+
       if (localEdgeConfig) {
         assertIsKey(key);
 
@@ -161,6 +170,7 @@ export function createClient(
     },
     async has(key): Promise<boolean> {
       const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+
       if (localEdgeConfig) {
         assertIsKey(key);
         return Promise.resolve(hasOwnProperty(localEdgeConfig.items, key));
@@ -269,6 +279,16 @@ export function createClient(
       );
     },
   };
+
+  return shouldUseSwr
+    ? {
+        connection,
+        get: swr(api.get),
+        getAll: swr(api.getAll),
+        has: swr(api.has),
+        digest: swr(api.digest),
+      }
+    : { ...api, connection };
 }
 
 let defaultEdgeConfigClient: EdgeConfigClient;

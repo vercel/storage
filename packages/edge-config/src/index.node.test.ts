@@ -114,7 +114,7 @@ describe('default Edge Config', () => {
     });
 
     describe('when the edge config does not exist', () => {
-      it('should return undefined', async () => {
+      it('should throw', async () => {
         fetchMock.mockResponse(
           JSON.stringify({
             error: {
@@ -376,7 +376,7 @@ describe('default Edge Config', () => {
     });
 
     describe('when the edge config does not exist', () => {
-      it('should return false', async () => {
+      it('should throw', async () => {
         fetchMock.mockResponse(
           JSON.stringify({
             error: {

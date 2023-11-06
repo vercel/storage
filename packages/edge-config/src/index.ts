@@ -1,24 +1,18 @@
-import { readFile } from '@vercel/edge-config-fs';
 import { name as sdkName, version as sdkVersion } from '../package.json';
 import {
   assertIsKey,
   assertIsKeys,
   clone,
-  ERRORS,
-  hasOwnProperty,
-  isDynamicServerError,
   parseConnectionString,
-  pick,
 } from './utils';
 import type {
-  Connection,
   EdgeConfigClient,
   EdgeConfigItems,
   EdgeConfigValue,
   EmbeddedEdgeConfig,
 } from './types';
-import { fetchWithCachedResponse } from './utils/fetch-with-cached-response';
 import { swr } from './utils/swr-fn';
+import { createLoaders } from './utils/create-loaders';
 
 export {
   parseConnectionString,
@@ -27,40 +21,6 @@ export {
   type EdgeConfigValue,
   type EmbeddedEdgeConfig,
 };
-
-/**
- * Reads an Edge Config from the local file system.
- * This is used at runtime on serverless functions.
- */
-async function getFileSystemEdgeConfig(
-  connection: Connection,
-): Promise<EmbeddedEdgeConfig | null> {
-  // can't optimize non-vercel hosted edge configs
-  if (connection.type !== 'vercel') return null;
-  // can't use fs optimizations outside of lambda
-  if (!process.env.AWS_LAMBDA_FUNCTION_NAME) return null;
-
-  try {
-    const content = await readFile(
-      `/opt/edge-config/${connection.id}.json`,
-      'utf-8',
-    );
-    return JSON.parse(content) as EmbeddedEdgeConfig;
-  } catch {
-    return null;
-  }
-}
-
-async function consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(
-  res: Response,
-): Promise<void> {
-  if (typeof EdgeRuntime !== 'undefined') return;
-
-  // Read body to avoid memory leaks in nodejs
-  // see https://github.com/nodejs/undici/blob/v5.21.2/README.md#garbage-collection
-  // see https://github.com/node-fetch/node-fetch/issues/83
-  await res.arrayBuffer();
-}
 
 interface EdgeConfigClientOptions {
   /**
@@ -85,6 +45,60 @@ interface EdgeConfigClientOptions {
    * This cache is not used in preview or production deployments as superior optimisations are applied there.
    */
   disableDevelopmentCache?: boolean;
+  /**
+   * By default all Edge Config reads will be deduped and cached for duration
+   * of the current request when hosted on Vercel. This ensures that reads of
+   * the same key will return the same value for the duration of a request, and
+   * it also reduces latency as the result will be reused.
+   *
+   * You can disable this by passing `disableRequestContextCache: true` which
+   * will result in Edge Config being read every time.
+   */
+  disableRequestContextCache?: boolean;
+}
+
+interface RequestContextStore {
+  get: () => RequestContext;
+}
+
+interface RequestContext {
+  headers: Record<string, string | undefined>;
+  url: string;
+  waitUntil?: (promise: Promise<unknown>) => void;
+}
+
+type Loaders = ReturnType<typeof createLoaders>;
+
+function getLoadersInstance(
+  options: Parameters<typeof createLoaders>[0] & {
+    disableRequestContextCache?: boolean;
+  },
+  loadersInstanceCache: WeakMap<RequestContext, Loaders>,
+): ReturnType<typeof createLoaders> {
+  if (options.disableRequestContextCache) return createLoaders(options);
+
+  const requestContextStore =
+    // @ts-expect-error -- this is a vercel primitive which might or might not be defined
+    globalThis[Symbol.for('@vercel/request-context')] as
+      | RequestContextStore
+      | undefined;
+
+  const requestContext = requestContextStore?.get();
+
+  // if we have requestContext we can use dataloader to cache and batch per request
+  if (requestContext) {
+    const loadersInstance = loadersInstanceCache.get(requestContext);
+    if (loadersInstance) return loadersInstance;
+
+    const loaders = createLoaders(options);
+    loadersInstanceCache.set(requestContext, loaders);
+    return loaders;
+  }
+
+  // there is no requestConext so we can not cache loader instances per request,
+  // so we return a new instance every time effectively disabling dataloader
+  // batching and caching
+  return createLoaders(options);
 }
 
 /**
@@ -99,7 +113,10 @@ interface EdgeConfigClientOptions {
  */
 export function createClient(
   connectionString: string | undefined,
-  options: EdgeConfigClientOptions = { staleIfError: 604800 /* one week */ },
+  options: EdgeConfigClientOptions = {
+    staleIfError: 604800 /* one week */,
+    disableRequestContextCache: false,
+  },
 ): EdgeConfigClient {
   if (!connectionString)
     throw new Error('@vercel/edge-config: No connection string provided');
@@ -109,21 +126,14 @@ export function createClient(
   if (!connection)
     throw new Error('@vercel/edge-config: Invalid connection string provided');
 
-  const baseUrl = connection.baseUrl;
-  const version = connection.version; // version of the edge config read access api we talk to
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${connection.token}`,
+  const loaderOptions: Parameters<typeof getLoadersInstance>[0] = {
+    connection,
+    sdkName,
+    sdkVersion,
+    staleIfError: options.staleIfError,
   };
 
-  // eslint-disable-next-line @typescript-eslint/prefer-optional-chain -- [@vercel/style-guide@5 migration]
-  if (typeof process !== 'undefined' && process.env.VERCEL_ENV)
-    headers['x-edge-config-vercel-env'] = process.env.VERCEL_ENV;
-
-  if (typeof sdkName === 'string' && typeof sdkVersion === 'string')
-    headers['x-edge-config-sdk'] = `${sdkName}@${sdkVersion}`;
-
-  if (typeof options.staleIfError === 'number' && options.staleIfError > 0)
-    headers['cache-control'] = `stale-if-error=${options.staleIfError}`;
+  const loadersInstanceCache = new WeakMap<RequestContext, Loaders>();
 
   /**
    * While in development we use SWR-like behavior for the api client to
@@ -135,159 +145,75 @@ export function createClient(
     process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
 
   const api: Omit<EdgeConfigClient, 'connection'> = {
-    async get<T = EdgeConfigValue>(key: string): Promise<T | undefined> {
-      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
-
-      if (localEdgeConfig) {
-        assertIsKey(key);
-
-        // We need to return a clone of the value so users can't modify
-        // our original value, and so the reference changes.
-        //
-        // This makes it consistent with the real API.
-        return Promise.resolve(clone(localEdgeConfig.items[key]) as T);
-      }
-
+    async get<T = EdgeConfigValue | undefined>(key: string): Promise<T> {
       assertIsKey(key);
-      return fetchWithCachedResponse(
-        `${baseUrl}/item/${key}?version=${version}`,
-        {
-          headers: new Headers(headers),
-          cache: 'no-store',
-        },
-      ).then<T | undefined, undefined>(
-        async (res) => {
-          if (res.ok) return res.json();
-          await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+      const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
 
-          if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
-          if (res.status === 404) {
-            // if the x-edge-config-digest header is present, it means
-            // the edge config exists, but the item does not
-            if (res.headers.has('x-edge-config-digest')) return undefined;
-            // if the x-edge-config-digest header is not present, it means
-            // the edge config itself does not exist
-            throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-          }
-          if (res.cachedResponseBody !== undefined)
-            return res.cachedResponseBody as T;
-          throw new Error(ERRORS.UNEXPECTED);
-        },
-        (error) => {
-          if (isDynamicServerError(error)) throw error;
-          throw new Error(ERRORS.NETWORK);
-        },
-      );
+      return loaders.get.load(key).then((value) => {
+        // prime has() with the result of get()
+        loaders.has.prime(key, value !== undefined);
+        return clone(value);
+      }) as Promise<T>;
     },
     async has(key): Promise<boolean> {
-      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
-
-      if (localEdgeConfig) {
-        assertIsKey(key);
-        return Promise.resolve(hasOwnProperty(localEdgeConfig.items, key));
-      }
-
       assertIsKey(key);
-      // this is a HEAD request anyhow, no need for fetchWithCachedResponse
-      return fetch(`${baseUrl}/item/${key}?version=${version}`, {
-        method: 'HEAD',
-        headers: new Headers(headers),
-        cache: 'no-store',
-      }).then(
-        (res) => {
-          if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
-          if (res.status === 404) {
-            // if the x-edge-config-digest header is present, it means
-            // the edge config exists, but the item does not
-            if (res.headers.has('x-edge-config-digest')) return false;
-            // if the x-edge-config-digest header is not present, it means
-            // the edge config itself does not exist
-            throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-          }
-          if (res.ok) return true;
-          throw new Error(ERRORS.UNEXPECTED);
-        },
-        (error) => {
-          if (isDynamicServerError(error)) throw error;
-          throw new Error(ERRORS.NETWORK);
-        },
-      );
+      const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
+
+      return loaders.has.load(key);
+    },
+    async getMany<T = (EdgeConfigValue | undefined)[]>(
+      keys: string[],
+    ): Promise<T> {
+      const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
+
+      assertIsKeys(keys);
+      const values = await loaders.get.loadMany(keys);
+
+      // throw error in case the edge config could not be found
+      const error = values.find((v): v is Error => v instanceof Error);
+      if (error) throw error;
+
+      // prime get() and has() calls with the result of getMany()
+      keys.forEach((key, index) => {
+        if (!key) return;
+        const value = values[index];
+        loaders.get.prime(key, value);
+        loaders.has.prime(key, value !== undefined);
+      });
+
+      return clone(values) as T;
     },
     async getAll<T = EdgeConfigItems>(keys?: (keyof T)[]): Promise<T> {
-      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+      const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
+      if (keys === undefined) {
+        const items = await loaders.getAll.load('#').then(clone);
 
-      if (localEdgeConfig) {
-        if (keys === undefined) {
-          return Promise.resolve(clone(localEdgeConfig.items) as T);
-        }
+        // prime get() and has() calls with the result of getAll()
+        Object.entries(items).forEach(([key, value]) => {
+          loaders.get.prime(key, value);
+          loaders.has.prime(key, true);
+        });
 
-        assertIsKeys(keys);
-        return Promise.resolve(clone(pick(localEdgeConfig.items, keys)) as T);
+        return items as T;
       }
 
-      if (Array.isArray(keys)) assertIsKeys(keys);
+      assertIsKeys(keys);
+      const values = await loaders.get.loadMany(keys);
 
-      const search = Array.isArray(keys)
-        ? new URLSearchParams(
-            keys.map((key) => ['key', key] as [string, string]),
-          ).toString()
-        : null;
+      // throw error in case the edge config could not be found
+      const error = values.find((v): v is Error => v instanceof Error);
+      if (error) throw error;
 
-      // empty search keys array was given,
-      // so skip the request and return an empty object
-      if (search === '') return Promise.resolve({} as T);
-
-      return fetchWithCachedResponse(
-        `${baseUrl}/items?version=${version}${
-          search === null ? '' : `&${search}`
-        }`,
-        {
-          headers: new Headers(headers),
-          cache: 'no-store',
-        },
-      ).then<T>(
-        async (res) => {
-          if (res.ok) return res.json();
-          await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
-
-          if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
-          // the /items endpoint never returns 404, so if we get a 404
-          // it means the edge config itself did not exist
-          if (res.status === 404) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-          if (res.cachedResponseBody !== undefined)
-            return res.cachedResponseBody as T;
-          throw new Error(ERRORS.UNEXPECTED);
-        },
-        (error) => {
-          if (isDynamicServerError(error)) throw error;
-          throw new Error(ERRORS.NETWORK);
-        },
+      return clone(
+        keys.reduce<T>((acc, key, index) => {
+          acc[key] = values[index] as T[keyof T];
+          return acc;
+        }, {} as T),
       );
     },
     async digest(): Promise<string> {
-      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
-
-      if (localEdgeConfig) {
-        return Promise.resolve(localEdgeConfig.digest);
-      }
-
-      return fetchWithCachedResponse(`${baseUrl}/digest?version=${version}`, {
-        headers: new Headers(headers),
-        cache: 'no-store',
-      }).then(
-        async (res) => {
-          if (res.ok) return res.json() as Promise<string>;
-          await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
-
-          if (res.cachedResponseBody !== undefined)
-            return res.cachedResponseBody as string;
-          throw new Error(ERRORS.UNEXPECTED);
-        },
-        (error) => {
-          if (isDynamicServerError(error)) throw error;
-          throw new Error(ERRORS.NETWORK);
-        },
-      );
+      const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
+      return loaders.digest.load('#').then(clone);
     },
   };
 
@@ -295,6 +221,7 @@ export function createClient(
     ? {
         connection,
         get: swr(api.get),
+        getMany: swr(api.getMany),
         getAll: swr(api.getAll),
         has: swr(api.has),
         digest: swr(api.digest),

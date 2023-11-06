@@ -97,7 +97,7 @@ describe('default Edge Config', () => {
     });
 
     describe('when the edge config does not exist', () => {
-      it('should return undefined', async () => {
+      it('should throw', async () => {
         fetchMock.mockResponse(
           JSON.stringify({
             error: {
@@ -231,7 +231,10 @@ describe('default Edge Config', () => {
               message: 'Could not find the edge config: ecfg-1',
             },
           }),
-          { status: 404, headers: { 'content-type': 'application/json' } },
+          {
+            status: 404,
+            headers: { 'content-type': 'application/json' },
+          },
         );
 
         await expect(getAll(['foo', 'bar'])).rejects.toThrow(
@@ -359,7 +362,7 @@ describe('default Edge Config', () => {
     });
 
     describe('when the edge config does not exist', () => {
-      it('should return false', async () => {
+      it('should throw', async () => {
         fetchMock.mockResponse(
           JSON.stringify({
             error: {

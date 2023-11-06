@@ -588,8 +588,8 @@ describe('dataloader', () => {
     );
 
     // prime the cache by calling getAll()
-    await expect(edgeConfig.getMany(['key1', 'keyX', 'key2'])).resolves.toEqual(
-      ['value1', undefined, 'value2'],
+    await expect(edgeConfig.getMany(['key2', 'keyX', 'key1'])).resolves.toEqual(
+      ['value2', undefined, 'value1'],
     );
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith(

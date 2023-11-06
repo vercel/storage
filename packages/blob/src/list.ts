@@ -14,18 +14,15 @@ export interface ListBlobResultBlob {
   uploadedAt: Date;
 }
 
-export interface ExpandedListBlobResult {
+export interface ListBlobResult {
   blobs: ListBlobResultBlob[];
   cursor?: string;
   hasMore: boolean;
 }
 
-export interface FoldedListBlobResult extends ExpandedListBlobResult {
-  folders?: string[];
+export interface ListFoldedBlobResult extends ListBlobResult {
+  folders: string[];
 }
-
-export type ListBlobResult<M extends ListCommandOptionsMode = 'expanded'> =
-  M extends 'folded' ? FoldedListBlobResult : ExpandedListBlobResult;
 
 interface ListBlobApiResponseBlob
   extends Omit<ListBlobResultBlob, 'uploadedAt'> {
@@ -37,10 +34,7 @@ interface ListBlobApiResponse extends Omit<ListBlobResult, 'blobs'> {
   folders?: string[];
 }
 
-type ListCommandOptionsMode = 'expanded' | 'folded';
-
-export interface ListCommandOptions<M extends ListCommandOptionsMode>
-  extends BlobCommandOptions {
+interface ListBaseCommandOptions extends BlobCommandOptions {
   /**
    * The maximum number of blobs to return.
    * @defaultvalue 1000
@@ -55,24 +49,39 @@ export interface ListCommandOptions<M extends ListCommandOptionsMode>
    * The cursor to use for pagination. Can be obtained from the response of a previous `list` request.
    */
   cursor?: string;
+}
+
+export interface ListCommandOptions extends ListBaseCommandOptions {
   /**
    * Defines how the blobs are listed
    * - `expanded` the blobs response property contains all blobs.
    * - `folded` the blobs response property contains only the blobs at the root level of the store. Blobs that are located inside a folder get merged into a single entry in the folder response property.
    * @defaultvalue 'expanded'
    */
-  mode?: M;
+  mode?: 'expanded';
 }
 
-/**
- * Fetches a paginated list of blob objects from your store.
- * Detailed documentation can be found here: https://vercel.com/docs/storage/vercel-blob/using-blob-sdk#list-blobs
- *
- * @param options - Additional options for the request.
- */
-export async function list<M extends ListCommandOptionsMode = 'expanded'>(
-  options?: ListCommandOptions<M>,
-): Promise<ListBlobResult<M>> {
+export interface ListFoldedCommandOptions extends ListBaseCommandOptions {
+  /**
+   * Defines how the blobs are listed
+   * - `expanded` the blobs response property contains all blobs.
+   * - `folded` the blobs response property contains only the blobs at the root level of the store. Blobs that are located inside a folder get merged into a single entry in the folder response property.
+   * @defaultvalue 'expanded'
+   */
+  mode: 'folded';
+}
+
+export async function list(): Promise<ListBlobResult>;
+export async function list<
+  T extends ListCommandOptions | ListFoldedCommandOptions,
+>(
+  options: T,
+): Promise<
+  T extends ListFoldedCommandOptions ? ListFoldedBlobResult : ListBlobResult
+>;
+export async function list(
+  options?: ListCommandOptions | ListFoldedCommandOptions,
+): Promise<ListFoldedBlobResult | ListBlobResult> {
   const listApiUrl = new URL(getApiUrl());
   if (options?.limit) {
     listApiUrl.searchParams.set('limit', options.limit.toString());
@@ -104,7 +113,7 @@ export async function list<M extends ListCommandOptionsMode = 'expanded'>(
     cursor: results.cursor,
     hasMore: results.hasMore,
     blobs: results.blobs.map(mapBlobResult),
-  } as ListBlobResult<M>;
+  } as ListFoldedBlobResult | ListBlobResult;
 }
 
 function mapBlobResult(

@@ -45,7 +45,7 @@
     "prepublishOnly": "pnpm run build",
     "prettier-check": "prettier --check .",
     "publint": "npx publint",
-    "test": "pnpm run test:node && pnpm run test:edge && pnpm run test:browser",
+    "test": "pnpm run test:node && pnpm run test:edge && pnpm run  test:browser",
     "test:browser": "jest --env jsdom .browser.test.ts --setupFilesAfterEnv ./jest/setup.js",
     "test:edge": "jest --env @edge-runtime/jest-environment .edge.test.ts",
     "test:node": "jest --env node .node.test.ts",

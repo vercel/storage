@@ -60,23 +60,19 @@ export interface ListCommandOptions<
   mode?: M;
 }
 
+type ListCommandResult<
+  M extends 'expanded' | 'folded' | undefined = undefined,
+> = M extends 'folded' ? ListFoldedBlobResult : ListBlobResult;
+
 /**
  * Fetches a paginated list of blob objects from your store.
  * Detailed documentation can be found here: https://vercel.com/docs/storage/vercel-blob/using-blob-sdk#list-blobs
  *
  * @param options - Additional options for the request.
  */
-export async function list(): Promise<ListBlobResult>;
-
 export async function list<
   M extends 'expanded' | 'folded' | undefined = undefined,
->(
-  options: ListCommandOptions<M>,
-): Promise<M extends 'folded' ? ListFoldedBlobResult : ListBlobResult>;
-
-export async function list(
-  options?: ListCommandOptions<'expanded' | 'folded'>,
-): Promise<ListFoldedBlobResult | ListBlobResult> {
+>(options?: ListCommandOptions<M>): Promise<ListCommandResult<M>> {
   const listApiUrl = new URL(getApiUrl());
   if (options?.limit) {
     listApiUrl.searchParams.set('limit', options.limit.toString());
@@ -109,14 +105,14 @@ export async function list(
       cursor: results.cursor,
       hasMore: results.hasMore,
       blobs: results.blobs.map(mapBlobResult),
-    };
+    } as ListCommandResult<M>;
   }
 
   return {
     cursor: results.cursor,
     hasMore: results.hasMore,
     blobs: results.blobs.map(mapBlobResult),
-  };
+  } as ListCommandResult<M>;
 }
 
 function mapBlobResult(

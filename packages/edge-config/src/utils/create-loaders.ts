@@ -1,6 +1,11 @@
 import DataLoader from 'dataloader';
 import { readFile } from '@vercel/edge-config-fs';
-import type { Connection, EdgeConfigItems, EmbeddedEdgeConfig } from '../types';
+import type {
+  Connection,
+  EdgeConfigItems,
+  EdgeConfigValue,
+  EmbeddedEdgeConfig,
+} from '../types';
 import { fetchWithCachedResponse } from './fetch-with-cached-response';
 import { ERRORS, hasOwnProperty, isDynamicServerError } from '.';
 
@@ -49,11 +54,15 @@ export function createLoaders({
   sdkName?: string;
   staleIfError?: number | false;
 }): {
-  get: DataLoader<string, unknown, string>;
+  get: DataLoader<string, EdgeConfigValue | undefined, string>;
   getAll: DataLoader<string, EdgeConfigItems, string>;
   has: DataLoader<string, boolean, string>;
   digest: DataLoader<string, string, string>;
-  getAllMap: Map<string, Promise<EdgeConfigItems>>;
+  maps: {
+    getMap: Map<string, Promise<EdgeConfigValue | undefined>>;
+    getAllMap: Map<string, Promise<EdgeConfigItems>>;
+    hasMap: Map<string, Promise<boolean>>;
+  };
 } {
   const baseUrl = connection.baseUrl;
   const version = connection.version; // version of the edge config read access api we talk to
@@ -83,6 +92,7 @@ export function createLoaders({
       ? (callback) => setTimeout(callback, 0)
       : undefined;
 
+  const hasMap = new Map<string, Promise<boolean>>();
   const hasLoader = new DataLoader(
     async (keys: readonly string[]) => {
       const localEdgeConfig = await getFileSystemEdgeConfig(connection);
@@ -126,6 +136,7 @@ export function createLoaders({
       // disable batching until we have an endpoint to btch evaluate "has" calls,
       // otherwise the slowest has call will currently delay all others
       maxBatchSize: 1,
+      cacheMap: hasMap,
     },
   );
 
@@ -178,7 +189,8 @@ export function createLoaders({
     { batchScheduleFn, cacheMap: getAllMap },
   );
 
-  const getLoader = new DataLoader(
+  const getMap = new Map<string, Promise<EdgeConfigValue | undefined>>();
+  const getLoader = new DataLoader<string, EdgeConfigValue | undefined, string>(
     async (keys: readonly string[]) => {
       const localEdgeConfig = await getFileSystemEdgeConfig(connection);
 
@@ -254,7 +266,7 @@ export function createLoaders({
 
       return keys.map((key) => edgeConfigItems[key]);
     },
-    { batchScheduleFn },
+    { batchScheduleFn, cacheMap: getMap },
   );
 
   const digestLoader = new DataLoader(
@@ -304,6 +316,10 @@ export function createLoaders({
     getAll: getAllLoader,
     has: hasLoader,
     digest: digestLoader,
-    getAllMap,
+    maps: {
+      getAllMap,
+      getMap,
+      hasMap,
+    },
   };
 }

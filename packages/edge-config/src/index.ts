@@ -1,3 +1,4 @@
+import any from 'promise.any';
 import { name as sdkName, version as sdkVersion } from '../package.json';
 import {
   assertIsKey,
@@ -93,6 +94,25 @@ function getLoadersInstance(
 }
 
 /**
+ * This is like Promise.any(), in that it only takes settled promises into account,
+ * but it also first filters out any `undefined` values before starting the race.
+ */
+async function race<T>(
+  promises: (Promise<T> | undefined)[],
+): Promise<{ ok: false; value?: never } | { ok: true; value: T }> {
+  const racedPromises = promises.filter(
+    (p): p is Promise<T> => typeof p !== 'undefined',
+  );
+
+  if (racedPromises.length === 0) return { ok: false };
+
+  return any(racedPromises).then(
+    (value) => ({ ok: true, value }),
+    () => ({ ok: false }),
+  );
+}
+
+/**
  * Create an Edge Config client.
  *
  * The client has multiple methods which allow you to read the Edge Config.
@@ -139,18 +159,21 @@ export function createClient(
       assertIsKey(key);
       const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
 
-      const allItemsPromise = loaders.getAllMap.get('#');
-      if (allItemsPromise) {
-        const allItems = await allItemsPromise.catch(() => null);
-        if (allItems) {
-          // @ts-expect-error user may not pass a T which extends undefined, but
-          // undefined can always be returned so we need to expect an error here
-          //
-          // We do not want to properly type this as some users might want to
-          // rely on a specific value existing to avoid complexity in code and types.
-          return hasOwnProperty(allItems, key)
-            ? (allItems[key] as T)
-            : undefined;
+      // try to resolve early from getAll() unless get() is already in flight or
+      // primed. this avoids a situation where get() already has a value but
+      // getAll() was also called, so we would wait for getAll() even though
+      // get() already has a value
+      const allItemsPromise = loaders.maps.getAllMap.get('#');
+      const getPromise = loaders.maps.getMap.get('#');
+      if (allItemsPromise || getPromise) {
+        const { ok, value } = await race<EdgeConfigValue | undefined>([
+          allItemsPromise?.then((allItems) => allItems[key]),
+          getPromise,
+        ]);
+
+        if (ok) {
+          loaders.get.prime(key, value);
+          return value as T;
         }
       }
 
@@ -173,10 +196,20 @@ export function createClient(
       //
       // so this is necessary to immediately return false for items we have not seen
       // this is not a loader but the loader map
-      const allItemsPromise = loaders.getAllMap.get('#');
-      if (allItemsPromise) {
-        const allItems = await allItemsPromise.catch(() => null);
-        if (allItems) return hasOwnProperty(allItems, key);
+      const hasPromise = loaders.maps.hasMap.get(key);
+      const allItemsPromise = loaders.maps.getAllMap.get('#');
+      const getPromise = loaders.maps.getMap.get('#');
+      if (hasPromise || allItemsPromise || getPromise) {
+        const { ok, value } = await race<boolean>([
+          hasPromise,
+          allItemsPromise?.then((allItems) => hasOwnProperty(allItems, key)),
+          getPromise?.then((v) => v !== undefined),
+        ]);
+
+        if (ok) {
+          loaders.has.prime(key, value);
+          return value;
+        }
       }
 
       return loaders.has.load(key);
@@ -187,11 +220,7 @@ export function createClient(
       const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
 
       assertIsKeys(keys);
-      const values = (await loaders.get.loadMany(keys)) as (
-        | EdgeConfigValue
-        | undefined
-        | Error
-      )[];
+      const values = await loaders.get.loadMany(keys);
 
       // throw error in case the edge config could not be found
       const error = values.find((v): v is Error => v instanceof Error);
@@ -210,17 +239,15 @@ export function createClient(
     async getAll<T = EdgeConfigItems>(keys?: (keyof T)[]): Promise<T> {
       const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
       if (keys === undefined) {
-        const items = (await loaders.getAll
-          .load('#')
-          .then(clone)) as Promise<T>;
+        const items = await loaders.getAll.load('#').then(clone);
 
         // prime get() and has() calls with the result of getAll()
         Object.entries(items).forEach(([key, value]) => {
           loaders.get.prime(key, value);
-          loaders.has.prime(key, value !== undefined);
+          loaders.has.prime(key, true);
         });
 
-        return items;
+        return items as T;
       }
 
       assertIsKeys(keys);

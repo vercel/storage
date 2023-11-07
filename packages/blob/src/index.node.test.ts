@@ -314,6 +314,45 @@ describe('blob client', () => {
         ),
       );
     });
+
+    it('list should pass the mode param and return folders array', async () => {
+      let path: string | null = null;
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'GET',
+        })
+        .reply(200, (req) => {
+          path = req.path;
+          return {
+            blobs: [mockedFileMetaList],
+            folders: ['foo', 'bar'],
+            hasMore: false,
+          };
+        });
+
+      await expect(list({ mode: 'folded' })).resolves.toMatchInlineSnapshot(`
+        {
+          "blobs": [
+            {
+              "pathname": "foo.txt",
+              "size": 12345,
+              "uploadedAt": 2023-05-04T15:12:07.818Z,
+              "url": "https://storeId.public.blob.vercel-storage.com/foo-id.txt",
+            },
+          ],
+          "cursor": undefined,
+          "folders": [
+            "foo",
+            "bar",
+          ],
+          "hasMore": false,
+        }
+      `);
+
+      expect(path).toBe('/?mode=folded');
+    });
   });
 
   describe('put', () => {

@@ -77,7 +77,12 @@ export class VercelKV extends Redis {
 }
 
 export function createClient(config: RedisConfigNodejs): VercelKV {
-  return new VercelKV(config);
+  return new VercelKV({
+    // The Next.js team recommends no value or `default` for fetch requests's `cache` option
+    // upstash/redis defaults to `no-store`, so we enforce `default`
+    cache: 'default',
+    ...config,
+  });
 }
 
 // eslint-disable-next-line import/no-default-export -- [@vercel/style-guide@5 migration]

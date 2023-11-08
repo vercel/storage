@@ -397,9 +397,6 @@ importers:
       eslint:
         specifier: 8.52.0
         version: 8.52.0
-      eslint-config-prettier:
-        specifier: ^9.0.0
-        version: 9.0.0(eslint@8.52.0)
       eslint-config-turbo:
         specifier: 1.10.16
         version: 1.10.16(eslint@8.52.0)

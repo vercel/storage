@@ -21,8 +21,7 @@ export default function AppBodyClient({
       setBlob(blobResult);
       setContent(await fetch(blobResult.url).then((r) => r.text()));
     };
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    doUpload();
+    void doUpload();
   }, [filename, callback]);
   if (!blob || !content) return <div>Loading...</div>;
   return (

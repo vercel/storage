@@ -1,6 +1,6 @@
 {
   "name": "@vercel/blob",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "description": "The Vercel Blob JavaScript API client",
   "homepage": "https://vercel.com/storage/blob",
   "repository": {
@@ -57,14 +57,14 @@
   },
   "dependencies": {
     "jest-environment-jsdom": "29.7.0",
-    "undici": "5.26.4"
+    "undici": "5.27.0"
   },
   "devDependencies": {
-    "@edge-runtime/jest-environment": "2.3.5",
-    "@edge-runtime/types": "2.2.5",
-    "@types/jest": "29.5.6",
-    "@types/node": "18.18.6",
-    "eslint": "8.51.0",
+    "@edge-runtime/jest-environment": "2.3.6",
+    "@edge-runtime/types": "2.2.6",
+    "@types/jest": "29.5.7",
+    "@types/node": "20.8.10",
+    "eslint": "8.52.0",
     "eslint-config-custom": "workspace:*",
     "jest": "29.7.0",
     "ts-jest": "29.1.1",

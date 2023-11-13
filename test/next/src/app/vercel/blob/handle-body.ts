@@ -11,7 +11,7 @@ export async function handleBody(request: Request): Promise<NextResponse> {
       { message: 'No file to upload.' },
       {
         status: 400,
-      }
+      },
     );
   }
 
@@ -20,7 +20,7 @@ export async function handleBody(request: Request): Promise<NextResponse> {
       { message: 'Not authorized' },
       {
         status: 401,
-      }
+      },
     );
   }
 

@@ -3,12 +3,7 @@
 import type { PutBlobResult } from '@vercel/blob';
 import { useState } from 'react';
 
-// eslint-disable-next-line import/no-default-export
-export default function FormDataUpload({
-  action,
-}: {
-  action: string;
-}): JSX.Element {
+export function FormDataUpload({ action }: { action: string }): JSX.Element {
   const [blob, setBlob] = useState<PutBlobResult | null>(null);
 
   return (
@@ -17,7 +12,6 @@ export default function FormDataUpload({
         action={action}
         encType="multipart/form-data"
         method="POST"
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
         onSubmit={async (event): Promise<void> => {
           event.preventDefault();
 
@@ -40,7 +34,7 @@ export default function FormDataUpload({
           {blob.url.endsWith('.mp4') ? (
             <div>
               <hr />
-              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+              {/* eslint-disable-next-line jsx-a11y/media-has-caption -- no captions for tests, fine */}
               <video autoPlay controls>
                 <source src={blob.url} type="video/mp4" />
               </video>

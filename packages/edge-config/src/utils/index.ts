@@ -12,7 +12,7 @@ export const ERRORS = {
  */
 export function hasOwnProperty<X, Y extends PropertyKey>(
   obj: X,
-  prop: Y
+  prop: Y,
 ): obj is X & Record<Y, unknown> {
   return Object.prototype.hasOwnProperty.call(obj, prop);
 }
@@ -34,7 +34,7 @@ export function assertIsKey(key: unknown): asserts key is string {
 export function assertIsKeys(keys: unknown): asserts keys is string[] {
   if (!Array.isArray(keys) || keys.some((key) => typeof key !== 'string')) {
     throw new Error(
-      '@vercel/edge-config: Expected keys to be an array of string'
+      '@vercel/edge-config: Expected keys to be an array of string',
     );
   }
 }
@@ -110,7 +110,7 @@ function parseVercelConnectionString(text: string): Connection | null {
  * - https://example.com/<edgeConfigId>?token=<token>
  */
 function parseExternalConnectionString(
-  connectionString: string
+  connectionString: string,
 ): Connection | null {
   try {
     const url = new URL(connectionString);
@@ -152,7 +152,7 @@ function parseExternalConnectionString(
  * @returns The connection parsed from the given Connection String or null.
  */
 export function parseConnectionString(
-  connectionString: string
+  connectionString: string,
 ): Connection | null {
   const connection = parseVercelConnectionString(connectionString);
   if (connection) return connection;

@@ -1,5 +1,5 @@
 import { fetch } from 'undici';
-import type { BlobCommandOptions } from './helpers';
+import type { CreateBlobCommandOptions } from './helpers';
 import {
   BlobError,
   getApiUrl,
@@ -8,16 +8,8 @@ import {
   validateBlobApiResponse,
 } from './helpers';
 
-export interface CopyCommandOptions extends BlobCommandOptions {
-  access: 'public';
-  /**
-   * Adds a random suffix to the filename.
-   * @defaultvalue false
-   */
-  addRandomSuffix?: boolean;
-  contentType?: string;
-  cacheControlMaxAge?: number;
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-interface -- expose option interface for each API method for better extensibility in the future
+export interface CopyCommandOptions extends CreateBlobCommandOptions {}
 
 export interface CopyBlobResult {
   url: string;
@@ -27,7 +19,9 @@ export interface CopyBlobResult {
 }
 
 /**
- * Copy blob to another location in your store.
+ * Copies a blob to another location in your store.
+ * Detailed documentation can be found here: https://vercel.com/docs/storage/vercel-blob/using-blob-sdk#copy-a-blob
+ *
  * @param fromUrl - The blob URL to copy. You can only copy blobs that are in the store, that your 'BLOB_READ_WRITE_TOKEN' has access to.
  * @param toPathname - The pathname to copy the blob to. This includes the filename.
  * @param options - Additional options. The copy method will not preserve any metadata configuration (e.g.: 'cacheControlMaxAge') of the source blob. If you want to copy the metadata, you need to define it here again.
@@ -35,7 +29,7 @@ export interface CopyBlobResult {
 export async function copy(
   fromUrl: string,
   toPathname: string,
-  options: CopyCommandOptions
+  options: CopyCommandOptions,
 ): Promise<CopyBlobResult> {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX.
   if (!options) {
@@ -66,7 +60,7 @@ export async function copy(
 
   const blobApiResponse = await fetch(
     getApiUrl(`/${toPathname}?fromUrl=${fromUrl}`),
-    { method: 'PUT', headers }
+    { method: 'PUT', headers },
   );
 
   await validateBlobApiResponse(blobApiResponse);

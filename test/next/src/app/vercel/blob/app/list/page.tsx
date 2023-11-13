@@ -14,7 +14,7 @@ export default function AppList(): JSX.Element {
     async (
       cursor: string | null,
       prefix: string = searchPrefix,
-      reset = false
+      reset = false,
     ) => {
       const search = new URLSearchParams();
       search.set('limit', '10');
@@ -28,7 +28,7 @@ export default function AppList(): JSX.Element {
         setResult(undefined);
       }
       const data = (await fetch(`${API_ROOT}/list?${search.toString()}`).then(
-        (r) => r.json()
+        (r) => r.json(),
       )) as vercelBlob.ListBlobResult;
 
       setResult({
@@ -36,13 +36,13 @@ export default function AppList(): JSX.Element {
         blobs: cursor ? [...(result?.blobs || []), ...data.blobs] : data.blobs,
       });
     },
-    [result?.blobs, searchPrefix]
+    [result?.blobs, searchPrefix],
   );
 
   useEffect(() => {
     const doCall = async (): Promise<void> => {
       const data = (await fetch(`${API_ROOT}/list?limit=10`).then((r) =>
-        r.json()
+        r.json(),
       )) as vercelBlob.ListBlobResult;
       setResult(data);
     };
@@ -86,7 +86,9 @@ export default function AppList(): JSX.Element {
       <div className="flex gap-2">
         <input
           className="shadow appearance-none border rounded  py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          onChange={(e): void => setSearchPrefix(e.target.value)}
+          onChange={(e): void => {
+            setSearchPrefix(e.target.value);
+          }}
           placeholder="prefix"
           type="text"
           value={searchPrefix}

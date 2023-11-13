@@ -1,4 +1,4 @@
-import type { DatabaseConnection, Dialect, Driver } from 'kysely';
+import type { DatabaseConnection, Dialect, Driver, KyselyConfig } from 'kysely';
 import { PostgresDialect, PostgresDriver, Kysely } from 'kysely';
 import type { Pool } from '@neondatabase/serverless';
 import { createPool } from '@vercel/postgres';
@@ -30,7 +30,7 @@ class VercelPostgresPoolDriver extends PostgresDriver {
         if (p === 'streamQuery' && typeof original === 'function') {
           throw new VercelPostgresKyselyError(
             'kysely_streaming_not_supported',
-            'Streaming is not supported yet.'
+            'Streaming is not supported yet.',
           );
         }
         if (typeof original === 'function') {
@@ -44,30 +44,34 @@ class VercelPostgresPoolDriver extends PostgresDriver {
   beginTransaction(): Promise<void> {
     throw new VercelPostgresKyselyError(
       'kysely_transactions_not_supported',
-      'Transactions are not supported yet.'
+      'Transactions are not supported yet.',
     );
   }
 
   commitTransaction(): Promise<void> {
     throw new VercelPostgresKyselyError(
       'kysely_transactions_not_supported',
-      'Transactions are not supported yet.'
+      'Transactions are not supported yet.',
     );
   }
 
   rollbackTransaction(): Promise<void> {
     throw new VercelPostgresKyselyError(
       'kysely_transactions_not_supported',
-      'Transactions are not supported yet.'
+      'Transactions are not supported yet.',
     );
   }
 }
 
-export function createKysely<T>(config?: VercelPostgresPoolConfig): Kysely<T> {
+export function createKysely<T>(
+  poolConfig?: VercelPostgresPoolConfig,
+  kyselyConfig?: Partial<KyselyConfig>,
+): Kysely<T> {
   return new Kysely<T>({
+    ...kyselyConfig,
     dialect: new VercelPostgresDialect({
-      ...config,
-      pool: createPool(config),
+      ...poolConfig,
+      pool: createPool(poolConfig),
     }),
   });
 }

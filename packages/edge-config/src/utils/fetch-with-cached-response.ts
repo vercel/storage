@@ -16,14 +16,14 @@ interface ResponseWithCachedResponse extends Response {
  * Creates a new response based on a cache entry
  */
 function createResponse(
-  cachedResponseEntry: CachedResponseEntry
+  cachedResponseEntry: CachedResponseEntry,
 ): ResponseWithCachedResponse {
   return new Response(cachedResponseEntry.response, {
     headers: {
       ...cachedResponseEntry.headers,
       Age: String(
         // age header may not be 0 when serving stale content, must be >= 1
-        Math.max(1, Math.floor((Date.now() - cachedResponseEntry.time) / 1000))
+        Math.max(1, Math.floor((Date.now() - cachedResponseEntry.time) / 1000)),
       ),
     },
     status: cachedResponseEntry.status,
@@ -35,10 +35,10 @@ function createResponse(
  */
 function createHandleStaleIfError(
   cachedResponseEntry: CachedResponseEntry,
-  staleIfError: number | null
+  staleIfError: number | null,
 ) {
   return function handleStaleIfError(
-    response: ResponseWithCachedResponse
+    response: ResponseWithCachedResponse,
   ): ResponseWithCachedResponse {
     switch (response.status) {
       case 500:
@@ -60,10 +60,10 @@ function createHandleStaleIfError(
  */
 function createHandleStaleIfErrorException(
   cachedResponseEntry: CachedResponseEntry,
-  staleIfError: number | null
+  staleIfError: number | null,
 ) {
   return function handleStaleIfError(
-    reason: unknown
+    reason: unknown,
   ): ResponseWithCachedResponse {
     if (
       typeof staleIfError === 'number' &&
@@ -86,7 +86,7 @@ export const cache = new Map<string, CachedResponseEntry>();
 function extractStaleIfError(cacheControlHeader: string | null): number | null {
   if (!cacheControlHeader) return null;
   const matched = /stale-if-error=(?<staleIfError>\d+)/i.exec(
-    cacheControlHeader
+    cacheControlHeader,
   );
   return matched?.groups ? Number(matched.groups.staleIfError) : null;
 }
@@ -97,7 +97,7 @@ function extractStaleIfError(cacheControlHeader: string | null): number | null {
  */
 export async function fetchWithCachedResponse(
   url: string,
-  options: FetchOptions = {}
+  options: FetchOptions = {},
 ): Promise<ResponseWithCachedResponse> {
   const { headers: customHeaders = new Headers(), ...customOptions } = options;
   const authHeader = customHeaders.get('Authorization');
@@ -117,7 +117,7 @@ export async function fetchWithCachedResponse(
       headers,
     }).then(
       createHandleStaleIfError(cachedResponseEntry, staleIfError),
-      createHandleStaleIfErrorException(cachedResponseEntry, staleIfError)
+      createHandleStaleIfErrorException(cachedResponseEntry, staleIfError),
     );
 
     if (res.status === 304) {

@@ -1,5 +1,24 @@
 # @vercel/kv
 
+## 1.0.0
+
+### Major Changes
+
+- d85bb76: feat(kv): Switch to `default` for fetch `cache` option
+
+  BREAKING CHANGE: When using Next.js and vercel/kv, you may have kv requests and/or Next.js resources using kv being cached when you don't want them to.
+
+  If that's the case, then opt-out of caching with
+  https://nextjs.org/docs/app/api-reference/functions/unstable_noStore.
+
+  On the contrary, if you want to enforce caching of resources you can use https://nextjs.org/docs/app/api-reference/functions/unstable_cache.
+
+## 0.2.4
+
+### Patch Changes
+
+- c7b111c: fix(kv): upgrade upstash package to latest 1.24.3
+
 ## 0.2.3
 
 ### Patch Changes

@@ -42,7 +42,7 @@ export const sql = new Proxy(
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- [@vercel/style-guide@5 migration]
       return pool.sql(...argumentsList);
     },
-  }
+  },
 ) as unknown as VercelPool &
   (<O extends QueryResultRow>(
     strings: TemplateStringsArray,

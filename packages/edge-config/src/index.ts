@@ -18,6 +18,7 @@ import type {
   EmbeddedEdgeConfig,
 } from './types';
 import { fetchWithCachedResponse } from './utils/fetch-with-cached-response';
+import { swr } from './utils/swr-fn';
 
 export {
   parseConnectionString,
@@ -32,7 +33,7 @@ export {
  * This is used at runtime on serverless functions.
  */
 async function getFileSystemEdgeConfig(
-  connection: Connection
+  connection: Connection,
 ): Promise<EmbeddedEdgeConfig | null> {
   // can't optimize non-vercel hosted edge configs
   if (connection.type !== 'vercel') return null;
@@ -42,7 +43,7 @@ async function getFileSystemEdgeConfig(
   try {
     const content = await readFile(
       `/opt/edge-config/${connection.id}.json`,
-      'utf-8'
+      'utf-8',
     );
     return JSON.parse(content) as EmbeddedEdgeConfig;
   } catch {
@@ -51,7 +52,7 @@ async function getFileSystemEdgeConfig(
 }
 
 async function consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(
-  res: Response
+  res: Response,
 ): Promise<void> {
   if (typeof EdgeRuntime !== 'undefined') return;
 
@@ -73,7 +74,17 @@ interface EdgeConfigClientOptions {
    *
    * The time is supplied in seconds. Defaults to one week (`604800`).
    */
-  staleIfError: number | false;
+  staleIfError?: number | false;
+  /**
+   * In development, a stale-while-revalidate cache is employed as the default caching strategy.
+   *
+   * This cache aims to deliver speedy Edge Config reads during development, though it comes
+   * at the cost of delayed visibility for updates to Edge Config. Typically, you may need to
+   * refresh twice to observe these changes as the stale value is replaced.
+   *
+   * This cache is not used in preview or production deployments as superior optimisations are applied there.
+   */
+  disableDevelopmentCache?: boolean;
 }
 
 /**
@@ -88,7 +99,7 @@ interface EdgeConfigClientOptions {
  */
 export function createClient(
   connectionString: string | undefined,
-  options: EdgeConfigClientOptions = { staleIfError: 604800 /* one week */ }
+  options: EdgeConfigClientOptions = { staleIfError: 604800 /* one week */ },
 ): EdgeConfigClient {
   if (!connectionString)
     throw new Error('@vercel/edge-config: No connection string provided');
@@ -114,10 +125,19 @@ export function createClient(
   if (typeof options.staleIfError === 'number' && options.staleIfError > 0)
     headers['cache-control'] = `stale-if-error=${options.staleIfError}`;
 
-  return {
-    connection,
+  /**
+   * While in development we use SWR-like behavior for the api client to
+   * reduce latency.
+   */
+  const shouldUseSwr =
+    !options.disableDevelopmentCache &&
+    process.env.NODE_ENV === 'development' &&
+    process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
+
+  const api: Omit<EdgeConfigClient, 'connection'> = {
     async get<T = EdgeConfigValue>(key: string): Promise<T | undefined> {
       const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+
       if (localEdgeConfig) {
         assertIsKey(key);
 
@@ -134,7 +154,7 @@ export function createClient(
         {
           headers: new Headers(headers),
           cache: 'no-store',
-        }
+        },
       ).then<T | undefined, undefined>(
         async (res) => {
           if (res.ok) return res.json();
@@ -156,11 +176,12 @@ export function createClient(
         (error) => {
           if (isDynamicServerError(error)) throw error;
           throw new Error(ERRORS.NETWORK);
-        }
+        },
       );
     },
     async has(key): Promise<boolean> {
       const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+
       if (localEdgeConfig) {
         assertIsKey(key);
         return Promise.resolve(hasOwnProperty(localEdgeConfig.items, key));
@@ -189,7 +210,7 @@ export function createClient(
         (error) => {
           if (isDynamicServerError(error)) throw error;
           throw new Error(ERRORS.NETWORK);
-        }
+        },
       );
     },
     async getAll<T = EdgeConfigItems>(keys?: (keyof T)[]): Promise<T> {
@@ -208,7 +229,7 @@ export function createClient(
 
       const search = Array.isArray(keys)
         ? new URLSearchParams(
-            keys.map((key) => ['key', key] as [string, string])
+            keys.map((key) => ['key', key] as [string, string]),
           ).toString()
         : null;
 
@@ -223,7 +244,7 @@ export function createClient(
         {
           headers: new Headers(headers),
           cache: 'no-store',
-        }
+        },
       ).then<T>(
         async (res) => {
           if (res.ok) return res.json();
@@ -240,7 +261,7 @@ export function createClient(
         (error) => {
           if (isDynamicServerError(error)) throw error;
           throw new Error(ERRORS.NETWORK);
-        }
+        },
       );
     },
     async digest(): Promise<string> {
@@ -265,10 +286,20 @@ export function createClient(
         (error) => {
           if (isDynamicServerError(error)) throw error;
           throw new Error(ERRORS.NETWORK);
-        }
+        },
       );
     },
   };
+
+  return shouldUseSwr
+    ? {
+        connection,
+        get: swr(api.get),
+        getAll: swr(api.getAll),
+        has: swr(api.has),
+        digest: swr(api.digest),
+      }
+    : { ...api, connection };
 }
 
 let defaultEdgeConfigClient: EdgeConfigClient;

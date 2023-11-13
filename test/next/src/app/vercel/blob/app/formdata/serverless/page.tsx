@@ -1,6 +1,6 @@
 'use client';
 
-import FormDataUpload from '../../../form-data-upload';
+import { FormDataUpload } from '../../../form-data-upload';
 
 export default function AppFormDataServerless(): JSX.Element {
   return (

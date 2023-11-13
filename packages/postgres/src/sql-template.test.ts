@@ -28,7 +28,7 @@ describe('sql', () => {
     'should return a query and params',
     ({ input, output }) => {
       expect(input).toEqual(output);
-    }
+    },
   );
   it('throws when accidentally not used as a tagged literal', () => {
     const likes = 100;

@@ -7,7 +7,7 @@ export default async function Page(): Promise<JSX.Element> {
 
   if (value !== 'valueForTest')
     throw new Error(
-      "Expected Edge Config Item 'keyForTest' to have value 'valueForTest'"
+      "Expected Edge Config Item 'keyForTest' to have value 'valueForTest'",
     );
 
   return <pre>{JSON.stringify(value, null, 2)}</pre>;

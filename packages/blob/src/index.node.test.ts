@@ -53,10 +53,10 @@ describe('blob client', () => {
               }
           `);
       expect(path).toEqual(
-        '/?url=https%3A%2F%2FstoreId.public.blob.vercel-storage.com%2Ffoo-id.txt'
+        '/?url=https%3A%2F%2FstoreId.public.blob.vercel-storage.com%2Ffoo-id.txt',
       );
       expect(headers.authorization).toEqual(
-        'Bearer vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678'
+        'Bearer vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678',
       );
     });
 
@@ -69,7 +69,7 @@ describe('blob client', () => {
         .reply(404, { error: { code: 'not_found', message: 'Not found' } });
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
-        new Error('Vercel Blob: The requested blob does not exist')
+        new Error('Vercel Blob: The requested blob does not exist'),
       );
     });
 
@@ -83,8 +83,8 @@ describe('blob client', () => {
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
-          'Vercel Blob: Access denied, please provide a valid token for this resource'
-        )
+          'Vercel Blob: Access denied, please provide a valid token for this resource',
+        ),
       );
     });
 
@@ -98,8 +98,8 @@ describe('blob client', () => {
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
-          'Vercel Blob: Unknown error, please visit https://vercel.com/help'
-        )
+          'Vercel Blob: Unknown error, please visit https://vercel.com/help',
+        ),
       );
     });
 
@@ -108,8 +108,8 @@ describe('blob client', () => {
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
-          'Vercel Blob: No token found. Either configure the `BLOB_READ_WRITE_TOKEN` environment variable, or pass a `token` option to your calls.'
-        )
+          'Vercel Blob: No token found. Either configure the `BLOB_READ_WRITE_TOKEN` environment variable, or pass a `token` option to your calls.',
+        ),
       );
     });
 
@@ -122,7 +122,7 @@ describe('blob client', () => {
         .reply(403, { error: { code: 'store_suspended' } });
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
-        new Error('Vercel Blob: This store has been suspended')
+        new Error('Vercel Blob: This store has been suspended'),
       );
     });
 
@@ -135,7 +135,7 @@ describe('blob client', () => {
         .reply(403, { error: { code: 'store_not_found' } });
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
-        new Error('Vercel Blob: This store does not exist')
+        new Error('Vercel Blob: This store does not exist'),
       );
     });
   });
@@ -158,15 +158,15 @@ describe('blob client', () => {
         });
 
       await expect(
-        del(`${BLOB_STORE_BASE_URL}/foo-id.txt`)
+        del(`${BLOB_STORE_BASE_URL}/foo-id.txt`),
       ).resolves.toBeUndefined();
 
       expect(path).toEqual('/delete');
       expect(headers.authorization).toEqual(
-        'Bearer vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678'
+        'Bearer vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678',
       );
       expect(body).toMatchInlineSnapshot(
-        `"{"urls":["https://storeId.public.blob.vercel-storage.com/foo-id.txt"]}"`
+        `"{"urls":["https://storeId.public.blob.vercel-storage.com/foo-id.txt"]}"`,
       );
     });
 
@@ -190,14 +190,14 @@ describe('blob client', () => {
         del([
           `${BLOB_STORE_BASE_URL}/foo-id1.txt`,
           `${BLOB_STORE_BASE_URL}/foo-id2.txt`,
-        ])
+        ]),
       ).resolves.toBeUndefined();
       expect(path).toEqual('/delete');
       expect(headers.authorization).toEqual(
-        'Bearer vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678'
+        'Bearer vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678',
       );
       expect(body).toMatchInlineSnapshot(
-        `"{"urls":["https://storeId.public.blob.vercel-storage.com/foo-id1.txt","https://storeId.public.blob.vercel-storage.com/foo-id2.txt"]}"`
+        `"{"urls":["https://storeId.public.blob.vercel-storage.com/foo-id1.txt","https://storeId.public.blob.vercel-storage.com/foo-id2.txt"]}"`,
       );
     });
 
@@ -211,8 +211,8 @@ describe('blob client', () => {
 
       await expect(del(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
-          'Vercel Blob: Access denied, please provide a valid token for this resource'
-        )
+          'Vercel Blob: Access denied, please provide a valid token for this resource',
+        ),
       );
     });
 
@@ -226,8 +226,8 @@ describe('blob client', () => {
 
       await expect(del(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
-          'Vercel Blob: Unknown error, please visit https://vercel.com/help'
-        )
+          'Vercel Blob: Unknown error, please visit https://vercel.com/help',
+        ),
       );
     });
   });
@@ -259,7 +259,7 @@ describe('blob client', () => {
         });
 
       await expect(
-        list({ cursor: 'cursor-abc', limit: 10, prefix: 'test-prefix' })
+        list({ cursor: 'cursor-abc', limit: 10, prefix: 'test-prefix' }),
       ).resolves.toMatchInlineSnapshot(`
         {
           "blobs": [
@@ -282,7 +282,7 @@ describe('blob client', () => {
       `);
       expect(path).toBe('/?limit=10&prefix=test-prefix&cursor=cursor-abc');
       expect(headers.authorization).toEqual(
-        'Bearer vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678'
+        'Bearer vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678',
       );
     });
 
@@ -296,8 +296,8 @@ describe('blob client', () => {
 
       await expect(list()).rejects.toThrow(
         new Error(
-          'Vercel Blob: Access denied, please provide a valid token for this resource'
-        )
+          'Vercel Blob: Access denied, please provide a valid token for this resource',
+        ),
       );
     });
 
@@ -310,9 +310,48 @@ describe('blob client', () => {
         .reply(500, 'Invalid token');
       await expect(list()).rejects.toThrow(
         new Error(
-          'Vercel Blob: Unknown error, please visit https://vercel.com/help'
-        )
+          'Vercel Blob: Unknown error, please visit https://vercel.com/help',
+        ),
       );
+    });
+
+    it('list should pass the mode param and return folders array', async () => {
+      let path: string | null = null;
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'GET',
+        })
+        .reply(200, (req) => {
+          path = req.path;
+          return {
+            blobs: [mockedFileMetaList],
+            folders: ['foo', 'bar'],
+            hasMore: false,
+          };
+        });
+
+      await expect(list({ mode: 'folded' })).resolves.toMatchInlineSnapshot(`
+        {
+          "blobs": [
+            {
+              "pathname": "foo.txt",
+              "size": 12345,
+              "uploadedAt": 2023-05-04T15:12:07.818Z,
+              "url": "https://storeId.public.blob.vercel-storage.com/foo-id.txt",
+            },
+          ],
+          "cursor": undefined,
+          "folders": [
+            "foo",
+            "bar",
+          ],
+          "hasMore": false,
+        }
+      `);
+
+      expect(path).toBe('/?mode=folded');
     });
   });
 
@@ -344,7 +383,7 @@ describe('blob client', () => {
         put('foo.txt', 'Test Body', {
           access: 'public',
           token: 'NEW_TOKEN',
-        })
+        }),
       ).resolves.toMatchInlineSnapshot(`
         {
           "contentDisposition": "attachment; filename="foo.txt"",
@@ -390,11 +429,11 @@ describe('blob client', () => {
         put('foo.txt', 'Test Body', {
           access: 'public',
           contentType: 'text/plain',
-        })
+        }),
       ).rejects.toThrow(
         new Error(
-          'Vercel Blob: Access denied, please provide a valid token for this resource'
-        )
+          'Vercel Blob: Access denied, please provide a valid token for this resource',
+        ),
       );
     });
 
@@ -409,11 +448,11 @@ describe('blob client', () => {
         put('foo.txt', 'Test Body', {
           access: 'public',
           contentType: 'text/plain',
-        })
+        }),
       ).rejects.toThrow(
         new Error(
-          'Vercel Blob: Unknown error, please visit https://vercel.com/help'
-        )
+          'Vercel Blob: Unknown error, please visit https://vercel.com/help',
+        ),
       );
     });
 
@@ -428,7 +467,7 @@ describe('blob client', () => {
       await expect(
         put('', 'Test Body', {
           access: 'public',
-        })
+        }),
       ).rejects.toThrow(new Error('Vercel Blob: pathname is required'));
     });
 
@@ -443,7 +482,7 @@ describe('blob client', () => {
       await expect(
         put('path.txt', '', {
           access: 'public',
-        })
+        }),
       ).rejects.toThrow(new Error('Vercel Blob: body is required'));
     });
 
@@ -459,7 +498,7 @@ describe('blob client', () => {
         put('foo.txt', 'Test Body', {
           // @ts-expect-error: access is only public for now, testing that a different value throws
           access: 'private',
-        })
+        }),
       ).rejects.toThrow(new Error('Vercel Blob: access must be "public"'));
     });
 

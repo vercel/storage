@@ -3,7 +3,7 @@ import { VercelPostgresError } from './error';
 export type ConnectionStringType = 'pool' | 'direct';
 
 export function postgresConnectionString(
-  type: ConnectionStringType = 'pool'
+  type: ConnectionStringType = 'pool',
 ): string | undefined {
   let connectionString: string | undefined;
 
@@ -21,7 +21,7 @@ export function postgresConnectionString(
       const str = _exhaustiveCheck as string;
       throw new VercelPostgresError(
         'invalid_connection_type',
-        `Unhandled type: ${str}`
+        `Unhandled type: ${str}`,
       );
     }
   }

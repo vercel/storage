@@ -1,5 +1,18 @@
 # @vercel/blob
 
+## 0.15.0
+
+### Minor Changes
+
+- d57df99: Adds a new `mode: folded | expanded (default)` parameter to the list command options. When you pass `folded` to `mode`, then we automatically fold all files belonging to the same folder into a single folder entry. This allows you to build file browsers using the Vercel Blob API.
+
+## 0.14.1
+
+### Patch Changes
+
+- 0e9fc17: Exports the ListBlobResultBlob so it can be imported from the @vercel/blob package.
+- 41c4483: This introduces jsdoc comments for all functions that are publicly accessible in the @vercel/blob npm package.
+
 ## 0.14.0
 
 ### Minor Changes

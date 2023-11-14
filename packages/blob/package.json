@@ -53,7 +53,10 @@
   },
   "jest": {
     "preset": "ts-jest",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "testEnvironmentOptions": {
+      "url": "http://localhost:3000"
+    }
   },
   "dependencies": {
     "jest-environment-jsdom": "29.7.0",

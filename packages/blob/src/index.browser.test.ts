@@ -2,6 +2,7 @@ import { put } from './index';
 
 const BLOB_STORE_BASE_URL = 'https://storeId.public.blob.vercel-storage.com';
 
+// Can't use the usual undici mocking utilities because they don't work with jsdom environment
 jest.mock('undici', () => ({
   fetch: (): unknown =>
     Promise.resolve({

@@ -26,7 +26,12 @@ export type { PutBlobResult, PutCommandOptions } from './put';
  * @param options - Additional options like `token` or `contentType`.
  */
 export const put = createPutMethod<PutCommandOptions>({
-  allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
+  allowedOptions: [
+    'cacheControlMaxAge',
+    'addRandomSuffix',
+    'contentType',
+    'multipartUpload',
+  ],
 });
 
 //  vercelBlob.del()

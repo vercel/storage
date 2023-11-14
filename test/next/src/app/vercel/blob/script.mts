@@ -17,47 +17,53 @@ console.log('=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*');
 console.log();
 
 async function run(): Promise<void> {
-  const urls = await Promise.all([
-    textFileExample(),
-    textFileNoRandomSuffixExample(),
-    textFileExampleWithCacheControlMaxAge(),
-    imageExample(),
-    videoExample(),
-    webpageExample(),
-    incomingMessageExample(),
-    axiosExample(),
-    gotExample(),
-    fetchExample(),
-    noExtensionExample(),
-    weirdCharactersExample(),
-    copyTextFile(),
-    listFolders(),
-  ]);
+  const nodejsStream = createReadStream('/Users/vvo/Downloads/movie.mkv');
+  await vercelBlob.put('test', nodejsStream, {
+    access: 'public',
+    multipartUpload: true,
+  });
 
-  await Promise.all(
-    urls.map(async (url) => {
-      const blobDetails = await vercelBlob.head(url);
-      console.log(blobDetails, url);
-    }),
-  );
+  // const urls = await Promise.all([
+  //   textFileExample(),
+  //   textFileNoRandomSuffixExample(),
+  //   textFileExampleWithCacheControlMaxAge(),
+  //   imageExample(),
+  //   videoExample(),
+  //   webpageExample(),
+  //   incomingMessageExample(),
+  //   axiosExample(),
+  //   gotExample(),
+  //   fetchExample(),
+  //   noExtensionExample(),
+  //   weirdCharactersExample(),
+  //   copyTextFile(),
+  //   listFolders(),
+  // ]);
 
-  // list all blobs
-  let count = 0;
-  let hasMore = true;
-  let cursor: string | undefined;
-  while (hasMore) {
-    // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
-    const listResult = await vercelBlob.list({
-      cursor,
-    });
-    hasMore = listResult.hasMore;
-    cursor = listResult.cursor;
-    count += listResult.blobs.length;
-  }
+  // await Promise.all(
+  //   urls.map(async (url) => {
+  //     const blobDetails = await vercelBlob.head(url);
+  //     console.log(blobDetails, url);
+  //   }),
+  // );
 
-  console.log(count, 'blobs in this store');
+  // // list all blobs
+  // let count = 0;
+  // let hasMore = true;
+  // let cursor: string | undefined;
+  // while (hasMore) {
+  //   // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
+  //   const listResult = await vercelBlob.list({
+  //     cursor,
+  //   });
+  //   hasMore = listResult.hasMore;
+  //   cursor = listResult.cursor;
+  //   count += listResult.blobs.length;
+  // }
 
-  await Promise.all(urls.map((url) => vercelBlob.del(url)));
+  // console.log(count, 'blobs in this store');
+
+  // await Promise.all(urls.map((url) => vercelBlob.del(url)));
 }
 
 async function textFileExample(): Promise<string> {

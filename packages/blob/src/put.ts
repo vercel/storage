@@ -10,6 +10,7 @@ import {
   BlobError,
   validateBlobApiResponse,
 } from './helpers';
+import { multipartPut } from './put-multipart';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface -- expose option interface for each API method for better extensibility in the future
 export interface PutCommandOptions extends CreateBlobCommandOptions {}
@@ -18,6 +19,8 @@ const putOptionHeaderMap = {
   cacheControlMaxAge: 'x-cache-control-max-age',
   addRandomSuffix: 'x-add-random-suffix',
   contentType: 'x-content-type',
+  // not sure this belongs here
+  multipartUpload: 'x-multipart-upload',
 };
 
 export interface PutBlobResult {
@@ -28,6 +31,15 @@ export interface PutBlobResult {
 }
 
 export type PutBlobApiResponse = PutBlobResult;
+
+export type PutBody =
+  | string
+  | Readable // Node.js streams
+  | Blob
+  | ArrayBuffer
+  | FormData
+  | ReadableStream // Streams API (= Web streams in Node.js)
+  | File;
 
 type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 
@@ -44,14 +56,7 @@ export function createPutMethod<
 }) {
   return async function put(
     pathname: string,
-    body:
-      | string
-      | Readable
-      | Blob
-      | ArrayBuffer
-      | FormData
-      | ReadableStream
-      | File,
+    body: PutBody,
     options?: T,
   ): Promise<PutBlobResult> {
     if (!pathname) {
@@ -103,6 +108,13 @@ export function createPutMethod<
         options.cacheControlMaxAge.toString();
     }
 
+    if (allowedOptions.includes('multipartUpload')) {
+      // @ts-expect-error -- ignore for now
+      const blobApiResponse = await multipartPut(body);
+      // eslint-disable-next-line no-console -- debug
+      console.log(blobApiResponse);
+      return blobApiResponse;
+    }
     const blobApiResponse = await fetch(getApiUrl(`/${pathname}`), {
       method: 'PUT',
       body: body as BodyInit,

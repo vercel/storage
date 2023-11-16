@@ -256,6 +256,7 @@ describe('stale-if-error semantics', () => {
   beforeEach(() => {
     resetFetchMock();
     cache.clear();
+    // ensure swr runs
     edgeConfig = pkg.createClient(modifiedConnectionString);
   });
 
@@ -955,6 +956,36 @@ describe('dataloader', () => {
           cache: 'no-store',
         },
       );
+    });
+  });
+});
+
+describe('stale-while-revalidate semantics (in development)', () => {
+  const modifiedConnectionString =
+    'https://edge-config.vercel.com/ecfg-2?token=token-2';
+  let edgeConfig: EdgeConfigClient;
+
+  beforeEach(() => {
+    resetFetchMock();
+    cache.clear();
+    // ensure swr runs
+    process.env.NODE_ENV = 'development';
+    edgeConfig = pkg.createClient(modifiedConnectionString);
+  });
+
+  afterEach(() => {
+    process.env.NODE_ENV = 'test';
+  });
+
+  describe('get', () => {
+    describe('when item exists', () => {
+      it('should fetch using information from the passed token', async () => {
+        fetchMock.mockResponseOnce(JSON.stringify('value1'));
+        await expect(edgeConfig.get('key1')).resolves.toEqual('value1');
+
+        fetchMock.mockResponseOnce(JSON.stringify('value2'));
+        await expect(edgeConfig.get('key2')).resolves.toEqual('value2');
+      });
     });
   });
 });

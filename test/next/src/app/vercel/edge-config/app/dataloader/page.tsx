@@ -4,11 +4,7 @@ import type { AddressInfo } from 'node:net';
 import { createClient } from '@vercel/edge-config';
 import enableDestroy from 'server-destroy';
 
-process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR = '1';
-
 export default async function Page(): Promise<JSX.Element> {
-  process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR = '1';
-
   let calls = 0;
   let resolveRunning: ((value: number) => void) | null = null;
   const running = new Promise<number>((r) => {
@@ -38,6 +34,7 @@ export default async function Page(): Promise<JSX.Element> {
   // we can only test that it caches within a request.
   const localClient = createClient(
     `http://localhost:${port}/ecfg_fake?token=fake-token&version=1`,
+    { disableDevelopmentCache: true },
   );
 
   enableDestroy(server);

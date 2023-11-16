@@ -1,35 +1,62 @@
+import { clone } from './clone';
+
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument -- any necessary for generics */
-function clone<T>(v: T): T {
-  return JSON.parse(JSON.stringify(v)) as T;
-}
 
 /**
  * Adds swr behavior to any async function.
+ *
+ * This function can wrap any function like swr(fn) to produce a new function
+ * which will have stales-while-revalidate semantics per set of arguments passed.
+ *
+ * This means any subsequent call to this function will return the previous value,
+ * for the given set of arguments. And will kick off refreshing the latest value
+ * in the background for the next call.
+ *
+ * If the background refresh has not returned while a new call is made then the
+ * stale value is returned for that next call as well.
+ *
+ * Argument equality is checked by stringifying.
  */
 export function swr<T extends (...args: any[]) => Promise<any>>(fn: T): T {
-  let latestInvocationId = 0;
-  let staleValuePromise: null | Promise<unknown> = null;
+  // A map of arguments and their in-flight values
+  //
+  // We also cache the invocationId to ensure we never replace a newer refreshed
+  // value with an older one
+  //
+  // we cache by arguments to prevent calls to the fn with different arguments
+  // from returning the same result
+  const cache = new Map<
+    string,
+    { staleValuePromise: null | Promise<unknown>; latestInvocationId: number }
+  >();
 
   return (async (...args: any[]) => {
-    const currentInvocationId = ++latestInvocationId;
+    const cacheKey = JSON.stringify(args);
+    let cached = cache.get(cacheKey);
+    if (!cached) {
+      cached = { latestInvocationId: 0, staleValuePromise: null };
+      cache.set(cacheKey, cached);
+    }
+    const currentInvocationId = ++cached.latestInvocationId;
 
-    if (staleValuePromise) {
-      // clone to avoid referential equality of the returned value,
-      // which would unlock mutations
+    if (cached.staleValuePromise) {
       void fn(...args).then(
         (result) => {
-          if (currentInvocationId === latestInvocationId) {
-            staleValuePromise = Promise.resolve(result);
+          if (currentInvocationId === cached?.latestInvocationId) {
+            cached.staleValuePromise = Promise.resolve(result);
           }
         },
         () => void 0,
       );
-      return staleValuePromise.then(clone);
+
+      // clone to avoid referential equality of the returned value,
+      // which would unlock mutations
+      return cached.staleValuePromise.then(clone);
     }
 
     const resultPromise = fn(...args);
-    staleValuePromise = resultPromise.then(clone, (e) => {
-      staleValuePromise = null;
+    cached.staleValuePromise = resultPromise.then(clone, (e) => {
+      if (cached) cached.staleValuePromise = null;
       throw e;
     });
     return resultPromise.then(clone);

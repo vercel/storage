@@ -108,4 +108,57 @@ describe('swr-fn', () => {
     await expect(swrFn()).resolves.toEqual(['a']);
     fn.mockResolvedValueOnce([]);
   });
+
+  it('separates multiple instances', async () => {
+    const fnA = jest.fn();
+    const fnB = jest.fn();
+    const swrFnA = swr(fnA);
+    const swrFnB = swr(fnB);
+    fnA.mockResolvedValueOnce('a1');
+    fnB.mockResolvedValueOnce('b1');
+    await expect(swrFnA()).resolves.toEqual('a1');
+    await expect(swrFnB()).resolves.toEqual('b1');
+
+    // here we ensure the next value resolves with "b", but
+    // we expect the current call to respond with the stale value "a"
+    fnA.mockResolvedValueOnce('a2');
+    fnB.mockResolvedValueOnce('b2');
+    await expect(swrFnA()).resolves.toEqual('a1');
+    await expect(swrFnB()).resolves.toEqual('b1');
+
+    fnA.mockResolvedValueOnce('A end');
+    fnB.mockResolvedValueOnce('B end');
+
+    // stale values
+    await expect(swrFnA()).resolves.toEqual('a2');
+    await expect(swrFnB()).resolves.toEqual('b2');
+  });
+
+  it('distinguishes keys', async () => {
+    let callIndex = 0;
+    const fnA = jest.fn((key): Promise<string> => {
+      if (callIndex === 0) {
+        if (key === 'keyA') return Promise.resolve('valueA0');
+        if (key === 'keyB') return Promise.resolve('valueB0');
+      } else if (callIndex === 1) {
+        if (key === 'keyA') return Promise.resolve('valueA1');
+        if (key === 'keyB') return Promise.resolve('valueB1');
+      } else if (callIndex === 2) {
+        if (key === 'keyA') return Promise.resolve('valueA2');
+        if (key === 'keyB') return Promise.resolve('valueB2');
+      }
+      throw new Error('Unknown key');
+    });
+
+    const swrFn = swr(fnA);
+    await expect(swrFn('keyA')).resolves.toEqual('valueA0');
+    await expect(swrFn('keyB')).resolves.toEqual('valueB0');
+    callIndex = 1;
+    await expect(swrFn('keyA')).resolves.toEqual('valueA0');
+    await expect(swrFn('keyB')).resolves.toEqual('valueB0');
+
+    callIndex = 2;
+    await expect(swrFn('keyA')).resolves.toEqual('valueA1');
+    await expect(swrFn('keyB')).resolves.toEqual('valueB1');
+  });
 });

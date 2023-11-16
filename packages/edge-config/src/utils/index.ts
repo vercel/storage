@@ -32,18 +32,6 @@ export function assertIsKeys(keys: unknown): asserts keys is string[] {
 }
 
 /**
- * Creates a deep clone of an object.
- */
-export function clone<T>(value: T): T {
-  // only available since node v17.0.0
-  if (typeof structuredClone === 'function') return structuredClone<T>(value);
-
-  // poor man's polyfill for structuredClone
-  if (value === undefined) return value;
-  return JSON.parse(JSON.stringify(value)) as T;
-}
-
-/**
  * Parses internal edge config connection strings
  *
  * Internal edge config connection strings are those which are native to Vercel.

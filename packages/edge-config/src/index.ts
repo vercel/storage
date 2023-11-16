@@ -1,10 +1,6 @@
 import { name as sdkName, version as sdkVersion } from '../package.json';
-import {
-  assertIsKey,
-  assertIsKeys,
-  clone,
-  parseConnectionString,
-} from './utils';
+import { assertIsKey, assertIsKeys, parseConnectionString } from './utils';
+import { clone } from './utils/clone';
 import type {
   EdgeConfigClient,
   EdgeConfigItems,

@@ -18,24 +18,24 @@ import { clone } from './clone';
  * Argument equality is checked by stringifying.
  */
 export function swr<T extends (...args: any[]) => Promise<any>>(fn: T): T {
-  // A map of arguments and their in-flight values
+  // A record of arguments and their in-flight values
   //
   // We also cache the invocationId to ensure we never replace a newer refreshed
   // value with an older one
   //
   // we cache by arguments to prevent calls to the fn with different arguments
   // from returning the same result
-  const cache = new Map<
+  const cache: Record<
     string,
     { staleValuePromise: null | Promise<unknown>; latestInvocationId: number }
-  >();
+  > = {};
 
   return (async (...args: any[]) => {
     const cacheKey = JSON.stringify(args);
-    let cached = cache.get(cacheKey);
+    let cached = cache[cacheKey];
     if (!cached) {
       cached = { latestInvocationId: 0, staleValuePromise: null };
-      cache.set(cacheKey, cached);
+      cache[cacheKey] = cached;
     }
     const currentInvocationId = ++cached.latestInvocationId;
 

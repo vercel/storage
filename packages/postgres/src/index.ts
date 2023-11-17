@@ -1,11 +1,22 @@
 import type { QueryResult, QueryResultRow } from '@neondatabase/serverless';
 import { type VercelPool, createPool } from './create-pool';
-import type { Primitive } from './sql-template';
+import { tql } from './sql-template';
 
 export * from './create-client';
 export * from './create-pool';
 export * from './types';
 export { postgresConnectionString } from './postgres-connection-string';
+
+export const {
+  fragment,
+  identifier,
+  identifiers,
+  list,
+  values,
+  set,
+  unsafe,
+  query: debug,
+} = tql;
 
 let pool: VercelPool | undefined;
 
@@ -46,7 +57,7 @@ export const sql = new Proxy(
 ) as unknown as VercelPool &
   (<O extends QueryResultRow>(
     strings: TemplateStringsArray,
-    ...values: Primitive[]
+    ...values: unknown[]
   ) => Promise<QueryResult<O>>);
 
 export const db = sql;

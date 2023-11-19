@@ -328,6 +328,9 @@ async function retrieveClientToken(options: {
   const res = await fetch(url, {
     method: 'POST',
     body: JSON.stringify(event),
+    headers: {
+      'content-type': 'application/json',
+    },
   });
 
   if (!res.ok) {

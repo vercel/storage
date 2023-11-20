@@ -34,7 +34,12 @@ export default async function Page(): Promise<JSX.Element> {
   // we can only test that it caches within a request.
   const localClient = createClient(
     `http://localhost:${port}/ecfg_fake?token=fake-token&version=1`,
-    { disableDevelopmentCache: true },
+
+    {
+      // disable disableDevelopmentCache so we can test behavior without
+      // request context in async local storage (basically non-vercel deployments)
+      disableDevelopmentCache: true,
+    },
   );
 
   enableDestroy(server);

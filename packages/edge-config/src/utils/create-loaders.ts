@@ -48,11 +48,18 @@ export function createLoaders({
   sdkVersion,
   sdkName,
   staleIfError,
+  inMemoryDevelopmentCache,
 }: {
   connection: Connection;
   sdkVersion?: string;
   sdkName?: string;
   staleIfError?: number | false;
+  /**
+   * - undefined means the cache should not be used
+   * - null means the cache should be used but is not filled
+   * - an object represents the currently cached embeddedEdgeConfig
+   */
+  inMemoryDevelopmentCache?: EmbeddedEdgeConfig | null;
 }): {
   get: DataLoader<string, EdgeConfigValue | undefined, string>;
   getAll: DataLoader<string, EdgeConfigItems, string>;
@@ -87,13 +94,77 @@ export function createLoaders({
       ? (callback) => setTimeout(callback, 0)
       : undefined;
 
+  const embeddedEdgeConfigMap = new Map<string, Promise<EmbeddedEdgeConfig>>();
   const hasMap = new Map<string, Promise<boolean>>();
   const getAllMap = new Map<string, Promise<EdgeConfigItems>>();
   const getMap = new Map<string, Promise<EdgeConfigValue | undefined>>();
 
+  const getEmbeddedLoader = new DataLoader(
+    async (keys: readonly string[]) => {
+      // as every edge config has a single "all" only, we use # as the key
+      // to load all items
+      if (keys.length !== 1 || keys[0] !== '#') {
+        throw new Error('unexpected key passed to digest');
+      }
+
+      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+
+      // returns an array as "#" is the only key
+      if (localEdgeConfig) return [localEdgeConfig];
+
+      const embeddedEdgeConfigPromise = fetchWithCachedResponse(
+        `${baseUrl}?version=${version}`,
+        {
+          headers: new Headers(headers),
+          cache: 'no-store',
+        },
+      ).then(
+        async (res) => {
+          if (res.ok) {
+            return (await res.json()) as EdgeConfigItems;
+          }
+          await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+
+          if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
+          // the /items endpoint never returns 404, so if we get a 404
+          // it means the edge config itself did not exist
+          if (res.status === 404) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
+          if (res.cachedResponseBody !== undefined) {
+            return res.cachedResponseBody;
+          }
+          throw new Error(ERRORS.UNEXPECTED);
+        },
+        (error) => {
+          if (isDynamicServerError(error)) throw error;
+          throw new Error(ERRORS.NETWORK);
+        },
+      ) as Promise<EmbeddedEdgeConfig>;
+
+      void embeddedEdgeConfigPromise.then((embeddedEdgeConfig) => {
+        // eslint-disable-next-line no-param-reassign -- k
+        inMemoryDevelopmentCache = embeddedEdgeConfig;
+      });
+
+      // return previous value if it exits, for swr semantics
+      return inMemoryDevelopmentCache
+        ? [inMemoryDevelopmentCache]
+        : [await embeddedEdgeConfigPromise];
+    },
+    { batchScheduleFn, cacheMap: embeddedEdgeConfigMap },
+  );
+
+  async function getInMemoryEdgeConfig(): Promise<null | EmbeddedEdgeConfig> {
+    // the cache should not be used
+    if (inMemoryDevelopmentCache === undefined) return null;
+
+    return getEmbeddedLoader.load('#');
+  }
+
   const hasLoader = new DataLoader(
     async (keys: readonly string[]) => {
-      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+      const localEdgeConfig =
+        (await getInMemoryEdgeConfig()) ||
+        (await getFileSystemEdgeConfig(connection));
 
       if (localEdgeConfig) {
         return keys.map((key) => hasOwnProperty(localEdgeConfig.items, key));
@@ -156,7 +227,9 @@ export function createLoaders({
         throw new Error('unexpected key passed to digest');
       }
 
-      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+      const localEdgeConfig =
+        (await getInMemoryEdgeConfig()) ||
+        (await getFileSystemEdgeConfig(connection));
 
       if (localEdgeConfig) {
         // returns an array as "#" is the only key
@@ -198,7 +271,9 @@ export function createLoaders({
 
   const getLoader = new DataLoader<string, EdgeConfigValue | undefined, string>(
     async (keys: readonly string[]) => {
-      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+      const localEdgeConfig =
+        (await getInMemoryEdgeConfig()) ||
+        (await getFileSystemEdgeConfig(connection));
 
       if (localEdgeConfig) {
         // We need to return a clone of the value so users can't modify
@@ -295,7 +370,9 @@ export function createLoaders({
         throw new Error('unexpected key passed to digest');
       }
 
-      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+      const localEdgeConfig =
+        (await getInMemoryEdgeConfig()) ||
+        (await getFileSystemEdgeConfig(connection));
 
       return Promise.all(
         keys.map((_key) => {

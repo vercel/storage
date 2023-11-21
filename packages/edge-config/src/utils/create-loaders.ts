@@ -107,7 +107,11 @@ export function createLoaders({
   const getMap = new Map<string, Promise<EdgeConfigValue | undefined>>();
 
   function createEmbeddedEdgeConfigPromise(): Promise<EmbeddedEdgeConfig> {
-    if (!inMemoryDevelopmentCache) throw new Error('');
+    if (!inMemoryDevelopmentCache) {
+      // this should never happen, as the createEmbeddedEdgeConfigPromise fn
+      // should only be called when inMemoryDevelopmentCache exists
+      throw new Error('Missing inMemoryDevelopmentCache');
+    }
 
     const promise = fetchWithHttpCache(`${baseUrl}?version=${version}`, {
       headers: new Headers(headers),

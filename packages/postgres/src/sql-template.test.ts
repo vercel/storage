@@ -34,18 +34,18 @@ describe('sql', () => {
     const likes = 100;
     expect(() => {
       // @ts-expect-error - intentionally incorrect usage
-      sqlTemplate(`SELECT * FROM posts WHERE likes > ${likes}`);
+      tql.query(`SELECT * FROM posts WHERE likes > ${likes}`);
     }).toThrow(VercelPostgresError);
   });
   it('throws when deliberately not used as a tagged literal to try to make us look dumb', () => {
     const likes = 100;
     expect(() => {
       // @ts-expect-error - intentionally incorrect usage
-      sqlTemplate([`SELECT * FROM posts WHERE likes > ${likes}`]);
+      tql.query([`SELECT * FROM posts WHERE likes > ${likes}`]);
     }).toThrow(VercelPostgresError);
     expect(() => {
       // @ts-expect-error - intentionally incorrect usage
-      sqlTemplate(`SELECT * FROM posts WHERE likes > ${likes}`, 123);
+      tql.query(`SELECT * FROM posts WHERE likes > ${likes}`, 123);
     }).toThrow(VercelPostgresError);
   });
 });

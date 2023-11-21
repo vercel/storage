@@ -121,7 +121,7 @@ export function createLoaders({
         if (res.ok) {
           return (await res.json()) as EmbeddedEdgeConfig;
         }
-        await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+        void consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
 
         if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
         // the /items endpoint never returns 404, so if we get a 404
@@ -271,7 +271,7 @@ export function createLoaders({
           if (res.ok) {
             return (await res.json()) as EdgeConfigItems;
           }
-          await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+          void consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
 
           if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
           // the /items endpoint never returns 404, so if we get a 404
@@ -328,7 +328,7 @@ export function createLoaders({
           }).then(
             async (res) => {
               if (res.ok) return res.json();
-              await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+              void consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
 
               if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
               if (res.status === 404) {
@@ -365,7 +365,7 @@ export function createLoaders({
       ).then(
         async (res) => {
           if (res.ok) return res.json();
-          await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+          void consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
 
           if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
           // the /items endpoint never returns 404, so if we get a 404
@@ -410,7 +410,7 @@ export function createLoaders({
           }).then(
             async (res) => {
               if (res.ok) return res.json() as Promise<string>;
-              await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+              void consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
 
               if (res.cachedResponseBody !== undefined)
                 return res.cachedResponseBody as string;

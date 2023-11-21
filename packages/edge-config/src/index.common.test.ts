@@ -1006,6 +1006,12 @@ describe('stale-while-revalidate semantics (in development)', () => {
         // note that we're ensuring the read is possible before the evaluation
         // in the background succeeds by calling `resolve` after below
         await expect(edgeConfig.get('key1')).resolves.toEqual('value1a');
+        // more calls should not end up in more fetchMock calls since there
+        // is already an in-flight promise
+        await expect(edgeConfig.get('key1')).resolves.toEqual('value1a');
+        await expect(edgeConfig.get('key1')).resolves.toEqual('value1a');
+        await expect(edgeConfig.get('key1')).resolves.toEqual('value1a');
+        await expect(edgeConfig.get('key1')).resolves.toEqual('value1a');
 
         // @ts-expect-error -- pretend this is a response
         resolve(
@@ -1017,10 +1023,14 @@ describe('stale-while-revalidate semantics (in development)', () => {
           }),
         );
 
-        fetchMock.mockResponse(
+        fetchMock.mockResponseOnce(
           JSON.stringify({ items: { key1: 'value1c' }, digest: 'c' }),
         );
         await expect(edgeConfig.get('key1')).resolves.toEqual('value1b');
+
+        // we only expect three calls since the multiple calls above share
+        // the same fetch promise
+        expect(fetchMock).toHaveBeenCalledTimes(3);
       });
     });
   });

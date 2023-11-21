@@ -137,8 +137,7 @@ export function createClient(
     staleIfError: options.staleIfError,
     inMemoryDevelopmentCache: enableDevelopmentCache
       ? {
-          inflightId: -1,
-          cachedId: -1,
+          pendingPromise: null,
           value: null,
         }
       : null,

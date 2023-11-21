@@ -127,83 +127,59 @@ export function createLoaders({
    * This loader further behaves in a stale-while-revalidate like manner, since
    * it will refresh the underlying value after returning the current value.
    */
-  const getEmbeddedLoader = new DataLoader(
-    async (keys: readonly string[]) => {
-      console.log('getEmbeddedLoader called', keys);
-      if (!inMemoryDevelopmentCache) throw new Error('no');
-
-      // as every edge config has a single "all" only, we use # as the key
-      // to load all items
-      if (keys.length !== 1 || keys[0] !== '#') {
-        throw new Error('unexpected key passed to digest');
-      }
-
-      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
-
-      // returns an array as "#" is the only key
-      if (localEdgeConfig) return [localEdgeConfig];
-
-      const embeddedEdgeConfigPromise = fetchWithHttpCache(
-        `${baseUrl}?version=${version}`,
-        {
-          headers: new Headers(headers),
-          cache: 'no-store',
-        },
-      ).then(
-        async (res) => {
-          if (res.ok) {
-            return (await res.json()) as EdgeConfigItems;
-          }
-          await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
-
-          if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
-          // the /items endpoint never returns 404, so if we get a 404
-          // it means the edge config itself did not exist
-          if (res.status === 404) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-          if (res.cachedResponseBody !== undefined) {
-            return res.cachedResponseBody;
-          }
-          throw new Error(ERRORS.UNEXPECTED);
-        },
-        (error) => {
-          if (isDynamicServerError(error)) throw error;
-          throw new Error(ERRORS.NETWORK);
-        },
-      ) as Promise<EmbeddedEdgeConfig>;
-
-      // return [await embeddedEdgeConfigPromise];
-
-      // an id to track whether
-      const fetchId = ++inMemoryDevelopmentCache.inflightId;
-
-      // refresh the underlying value in stale-while-revalidate manner
-      void embeddedEdgeConfigPromise.then((embeddedEdgeConfig) => {
-        // ensure we're not overwriting newer values
-        if (fetchId > inMemoryDevelopmentCache.cachedId) {
-          console.log('trying to set cache', embeddedEdgeConfig);
-          inMemoryDevelopmentCache.value = embeddedEdgeConfig;
-          inMemoryDevelopmentCache.cachedId = fetchId;
-
-          embeddedEdgeConfigMap.set('#', Promise.resolve(embeddedEdgeConfig));
-        } else {
-          console.log('not writing cache');
-        }
-      });
-
-      console.log('currently cached', inMemoryDevelopmentCache.value);
-
-      // return previous value if it exits, for swr semantics
-      return inMemoryDevelopmentCache.value
-        ? [inMemoryDevelopmentCache.value]
-        : [await embeddedEdgeConfigPromise];
-    },
-    { batchScheduleFn, cacheMap: embeddedEdgeConfigMap },
-  );
-
   async function getInMemoryEdgeConfig(): Promise<null | EmbeddedEdgeConfig> {
     // only use the loader if the cache should acutally be used, which is the
     // case when inMemoryDevelopmentCache is defined
-    return inMemoryDevelopmentCache ? getEmbeddedLoader.load('#') : null;
+    if (!inMemoryDevelopmentCache) return null;
+
+    const embeddedEdgeConfigPromise = fetchWithHttpCache(
+      `${baseUrl}?version=${version}`,
+      {
+        headers: new Headers(headers),
+        cache: 'no-store',
+      },
+    ).then(
+      async (res) => {
+        if (res.ok) {
+          return (await res.json()) as EdgeConfigItems;
+        }
+        await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+
+        if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
+        // the /items endpoint never returns 404, so if we get a 404
+        // it means the edge config itself did not exist
+        if (res.status === 404) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
+        if (res.cachedResponseBody !== undefined) {
+          return res.cachedResponseBody;
+        }
+        throw new Error(ERRORS.UNEXPECTED);
+      },
+      (error) => {
+        if (isDynamicServerError(error)) throw error;
+        throw new Error(ERRORS.NETWORK);
+      },
+    ) as Promise<EmbeddedEdgeConfig>;
+
+    // return [await embeddedEdgeConfigPromise];
+
+    // an id to track whether
+    const fetchId = ++inMemoryDevelopmentCache.inflightId;
+
+    // refresh the underlying value in stale-while-revalidate manner
+    void embeddedEdgeConfigPromise.then((embeddedEdgeConfig) => {
+      // ensure we're not overwriting newer values
+      if (fetchId > inMemoryDevelopmentCache.cachedId) {
+        inMemoryDevelopmentCache.value = embeddedEdgeConfig;
+        inMemoryDevelopmentCache.cachedId = fetchId;
+
+        embeddedEdgeConfigMap.set('#', Promise.resolve(embeddedEdgeConfig));
+      }
+    });
+
+    // return previous value if it exits, for swr semantics
+    return inMemoryDevelopmentCache.value
+      ? inMemoryDevelopmentCache.value
+      : embeddedEdgeConfigPromise;
   }
 
   const hasLoader = new DataLoader(

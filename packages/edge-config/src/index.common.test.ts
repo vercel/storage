@@ -22,6 +22,10 @@ function resetFetchMock(): void {
 }
 
 describe('test conditions', () => {
+  beforeEach(() => {
+    resetFetchMock();
+  });
+
   it('should have an env var called EDGE_CONFIG', () => {
     expect(process.env.EDGE_CONFIG).toEqual(
       'https://edge-config.vercel.com/ecfg-1?token=token-1',
@@ -427,6 +431,10 @@ describe('dataloader', () => {
     resetFetchMock();
     cache.clear();
     edgeConfig = pkg.createClient(modifiedConnectionString);
+    resetRequestContext();
+  });
+
+  afterEach(() => {
     resetRequestContext();
   });
 
@@ -979,45 +987,39 @@ describe('stale-while-revalidate semantics (in development)', () => {
 
   describe('get', () => {
     describe('when item exists', () => {
-      it('should fetch using information from the passed token', async () => {
+      it('should use the in-memory cache and apply stale-while-revalidate semantics', async () => {
         fetchMock.mockResponseOnce(
           JSON.stringify({ items: { key1: 'value1a' }, digest: 'a' }),
         );
         await expect(edgeConfig.get('key1')).resolves.toEqual('value1a');
 
-        // const delay = (ms = 500) =>
-        //   new Promise((resolve) => setTimeout(resolve, ms));
+        let resolve;
+        const promise = new Promise<Response>((r) => {
+          resolve = r;
+        });
 
-        // await delay(100);
-
-        // let resolve;
-        // const promise = new Promise<Response>((r) => {
-        //   resolve = r;
-        // });
-
-        // fetchMock.mockReturnValue(promise);
-
-        fetchMock.mockResponse(
-          JSON.stringify({ items: { key1: 'value1b' }, digest: 'b' }),
-        );
+        fetchMock.mockReturnValue(promise);
 
         // here we're still receiving value1a as expected, while we are revalidating
         // the latest values in the background
+        //
+        // note that we're ensuring the read is possible before the evaluation
+        // in the background succeeds by calling `resolve` after below
         await expect(edgeConfig.get('key1')).resolves.toEqual('value1a');
 
-        // // @ts-expect-error -- pretend this is a response
-        // resolve(
-        //   Promise.resolve({
-        //     ok: true,
-        //     headers: new Headers(),
-        //     json: () =>
-        //       Promise.resolve({ items: { key1: 'value1b' }, digest: 'b' }),
-        //   }),
-        // );
+        // @ts-expect-error -- pretend this is a response
+        resolve(
+          Promise.resolve({
+            ok: true,
+            headers: new Headers(),
+            json: () =>
+              Promise.resolve({ items: { key1: 'value1b' }, digest: 'b' }),
+          }),
+        );
 
-        // fetchMock.mockResponse(
-        //   JSON.stringify({ items: { key1: 'value1c' }, digest: 'c' }),
-        // );
+        fetchMock.mockResponse(
+          JSON.stringify({ items: { key1: 'value1c' }, digest: 'c' }),
+        );
         await expect(edgeConfig.get('key1')).resolves.toEqual('value1b');
       });
     });

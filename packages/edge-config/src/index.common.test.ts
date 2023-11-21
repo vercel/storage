@@ -6,7 +6,7 @@
 import fetchMock from 'jest-fetch-mock';
 import { version as pkgVersion } from '../package.json';
 import type { EdgeConfigClient } from './types';
-import { cache } from './utils/fetch-with-cached-response';
+import { cache } from './utils/fetch-with-http-cache';
 import * as pkg from './index';
 
 const sdkVersion = typeof pkgVersion === 'string' ? pkgVersion : '';

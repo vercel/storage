@@ -95,7 +95,7 @@ function extractStaleIfError(cacheControlHeader: string | null): number | null {
  * This is similar to fetch, but it also implements ETag semantics, and
  * it implmenets stale-if-error semantics.
  */
-export async function fetchWithCachedResponse(
+export async function fetchWithHttpCache(
   url: string,
   options: FetchOptions = {},
 ): Promise<ResponseWithCachedResponse> {

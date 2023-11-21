@@ -6,7 +6,7 @@ import type {
   EdgeConfigValue,
   EmbeddedEdgeConfig,
 } from '../types';
-import { fetchWithCachedResponse } from './fetch-with-cached-response';
+import { fetchWithHttpCache } from './fetch-with-http-cache';
 import { ERRORS, hasOwnProperty, isDynamicServerError } from '.';
 
 async function consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(
@@ -112,7 +112,7 @@ export function createLoaders({
       // returns an array as "#" is the only key
       if (localEdgeConfig) return [localEdgeConfig];
 
-      const embeddedEdgeConfigPromise = fetchWithCachedResponse(
+      const embeddedEdgeConfigPromise = fetchWithHttpCache(
         `${baseUrl}?version=${version}`,
         {
           headers: new Headers(headers),
@@ -183,7 +183,7 @@ export function createLoaders({
       return Promise.all(
         // TODO introduce an endpoint for batch evaluating has()
         keys.map((key) => {
-          // this is a HEAD request anyhow, no need for fetchWithCachedResponse
+          // this is a HEAD request anyhow, no need for fetchWithHttpCache
           return fetch(`${baseUrl}/item/${key}?version=${version}`, {
             method: 'HEAD',
             headers: new Headers(headers),
@@ -236,7 +236,7 @@ export function createLoaders({
         return [localEdgeConfig.items];
       }
 
-      const edgeConfigItems = (await fetchWithCachedResponse(
+      const edgeConfigItems = (await fetchWithHttpCache(
         `${baseUrl}/items?version=${version}`,
         {
           headers: new Headers(headers),
@@ -298,7 +298,7 @@ export function createLoaders({
       if (keys.length === 1) {
         const key = keys[0];
         return Promise.all([
-          fetchWithCachedResponse(`${baseUrl}/item/${key}?version=${version}`, {
+          fetchWithHttpCache(`${baseUrl}/item/${key}?version=${version}`, {
             headers: new Headers(headers),
             cache: 'no-store',
           }).then(
@@ -332,7 +332,7 @@ export function createLoaders({
         [...keys].sort().map((key) => ['key', key] as [string, string]),
       ).toString();
 
-      const edgeConfigItems = (await fetchWithCachedResponse(
+      const edgeConfigItems = (await fetchWithHttpCache(
         `${baseUrl}/items?version=${version}&${search}`,
         {
           headers: new Headers(headers),
@@ -380,13 +380,10 @@ export function createLoaders({
             return localEdgeConfig.digest;
           }
 
-          return fetchWithCachedResponse(
-            `${baseUrl}/digest?version=${version}`,
-            {
-              headers: new Headers(headers),
-              cache: 'no-store',
-            },
-          ).then(
+          return fetchWithHttpCache(`${baseUrl}/digest?version=${version}`, {
+            headers: new Headers(headers),
+            cache: 'no-store',
+          }).then(
             async (res) => {
               if (res.ok) return res.json() as Promise<string>;
               await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);

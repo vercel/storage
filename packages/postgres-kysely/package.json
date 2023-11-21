@@ -48,20 +48,20 @@
   },
   "devDependencies": {
     "@changesets/cli": "2.26.2",
-    "@edge-runtime/jest-environment": "2.3.6",
-    "@edge-runtime/types": "2.2.6",
+    "@edge-runtime/jest-environment": "2.3.7",
+    "@edge-runtime/types": "2.2.7",
     "@neondatabase/serverless": "0.6.0",
-    "@types/jest": "29.5.7",
-    "@types/node": "20.8.10",
-    "@types/ws": "8.5.8",
-    "eslint": "8.52.0",
+    "@types/jest": "29.5.9",
+    "@types/node": "20.9.3",
+    "@types/ws": "8.5.10",
+    "eslint": "8.54.0",
     "eslint-config-custom": "workspace:*",
     "jest": "29.7.0",
     "kysely": "0.26.3",
     "ts-jest": "29.1.1",
     "tsconfig": "workspace:*",
-    "tsup": "7.2.0",
-    "typescript": "5.2.2"
+    "tsup": "8.0.1",
+    "typescript": "5.3.2"
   },
   "peerDependencies": {
     "kysely": "^0.24.2 || ^0.25.0 || ^0.26.0"

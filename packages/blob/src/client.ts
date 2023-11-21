@@ -328,10 +328,15 @@ async function retrieveClientToken(options: {
   const res = await fetch(url, {
     method: 'POST',
     body: JSON.stringify(event),
+    headers: {
+      'content-type': 'application/json',
+    },
   });
+
   if (!res.ok) {
     throw new BlobError('Failed to  retrieve the client token');
   }
+
   try {
     const { clientToken } = (await res.json()) as { clientToken: string };
     return clientToken;

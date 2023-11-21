@@ -9,7 +9,6 @@ export { postgresConnectionString } from './postgres-connection-string';
 
 export const {
   fragment,
-  identifier,
   identifiers,
   list,
   values,

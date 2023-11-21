@@ -980,11 +980,45 @@ describe('stale-while-revalidate semantics (in development)', () => {
   describe('get', () => {
     describe('when item exists', () => {
       it('should fetch using information from the passed token', async () => {
-        fetchMock.mockResponseOnce(JSON.stringify('value1'));
-        await expect(edgeConfig.get('key1')).resolves.toEqual('value1');
+        fetchMock.mockResponseOnce(
+          JSON.stringify({ items: { key1: 'value1a' }, digest: 'a' }),
+        );
+        await expect(edgeConfig.get('key1')).resolves.toEqual('value1a');
 
-        fetchMock.mockResponseOnce(JSON.stringify('value2'));
-        await expect(edgeConfig.get('key2')).resolves.toEqual('value2');
+        // const delay = (ms = 500) =>
+        //   new Promise((resolve) => setTimeout(resolve, ms));
+
+        // await delay(100);
+
+        // let resolve;
+        // const promise = new Promise<Response>((r) => {
+        //   resolve = r;
+        // });
+
+        // fetchMock.mockReturnValue(promise);
+
+        fetchMock.mockResponse(
+          JSON.stringify({ items: { key1: 'value1b' }, digest: 'b' }),
+        );
+
+        // here we're still receiving value1a as expected, while we are revalidating
+        // the latest values in the background
+        await expect(edgeConfig.get('key1')).resolves.toEqual('value1a');
+
+        // // @ts-expect-error -- pretend this is a response
+        // resolve(
+        //   Promise.resolve({
+        //     ok: true,
+        //     headers: new Headers(),
+        //     json: () =>
+        //       Promise.resolve({ items: { key1: 'value1b' }, digest: 'b' }),
+        //   }),
+        // );
+
+        // fetchMock.mockResponse(
+        //   JSON.stringify({ items: { key1: 'value1c' }, digest: 'c' }),
+        // );
+        await expect(edgeConfig.get('key1')).resolves.toEqual('value1b');
       });
     });
   });

@@ -54,12 +54,28 @@ export function createLoaders({
   sdkVersion?: string;
   sdkName?: string;
   staleIfError?: number | false;
-  /**
-   * - undefined means the cache should not be used
-   * - null means the cache should be used but is not filled
-   * - an object represents the currently cached embeddedEdgeConfig
+  inMemoryDevelopmentCache: /**
+   * null means the cache should not be used, either because we're not in
+   * development or because it was disabled manually when creating the client
    */
-  inMemoryDevelopmentCache?: EmbeddedEdgeConfig | null;
+  null | {
+    /**
+     * This is the id of the latest in-flight request to fetch edge config
+     *
+     * The id is incremeted, so a newer id represents a newer request.
+     */
+    inflightId: number;
+    /**
+     * This is the id of the currently requested cache value
+     *
+     * The id is incremeted, so a newer id represents a newer request.
+     */
+    cachedId: number;
+    /**
+     * The currently cached embedded edge config
+     */
+    value: EmbeddedEdgeConfig | null;
+  };
 }): {
   get: DataLoader<string, EdgeConfigValue | undefined, string>;
   getAll: DataLoader<string, EdgeConfigItems, string>;
@@ -99,8 +115,23 @@ export function createLoaders({
   const getAllMap = new Map<string, Promise<EdgeConfigItems>>();
   const getMap = new Map<string, Promise<EdgeConfigValue | undefined>>();
 
+  /**
+   * This loader is used in development only.
+   *
+   * Since it's used in development only, it can not benefit from deduping
+   * based on requestContext, since there will be no request context.
+   *
+   * This loader is used to load the whole embedded edge config, which is then
+   * used when resolving other calls like `get`.
+   *
+   * This loader further behaves in a stale-while-revalidate like manner, since
+   * it will refresh the underlying value after returning the current value.
+   */
   const getEmbeddedLoader = new DataLoader(
     async (keys: readonly string[]) => {
+      console.log('getEmbeddedLoader called', keys);
+      if (!inMemoryDevelopmentCache) throw new Error('no');
+
       // as every edge config has a single "all" only, we use # as the key
       // to load all items
       if (keys.length !== 1 || keys[0] !== '#') {
@@ -140,24 +171,39 @@ export function createLoaders({
         },
       ) as Promise<EmbeddedEdgeConfig>;
 
+      // return [await embeddedEdgeConfigPromise];
+
+      // an id to track whether
+      const fetchId = ++inMemoryDevelopmentCache.inflightId;
+
+      // refresh the underlying value in stale-while-revalidate manner
       void embeddedEdgeConfigPromise.then((embeddedEdgeConfig) => {
-        // eslint-disable-next-line no-param-reassign -- k
-        inMemoryDevelopmentCache = embeddedEdgeConfig;
+        // ensure we're not overwriting newer values
+        if (fetchId > inMemoryDevelopmentCache.cachedId) {
+          console.log('trying to set cache', embeddedEdgeConfig);
+          inMemoryDevelopmentCache.value = embeddedEdgeConfig;
+          inMemoryDevelopmentCache.cachedId = fetchId;
+
+          embeddedEdgeConfigMap.set('#', Promise.resolve(embeddedEdgeConfig));
+        } else {
+          console.log('not writing cache');
+        }
       });
 
+      console.log('currently cached', inMemoryDevelopmentCache.value);
+
       // return previous value if it exits, for swr semantics
-      return inMemoryDevelopmentCache
-        ? [inMemoryDevelopmentCache]
+      return inMemoryDevelopmentCache.value
+        ? [inMemoryDevelopmentCache.value]
         : [await embeddedEdgeConfigPromise];
     },
     { batchScheduleFn, cacheMap: embeddedEdgeConfigMap },
   );
 
   async function getInMemoryEdgeConfig(): Promise<null | EmbeddedEdgeConfig> {
-    // the cache should not be used
-    if (inMemoryDevelopmentCache === undefined) return null;
-
-    return getEmbeddedLoader.load('#');
+    // only use the loader if the cache should acutally be used, which is the
+    // case when inMemoryDevelopmentCache is defined
+    return inMemoryDevelopmentCache ? getEmbeddedLoader.load('#') : null;
   }
 
   const hasLoader = new DataLoader(

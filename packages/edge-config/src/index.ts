@@ -135,7 +135,13 @@ export function createClient(
     sdkName,
     sdkVersion,
     staleIfError: options.staleIfError,
-    inMemoryDevelopmentCache: enableDevelopmentCache ? null : undefined,
+    inMemoryDevelopmentCache: enableDevelopmentCache
+      ? {
+          inflightId: -1,
+          cachedId: -1,
+          value: null,
+        }
+      : null,
   };
 
   const loadersInstanceCache = new WeakMap<RequestContext, Loaders>();

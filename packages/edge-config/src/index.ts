@@ -7,7 +7,6 @@ import type {
   EdgeConfigValue,
   EmbeddedEdgeConfig,
 } from './types';
-import { swr } from './utils/swr-fn';
 import { createLoaders } from './utils/create-loaders';
 
 export {
@@ -122,23 +121,29 @@ export function createClient(
   if (!connection)
     throw new Error('@vercel/edge-config: Invalid connection string provided');
 
+  /**
+   * While in development we use SWR-like behavior for the api client to
+   * reduce latency.
+   */
+  const enableDevelopmentCache =
+    !options.disableDevelopmentCache &&
+    process.env.NODE_ENV === 'development' &&
+    process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
+
   const loaderOptions: Parameters<typeof getLoadersInstance>[0] = {
     connection,
     sdkName,
     sdkVersion,
     staleIfError: options.staleIfError,
+    inMemoryDevelopmentCache: enableDevelopmentCache
+      ? {
+          pendingPromise: null,
+          value: null,
+        }
+      : null,
   };
 
   const loadersInstanceCache = new WeakMap<RequestContext, Loaders>();
-
-  /**
-   * While in development we use SWR-like behavior for the api client to
-   * reduce latency.
-   */
-  const shouldUseSwr =
-    !options.disableDevelopmentCache &&
-    process.env.NODE_ENV === 'development' &&
-    process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
 
   const api: Omit<EdgeConfigClient, 'connection'> = {
     async get<T = EdgeConfigValue | undefined>(key: string): Promise<T> {
@@ -213,16 +218,7 @@ export function createClient(
     },
   };
 
-  return shouldUseSwr
-    ? {
-        connection,
-        get: swr(api.get),
-        getMany: swr(api.getMany),
-        getAll: swr(api.getAll),
-        has: swr(api.has),
-        digest: swr(api.digest),
-      }
-    : { ...api, connection };
+  return { ...api, connection };
 }
 
 let defaultEdgeConfigClient: EdgeConfigClient;

@@ -6,7 +6,7 @@ import type {
   EdgeConfigValue,
   EmbeddedEdgeConfig,
 } from '../types';
-import { fetchWithCachedResponse } from './fetch-with-cached-response';
+import { fetchWithHttpCache } from './fetch-with-http-cache';
 import { ERRORS, hasOwnProperty, isDynamicServerError } from '.';
 
 async function consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(
@@ -48,11 +48,26 @@ export function createLoaders({
   sdkVersion,
   sdkName,
   staleIfError,
+  inMemoryDevelopmentCache,
 }: {
   connection: Connection;
   sdkVersion?: string;
   sdkName?: string;
   staleIfError?: number | false;
+  inMemoryDevelopmentCache: /**
+   * null means the cache should not be used, either because we're not in
+   * development or because it was disabled manually when creating the client
+   */
+  null | {
+    /**
+     * This is set in case we are currently fetching an embedded edge config.
+     */
+    pendingPromise: Promise<EmbeddedEdgeConfig> | null;
+    /**
+     * The currently cached embedded edge config.
+     */
+    value: EmbeddedEdgeConfig | null;
+  };
 }): {
   get: DataLoader<string, EdgeConfigValue | undefined, string>;
   getAll: DataLoader<string, EdgeConfigItems, string>;
@@ -91,9 +106,89 @@ export function createLoaders({
   const getAllMap = new Map<string, Promise<EdgeConfigItems>>();
   const getMap = new Map<string, Promise<EdgeConfigValue | undefined>>();
 
+  function createEmbeddedEdgeConfigPromise(): Promise<EmbeddedEdgeConfig> {
+    if (!inMemoryDevelopmentCache) {
+      // this should never happen, as the createEmbeddedEdgeConfigPromise fn
+      // should only be called when inMemoryDevelopmentCache exists
+      throw new Error('Missing inMemoryDevelopmentCache');
+    }
+
+    const promise = fetchWithHttpCache(`${baseUrl}?version=${version}`, {
+      headers: new Headers(headers),
+      cache: 'no-store',
+    }).then(
+      async (res) => {
+        if (res.ok) {
+          return (await res.json()) as EmbeddedEdgeConfig;
+        }
+        await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+
+        if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
+        // the /items endpoint never returns 404, so if we get a 404
+        // it means the edge config itself did not exist
+        if (res.status === 404) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
+        if (res.cachedResponseBody !== undefined) {
+          return res.cachedResponseBody;
+        }
+        throw new Error(ERRORS.UNEXPECTED);
+      },
+      (error) => {
+        inMemoryDevelopmentCache.pendingPromise = null;
+        if (isDynamicServerError(error)) throw error;
+        throw new Error(ERRORS.NETWORK);
+      },
+    ) as Promise<EmbeddedEdgeConfig>;
+
+    // don't make this part of the offical promise we return, to avoid
+    // running it for every call
+    void promise
+      .then((embeddedEdgeConfig) => {
+        inMemoryDevelopmentCache.value = embeddedEdgeConfig;
+      })
+      .finally(() => {
+        inMemoryDevelopmentCache.pendingPromise = null;
+      });
+
+    return promise;
+  }
+
+  /**
+   * This loader is used in development only.
+   *
+   * Since it's used in development only, it can not benefit from deduping
+   * based on requestContext, since there will be no request context.
+   *
+   * This loader is used to load the whole embedded edge config, which is then
+   * used when resolving other calls like `get`.
+   *
+   * This loader further behaves in a stale-while-revalidate like manner, since
+   * it will refresh the underlying value after returning the current value.
+   */
+  async function getInMemoryEdgeConfig(): Promise<null | EmbeddedEdgeConfig> {
+    // only use the loader if the cache should acutally be used, which is the
+    // case when inMemoryDevelopmentCache is defined
+    if (!inMemoryDevelopmentCache) return null;
+
+    // refresh the underlying value in stale-while-revalidate manner
+    //
+    // when there is already a pending promise, we just attach ourselves to it
+    const embeddedEdgeConfigPromise = inMemoryDevelopmentCache.pendingPromise
+      ? inMemoryDevelopmentCache.pendingPromise
+      : createEmbeddedEdgeConfigPromise();
+
+    inMemoryDevelopmentCache.pendingPromise = embeddedEdgeConfigPromise;
+
+    // return previous value if it exits, for swr semantics
+    return inMemoryDevelopmentCache.value
+      ? inMemoryDevelopmentCache.value
+      : embeddedEdgeConfigPromise;
+  }
+
   const hasLoader = new DataLoader(
     async (keys: readonly string[]) => {
-      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+      const localEdgeConfig =
+        (await getInMemoryEdgeConfig()) ||
+        (await getFileSystemEdgeConfig(connection));
 
       if (localEdgeConfig) {
         return keys.map((key) => hasOwnProperty(localEdgeConfig.items, key));
@@ -112,7 +207,7 @@ export function createLoaders({
       return Promise.all(
         // TODO introduce an endpoint for batch evaluating has()
         keys.map((key) => {
-          // this is a HEAD request anyhow, no need for fetchWithCachedResponse
+          // this is a HEAD request anyhow, no need for fetchWithHttpCache
           return fetch(`${baseUrl}/item/${key}?version=${version}`, {
             method: 'HEAD',
             headers: new Headers(headers),
@@ -156,14 +251,16 @@ export function createLoaders({
         throw new Error('unexpected key passed to digest');
       }
 
-      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+      const localEdgeConfig =
+        (await getInMemoryEdgeConfig()) ||
+        (await getFileSystemEdgeConfig(connection));
 
       if (localEdgeConfig) {
         // returns an array as "#" is the only key
         return [localEdgeConfig.items];
       }
 
-      const edgeConfigItems = (await fetchWithCachedResponse(
+      const edgeConfigItems = (await fetchWithHttpCache(
         `${baseUrl}/items?version=${version}`,
         {
           headers: new Headers(headers),
@@ -198,7 +295,9 @@ export function createLoaders({
 
   const getLoader = new DataLoader<string, EdgeConfigValue | undefined, string>(
     async (keys: readonly string[]) => {
-      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+      const localEdgeConfig =
+        (await getInMemoryEdgeConfig()) ||
+        (await getFileSystemEdgeConfig(connection));
 
       if (localEdgeConfig) {
         // We need to return a clone of the value so users can't modify
@@ -223,7 +322,7 @@ export function createLoaders({
       if (keys.length === 1) {
         const key = keys[0];
         return Promise.all([
-          fetchWithCachedResponse(`${baseUrl}/item/${key}?version=${version}`, {
+          fetchWithHttpCache(`${baseUrl}/item/${key}?version=${version}`, {
             headers: new Headers(headers),
             cache: 'no-store',
           }).then(
@@ -257,7 +356,7 @@ export function createLoaders({
         [...keys].sort().map((key) => ['key', key] as [string, string]),
       ).toString();
 
-      const edgeConfigItems = (await fetchWithCachedResponse(
+      const edgeConfigItems = (await fetchWithHttpCache(
         `${baseUrl}/items?version=${version}&${search}`,
         {
           headers: new Headers(headers),
@@ -295,7 +394,9 @@ export function createLoaders({
         throw new Error('unexpected key passed to digest');
       }
 
-      const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+      const localEdgeConfig =
+        (await getInMemoryEdgeConfig()) ||
+        (await getFileSystemEdgeConfig(connection));
 
       return Promise.all(
         keys.map((_key) => {
@@ -303,13 +404,10 @@ export function createLoaders({
             return localEdgeConfig.digest;
           }
 
-          return fetchWithCachedResponse(
-            `${baseUrl}/digest?version=${version}`,
-            {
-              headers: new Headers(headers),
-              cache: 'no-store',
-            },
-          ).then(
+          return fetchWithHttpCache(`${baseUrl}/digest?version=${version}`, {
+            headers: new Headers(headers),
+            cache: 'no-store',
+          }).then(
             async (res) => {
               if (res.ok) return res.json() as Promise<string>;
               await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);

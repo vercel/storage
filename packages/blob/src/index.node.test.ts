@@ -1,5 +1,6 @@
 import { type Interceptable, MockAgent, setGlobalDispatcher } from 'undici';
 import { list, head, del, put } from './index';
+import { BlobServiceNotAvailable } from './helpers';
 
 const BLOB_API_URL = 'https://blob.vercel-storage.com';
 const BLOB_STORE_BASE_URL = 'https://storeId.public.blob.vercel-storage.com';
@@ -136,6 +137,19 @@ describe('blob client', () => {
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error('Vercel Blob: This store does not exist'),
+      );
+    });
+
+    it('should throw when service unavailable', async () => {
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'GET',
+        })
+        .reply(502, { error: { code: 'service_unavailable' } });
+
+      await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
+        new BlobServiceNotAvailable(),
       );
     });
   });

@@ -216,7 +216,7 @@ importers:
         specifier: 2.2.6
         version: 2.2.6
       '@sejohnson/tql':
-        specifier: 1.0.2
+        specifier: ^1.0.0
         version: 1.0.2
       '@types/jest':
         specifier: 29.5.7

@@ -1032,6 +1032,72 @@ describe('stale-while-revalidate semantics (in development)', () => {
         // the same fetch promise
         expect(fetchMock).toHaveBeenCalledTimes(3);
       });
+
+      it('should apply stale-while-revalidate across multiple keys', async () => {
+        fetchMock.mockResponseOnce(
+          JSON.stringify({
+            items: { key1: 'value1a', key2: 'value2a' },
+            digest: 'digest-a',
+          }),
+        );
+
+        // kick off in parallel so they are handled by the same pendingPromise
+        const promiseKey1 = edgeConfig.get('key1');
+        const promiseKey2 = edgeConfig.get('key2');
+        const promiseMany = edgeConfig.getMany(['key1', 'key2']);
+        const promiseAll = edgeConfig.getAll();
+        const promiseDigest = edgeConfig.digest();
+
+        // then assert individually
+        await expect(promiseKey1).resolves.toEqual('value1a');
+        await expect(promiseKey2).resolves.toEqual('value2a');
+        await expect(promiseMany).resolves.toEqual(['value1a', 'value2a']);
+        await expect(promiseMany).resolves.toEqual(['value1a', 'value2a']);
+        await expect(promiseAll).resolves.toEqual({
+          key1: 'value1a',
+          key2: 'value2a',
+        });
+        await expect(promiseDigest).resolves.toEqual('digest-a');
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+
+        let resolve;
+        const promise = new Promise<Response>((r) => {
+          resolve = r;
+        });
+
+        fetchMock.mockReturnValue(promise);
+
+        // here we're still receiving value1a as expected, while we are revalidating
+        // the latest values in the background
+        //
+        // note that we're ensuring the read is possible before the evaluation
+        // in the background succeeds by calling `resolve` after below
+        await expect(edgeConfig.get('key1')).resolves.toEqual('value1a');
+        // more calls should not end up in more fetchMock calls since there
+        // is already an in-flight promise
+        await expect(edgeConfig.get('key1')).resolves.toEqual('value1a');
+        await expect(edgeConfig.get('key2')).resolves.toEqual('value2a');
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+
+        // @ts-expect-error -- pretend this is a response
+        resolve(
+          Promise.resolve({
+            ok: true,
+            headers: new Headers(),
+            json: () =>
+              Promise.resolve({ items: { key1: 'value1b' }, digest: 'b' }),
+          }),
+        );
+
+        fetchMock.mockResponseOnce(
+          JSON.stringify({ items: { key1: 'value1c' }, digest: 'c' }),
+        );
+        await expect(edgeConfig.get('key1')).resolves.toEqual('value1b');
+
+        // we only expect three calls since the multiple calls above share
+        // the same fetch promise
+        expect(fetchMock).toHaveBeenCalledTimes(3);
+      });
     });
   });
 });

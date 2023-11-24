@@ -15,7 +15,7 @@
       "dependsOn": ["^build"]
     },
     "publint": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build", "build"]
     },
     "prettier-check": {},
     "integration-test": {

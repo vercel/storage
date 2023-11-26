@@ -15,10 +15,10 @@ export default async function handleBody(
     return;
   }
 
-  const body = request.body as string;
+  const body = request.body as HandleUploadBody;
   try {
     const jsonResponse = await handleUpload({
-      body: JSON.parse(body) as HandleUploadBody,
+      body,
       request,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/require-await -- [@vercel/style-guide@5 migration]
       onBeforeGenerateToken: async (pathname) => {

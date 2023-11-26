@@ -1,6 +1,6 @@
 {
   "name": "@vercel/blob",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "description": "The Vercel Blob JavaScript API client",
   "homepage": "https://vercel.com/storage/blob",
   "repository": {
@@ -53,7 +53,10 @@
   },
   "jest": {
     "preset": "ts-jest",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "testEnvironmentOptions": {
+      "url": "http://localhost:3000"
+    }
   },
   "dependencies": {
     "jest-environment-jsdom": "29.7.0",

@@ -11,11 +11,14 @@ export function build(dialect: DialectImpl, ast: TqlQuery | TqlFragment): void {
     'update-set': dialect.set.bind(dialect),
     string: dialect.string.bind(dialect),
     parameter: dialect.parameter.bind(dialect),
-    fragment: (node) => build(dialect, node),
+    fragment: (node) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- see below
+      build(dialect, node);
+    },
     query: (): void => {
       throw new TqlError('illegal_query_recursion');
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- this is technically possible to get right, but really hard and unimportant
   } satisfies { [key in TqlNodeType]: (node: any) => void };
   for (const node of ast.nodes) {
     actions[node.type](node);

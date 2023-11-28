@@ -5,7 +5,7 @@ import type { TqlQuery } from '../nodes';
 export function createTestDialect(): {
   Dialect: Dialect;
   mocks: {
-    string: jest.MockedFunction<DialectImpl['string']>;
+    templateString: jest.MockedFunction<DialectImpl['templateString']>;
     parameter: jest.MockedFunction<DialectImpl['parameter']>;
     identifiers: jest.MockedFunction<DialectImpl['identifiers']>;
     list: jest.MockedFunction<DialectImpl['list']>;
@@ -16,7 +16,7 @@ export function createTestDialect(): {
   };
 } {
   const mocks = {
-    string: jest.fn(),
+    templateString: jest.fn(),
     parameter: jest.fn(),
     identifiers: jest.fn(),
     list: jest.fn(),
@@ -28,7 +28,7 @@ export function createTestDialect(): {
     ),
   };
   class TestDialect extends BaseDialect implements DialectImpl {
-    string = mocks.string;
+    templateString = mocks.templateString;
     parameter = mocks.parameter;
     identifiers = mocks.identifiers;
     list = mocks.list;

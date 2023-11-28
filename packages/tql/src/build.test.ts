@@ -18,7 +18,7 @@ describe('build', () => {
     list: jest.fn(),
     values: jest.fn(),
     set: jest.fn(),
-    'template-string': jest.fn(),
+    templateString: jest.fn(),
     parameter: jest.fn(),
     fragment: jest.fn(),
     query: jest.fn(),
@@ -55,10 +55,10 @@ describe('build', () => {
       },
     },
     {
-      type: 'template-string',
+      type: 'templateString',
       node: new TqlQuery([new TqlTemplateString('hello')]),
       expect: () => {
-        expect(actions['template-string']).toHaveBeenCalledTimes(1);
+        expect(actions.templateString).toHaveBeenCalledTimes(1);
       },
     },
     {

@@ -8,7 +8,7 @@ export function build(dialect: DialectImpl, ast: TqlQuery | TqlFragment): void {
     list: dialect.list.bind(dialect),
     values: dialect.values.bind(dialect),
     set: dialect.set.bind(dialect),
-    'template-string': dialect.string.bind(dialect),
+    templateString: dialect.templateString.bind(dialect),
     parameter: dialect.parameter.bind(dialect),
     fragment: (node) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- see below

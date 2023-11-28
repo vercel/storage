@@ -26,7 +26,7 @@ describe('tql dialect: Postgres', () => {
   describe('string', () => {
     it('appends the string', () => {
       const dialect = d();
-      dialect.string(new TqlTemplateString('hi'));
+      dialect.templateString(new TqlTemplateString('hi'));
       expect(queryBuilder.params).toEqual([]);
       expect(queryBuilder.query).toBe('hi');
     });

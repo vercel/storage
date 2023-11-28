@@ -14,7 +14,7 @@ export type ValuesObject = Record<string, unknown> | Record<string, unknown>[];
 
 export interface DialectImpl {
   preprocess: (fragment: TqlQuery) => TqlQuery;
-  string: (str: TqlTemplateString) => void;
+  templateString: (str: TqlTemplateString) => void;
   parameter: (param: TqlParameter) => void;
   identifiers: (ids: TqlIdentifiers) => void;
   list: (vals: TqlList) => void;

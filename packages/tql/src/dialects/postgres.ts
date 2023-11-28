@@ -11,7 +11,7 @@ import {
 } from '../nodes.js';
 
 export class PostgresDialect extends BaseDialect implements DialectImpl {
-  string(str: TqlTemplateString): void {
+  templateString(str: TqlTemplateString): void {
     this.appendToQuery(str.value);
   }
 

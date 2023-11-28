@@ -27,7 +27,7 @@ describe('nodes', () => {
       instance: new TqlParameter(1),
     },
     {
-      type: 'string',
+      type: 'templateString',
       Ctor: TqlTemplateString,
       instance: new TqlTemplateString('foo'),
     },

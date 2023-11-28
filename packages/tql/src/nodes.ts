@@ -3,7 +3,7 @@ import type { SetObject, ValuesObject } from './types';
 export const tqlNodeTypes = [
   'list',
   'parameter',
-  'template-string',
+  'templateString',
   'values',
   'set',
   'query',
@@ -49,9 +49,9 @@ export class TqlParameter extends TqlNode<'parameter'> {
  * A string literal. These are ONLY created by the `tql` template tag -- i.e. these strings are written by the developer,
  * not the user.
  */
-export class TqlTemplateString extends TqlNode<'template-string'> {
+export class TqlTemplateString extends TqlNode<'templateString'> {
   constructor(public readonly value: string) {
-    super('template-string');
+    super('templateString');
   }
 }
 

@@ -55,8 +55,7 @@ export class PostgresDialect extends BaseDialect implements DialectImpl {
           columns = Object.keys(entry);
           this.appendToQuery(
             `(${columns
-              // eslint-disable-next-line @typescript-eslint/unbound-method -- this rule is idiotic, this is a static method
-              .map(PostgresDialect.escapeIdentifier)
+              .map((column) => PostgresDialect.escapeIdentifier(column))
               .join(', ')}) VALUES `,
           );
         }
@@ -73,8 +72,9 @@ export class PostgresDialect extends BaseDialect implements DialectImpl {
       const entry = entries.values;
       const columns = Object.keys(entry);
       this.appendToQuery(
-        // eslint-disable-next-line @typescript-eslint/unbound-method -- this rule is idiotic, this is a static method
-        `(${columns.map(PostgresDialect.escapeIdentifier).join(', ')}) VALUES `,
+        `(${columns
+          .map((column) => PostgresDialect.escapeIdentifier(column))
+          .join(', ')}) VALUES `,
       );
       const queryItems: string[] = [];
       for (const column of columns) {

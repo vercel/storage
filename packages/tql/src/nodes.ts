@@ -3,9 +3,9 @@ import type { SetObject, ValuesObject } from './types';
 export const tqlNodeTypes = [
   'list',
   'parameter',
-  'string',
+  'template-string',
   'values',
-  'update-set',
+  'set',
   'query',
   'fragment',
   'identifiers',
@@ -49,9 +49,9 @@ export class TqlParameter extends TqlNode<'parameter'> {
  * A string literal. These are ONLY created by the `tql` template tag -- i.e. these strings are written by the developer,
  * not the user.
  */
-export class TqlTemplateString extends TqlNode<'string'> {
+export class TqlTemplateString extends TqlNode<'template-string'> {
   constructor(public readonly value: string) {
-    super('string');
+    super('template-string');
   }
 }
 
@@ -70,9 +70,9 @@ export class TqlValues extends TqlNode<'values'> {
  * A SET clause. Given a record, the record keys are column names and the corresponding values are the values for that column.
  * The dialect should write the full SET clause, i.e. `SET "col_1" = $1, "col_2" = $2`.
  */
-export class TqlSet extends TqlNode<'update-set'> {
+export class TqlSet extends TqlNode<'set'> {
   constructor(public readonly values: SetObject) {
-    super('update-set');
+    super('set');
   }
 }
 

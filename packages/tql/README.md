@@ -4,7 +4,7 @@
 pnpm i @vercel/tql
 ```
 
-TQL (Template-SQL -- unfortunately, T-SQL is already taken!) is a lightweight library for writing SQL in TypeScript:
+TQL is a lightweight library for writing SQL in TypeScript:
 
 ```ts
 import { init, PostgresDialect } from '@vercel/tql';

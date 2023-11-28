@@ -6,7 +6,6 @@ export function isTemplateStringsArray(
   );
 }
 
-// TODO: Test
 export function createQueryBuilder(): {
   readonly query: string;
   readonly params: unknown[];
@@ -32,12 +31,4 @@ export function createQueryBuilder(): {
     appendToQuery,
     appendToParams,
   };
-}
-
-// TODO: test
-export function pluralize(str: string, plural: boolean, suffix = 's'): string {
-  if (plural) {
-    return `${str}${suffix}`;
-  }
-  return str;
 }

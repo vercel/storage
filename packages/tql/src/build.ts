@@ -2,14 +2,13 @@ import { TqlError } from './error';
 import { type TqlQuery, type TqlFragment, type TqlNodeType } from './nodes';
 import type { DialectImpl } from './types';
 
-// TODO: test
 export function build(dialect: DialectImpl, ast: TqlQuery | TqlFragment): void {
   const actions = {
     identifiers: dialect.identifiers.bind(dialect),
     list: dialect.list.bind(dialect),
     values: dialect.values.bind(dialect),
-    'update-set': dialect.set.bind(dialect),
-    string: dialect.string.bind(dialect),
+    set: dialect.set.bind(dialect),
+    'template-string': dialect.string.bind(dialect),
     parameter: dialect.parameter.bind(dialect),
     fragment: (node) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- see below

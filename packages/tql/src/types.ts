@@ -104,7 +104,7 @@ export interface Tql {
    * @param ids - The IDs to escape.
    * @returns A representation of the identifiers that will be escaped by {@link query}.
    */
-  identifiers: (ids: string | string[]) => TqlIdentifiers;
+  IDENTIFIERS: (ids: string | string[]) => TqlIdentifiers;
 
   /**
    * For use with the IN operator or anywhere else a parenthesis-list of values is needed.
@@ -118,7 +118,7 @@ export interface Tql {
    * @param vals - The values to build into a list.
    * @returns A representation of the list that will be escaped by {@link query}.
    */
-  list: (vals: unknown[]) => TqlList;
+  LIST: (vals: unknown[]) => TqlList;
 
   /**
    * For use with the VALUES clause of an INSERT statement. Can insert one or multiple rows. If multiple
@@ -146,7 +146,7 @@ export interface Tql {
    * @param entries - The value or values to insert.
    * @returns A representation of the values that will be escaped by {@link query}.
    */
-  values: (entries: ValuesObject) => TqlValues;
+  VALUES: (entries: ValuesObject) => TqlValues;
 
   /**
    * A SET clause. Given a record, the record keys are column names and the corresponding values are the values for that column.
@@ -163,7 +163,7 @@ export interface Tql {
    * @returns A representation of the SET clause to be passed to {@link query}.
    * ```
    */
-  set: (entry: SetObject) => TqlSet;
+  SET: (entry: SetObject) => TqlSet;
 
   /**
    * A raw string that will be inserted into the query as-is.
@@ -180,7 +180,7 @@ export interface Tql {
    *
    * @returns A representation of the string that will be inserted into the query as-is by {@link query} and {@link fragment}.
    */
-  unsafe: (str: string) => TqlTemplateString;
+  UNSAFE: (str: string) => TqlTemplateString;
 }
 
 export type Init = (options: { dialect: Dialect }) => Tql;

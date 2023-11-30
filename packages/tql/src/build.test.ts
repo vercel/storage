@@ -25,6 +25,7 @@ describe('build', () => {
         return 0;
       },
     );
+    jest.clearAllMocks();
   });
 
   it.each([

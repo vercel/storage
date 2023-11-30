@@ -11,7 +11,7 @@ import {
   TqlTemplateString,
   TqlValues,
 } from './nodes';
-import { DialectImpl } from './types';
+import type { DialectImpl } from './types';
 
 describe('build', () => {
   const { Dialect, mocks } = createTestDialect();

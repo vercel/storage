@@ -1,3 +1,4 @@
+import { TqlError } from './error';
 import type { SetObject, ValuesObject } from './types';
 
 export const tqlNodeTypes = [
@@ -95,6 +96,19 @@ export class TqlSet extends TqlNode<'set'> {
 export class TqlFragment extends TqlNode<'fragment'> {
   constructor(public readonly nodes: TqlNode<Exclude<TqlNodeType, 'query'>>[]) {
     super('fragment');
+  }
+
+  join(...fragments: TqlFragment[]): TqlFragment {
+    if (fragments.length === 0) return new TqlFragment([]);
+    if (!fragments.every((fragment) => fragment instanceof TqlFragment)) {
+      throw new TqlError('illegal_non_fragment_join');
+    }
+    const nodes = [...(fragments.shift()?.nodes ?? [])];
+    for (const fragment of fragments) {
+      nodes.push(...this.nodes);
+      nodes.push(...fragment.nodes);
+    }
+    return new TqlFragment(nodes);
   }
 }
 

@@ -114,6 +114,30 @@ const [q, params] = query`SELECT * FROM users ${whereClause}`;
 
 Fragments can be nested recursively, so the possibilities are endless.
 
+If you need to combine a group of fragments, you can use `fragment.join`, which works a bit like Python's `String.join` API:
+
+```ts
+const maxAge = 30;
+const minAge = 25;
+const firstName = undefined;
+
+const filters = [];
+if (maxAge) filters.push(fragment`age < ${maxAge}`);
+if (minAge) filters.push(fragment`age > ${minAge}`);
+if (firstName) filters.push(fragment`firstName = ${firstName}`);
+
+let whereClause = fragment``;
+if (filters.length > 0) {
+  joinedFilters = fragment` AND `.join(...filters);
+  whereClause = fragment`WHERE ${joinedFilters}`;
+}
+const [q, params] = query`SELECT * FROM users ${whereClause};`;
+// output: [
+//   'SELECT * FROM users WHERE age < $1 AND age > $2;',
+//   [30, 25]
+// ]
+```
+
 ### Identifiers
 
 Need to dynamically insert identifiers?

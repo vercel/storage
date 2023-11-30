@@ -26,6 +26,8 @@ const messages = {
     'The records passed to `values` must not be empty.',
   illegal_query_recursion: () =>
     'Found a nested call to `query`. If you need to nest queries, use `fragment`.',
+  illegal_non_fragment_join: () =>
+    'Cannot join non-fragment values to fragments, as this could result in SQL injection.',
 } as const satisfies Record<string, (...args: never[]) => string>;
 
 function formatValuesRecordsMismatchMessage(diff: ColumnDiff): string {

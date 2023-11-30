@@ -1,3 +1,4 @@
+import { TqlError } from './error';
 import {
   TqlIdentifiers,
   TqlList,
@@ -54,4 +55,54 @@ describe('nodes', () => {
       expect(instance).toBeInstanceOf(TqlNode);
     },
   );
+});
+
+// eslint-disable-next-line jest/prefer-lowercase-title -- This is a class name
+describe('TqlFragment', () => {
+  it('joins other fragments using itself as a delimiter', () => {
+    const delimiter = new TqlFragment([new TqlTemplateString('\n')]);
+    const fragmentsToJoin = [
+      new TqlFragment([new TqlTemplateString('SELECT *')]),
+      new TqlFragment([new TqlTemplateString('FROM users')]),
+      new TqlFragment([
+        new TqlTemplateString('WHERE user_id = '),
+        new TqlParameter(1234),
+        new TqlTemplateString(';'),
+      ]),
+    ];
+    const result = delimiter.join(...fragmentsToJoin);
+    expect(result).toEqual(
+      new TqlFragment([
+        new TqlTemplateString('SELECT *'),
+        new TqlTemplateString('\n'),
+        new TqlTemplateString('FROM users'),
+        new TqlTemplateString('\n'),
+        new TqlTemplateString('WHERE user_id = '),
+        new TqlParameter(1234),
+        new TqlTemplateString(';'),
+      ]),
+    );
+  });
+
+  it('throws when it finds an imposter', () => {
+    const delimiter = new TqlFragment([new TqlTemplateString('\n')]);
+    const fragmentsToJoin = [
+      new TqlFragment([new TqlTemplateString('SELECT *')]),
+      new TqlFragment([new TqlTemplateString('FROM users')]),
+      '; DROP TABLE users;--',
+      new TqlFragment([
+        new TqlTemplateString('WHERE user_id = '),
+        new TqlParameter(1234),
+        new TqlTemplateString(';'),
+      ]),
+    ] as TqlFragment[];
+    let error: Error | null = null;
+    try {
+      delimiter.join(...fragmentsToJoin);
+    } catch (e) {
+      error = e as Error;
+    }
+    expect(error).toBeInstanceOf(TqlError);
+    expect(error).toHaveProperty('code', 'illegal_non_fragment_join');
+  });
 });

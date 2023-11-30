@@ -1,6 +1,6 @@
 import { build } from './build';
+import { createTestDialect } from './dialects/test-dialect';
 import { TqlError } from './error';
-import type { TqlNodeType } from './nodes';
 import {
   TqlFragment,
   TqlIdentifiers,
@@ -11,94 +11,95 @@ import {
   TqlTemplateString,
   TqlValues,
 } from './nodes';
+import { DialectImpl } from './types';
 
 describe('build', () => {
-  const actions = {
-    identifiers: jest.fn(),
-    list: jest.fn(),
-    values: jest.fn(),
-    set: jest.fn(),
-    templateString: jest.fn(),
-    parameter: jest.fn(),
-    fragment: jest.fn(),
-    query: jest.fn(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- this is technically possible to get right, but really hard and unimportant
-  } satisfies { [key in TqlNodeType]: (node: any) => void };
+  const { Dialect, mocks } = createTestDialect();
+  let instance: DialectImpl;
+  beforeEach(() => {
+    instance = new Dialect(
+      () => {
+        return 0;
+      },
+      () => {
+        return 0;
+      },
+    );
+  });
 
   it.each([
     {
       type: 'identifiers',
       node: new TqlQuery([new TqlIdentifiers('hello')]),
       expect: () => {
-        expect(actions.identifiers).toHaveBeenCalledTimes(1);
+        expect(mocks.identifiers).toHaveBeenCalledTimes(1);
       },
     },
     {
       type: 'list',
       node: new TqlQuery([new TqlList(['hello', 'world'])]),
       expect: () => {
-        expect(actions.list).toHaveBeenCalledTimes(1);
+        expect(mocks.list).toHaveBeenCalledTimes(1);
       },
     },
     {
       type: 'values',
       node: new TqlQuery([new TqlValues({ hello: 'world' })]),
       expect: () => {
-        expect(actions.values).toHaveBeenCalledTimes(1);
+        expect(mocks.values).toHaveBeenCalledTimes(1);
       },
     },
     {
       type: 'set',
       node: new TqlQuery([new TqlSet({ hello: 'world' })]),
       expect: () => {
-        expect(actions.set).toHaveBeenCalledTimes(1);
+        expect(mocks.set).toHaveBeenCalledTimes(1);
       },
     },
     {
       type: 'templateString',
       node: new TqlQuery([new TqlTemplateString('hello')]),
       expect: () => {
-        expect(actions.templateString).toHaveBeenCalledTimes(1);
+        expect(mocks.templateString).toHaveBeenCalledTimes(1);
       },
     },
     {
       type: 'parameter',
       node: new TqlQuery([new TqlParameter('hello')]),
       expect: () => {
-        expect(actions.parameter).toHaveBeenCalledTimes(1);
+        expect(mocks.parameter).toHaveBeenCalledTimes(1);
       },
     },
     {
       type: 'fragment',
-      node: new TqlFragment([new TqlFragment([])]),
+      node: new TqlFragment([new TqlFragment([new TqlTemplateString('hi')])]),
       expect: () => {
-        expect(actions.fragment).not.toHaveBeenCalledTimes(1);
+        expect(mocks.templateString).toHaveBeenCalledTimes(1);
       },
     },
     {
       type: 'query',
-      node: new TqlQuery([]),
+      node: new TqlQuery([new TqlFragment([new TqlTemplateString('hi')])]),
       expect: () => {
-        expect(actions.query).not.toHaveBeenCalled();
+        expect(mocks.templateString).toHaveBeenCalledTimes(1);
       },
     },
   ])(
     'calls the correct method given a node type: $type',
     ({ node, expect }) => {
-      // @ts-expect-error - Missing preprocess and postprocess, but not needed to test this
-      build(actions, node);
+      build(instance, node);
       expect();
     },
   );
 
   it('throws when trying to nest queries in queries or fragments', () => {
     const nestedQueryInQuery = (): void => {
-      // @ts-expect-error - Same as above
-      build(actions, new TqlQuery([new TqlQuery()]));
+      // @ts-expect-error - This is against the rules, but someone could try
+      build(instance, new TqlQuery([new TqlQuery()]));
     };
     const nestedQueryInFragment = (): void => {
-      // @ts-expect-error - Same as above
-      build(actions, new TqlFragment([new TqlQuery()]));
+      // @ts-expect-error - This is against the rules, but someone could try
+      build(instance, new TqlFragment([new TqlQuery()]));
     };
     const assertIsCorrectError = (fn: () => void): void => {
       let error: Error | null = null;
@@ -112,5 +113,18 @@ describe('build', () => {
     };
     assertIsCorrectError(nestedQueryInQuery);
     assertIsCorrectError(nestedQueryInFragment);
+  });
+
+  it('throws if someone sneaks in a non-TQL-node', () => {
+    // @ts-expect-error - Yes, this is impossible with TypeScript
+    const q = new TqlQuery([new TqlTemplateString('hi'), 'hi']);
+    let error: Error | null = null;
+    try {
+      build(instance, q);
+    } catch (e) {
+      error = e as Error;
+    }
+    expect(error).toBeInstanceOf(TqlError);
+    expect(error).toHaveProperty('code', 'illegal_node_type_in_build');
   });
 });

@@ -1,5 +1,10 @@
 import { TqlError } from './error';
-import { type TqlQuery, type TqlFragment, type TqlNodeType } from './nodes';
+import {
+  type TqlQuery,
+  type TqlFragment,
+  type TqlNodeType,
+  TqlNode,
+} from './nodes';
 import type { DialectImpl } from './types';
 
 export function build(dialect: DialectImpl, ast: TqlQuery | TqlFragment): void {
@@ -20,6 +25,9 @@ export function build(dialect: DialectImpl, ast: TqlQuery | TqlFragment): void {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- this is technically possible to get right, but really hard and unimportant
   } satisfies { [key in TqlNodeType]: (node: any) => void };
   for (const node of ast.nodes) {
+    if (!(node instanceof TqlNode)) {
+      throw new TqlError('illegal_node_type_in_build', node);
+    }
     actions[node.type](node);
   }
 }

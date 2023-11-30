@@ -28,6 +28,9 @@ const messages = {
     'Found a nested call to `query`. If you need to nest queries, use `fragment`.',
   illegal_non_fragment_join: () =>
     'Cannot join non-fragment values to fragments, as this could result in SQL injection.',
+  illegal_node_type_in_build: (badNode: unknown) =>
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- In this instance, this is fine
+    `Encountered a non-TQL-node type while trying to build a query. This could indicate attempted SQL injection. Received: ${badNode}`,
 } as const satisfies Record<string, (...args: never[]) => string>;
 
 function formatValuesRecordsMismatchMessage(diff: ColumnDiff): string {

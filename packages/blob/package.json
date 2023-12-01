@@ -60,13 +60,13 @@
   },
   "dependencies": {
     "jest-environment-jsdom": "29.7.0",
-    "undici": "5.27.2"
+    "undici": "5.28.2"
   },
   "devDependencies": {
     "@edge-runtime/jest-environment": "2.3.7",
     "@edge-runtime/types": "2.2.7",
-    "@types/jest": "29.5.9",
-    "@types/node": "20.9.3",
+    "@types/jest": "29.5.10",
+    "@types/node": "20.10.1",
     "eslint": "8.54.0",
     "eslint-config-custom": "workspace:*",
     "jest": "29.7.0",

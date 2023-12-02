@@ -7,7 +7,8 @@ import type {
   EdgeConfigValue,
   EmbeddedEdgeConfig,
 } from './types';
-import { createLoaders } from './utils/create-loaders';
+import type { Loaders, RequestContext } from './types-internal';
+import { getLoadersInstance } from './utils/get-loader-instance';
 
 export {
   parseConnectionString,
@@ -50,50 +51,6 @@ interface EdgeConfigClientOptions {
    * will result in Edge Config being read every time.
    */
   disableRequestContextCache?: boolean;
-}
-
-interface RequestContextStore {
-  get: () => RequestContext;
-}
-
-interface RequestContext {
-  headers: Record<string, string | undefined>;
-  url: string;
-  waitUntil?: (promise: Promise<unknown>) => void;
-}
-
-type Loaders = ReturnType<typeof createLoaders>;
-
-function getLoadersInstance(
-  options: Parameters<typeof createLoaders>[0] & {
-    disableRequestContextCache?: boolean;
-  },
-  loadersInstanceCache: WeakMap<RequestContext, Loaders>,
-): ReturnType<typeof createLoaders> {
-  if (options.disableRequestContextCache) return createLoaders(options);
-
-  const requestContextStore =
-    // @ts-expect-error -- this is a vercel primitive which might or might not be defined
-    globalThis[Symbol.for('@vercel/request-context')] as
-      | RequestContextStore
-      | undefined;
-
-  const requestContext = requestContextStore?.get();
-
-  // if we have requestContext we can use dataloader to cache and batch per request
-  if (requestContext) {
-    const loadersInstance = loadersInstanceCache.get(requestContext);
-    if (loadersInstance) return loadersInstance;
-
-    const loaders = createLoaders(options);
-    loadersInstanceCache.set(requestContext, loaders);
-    return loaders;
-  }
-
-  // there is no requestConext so we can not cache loader instances per request,
-  // so we return a new instance every time effectively disabling dataloader
-  // batching and caching
-  return createLoaders(options);
 }
 
 /**

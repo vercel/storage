@@ -31,11 +31,11 @@ export const init: Init = ({ dialect: Dialect }) => {
     },
     fragment: (strings, ...values) =>
       parseTemplate(TqlFragment, strings, values),
-    identifiers: (ids) => new TqlIdentifiers(ids),
-    list: (vals) => new TqlList(vals),
-    values: (entries) => new TqlValues(entries),
-    set: (entries) => new TqlSet(entries),
-    unsafe: (str) => new TqlTemplateString(str),
+    IDENTIFIERS: (ids) => new TqlIdentifiers(ids),
+    LIST: (vals) => new TqlList(vals),
+    VALUES: (entries) => new TqlValues(entries),
+    SET: (entries) => new TqlSet(entries),
+    UNSAFE: (str) => new TqlTemplateString(str),
   };
 };
 

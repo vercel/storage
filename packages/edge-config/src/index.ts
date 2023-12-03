@@ -9,9 +9,6 @@ import type {
 } from './types';
 import type { Loaders, RequestContext } from './types-internal';
 import { getLoadersInstance } from './utils/get-loader-instance';
-import { getTracer } from './utils/tracing';
-
-export { setTracerProvider } from './utils/tracing';
 
 export {
   parseConnectionString,
@@ -107,25 +104,14 @@ export function createClient(
 
   const api: Omit<EdgeConfigClient, 'connection'> = {
     async get<T = EdgeConfigValue | undefined>(key: string): Promise<T> {
-      const span = getTracer()?.startSpan('edgeConfig.get');
       assertIsKey(key);
       const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
 
-      const loadSpan = getTracer()?.startSpan('edgeConfig.get#load');
-      return loaders.get
-        .load(key)
-        .then((value) => {
-          // prime has() with the result of get()
-          loaders.has.prime(key, value !== undefined);
-          const cloneSpan = getTracer()?.startSpan('edgeConfig.get#clone');
-          const cloned = clone(value);
-          cloneSpan?.end();
-          return cloned;
-        })
-        .finally(() => {
-          loadSpan?.end();
-          span?.end();
-        }) as Promise<T>;
+      return loaders.get.load(key).then((value) => {
+        // prime has() with the result of get()
+        loaders.has.prime(key, value !== undefined);
+        return clone(value);
+      }) as Promise<T>;
     },
     async has(key): Promise<boolean> {
       assertIsKey(key);

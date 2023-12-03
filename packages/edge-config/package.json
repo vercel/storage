@@ -41,6 +41,7 @@
     "testEnvironment": "node"
   },
   "dependencies": {
+    "@opentelemetry/api": "1.7.0",
     "@types/promise.any": "2.0.2",
     "@vercel/edge-config-fs": "workspace:*",
     "dataloader": "2.2.2"

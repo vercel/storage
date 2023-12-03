@@ -7,6 +7,7 @@ import type {
   EmbeddedEdgeConfig,
 } from '../types';
 import { fetchWithHttpCache } from './fetch-with-http-cache';
+import { getTracer } from './tracing';
 import { ERRORS, hasOwnProperty, isDynamicServerError } from '.';
 
 async function consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(
@@ -27,18 +28,39 @@ async function consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(
 async function getFileSystemEdgeConfig(
   connection: Connection,
 ): Promise<EmbeddedEdgeConfig | null> {
+  const readSpan = getTracer()?.startSpan('read embedded edge config', {
+    attributes: {
+      connectionType: connection.type,
+      awsLambdaFunctionName: process.env.AWS_LAMBDA_FUNCTION_NAME,
+    },
+  });
+
   // can't optimize non-vercel hosted edge configs
-  if (connection.type !== 'vercel') return null;
+  if (connection.type !== 'vercel') {
+    readSpan?.end();
+    return null;
+  }
+
   // can't use fs optimizations outside of lambda
-  if (!process.env.AWS_LAMBDA_FUNCTION_NAME) return null;
+  if (!process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    readSpan?.end();
+    return null;
+  }
 
   try {
     const content = await readFile(
       `/opt/edge-config/${connection.id}.json`,
       'utf-8',
     );
-    return JSON.parse(content) as EmbeddedEdgeConfig;
+    readSpan?.end();
+
+    const parseSpan = getTracer()?.startSpan('parse embedded edge config');
+    const data = JSON.parse(content) as EmbeddedEdgeConfig;
+    parseSpan?.end();
+
+    return data;
   } catch {
+    readSpan?.end();
     return null;
   }
 }
@@ -165,9 +187,17 @@ export function createLoaders({
    * it will refresh the underlying value after returning the current value.
    */
   async function getInMemoryEdgeConfig(): Promise<null | EmbeddedEdgeConfig> {
+    const span = getTracer()?.startSpan('getInMemoryEdgeConfig', {
+      attributes: {
+        inMemoryDevelopmentCache: Boolean(inMemoryDevelopmentCache),
+      },
+    });
     // only use the loader if the cache should acutally be used, which is the
     // case when inMemoryDevelopmentCache is defined
-    if (!inMemoryDevelopmentCache) return null;
+    if (!inMemoryDevelopmentCache) {
+      span?.end();
+      return null;
+    }
 
     // refresh the underlying value in stale-while-revalidate manner
     //
@@ -177,6 +207,8 @@ export function createLoaders({
       : createEmbeddedEdgeConfigPromise();
 
     inMemoryDevelopmentCache.pendingPromise = embeddedEdgeConfigPromise;
+
+    span?.end();
 
     // return previous value if it exits, for swr semantics
     return inMemoryDevelopmentCache.value
@@ -245,9 +277,11 @@ export function createLoaders({
 
   const getAllLoader = new DataLoader(
     async (keys: readonly string[]) => {
+      const span = getTracer()?.startSpan('getAllLoader');
       // as every edge config has a single "all" only, we use # as the key
       // to load all items
       if (keys.length !== 1 || keys[0] !== '#') {
+        span?.end();
         throw new Error('unexpected key passed to digest');
       }
 
@@ -256,6 +290,7 @@ export function createLoaders({
         (await getFileSystemEdgeConfig(connection));
 
       if (localEdgeConfig) {
+        span?.end();
         // returns an array as "#" is the only key
         return [localEdgeConfig.items];
       }
@@ -266,27 +301,32 @@ export function createLoaders({
           headers: new Headers(headers),
           cache: 'no-store',
         },
-      ).then(
-        async (res) => {
-          if (res.ok) {
-            return (await res.json()) as EdgeConfigItems;
-          }
-          void consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+      )
+        .then(
+          async (res) => {
+            if (res.ok) {
+              return (await res.json()) as EdgeConfigItems;
+            }
+            void consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
 
-          if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
-          // the /items endpoint never returns 404, so if we get a 404
-          // it means the edge config itself did not exist
-          if (res.status === 404) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-          if (res.cachedResponseBody !== undefined) {
-            return res.cachedResponseBody;
-          }
-          throw new Error(ERRORS.UNEXPECTED);
-        },
-        (error) => {
-          if (isDynamicServerError(error)) throw error;
-          throw new Error(ERRORS.NETWORK);
-        },
-      )) as EdgeConfigItems;
+            if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
+            // the /items endpoint never returns 404, so if we get a 404
+            // it means the edge config itself did not exist
+            if (res.status === 404)
+              throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
+            if (res.cachedResponseBody !== undefined) {
+              return res.cachedResponseBody;
+            }
+            throw new Error(ERRORS.UNEXPECTED);
+          },
+          (error) => {
+            if (isDynamicServerError(error)) throw error;
+            throw new Error(ERRORS.NETWORK);
+          },
+        )
+        .finally(() => {
+          span?.end();
+        })) as EdgeConfigItems;
 
       return [edgeConfigItems];
     },

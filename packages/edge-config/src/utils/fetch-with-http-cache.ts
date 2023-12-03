@@ -1,3 +1,5 @@
+import { getTracer } from './tracing';
+
 interface CachedResponseEntry {
   etag: string;
   response: string;
@@ -99,6 +101,7 @@ export async function fetchWithHttpCache(
   url: string,
   options: FetchOptions = {},
 ): Promise<ResponseWithCachedResponse> {
+  const span = getTracer()?.startSpan('fetchWithHttpCache');
   const { headers: customHeaders = new Headers(), ...customOptions } = options;
   const authHeader = customHeaders.get('Authorization');
   const cacheKey = `${url},${authHeader || ''}`;
@@ -106,6 +109,7 @@ export async function fetchWithHttpCache(
   const cachedResponseEntry = cache.get(cacheKey);
 
   if (cachedResponseEntry) {
+    span?.setAttribute('cached', true);
     const { etag, response: cachedResponse } = cachedResponseEntry;
     const headers = new Headers(customHeaders);
     headers.set('If-None-Match', etag);
@@ -148,6 +152,8 @@ export async function fetchWithHttpCache(
       time: Date.now(),
     });
   }
+
+  span?.end();
 
   return res;
 }

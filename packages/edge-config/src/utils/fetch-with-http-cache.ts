@@ -1,3 +1,5 @@
+import { measure } from './tracing';
+
 interface CachedResponseEntry {
   etag: string;
   response: string;
@@ -99,6 +101,7 @@ export async function fetchWithHttpCache(
   url: string,
   options: FetchOptions = {},
 ): Promise<ResponseWithCachedResponse> {
+  const stop = measure('fetchWithHttpCache');
   const { headers: customHeaders = new Headers(), ...customOptions } = options;
   const authHeader = customHeaders.get('Authorization');
   const cacheKey = `${url},${authHeader || ''}`;
@@ -122,6 +125,7 @@ export async function fetchWithHttpCache(
 
     if (res.status === 304) {
       res.cachedResponseBody = JSON.parse(cachedResponse);
+      stop('got 304');
       return res;
     }
 
@@ -134,6 +138,7 @@ export async function fetchWithHttpCache(
         status: res.status,
         time: Date.now(),
       });
+    stop('did not get 304');
     return res;
   }
 
@@ -149,5 +154,6 @@ export async function fetchWithHttpCache(
     });
   }
 
+  stop('did not have it cached');
   return res;
 }

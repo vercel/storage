@@ -85,6 +85,12 @@ export class BlobNotFoundError extends BlobError {
   }
 }
 
+export class BlobServiceNotAvailable extends BlobError {
+  constructor() {
+    super('The blob service is currently not available. Please try again');
+  }
+}
+
 type BlobApiErrorCodes =
   | 'store_suspended'
   | 'forbidden'
@@ -92,7 +98,8 @@ type BlobApiErrorCodes =
   | 'unknown_error'
   | 'bad_request'
   | 'store_not_found'
-  | 'not_allowed';
+  | 'not_allowed'
+  | 'service_unavailable';
 
 interface BlobApiError {
   error?: { code?: BlobApiErrorCodes; message?: string };
@@ -102,33 +109,33 @@ export async function validateBlobApiResponse(
   response: Response,
 ): Promise<void> {
   if (!response.ok) {
-    if (response.status >= 500) {
-      throw new BlobUnknownError();
-    } else {
-      let data: unknown;
-      try {
-        data = await response.json();
-      } catch {
-        throw new BlobUnknownError();
-      }
-      const error = (data as BlobApiError).error;
+    let data: unknown;
 
-      switch (error?.code) {
-        case 'store_suspended':
-          throw new BlobStoreSuspendedError();
-        case 'forbidden':
-          throw new BlobAccessError();
-        case 'not_found':
-          throw new BlobNotFoundError();
-        case 'store_not_found':
-          throw new BlobStoreNotFoundError();
-        case 'bad_request':
-          throw new BlobError(error.message ?? 'Bad request');
-        case 'unknown_error':
-        case 'not_allowed':
-        default:
-          throw new BlobUnknownError();
-      }
+    try {
+      data = await response.json();
+    } catch {
+      throw new BlobUnknownError();
+    }
+
+    const error = (data as BlobApiError).error;
+
+    switch (error?.code) {
+      case 'store_suspended':
+        throw new BlobStoreSuspendedError();
+      case 'forbidden':
+        throw new BlobAccessError();
+      case 'not_found':
+        throw new BlobNotFoundError();
+      case 'store_not_found':
+        throw new BlobStoreNotFoundError();
+      case 'bad_request':
+        throw new BlobError(error.message ?? 'Bad request');
+      case 'service_unavailable':
+        throw new BlobServiceNotAvailable();
+      case 'unknown_error':
+      case 'not_allowed':
+      default:
+        throw new BlobUnknownError();
     }
   }
 }

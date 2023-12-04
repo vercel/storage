@@ -9,6 +9,7 @@ export {
   BlobStoreNotFoundError,
   BlobStoreSuspendedError,
   BlobUnknownError,
+  BlobServiceNotAvailable,
 } from './helpers';
 
 // vercelBlob.put()

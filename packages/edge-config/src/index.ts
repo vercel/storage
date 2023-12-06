@@ -10,6 +10,7 @@ import type {
 } from './types';
 import type { Loaders, RequestContext } from './types-internal';
 import { getLoadersInstance } from './utils/get-loader-instance';
+import { trace } from './utils/tracing';
 
 export {
   parseConnectionString,
@@ -18,6 +19,8 @@ export {
   type EdgeConfigValue,
   type EmbeddedEdgeConfig,
 };
+
+export { setTracerProvider } from './utils/tracing';
 
 interface EdgeConfigClientOptions {
   /**
@@ -125,7 +128,9 @@ export function createClient(
   const loadersInstanceCache = new WeakMap<RequestContext, Loaders>();
 
   const api: Omit<EdgeConfigClient, 'connection'> = {
-    async get<T = EdgeConfigValue | undefined>(key: string): Promise<T> {
+    get: trace(async function get<T = EdgeConfigValue | undefined>(
+      key: string,
+    ): Promise<T> {
       assertIsKey(key);
       const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
 
@@ -134,7 +139,7 @@ export function createClient(
         loaders.has.prime(key, value !== undefined);
         return clone(value);
       }) as Promise<T>;
-    },
+    }),
     async has(key): Promise<boolean> {
       assertIsKey(key);
       const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);

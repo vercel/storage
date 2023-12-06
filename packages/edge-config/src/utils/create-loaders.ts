@@ -6,7 +6,6 @@ import type {
   EmbeddedEdgeConfig,
 } from '../types';
 import { fetchWithHttpCache } from './fetch-with-http-cache';
-import { measure } from './tracing';
 import { ERRORS, hasOwnProperty, isDynamicServerError } from '.';
 
 declare global {
@@ -34,15 +33,12 @@ async function consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(
 async function getFileSystemEdgeConfig(
   connection: Connection,
 ): Promise<EmbeddedEdgeConfig | null> {
-  const stop = measure('getFileSystemEdgeConfig');
   // can't optimize non-vercel hosted edge configs
   if (connection.type !== 'vercel') {
-    stop('connection type was not vercel');
     return null;
   }
   // can't use fs optimizations outside of lambda
   if (!process.env.AWS_LAMBDA_FUNCTION_NAME) {
-    stop('AWS_LAMBDA_FUNCTION_NAME not set');
     return null;
   }
 
@@ -175,11 +171,9 @@ export function createLoaders({
    * it will refresh the underlying value after returning the current value.
    */
   async function getInMemoryEdgeConfig(): Promise<null | EmbeddedEdgeConfig> {
-    const stop = measure('getInMemoryEdgeConfig');
     // only use the loader if the cache should acutally be used, which is the
     // case when inMemoryDevelopmentCache is defined
     if (!inMemoryDevelopmentCache) {
-      stop();
       return null;
     }
 
@@ -309,7 +303,6 @@ export function createLoaders({
 
   const getLoader = new DataLoader<string, EdgeConfigValue | undefined, string>(
     async (keys: readonly string[]) => {
-      const stop = measure(`getLoader ${keys.join(', ')}`);
       const localEdgeConfig =
         (await getInMemoryEdgeConfig()) ||
         (await getFileSystemEdgeConfig(connection));
@@ -319,7 +312,6 @@ export function createLoaders({
         // our original value, and so the reference changes.
         //
         // This makes it consistent with the real API.
-        stop('had local edge config');
         return keys.map((key) => localEdgeConfig.items[key]);
       }
 
@@ -329,7 +321,6 @@ export function createLoaders({
       if (allItemsPromise) {
         try {
           const allItems = await allItemsPromise;
-          stop('had allItemsPromise');
           return keys.map((key) => allItems[key]);
         } catch {
           /* ignored */
@@ -342,33 +333,29 @@ export function createLoaders({
           fetchWithHttpCache(`${baseUrl}/item/${key}?version=${version}`, {
             headers: new Headers(headers),
             cache: 'no-store',
-          })
-            .then(
-              async (res) => {
-                if (res.ok) return res.json();
-                void consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+          }).then(
+            async (res) => {
+              if (res.ok) return res.json();
+              void consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
 
-                if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
-                if (res.status === 404) {
-                  // if the x-edge-config-digest header is present, it means
-                  // the edge config exists, but the item does not
-                  if (res.headers.has('x-edge-config-digest')) return undefined;
-                  // if the x-edge-config-digest header is not present, it means
-                  // the edge config itself does not exist
-                  throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-                }
-                if (res.cachedResponseBody !== undefined)
-                  return res.cachedResponseBody;
-                throw new Error(ERRORS.UNEXPECTED);
-              },
-              (error) => {
-                if (isDynamicServerError(error)) throw error;
-                throw new Error(ERRORS.NETWORK);
-              },
-            )
-            .finally(() => {
-              stop('fetched');
-            }),
+              if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
+              if (res.status === 404) {
+                // if the x-edge-config-digest header is present, it means
+                // the edge config exists, but the item does not
+                if (res.headers.has('x-edge-config-digest')) return undefined;
+                // if the x-edge-config-digest header is not present, it means
+                // the edge config itself does not exist
+                throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
+              }
+              if (res.cachedResponseBody !== undefined)
+                return res.cachedResponseBody;
+              throw new Error(ERRORS.UNEXPECTED);
+            },
+            (error) => {
+              if (isDynamicServerError(error)) throw error;
+              throw new Error(ERRORS.NETWORK);
+            },
+          ),
         ]);
       }
 
@@ -383,29 +370,24 @@ export function createLoaders({
           headers: new Headers(headers),
           cache: 'no-store',
         },
-      )
-        .then(
-          async (res) => {
-            if (res.ok) return res.json();
-            void consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+      ).then(
+        async (res) => {
+          if (res.ok) return res.json();
+          void consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
 
-            if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
-            // the /items endpoint never returns 404, so if we get a 404
-            // it means the edge config itself did not exist
-            if (res.status === 404)
-              throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-            if (res.cachedResponseBody !== undefined)
-              return res.cachedResponseBody;
-            throw new Error(ERRORS.UNEXPECTED);
-          },
-          (error) => {
-            if (isDynamicServerError(error)) throw error;
-            throw new Error(ERRORS.NETWORK);
-          },
-        )
-        .finally(() => {
-          stop('fetched in batch');
-        })) as EdgeConfigItems;
+          if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
+          // the /items endpoint never returns 404, so if we get a 404
+          // it means the edge config itself did not exist
+          if (res.status === 404) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
+          if (res.cachedResponseBody !== undefined)
+            return res.cachedResponseBody;
+          throw new Error(ERRORS.UNEXPECTED);
+        },
+        (error) => {
+          if (isDynamicServerError(error)) throw error;
+          throw new Error(ERRORS.NETWORK);
+        },
+      )) as EdgeConfigItems;
 
       return keys.map((key) => edgeConfigItems[key]);
     },

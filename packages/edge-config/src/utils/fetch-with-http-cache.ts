@@ -1,4 +1,4 @@
-import { measure, trace } from './tracing';
+import { trace } from './tracing';
 
 interface CachedResponseEntry {
   etag: string;
@@ -110,7 +110,6 @@ async function _fetchWithHttpCache(
   url: string,
   options: FetchOptions = {},
 ): Promise<ResponseWithCachedResponse> {
-  const stop = measure('fetchWithHttpCache');
   const { headers: customHeaders = new Headers(), ...customOptions } = options;
   const authHeader = customHeaders.get('Authorization');
   const cacheKey = `${url},${authHeader || ''}`;
@@ -163,6 +162,5 @@ async function _fetchWithHttpCache(
     });
   }
 
-  stop('did not have it cached');
   return res;
 }

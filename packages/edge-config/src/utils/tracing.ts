@@ -78,16 +78,3 @@ export function trace<F extends (...args: any) => any>(
 
   return traced as unknown as F;
 }
-
-export function measure(label: string): (reason?: string) => void {
-  const start = performance.now();
-  return (reason) => {
-    if (reason) {
-      // eslint-disable-next-line no-console -- k
-      console.log(label, reason, performance.now() - start);
-    } else {
-      // eslint-disable-next-line no-console -- k
-      console.log(label, performance.now() - start);
-    }
-  };
-}

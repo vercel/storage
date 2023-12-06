@@ -128,78 +128,103 @@ export function createClient(
   const loadersInstanceCache = new WeakMap<RequestContext, Loaders>();
 
   const api: Omit<EdgeConfigClient, 'connection'> = {
-    get: trace(async function get<T = EdgeConfigValue | undefined>(
-      key: string,
-    ): Promise<T> {
-      assertIsKey(key);
-      const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
+    get: trace(
+      async function get<T = EdgeConfigValue | undefined>(
+        key: string,
+      ): Promise<T> {
+        assertIsKey(key);
+        const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
 
-      return loaders.get.load(key).then((value) => {
-        // prime has() with the result of get()
-        loaders.has.prime(key, value !== undefined);
-        return clone(value);
-      }) as Promise<T>;
-    }),
-    async has(key): Promise<boolean> {
-      assertIsKey(key);
-      const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
+        return loaders.get.load(key).then((value) => {
+          // prime has() with the result of get()
+          loaders.has.prime(key, value !== undefined);
+          return clone(value);
+        }) as Promise<T>;
+      },
+      {
+        name: 'get',
+      },
+    ),
+    has: trace(
+      async function has(key): Promise<boolean> {
+        assertIsKey(key);
+        const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
 
-      return loaders.has.load(key);
-    },
-    async getMany<T = (EdgeConfigValue | undefined)[]>(
-      keys: string[],
-    ): Promise<T> {
-      const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
+        return loaders.has.load(key);
+      },
+      {
+        name: 'has',
+      },
+    ),
+    getMany: trace(
+      async function getMany<T = (EdgeConfigValue | undefined)[]>(
+        keys: string[],
+      ): Promise<T> {
+        const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
 
-      assertIsKeys(keys);
-      const values = await loaders.get.loadMany(keys);
+        assertIsKeys(keys);
+        const values = await loaders.get.loadMany(keys);
 
-      // throw error in case the edge config could not be found
-      const error = values.find((v): v is Error => v instanceof Error);
-      if (error) throw error;
+        // throw error in case the edge config could not be found
+        const error = values.find((v): v is Error => v instanceof Error);
+        if (error) throw error;
 
-      // prime get() and has() calls with the result of getMany()
-      keys.forEach((key, index) => {
-        if (!key) return;
-        const value = values[index];
-        loaders.get.prime(key, value);
-        loaders.has.prime(key, value !== undefined);
-      });
-
-      return clone(values) as T;
-    },
-    async getAll<T = EdgeConfigItems>(keys?: (keyof T)[]): Promise<T> {
-      const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
-      if (keys === undefined) {
-        const items = await loaders.getAll.load('#').then(clone);
-
-        // prime get() and has() calls with the result of getAll()
-        Object.entries(items).forEach(([key, value]) => {
+        // prime get() and has() calls with the result of getMany()
+        keys.forEach((key, index) => {
+          if (!key) return;
+          const value = values[index];
           loaders.get.prime(key, value);
-          loaders.has.prime(key, true);
+          loaders.has.prime(key, value !== undefined);
         });
 
-        return items as T;
-      }
+        return clone(values) as T;
+      },
+      {
+        name: 'getMany',
+      },
+    ),
+    getAll: trace(
+      async function getAll<T = EdgeConfigItems>(
+        keys?: (keyof T)[],
+      ): Promise<T> {
+        const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
+        if (keys === undefined) {
+          const items = await loaders.getAll.load('#').then(clone);
 
-      assertIsKeys(keys);
-      const values = await loaders.get.loadMany(keys);
+          // prime get() and has() calls with the result of getAll()
+          Object.entries(items).forEach(([key, value]) => {
+            loaders.get.prime(key, value);
+            loaders.has.prime(key, true);
+          });
 
-      // throw error in case the edge config could not be found
-      const error = values.find((v): v is Error => v instanceof Error);
-      if (error) throw error;
+          return items as T;
+        }
 
-      return clone(
-        keys.reduce<T>((acc, key, index) => {
-          acc[key] = values[index] as T[keyof T];
-          return acc;
-        }, {} as T),
-      );
-    },
-    async digest(): Promise<string> {
-      const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
-      return loaders.digest.load('#').then(clone);
-    },
+        assertIsKeys(keys);
+        const values = await loaders.get.loadMany(keys);
+
+        // throw error in case the edge config could not be found
+        const error = values.find((v): v is Error => v instanceof Error);
+        if (error) throw error;
+
+        return clone(
+          keys.reduce<T>((acc, key, index) => {
+            acc[key] = values[index] as T[keyof T];
+            return acc;
+          }, {} as T),
+        );
+      },
+      {
+        name: 'getAll',
+      },
+    ),
+    digest: trace(
+      async function digest(): Promise<string> {
+        const loaders = getLoadersInstance(loaderOptions, loadersInstanceCache);
+        return loaders.digest.load('#').then(clone);
+      },
+      { name: 'digest' },
+    ),
   };
 
   return { ...api, connection };

@@ -99,6 +99,11 @@ function extractStaleIfError(cacheControlHeader: string | null): number | null {
  */
 export const fetchWithHttpCache = trace(_fetchWithHttpCache, {
   name: 'fetchWithHttpCache',
+  tagSuccess(result) {
+    return {
+      status: result.status,
+    };
+  },
 });
 
 async function _fetchWithHttpCache(

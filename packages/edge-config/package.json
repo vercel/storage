@@ -42,7 +42,6 @@
   },
   "dependencies": {
     "@types/promise.any": "2.0.2",
-    "@vercel/edge-config-fs": "workspace:*",
     "dataloader": "2.2.2"
   },
   "devDependencies": {

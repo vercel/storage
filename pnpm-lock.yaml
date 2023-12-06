@@ -90,9 +90,6 @@ importers:
       '@types/promise.any':
         specifier: 2.0.2
         version: 2.0.2
-      '@vercel/edge-config-fs':
-        specifier: workspace:*
-        version: link:../edge-config-fs
       dataloader:
         specifier: 2.2.2
         version: 2.2.2
@@ -145,8 +142,6 @@ importers:
       typescript:
         specifier: 5.2.2
         version: 5.2.2
-
-  packages/edge-config-fs: {}
 
   packages/kv:
     dependencies:

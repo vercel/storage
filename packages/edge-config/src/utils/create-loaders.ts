@@ -1,5 +1,4 @@
 import DataLoader from 'dataloader';
-import { readFile } from '@vercel/edge-config-fs';
 import type {
   Connection,
   EdgeConfigItems,
@@ -7,11 +6,15 @@ import type {
   EmbeddedEdgeConfig,
 } from '../types';
 import { fetchWithHttpCache } from './fetch-with-http-cache';
-import { measure, trace } from './tracing';
+import { measure } from './tracing';
 import { ERRORS, hasOwnProperty, isDynamicServerError } from '.';
 
-const readFileTraced = trace(readFile, { name: 'readFile ' });
-const jsonParseTraced = trace(JSON.parse, { name: 'JSON.parse' });
+declare global {
+  function __privateGetEdgeConfig(
+    id: string,
+    token: string,
+  ): Promise<EmbeddedEdgeConfig>;
+}
 
 async function consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(
   res: Response,
@@ -43,19 +46,11 @@ async function getFileSystemEdgeConfig(
     return null;
   }
 
-  try {
-    const content = await readFileTraced(
-      `/opt/edge-config/${connection.id}.json`,
-      'utf-8',
-    );
-    stop('read file');
-    const s = measure('json parse embedded edge config');
-    const d = jsonParseTraced(content) as EmbeddedEdgeConfig;
-    s();
-    return d;
-  } catch {
-    return null;
-  }
+  if (typeof globalThis.__privateGetEdgeConfig !== 'function') return null;
+
+  return globalThis
+    .__privateGetEdgeConfig(connection.id, connection.token)
+    .catch(() => null);
 }
 
 export function createLoaders({

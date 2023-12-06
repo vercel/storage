@@ -1,4 +1,3 @@
-import { readFile } from '@vercel/edge-config-fs';
 import fetchMock from 'jest-fetch-mock';
 import { version as pkgVersion } from '../package.json';
 import type { EmbeddedEdgeConfig } from './types';
@@ -8,24 +7,17 @@ import { get, has, digest, createClient, getAll } from './index';
 const sdkVersion = typeof pkgVersion === 'string' ? pkgVersion : '';
 const baseUrl = 'https://edge-config.vercel.com/ecfg-1';
 
+declare global {
+  function __privateGetEdgeConfig(
+    id: string,
+    token: string,
+  ): Promise<EmbeddedEdgeConfig>;
+}
+
 // eslint-disable-next-line jest/require-top-level-describe -- [@vercel/style-guide@5 migration]
 beforeEach(() => {
   fetchMock.resetMocks();
   cache.clear();
-});
-
-// mock fs for test
-jest.mock('@vercel/edge-config-fs', () => {
-  const embeddedEdgeConfig: EmbeddedEdgeConfig = {
-    digest: 'awe1',
-    items: { foo: 'bar', someArray: [] },
-  };
-
-  return {
-    readFile: jest.fn((): Promise<string> => {
-      return Promise.resolve(JSON.stringify(embeddedEdgeConfig));
-    }),
-  };
 });
 
 describe('default Edge Config', () => {
@@ -505,7 +497,16 @@ describe('createClient', () => {
     });
 
     beforeEach(() => {
-      (readFile as jest.Mock).mockClear();
+      const embeddedEdgeConfig: EmbeddedEdgeConfig = {
+        digest: 'awe1',
+        items: { foo: 'bar', someArray: [] },
+      };
+
+      globalThis.__privateGetEdgeConfig = jest.fn(
+        (_id: string, _token: string): Promise<EmbeddedEdgeConfig> => {
+          return Promise.resolve(embeddedEdgeConfig);
+        },
+      );
     });
 
     describe('get(key)', () => {
@@ -514,10 +515,10 @@ describe('createClient', () => {
           const edgeConfig = createClient(process.env.EDGE_CONFIG);
           await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
           expect(fetchMock).toHaveBeenCalledTimes(0);
-          expect(readFile).toHaveBeenCalledTimes(1);
-          expect(readFile).toHaveBeenCalledWith(
-            '/opt/edge-config/ecfg-1.json',
-            'utf-8',
+          expect(globalThis.__privateGetEdgeConfig).toHaveBeenCalledTimes(1);
+          expect(globalThis.__privateGetEdgeConfig).toHaveBeenCalledWith(
+            'ecfg-1',
+            'token-1',
           );
         });
 
@@ -531,10 +532,10 @@ describe('createClient', () => {
           // next get
           await expect(edgeConfig.get('someArray')).resolves.toEqual([]);
           expect(fetchMock).toHaveBeenCalledTimes(0);
-          expect(readFile).toHaveBeenCalledTimes(2);
-          expect(readFile).toHaveBeenCalledWith(
-            '/opt/edge-config/ecfg-1.json',
-            'utf-8',
+          expect(globalThis.__privateGetEdgeConfig).toHaveBeenCalledTimes(2);
+          expect(globalThis.__privateGetEdgeConfig).toHaveBeenCalledWith(
+            'ecfg-1',
+            'token-1',
           );
         });
       });
@@ -544,10 +545,10 @@ describe('createClient', () => {
           const edgeConfig = createClient(process.env.EDGE_CONFIG);
           await expect(edgeConfig.get('baz')).resolves.toEqual(undefined);
           expect(fetchMock).toHaveBeenCalledTimes(0);
-          expect(readFile).toHaveBeenCalledTimes(1);
-          expect(readFile).toHaveBeenCalledWith(
-            '/opt/edge-config/ecfg-1.json',
-            'utf-8',
+          expect(globalThis.__privateGetEdgeConfig).toHaveBeenCalledTimes(1);
+          expect(globalThis.__privateGetEdgeConfig).toHaveBeenCalledWith(
+            'ecfg-1',
+            'token-1',
           );
         });
       });
@@ -559,10 +560,10 @@ describe('createClient', () => {
           const edgeConfig = createClient(process.env.EDGE_CONFIG);
           await expect(edgeConfig.has('foo')).resolves.toEqual(true);
           expect(fetchMock).toHaveBeenCalledTimes(0);
-          expect(readFile).toHaveBeenCalledTimes(1);
-          expect(readFile).toHaveBeenCalledWith(
-            '/opt/edge-config/ecfg-1.json',
-            'utf-8',
+          expect(globalThis.__privateGetEdgeConfig).toHaveBeenCalledTimes(1);
+          expect(globalThis.__privateGetEdgeConfig).toHaveBeenCalledWith(
+            'ecfg-1',
+            'token-1',
           );
         });
       });
@@ -572,10 +573,10 @@ describe('createClient', () => {
           const edgeConfig = createClient(process.env.EDGE_CONFIG);
           await expect(edgeConfig.has('baz')).resolves.toEqual(false);
           expect(fetchMock).toHaveBeenCalledTimes(0);
-          expect(readFile).toHaveBeenCalledTimes(1);
-          expect(readFile).toHaveBeenCalledWith(
-            '/opt/edge-config/ecfg-1.json',
-            'utf-8',
+          expect(globalThis.__privateGetEdgeConfig).toHaveBeenCalledTimes(1);
+          expect(globalThis.__privateGetEdgeConfig).toHaveBeenCalledWith(
+            'ecfg-1',
+            'token-1',
           );
         });
       });
@@ -586,10 +587,10 @@ describe('createClient', () => {
         const edgeConfig = createClient(process.env.EDGE_CONFIG);
         await expect(edgeConfig.digest()).resolves.toEqual('awe1');
         expect(fetchMock).toHaveBeenCalledTimes(0);
-        expect(readFile).toHaveBeenCalledTimes(1);
-        expect(readFile).toHaveBeenCalledWith(
-          '/opt/edge-config/ecfg-1.json',
-          'utf-8',
+        expect(globalThis.__privateGetEdgeConfig).toHaveBeenCalledTimes(1);
+        expect(globalThis.__privateGetEdgeConfig).toHaveBeenCalledWith(
+          'ecfg-1',
+          'token-1',
         );
       });
     });

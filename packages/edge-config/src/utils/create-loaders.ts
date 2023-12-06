@@ -7,8 +7,11 @@ import type {
   EmbeddedEdgeConfig,
 } from '../types';
 import { fetchWithHttpCache } from './fetch-with-http-cache';
-import { measure } from './tracing';
+import { measure, trace } from './tracing';
 import { ERRORS, hasOwnProperty, isDynamicServerError } from '.';
+
+const readFileTraced = trace(readFile, { name: 'readFile ' });
+const jsonParseTraced = trace(JSON.parse, { name: 'JSON.parse' });
 
 async function consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(
   res: Response,
@@ -41,13 +44,13 @@ async function getFileSystemEdgeConfig(
   }
 
   try {
-    const content = await readFile(
+    const content = await readFileTraced(
       `/opt/edge-config/${connection.id}.json`,
       'utf-8',
     );
     stop('read file');
     const s = measure('json parse embedded edge config');
-    const d = JSON.parse(content) as EmbeddedEdgeConfig;
+    const d = jsonParseTraced(content) as EmbeddedEdgeConfig;
     s();
     return d;
   } catch {

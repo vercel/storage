@@ -1,4 +1,4 @@
-import { measure } from './tracing';
+import { measure, trace } from './tracing';
 
 interface CachedResponseEntry {
   etag: string;
@@ -97,7 +97,16 @@ function extractStaleIfError(cacheControlHeader: string | null): number | null {
  * This is similar to fetch, but it also implements ETag semantics, and
  * it implmenets stale-if-error semantics.
  */
-export async function fetchWithHttpCache(
+export const fetchWithHttpCache = trace(_fetchWithHttpCache, {
+  name: 'fetchWithHttpCache',
+  tagSuccess(result) {
+    return {
+      status: result.status,
+    };
+  },
+});
+
+async function _fetchWithHttpCache(
   url: string,
   options: FetchOptions = {},
 ): Promise<ResponseWithCachedResponse> {

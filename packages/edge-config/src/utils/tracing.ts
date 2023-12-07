@@ -4,6 +4,10 @@ import { name as pkgName, version } from '../../package.json';
 let tracerProvider: TracerProvider | undefined;
 
 export function setTracerProvider(nextTracerProvider: TracerProvider): void {
+  console.log(
+    'Edge Config Tracing: Set a tracing provider',
+    nextTracerProvider,
+  );
   tracerProvider = nextTracerProvider;
 }
 
@@ -33,11 +37,15 @@ export function trace<F extends (...args: any) => any>(
     const that = this;
 
     const tracer = getTracer();
+    if (!tracer) console.log('Edge Config Tracing: No tracer found.');
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- k
     if (!tracer) return fn.apply(that, args);
 
+    console.log('Edge Config Tracing: Starting to trace', options.name);
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- k
     return tracer.startActiveSpan(options.name, (span) => {
+      console.log('Edge Config Tracing: Start span');
       if (options.tags) span.setAttributes(options.tags);
 
       try {

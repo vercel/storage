@@ -1,6 +1,5 @@
 import DataLoader from 'dataloader';
 import { readFile } from '@vercel/edge-config-fs';
-import clone from 'proxy-clone';
 import type {
   Connection,
   EdgeConfigItems,
@@ -18,13 +17,13 @@ const jsonParseTraced = trace(JSON.parse, { name: 'JSON.parse' });
 const cachedJsonParseTraced = trace(
   (edgeConfigId: string, content: string) => {
     const cached = jsonParseCache.get(edgeConfigId);
-    // we use proxy-clone so the object is cloned on write, instead of being
-    // cloned eagerly, as that would be expensive, and as the vast majority
-    // of reads will probably never modify the returned object
-    if (cached) return clone(cached);
+    if (cached) return cached;
 
     const parsed = jsonParseTraced(content) as unknown;
-    jsonParseCache.set(edgeConfigId, parsed);
+
+    // freeze the object to avoid mutations of the return value of a "get" call
+    // from affecting the return value of future "get" calls
+    jsonParseCache.set(edgeConfigId, Object.freeze(parsed));
     return parsed;
   },
   { name: 'cached JSON.parse' },

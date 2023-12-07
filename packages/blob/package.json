@@ -25,7 +25,8 @@
   "module": "./dist/index.js",
   "browser": {
     "undici": "./dist/undici-browser.js",
-    "crypto": "./dist/crypto-browser.js"
+    "crypto": "./dist/crypto-browser.js",
+    "stream": "./dist/stream-browser.js"
   },
   "typesVersions": {
     "*": {
@@ -39,7 +40,7 @@
   ],
   "scripts": {
     "build": "tsup && pnpm run copy-shims",
-    "copy-shims": "cp src/undici-browser.js dist/undici-browser.js && cp src/crypto-browser.js dist/crypto-browser.js",
+    "copy-shims": "cp src/*-browser.js dist/",
     "dev": "pnpm run copy-shims && tsup --watch --clean=false",
     "lint": "eslint --max-warnings=0 .",
     "prepublishOnly": "pnpm run build",

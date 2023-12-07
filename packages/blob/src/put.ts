@@ -109,7 +109,7 @@ export function createPutMethod<
         options.cacheControlMaxAge.toString();
     }
 
-    if (options.multipartUpload === true) {
+    if (options.multipart === true) {
       const blobApiResponse = await multipartPut(
         pathname,
         body,

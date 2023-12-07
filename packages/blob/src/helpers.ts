@@ -32,7 +32,7 @@ export interface CreateBlobCommandOptions extends BlobCommandOptions {
    * @defaultvalue 365 * 24 * 60 * 60 (1 Year)
    */
   cacheControlMaxAge?: number;
-  multipartUpload?: boolean;
+  multipart?: boolean;
 }
 
 export function getTokenFromOptionsOrEnv(options?: BlobCommandOptions): string {

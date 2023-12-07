@@ -1,0 +1,70 @@
+{
+  "name": "@vercel/tql",
+  "version": "1.0.0",
+  "description": "A flexible, multi-dialect tagged template SQL query builder.",
+  "keywords": [],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vercel/storage",
+    "directory": "./packages/tql"
+  },
+  "license": "Apache-2.0",
+  "author": {
+    "name": "S. Elliott Johnson",
+    "email": "elliott.johnson@vercel.com",
+    "url": "https://github.com/tcc-sejohnson"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "require": "./dist/index.cjs"
+      },
+      "default": "./dist/index.js"
+    }
+  },
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch --clean=false",
+    "format": "prettier --write . --ignore-path .gitignore",
+    "lint": "eslint \"src/**/*.ts\"",
+    "lint-fix": "eslint \"src/**/*.ts\" --fix",
+    "prepublishOnly": "pnpm run build",
+    "prettier-check": "prettier --check . --ignore-path .gitignore",
+    "publint": "npx publint",
+    "test": "jest --env @edge-runtime/jest-environment .test.ts && jest --env node .test.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node"
+  },
+  "devDependencies": {
+    "@changesets/cli": "2.26.2",
+    "@edge-runtime/jest-environment": "2.3.6",
+    "@edge-runtime/types": "2.2.6",
+    "@types/jest": "29.5.7",
+    "@types/node": "20.8.10",
+    "eslint": "8.52.0",
+    "eslint-config-custom": "workspace:*",
+    "jest": "29.7.0",
+    "prettier": "3.0.3",
+    "ts-jest": "29.1.1",
+    "tsconfig": "workspace:*",
+    "tsup": "7.2.0",
+    "typescript": "5.2.2"
+  },
+  "engines": {
+    "node": ">=14.6"
+  }
+}

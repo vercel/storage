@@ -17,11 +17,29 @@ console.log('=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*');
 console.log();
 
 async function run(): Promise<void> {
-  const nodejsStream = createReadStream('/Users/vvo/Downloads/movie.mkv');
-  await vercelBlob.put('test', nodejsStream, {
-    access: 'public',
-    multipartUpload: true,
+  const nodejsStream = createReadStream('/Users/vvo/dev/movie-70mb.mp4');
+  nodejsStream.once('error', (error) => {
+    console.log(error);
+    throw error;
   });
+
+  try {
+    await vercelBlob.put('test.mp4', nodejsStream, {
+      access: 'public',
+      multipartUpload: true,
+    });
+  } catch (error) {
+    console.log('cannot upload', error);
+  }
+  // try {
+  //   console.log(
+  //     await vercelBlob.put('test', 'COUCOU', {
+  //       access: 'public',
+  //     }),
+  //   );
+  // } catch (error) {
+  //   console.log('cannot upload', error);
+  // }
 
   // const urls = await Promise.all([
   //   textFileExample(),

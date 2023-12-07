@@ -19,8 +19,6 @@ const putOptionHeaderMap = {
   cacheControlMaxAge: 'x-cache-control-max-age',
   addRandomSuffix: 'x-add-random-suffix',
   contentType: 'x-content-type',
-  // not sure this belongs here
-  multipartUpload: 'x-multipart-upload',
 };
 
 export interface PutBlobResult {
@@ -37,7 +35,6 @@ export type PutBody =
   | Readable // Node.js streams
   | Blob
   | ArrayBuffer
-  | FormData
   | ReadableStream // Streams API (= Web streams in Node.js)
   | File;
 
@@ -84,41 +81,53 @@ export function createPutMethod<
       ? await getToken(pathname, options)
       : getTokenFromOptionsOrEnv(options);
 
-    const headers: Record<string, string> = {
+    const baseHeaders: Record<string, string> = {
       ...getApiVersionHeader(),
       authorization: `Bearer ${token}`,
     };
 
+    const headersForCreate: Record<string, string> = {};
+
     if (allowedOptions.includes('contentType') && options.contentType) {
-      headers['x-content-type'] = options.contentType;
+      headersForCreate['x-content-type'] = options.contentType;
     }
 
     if (
       allowedOptions.includes('addRandomSuffix') &&
       options.addRandomSuffix !== undefined
     ) {
-      headers['x-add-random-suffix'] = options.addRandomSuffix ? '1' : '0';
+      headersForCreate['x-add-random-suffix'] = options.addRandomSuffix
+        ? '1'
+        : '0';
     }
 
     if (
       allowedOptions.includes('cacheControlMaxAge') &&
       options.cacheControlMaxAge !== undefined
     ) {
-      headers['x-cache-control-max-age'] =
+      headersForCreate['x-cache-control-max-age'] =
         options.cacheControlMaxAge.toString();
     }
 
-    if (allowedOptions.includes('multipartUpload')) {
-      // @ts-expect-error -- ignore for now
-      const blobApiResponse = await multipartPut(body);
-      // eslint-disable-next-line no-console -- debug
+    if (options.multipartUpload === true) {
+      const blobApiResponse = await multipartPut(
+        pathname,
+        body,
+        baseHeaders,
+        headersForCreate,
+      );
+      // TODO await validateBlobApiResponse(blobApiResponse);
       console.log(blobApiResponse);
       return blobApiResponse;
     }
+
     const blobApiResponse = await fetch(getApiUrl(`/${pathname}`), {
       method: 'PUT',
       body: body as BodyInit,
-      headers,
+      headers: {
+        ...baseHeaders,
+        ...headersForCreate,
+      },
       // required in order to stream some body types to Cloudflare
       // currently only supported in Node.js, we may have to feature detect this
       duplex: 'half',

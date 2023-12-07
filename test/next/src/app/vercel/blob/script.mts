@@ -24,10 +24,12 @@ async function run(): Promise<void> {
   });
 
   try {
-    await vercelBlob.put('test.mp4', nodejsStream, {
+    const blob = await vercelBlob.put('test.mp4', nodejsStream, {
       access: 'public',
       multipart: true,
     });
+
+    console.log(blob);
   } catch (error) {
     console.log('cannot upload', error);
   }

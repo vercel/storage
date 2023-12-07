@@ -2,7 +2,7 @@ import { Readable } from 'node:stream';
 import type { BodyInit } from 'undici';
 import { fetch } from 'undici';
 import type { PutBlobApiResponse, PutBlobResult, PutBody } from './put';
-import { getApiUrl } from './helpers';
+import { getApiUrl, validateBlobApiResponse } from './helpers';
 
 // Most browsers will cap requests at 6 concurrent uploads per domain (Vercel Blob API domain)
 const maxConcurrentUploads = 6;
@@ -102,6 +102,9 @@ async function createMultiPartUpload(
     method: 'POST',
     headers,
   });
+
+  await validateBlobApiResponse(apiResponse);
+
   const json = await apiResponse.json();
 
   debug('mpu: create', json);

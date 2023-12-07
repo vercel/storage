@@ -1,4 +1,5 @@
-import type { Readable } from 'node:stream';
+// eslint-disable-next-line unicorn/prefer-node-protocol -- node:stream does not resolve correctly in browser and edge
+import type { Readable } from 'stream';
 import type { BodyInit } from 'undici';
 import { fetch } from 'undici';
 import type { ClientPutCommandOptions } from './client';
@@ -110,15 +111,7 @@ export function createPutMethod<
     }
 
     if (options.multipart === true) {
-      const blobApiResponse = await multipartPut(
-        pathname,
-        body,
-        baseHeaders,
-        headersForCreate,
-      );
-      // TODO await validateBlobApiResponse(blobApiResponse);
-      console.log(blobApiResponse);
-      return blobApiResponse;
+      return multipartPut(pathname, body, baseHeaders, headersForCreate);
     }
 
     const blobApiResponse = await fetch(getApiUrl(`/${pathname}`), {

@@ -1,4 +1,3 @@
-import { readFile } from '@vercel/edge-config-fs';
 import { name as sdkName, version as sdkVersion } from '../package.json';
 import { assertIsKey, assertIsKeys, parseConnectionString } from './utils';
 import { clone } from './utils/clone';

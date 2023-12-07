@@ -1,4 +1,5 @@
-import { nextTick } from 'node:process';
+// eslint-disable-next-line unicorn/prefer-node-protocol -- leads to errors otherwise
+import { nextTick } from 'process';
 import DataLoader from 'dataloader';
 import { readFile } from '@vercel/edge-config-fs';
 import type {

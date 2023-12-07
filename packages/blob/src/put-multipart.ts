@@ -1,4 +1,5 @@
-import { Readable } from 'node:stream';
+// eslint-disable-next-line unicorn/prefer-node-protocol -- node:stream does not resolve correctly in browser and edge
+import { Readable } from 'stream';
 import type { BodyInit } from 'undici';
 import { fetch } from 'undici';
 import type { PutBlobApiResponse, PutBlobResult, PutBody } from './put';

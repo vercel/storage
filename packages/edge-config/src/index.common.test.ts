@@ -1033,8 +1033,7 @@ describe('stale-while-revalidate semantics (in development)', () => {
         expect(fetchMock).toHaveBeenCalledTimes(3);
       });
 
-      // eslint-disable-next-line jest/no-disabled-tests -- TODO bring back later
-      it.skip('should apply stale-while-revalidate across multiple keys', async () => {
+      it('should apply stale-while-revalidate across multiple keys', async () => {
         fetchMock.mockResponseOnce(
           JSON.stringify({
             items: { key1: 'value1a', key2: 'value2a' },

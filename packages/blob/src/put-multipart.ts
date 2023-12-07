@@ -345,6 +345,7 @@ function stringToUint8Array(s: string): Uint8Array {
   return enc.encode(s);
 }
 
+// Set process.env.DEBUG = 'blob' to enable debug logging
 function debug(message: string, ...args: unknown[]): void {
   if (process.env.DEBUG?.includes('blob')) {
     // eslint-disable-next-line no-console -- Ok for debugging

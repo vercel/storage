@@ -55,8 +55,8 @@ importers:
         version: 5.27.0
     devDependencies:
       '@edge-runtime/jest-environment':
-        specifier: 2.3.6
-        version: 2.3.6
+        specifier: 2.3.7
+        version: 2.3.7
       '@edge-runtime/types':
         specifier: 2.2.6
         version: 2.2.6
@@ -95,8 +95,8 @@ importers:
         specifier: 2.26.2
         version: 2.26.2
       '@edge-runtime/jest-environment':
-        specifier: 2.3.6
-        version: 2.3.6
+        specifier: 2.3.7
+        version: 2.3.7
       '@edge-runtime/types':
         specifier: 2.2.6
         version: 2.2.6
@@ -149,8 +149,8 @@ importers:
         specifier: 2.26.2
         version: 2.26.2
       '@edge-runtime/jest-environment':
-        specifier: 2.3.6
-        version: 2.3.6
+        specifier: 2.3.7
+        version: 2.3.7
       '@edge-runtime/types':
         specifier: 2.2.6
         version: 2.2.6
@@ -210,8 +210,8 @@ importers:
         specifier: 2.26.2
         version: 2.26.2
       '@edge-runtime/jest-environment':
-        specifier: 2.3.6
-        version: 2.3.6
+        specifier: 2.3.7
+        version: 2.3.7
       '@edge-runtime/types':
         specifier: 2.2.6
         version: 2.2.6
@@ -259,8 +259,8 @@ importers:
         specifier: 2.26.2
         version: 2.26.2
       '@edge-runtime/jest-environment':
-        specifier: 2.3.6
-        version: 2.3.6
+        specifier: 2.3.7
+        version: 2.3.7
       '@edge-runtime/types':
         specifier: 2.2.6
         version: 2.2.6
@@ -959,11 +959,11 @@ packages:
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
 
-  /@edge-runtime/jest-environment@2.3.6:
-    resolution: {integrity: sha512-KItmhFbzBy/EZKGlSGBIxKE+MQCnT6rJBx2v6uzW4Fs7QXCQ67bwFs4ZviCFnuLJ4YNSzs7KcULqFXxyFDWqwQ==}
+  /@edge-runtime/jest-environment@2.3.7:
+    resolution: {integrity: sha512-gfr8yAlvqt3WkyHOzuxf84Y6naPawGjn4CHlaMnH0MYBVYKvF6J/WORuw85z88fwzK5dmJwiBSQoVdyP2ndIzQ==}
     engines: {node: '>=16'}
     dependencies:
-      '@edge-runtime/vm': 3.1.6
+      '@edge-runtime/vm': 3.1.7
       '@jest/environment': 29.5.0
       '@jest/fake-timers': 29.5.0
       jest-mock: 29.5.0
@@ -975,6 +975,11 @@ packages:
     engines: {node: '>=16'}
     dev: true
 
+  /@edge-runtime/primitives@4.0.5:
+    resolution: {integrity: sha512-t7QiN5d/KpXgCvIfSt6Nm9Hj3WVdNgc5CpOD73jasY+9EvTI7Ngdj5cXvjcHrPcmYWJZMySPgeEeoL/1N/Llag==}
+    engines: {node: '>=16'}
+    dev: true
+
   /@edge-runtime/types@2.2.6:
     resolution: {integrity: sha512-H8O1QBkY9UtqhxffoIFmgRLoQyVEZ6A7UpdYtqK+Za4TaEmgRBkeFewoCUb8W6uE4byYjDnj4BzVpZo9yW439w==}
     engines: {node: '>=16'}
@@ -982,11 +987,11 @@ packages:
       '@edge-runtime/primitives': 4.0.4
     dev: true
 
-  /@edge-runtime/vm@3.1.6:
-    resolution: {integrity: sha512-ChMpk3eBZegGIkHjoDDQhnnx+c5rzolC/2+NNymVJsivHtTVMIYQAOdG4jyTUMhmmrEGnXUgnHxOflR+1M4SIA==}
+  /@edge-runtime/vm@3.1.7:
+    resolution: {integrity: sha512-hUMFbDQ/nZN+1TLMi6iMO1QFz9RSV8yGG8S42WFPFma1d7VSNE0eMdJUmwjmtav22/iQkzHMmu6oTSfAvRGS8g==}
     engines: {node: '>=16'}
     dependencies:
-      '@edge-runtime/primitives': 4.0.4
+      '@edge-runtime/primitives': 4.0.5
     dev: true
 
   /@esbuild/android-arm64@0.18.3:

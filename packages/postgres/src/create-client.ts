@@ -7,8 +7,7 @@ import {
   postgresConnectionString,
 } from './postgres-connection-string';
 import { VercelPostgresError } from './error';
-import type { Primitive } from './sql-template';
-import { sqlTemplate } from './sql-template';
+import { tql } from './sql-template';
 
 export class VercelClient extends Client {
   /**
@@ -28,9 +27,9 @@ export class VercelClient extends Client {
    */
   async sql<O extends QueryResultRow>(
     strings: TemplateStringsArray,
-    ...values: Primitive[]
+    ...values: unknown[]
   ): Promise<QueryResult<O>> {
-    const [query, params] = sqlTemplate(strings, ...values);
+    const [query, params] = tql.query(strings, ...values);
     return this.query(query, params);
   }
 }

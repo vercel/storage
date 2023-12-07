@@ -5,7 +5,6 @@ import type {
   QueryResult,
   QueryResultRow,
 } from '@neondatabase/serverless';
-import { type Primitive } from './sql-template';
 
 export type {
   Pool,
@@ -28,7 +27,7 @@ export type VercelPostgresPoolConfig = Omit<PoolConfig, ConfigItemsToOmit>;
 export interface VercelClientBase extends ClientBase {
   sql: <O extends QueryResultRow>(
     strings: TemplateStringsArray,
-    ...values: Primitive[]
+    ...values: unknown[]
   ) => Promise<QueryResult<O>>;
 }
 

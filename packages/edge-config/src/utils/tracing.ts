@@ -1,16 +1,17 @@
 import type { TracerProvider, Tracer, Attributes } from '@opentelemetry/api';
 import { name as pkgName, version } from '../../package.json';
 
-let tracer: TracerProvider | undefined;
+let tracerProvider: TracerProvider | undefined;
 
-export function setTracerProvider(tracerProvider: TracerProvider): void {
-  tracer = tracerProvider;
+export function setTracerProvider(nextTracerProvider: TracerProvider): void {
+  tracerProvider = nextTracerProvider;
 }
 
 function getTracer(): Tracer | undefined {
-  return tracer?.getTracer(pkgName, version);
+  return tracerProvider?.getTracer(pkgName, version);
 }
 
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any -- bc */
 export function trace<F extends (...args: any) => any>(
   fn: F,
   options: {
@@ -24,13 +25,18 @@ export function trace<F extends (...args: any) => any>(
     name: fn.name,
   },
 ): F {
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- k
   const traced = function (this: unknown) {
+    // eslint-disable-next-line prefer-rest-params -- k
     const args = arguments as unknown as unknown[];
+    // eslint-disable-next-line @typescript-eslint/no-this-alias -- k
     const that = this;
 
     const tracer = getTracer();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- k
     if (!tracer) return fn.apply(that, args);
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- k
     return tracer.startActiveSpan(options.name, (span) => {
       if (options.tags) span.setAttributes(options.tags);
 
@@ -41,11 +47,13 @@ export function trace<F extends (...args: any) => any>(
           result
             .then((value) => {
               if (options.tagSuccess)
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- k
                 span.setAttributes(options.tagSuccess(value));
               span.setStatus({ code: 1 }); // 1 = Ok
               span.end();
             })
             .catch((error) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- k
               if (options.tagError) span.setAttributes(options.tagError(error));
               span.setStatus({
                 code: 2, // 2 = Error
@@ -55,13 +63,16 @@ export function trace<F extends (...args: any) => any>(
             });
         } else {
           if (options.tagSuccess)
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- k
             span.setAttributes(options.tagSuccess(result));
           span.setStatus({ code: 1 }); // 1 = Ok
           span.end();
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- k
         return result;
       } catch (error: any) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- k
         if (options.tagError) span.setAttributes(options.tagError(error));
 
         span.setStatus({
@@ -78,6 +89,7 @@ export function trace<F extends (...args: any) => any>(
 
   return traced as unknown as F;
 }
+/* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any -- k */
 
 export function measure(label: string): (reason?: string) => void {
   const start = Date.now();

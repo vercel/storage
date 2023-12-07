@@ -42,9 +42,7 @@ export function isLocalhostConnectionString(connectionString: string): boolean {
   try {
     // This seems silly, but we can use all of the hard work put into URL parsing
     // if we just convert `postgresql://` to `https://` and then parse it as a URL.
-    const withHttpsProtocol = connectionString.startsWith('postgresql://')
-      ? connectionString.replace('postgresql://', 'https://')
-      : connectionString;
+    const withHttpsProtocol = connectionString.replace(/^postgresql:\/\//, 'https://');
     return new URL(withHttpsProtocol).hostname === 'localhost';
   } catch (err) {
     if (err instanceof TypeError) {

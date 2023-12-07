@@ -30,7 +30,7 @@
   "prettier": "@vercel/style-guide/prettier",
   "devDependencies": {
     "@changesets/cli": "2.26.2",
-    "@vercel/style-guide": "5.0.1",
+    "@vercel/style-guide": "5.1.0",
     "eslint": "8.52.0",
     "eslint-config-custom": "workspace:*",
     "husky": "8.0.3",

@@ -1,3 +1,4 @@
+import { nextTick } from 'node:process';
 import DataLoader from 'dataloader';
 import { readFile } from '@vercel/edge-config-fs';
 import type {
@@ -9,6 +10,21 @@ import type {
 import { fetchWithHttpCache } from './fetch-with-http-cache';
 import { measure, trace } from './tracing';
 import { ERRORS, hasOwnProperty, isDynamicServerError } from '.';
+
+// copied from dataloader but swapped process.nextTick for nextTick of node:process
+let resolvedPromise: Promise<unknown> | undefined;
+const enqueuePostPromiseJob: DataLoader.Options<
+  string,
+  unknown,
+  string
+>['batchScheduleFn'] = (fn) => {
+  if (!resolvedPromise) {
+    resolvedPromise = Promise.resolve();
+  }
+  void resolvedPromise.then(() => {
+    nextTick(fn);
+  });
+};
 
 const jsonParseCache = new Map<string, unknown>();
 
@@ -131,10 +147,7 @@ export function createLoaders({
     string,
     unknown,
     string
-  >['batchScheduleFn'] =
-    typeof EdgeRuntime === 'string'
-      ? (callback) => setTimeout(callback, 0)
-      : undefined;
+  >['batchScheduleFn'] = enqueuePostPromiseJob;
 
   const hasMap = new Map<string, Promise<boolean>>();
   const getAllMap = new Map<string, Promise<EdgeConfigItems>>();

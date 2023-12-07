@@ -51,7 +51,7 @@
     "@edge-runtime/jest-environment": "2.3.6",
     "@edge-runtime/types": "2.2.6",
     "@neondatabase/serverless": "0.6.0",
-    "@types/jest": "29.5.7",
+    "@types/jest": "29.5.11",
     "@types/node": "20.8.10",
     "@types/ws": "8.5.8",
     "eslint": "8.52.0",

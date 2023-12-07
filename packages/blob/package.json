@@ -65,7 +65,7 @@
   "devDependencies": {
     "@edge-runtime/jest-environment": "2.3.6",
     "@edge-runtime/types": "2.2.6",
-    "@types/jest": "29.5.7",
+    "@types/jest": "29.5.11",
     "@types/node": "20.8.10",
     "eslint": "8.52.0",
     "eslint-config-custom": "workspace:*",

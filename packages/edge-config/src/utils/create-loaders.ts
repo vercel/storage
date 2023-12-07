@@ -1,5 +1,6 @@
 import DataLoader from 'dataloader';
 import { readFile } from '@vercel/edge-config-fs';
+import clone from 'proxy-clone';
 import type {
   Connection,
   EdgeConfigItems,
@@ -10,8 +11,24 @@ import { fetchWithHttpCache } from './fetch-with-http-cache';
 import { measure, trace } from './tracing';
 import { ERRORS, hasOwnProperty, isDynamicServerError } from '.';
 
+const jsonParseCache = new Map<string, unknown>();
+
 const readFileTraced = trace(readFile, { name: 'readFile ' });
 const jsonParseTraced = trace(JSON.parse, { name: 'JSON.parse' });
+const cachedJsonParseTraced = trace(
+  (edgeConfigId: string, content: string) => {
+    const cached = jsonParseCache.get(edgeConfigId);
+    // we use proxy-clone so the object is cloned on write, instead of being
+    // cloned eagerly, as that would be expensive, and as the vast majority
+    // of reads will probably never modify the returned object
+    if (cached) return clone(cached);
+
+    const parsed = jsonParseTraced(content) as unknown;
+    jsonParseCache.set(edgeConfigId, parsed);
+    return parsed;
+  },
+  { name: 'cached JSON.parse' },
+);
 
 async function consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(
   res: Response,
@@ -50,7 +67,10 @@ async function getFileSystemEdgeConfig(
     );
     stop('read file');
     const s = measure('json parse embedded edge config');
-    const d = jsonParseTraced(content) as EmbeddedEdgeConfig;
+    const d = cachedJsonParseTraced(
+      connection.id,
+      content,
+    ) as EmbeddedEdgeConfig;
     s();
     return d;
   } catch {

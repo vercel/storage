@@ -43,7 +43,8 @@
   "dependencies": {
     "@types/promise.any": "2.0.2",
     "@vercel/edge-config-fs": "workspace:*",
-    "dataloader": "2.2.2"
+    "dataloader": "2.2.2",
+    "proxy-clone": "1.0.3"
   },
   "devDependencies": {
     "@changesets/cli": "2.26.2",

@@ -57,20 +57,6 @@ interface EdgeConfigClientOptions {
   disableRequestContextCache?: boolean;
 }
 
-if (process.env.EDGE_CONFIG && typeof EdgeRuntime === 'undefined') {
-  try {
-    const connection = parseConnectionString(process.env.EDGE_CONFIG);
-    if (connection && connection.type === 'vercel') {
-      // trigger an early readfile so the fs mounts
-      void readFile(`/opt/edge-config/${connection.id}.json`, 'utf-8').catch(
-        () => null,
-      );
-    }
-  } catch {
-    /* ignore */
-  }
-}
-
 /**
  * Create an Edge Config client.
  *
@@ -95,13 +81,6 @@ export function createClient(
 
   if (!connection)
     throw new Error('@vercel/edge-config: Invalid connection string provided');
-
-  if (connection.type === 'vercel' && typeof EdgeRuntime === 'undefined') {
-    // trigger an early readfile so the fs mounts
-    void readFile(`/opt/edge-config/${connection.id}.json`, 'utf-8').catch(
-      () => null,
-    );
-  }
 
   /**
    * While in development we use SWR-like behavior for the api client to

@@ -106,6 +106,9 @@ export function trace<F extends (...args: any) => any>(
 export function measure(label: string): (reason?: string) => void {
   const start = Date.now();
   return (reason) => {
+    // skip logging unless we're debugging
+    if (process.env.VERCEL_DEBUG !== '1') return;
+
     if (reason) {
       // eslint-disable-next-line no-console -- k
       console.log(label, reason, Date.now() - start);

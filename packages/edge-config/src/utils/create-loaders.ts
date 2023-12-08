@@ -1,5 +1,3 @@
-// eslint-disable-next-line unicorn/prefer-node-protocol -- leads to errors otherwise
-import { nextTick } from 'process';
 import DataLoader from 'dataloader';
 import { readFile } from '@vercel/edge-config-fs';
 import type {
@@ -12,20 +10,45 @@ import { fetchWithHttpCache } from './fetch-with-http-cache';
 import { measure, trace } from './tracing';
 import { ERRORS, hasOwnProperty, isDynamicServerError } from '.';
 
+// The Edge Runtime does not support process.nextTick which is used
+// by dataloader's default batchScheduleFn function, so we need to
+// provide a different scheduling function for edge runtime
+//
 // copied from dataloader but swapped process.nextTick for nextTick of node:process
 let resolvedPromise: Promise<unknown> | undefined;
-const enqueuePostPromiseJob: DataLoader.Options<
+const batchScheduleFn: DataLoader.Options<
   string,
   unknown,
   string
->['batchScheduleFn'] = (fn) => {
-  if (!resolvedPromise) {
-    resolvedPromise = Promise.resolve();
-  }
-  void resolvedPromise.then(() => {
-    nextTick(fn);
-  });
-};
+>['batchScheduleFn'] =
+  // process.nextTick is defined in Edge Runtime but will throw an error, same
+  // for setImmediate. So instead we fall back to setTimeout for Edge Runtime.
+  //
+  // Once Edge Runtime supports nextTick we can get rid of this which will
+  // enable batching.
+  //
+  // eslint-disable-next-line no-nested-ternary -- k
+  typeof EdgeRuntime === 'string'
+    ? (fn) => {
+        setTimeout(fn);
+      }
+    : // eslint-disable-next-line no-nested-ternary -- k
+      typeof process === 'object' && typeof process.nextTick === 'function'
+      ? (fn) => {
+          if (!resolvedPromise) {
+            resolvedPromise = Promise.resolve();
+          }
+          void resolvedPromise.then(() => {
+            process.nextTick(fn);
+          });
+        }
+      : typeof setImmediate === 'function'
+        ? (fn) => {
+            setImmediate(fn);
+          }
+        : (fn) => {
+            setTimeout(fn);
+          };
 
 const jsonParseCache = new Map<string, unknown>();
 
@@ -140,15 +163,6 @@ export function createLoaders({
 
   if (typeof staleIfError === 'number' && staleIfError > 0)
     headers['cache-control'] = `stale-if-error=${staleIfError}`;
-
-  // The Edge Runtime does not support process.nextTick which is used
-  // by dataloader's default batchScheduleFn function, so we need to
-  // provide a different scheduling function for edge runtime
-  const batchScheduleFn: DataLoader.Options<
-    string,
-    unknown,
-    string
-  >['batchScheduleFn'] = enqueuePostPromiseJob;
 
   const hasMap = new Map<string, Promise<boolean>>();
   const getAllMap = new Map<string, Promise<EdgeConfigItems>>();

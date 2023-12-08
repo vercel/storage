@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.16.0
+
+### Minor Changes
+
+- 26a2acb: feat(blob): throw specific error when service unavailable
+
 ## 0.15.1
 
 ### Patch Changes

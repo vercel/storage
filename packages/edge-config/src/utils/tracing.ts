@@ -5,7 +5,7 @@ import {
 } from '@opentelemetry/api';
 import { name as pkgName, version } from '../../package.json';
 
-function getTracer(): Tracer | null {
+function getTracer(): Tracer {
   return traceApi.getTracer(pkgName, version);
 }
 

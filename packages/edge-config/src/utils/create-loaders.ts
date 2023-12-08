@@ -21,27 +21,34 @@ const batchScheduleFn: DataLoader.Options<
   unknown,
   string
 >['batchScheduleFn'] =
-  // process.nextTick is defined in Edge Runtime but will throw an error,
-  // so we explicitly ensure we're not in Edge Runtime
+  // process.nextTick is defined in Edge Runtime but will throw an error, same
+  // for setImmediate. So instead we fall back to setTimeout for Edge Runtime.
+  //
+  // Once Edge Runtime supports nextTick we can get rid of this which will
+  // enable batching.
+  //
   // eslint-disable-next-line no-nested-ternary -- k
-  typeof EdgeRuntime !== 'string' &&
-  typeof process === 'object' &&
-  typeof process.nextTick === 'function'
+  typeof EdgeRuntime === 'string'
     ? (fn) => {
-        if (!resolvedPromise) {
-          resolvedPromise = Promise.resolve();
-        }
-        void resolvedPromise.then(() => {
-          process.nextTick(fn);
-        });
+        setTimeout(fn);
       }
-    : typeof setImmediate === 'function'
+    : // eslint-disable-next-line no-nested-ternary -- k
+      typeof process === 'object' && typeof process.nextTick === 'function'
       ? (fn) => {
-          setImmediate(fn);
+          if (!resolvedPromise) {
+            resolvedPromise = Promise.resolve();
+          }
+          void resolvedPromise.then(() => {
+            process.nextTick(fn);
+          });
         }
-      : (fn) => {
-          setTimeout(fn);
-        };
+      : typeof setImmediate === 'function'
+        ? (fn) => {
+            setImmediate(fn);
+          }
+        : (fn) => {
+            setTimeout(fn);
+          };
 
 const jsonParseCache = new Map<string, unknown>();
 

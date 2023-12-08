@@ -47,9 +47,9 @@
     "@changesets/cli": "2.27.1",
     "@edge-runtime/jest-environment": "2.3.7",
     "@edge-runtime/types": "2.2.7",
-    "@types/jest": "29.5.10",
-    "@types/node": "20.10.1",
-    "eslint": "8.54.0",
+    "@types/jest": "29.5.11",
+    "@types/node": "20.10.4",
+    "eslint": "8.55.0",
     "eslint-config-custom": "workspace:*",
     "jest": "29.7.0",
     "jest-fetch-mock": "3.0.3",
@@ -58,7 +58,7 @@
     "ts-jest": "29.1.1",
     "tsconfig": "workspace:*",
     "tsup": "8.0.1",
-    "typescript": "5.3.2"
+    "typescript": "5.3.3"
   },
   "engines": {
     "node": ">=14.6"

@@ -1,14 +1,18 @@
-import type { TracerProvider, Tracer, Attributes } from '@opentelemetry/api';
+import {
+  trace as traceApi,
+  type Tracer,
+  type Attributes,
+} from '@opentelemetry/api';
 import { name as pkgName, version } from '../../package.json';
 
-let tracerProvider: TracerProvider | undefined;
+function getTracer(): Tracer | null {
+  try {
+    return traceApi.getTracer(pkgName, version);
+  } catch (error) {
+    // no-op
+  }
 
-export function setTracerProvider(nextTracerProvider: TracerProvider): void {
-  tracerProvider = nextTracerProvider;
-}
-
-function getTracer(): Tracer | undefined {
-  return tracerProvider?.getTracer(pkgName, version);
+  return null;
 }
 
 function isPromise<T>(p: unknown): p is Promise<T> {
@@ -85,9 +89,9 @@ export function trace<F extends (...args: any) => any>(
 
         return result as unknown;
       } catch (error: any) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- k
-        if (options.attributesError)
-          span.setAttributes(options.attributesError(error));
+        if (options.attributesError) {
+          span.setAttributes(options.attributesError(error as Error));
+        }
 
         span.setStatus({
           code: 2, // 2 = Error

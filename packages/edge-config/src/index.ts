@@ -19,8 +19,6 @@ export {
   type EmbeddedEdgeConfig,
 };
 
-export { setTracerProvider } from './utils/tracing';
-
 interface EdgeConfigClientOptions {
   /**
    * The stale-if-error response directive indicates that the cache can reuse a

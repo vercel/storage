@@ -46,22 +46,22 @@
     "dataloader": "2.2.2"
   },
   "devDependencies": {
-    "@changesets/cli": "2.26.2",
-    "@edge-runtime/jest-environment": "2.3.6",
-    "@edge-runtime/types": "2.2.6",
+    "@changesets/cli": "2.27.1",
+    "@edge-runtime/jest-environment": "2.3.7",
+    "@edge-runtime/types": "2.2.7",
     "@opentelemetry/api": "1.7.0",
-    "@types/jest": "29.5.7",
-    "@types/node": "20.8.10",
-    "eslint": "8.52.0",
+    "@types/jest": "29.5.11",
+    "@types/node": "20.10.4",
+    "eslint": "8.55.0",
     "eslint-config-custom": "workspace:*",
     "jest": "29.7.0",
     "jest-fetch-mock": "3.0.3",
     "node-domexception": "2.0.1",
-    "prettier": "3.0.3",
+    "prettier": "3.1.0",
     "ts-jest": "29.1.1",
     "tsconfig": "workspace:*",
-    "tsup": "7.2.0",
-    "typescript": "5.2.2"
+    "tsup": "8.0.1",
+    "typescript": "5.3.3"
   },
   "engines": {
     "node": ">=14.6"

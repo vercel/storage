@@ -1,5 +1,11 @@
 # @vercel/kv
 
+## 1.0.1
+
+### Patch Changes
+
+- 44f84bd: Upgrade to latest upstash-redis: https://github.com/upstash/upstash-redis/releases
+
 ## 1.0.0
 
 ### Major Changes

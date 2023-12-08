@@ -6,13 +6,7 @@ import {
 import { name as pkgName, version } from '../../package.json';
 
 function getTracer(): Tracer | null {
-  try {
-    return traceApi.getTracer(pkgName, version);
-  } catch (error) {
-    // no-op
-  }
-
-  return null;
+  return traceApi.getTracer(pkgName, version);
 }
 
 function isPromise<T>(p: unknown): p is Promise<T> {

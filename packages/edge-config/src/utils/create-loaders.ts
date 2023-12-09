@@ -16,7 +16,7 @@ import { ERRORS, hasOwnProperty, isDynamicServerError } from '.';
 //
 // copied from dataloader but swapped process.nextTick for nextTick of node:process
 let resolvedPromise: Promise<unknown> | undefined;
-const batchScheduleFnRaw: DataLoader.Options<
+const batchScheduleFn: DataLoader.Options<
   string,
   unknown,
   string
@@ -49,8 +49,6 @@ const batchScheduleFnRaw: DataLoader.Options<
         : (fn) => {
             setTimeout(fn);
           };
-
-const batchScheduleFn = trace(batchScheduleFnRaw, { name: 'batchScheduleFn' });
 
 const jsonParseCache = new Map<string, unknown>();
 

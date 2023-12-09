@@ -117,14 +117,9 @@ export const createClient = trace(
             loadersInstanceCache,
           );
 
-          return trace(loaders.get.load, { name: 'loaders.get.load' })(
-            key,
-          ).then((value) => {
+          return loaders.get.load(key).then((value) => {
             // prime has() with the result of get()
-            trace(loaders.has.prime, { name: 'loaders.has.prime' })(
-              key,
-              value !== undefined,
-            );
+            loaders.has.prime(key, value !== undefined);
             return clone(value);
           }) as Promise<T>;
         },
@@ -140,7 +135,7 @@ export const createClient = trace(
             loadersInstanceCache,
           );
 
-          return trace(loaders.has.load, { name: 'loaders.has.load' })(key);
+          return loaders.has.load(key);
         },
         {
           name: 'has',
@@ -156,9 +151,7 @@ export const createClient = trace(
           );
 
           assertIsKeys(keys);
-          const values = await trace(loaders.get.loadMany, {
-            name: 'loaders.get.loadMany',
-          })(keys);
+          const values = await loaders.get.loadMany(keys);
 
           // throw error in case the edge config could not be found
           const error = values.find((v): v is Error => v instanceof Error);
@@ -168,11 +161,8 @@ export const createClient = trace(
           keys.forEach((key, index) => {
             if (!key) return;
             const value = values[index];
-            trace(loaders.get.prime, { name: 'loaders.get.prime' })(key, value);
-            trace(loaders.has.prime, { name: 'loaders.has.prime' })(
-              key,
-              value !== undefined,
-            );
+            loaders.get.prime(key, value);
+            loaders.has.prime(key, value !== undefined);
           });
 
           return clone(values) as T;
@@ -190,29 +180,19 @@ export const createClient = trace(
             loadersInstanceCache,
           );
           if (keys === undefined) {
-            const items = await trace(loaders.getAll.load, {
-              name: 'laoders.getAll.load',
-            })('#').then(clone);
+            const items = await loaders.getAll.load('#').then(clone);
 
             // prime get() and has() calls with the result of getAll()
             Object.entries(items).forEach(([key, value]) => {
-              trace(loaders.get.prime, { name: 'loaders.get.prime' })(
-                key,
-                value,
-              );
-              trace(loaders.has.prime, { name: 'loaders.has.prime' })(
-                key,
-                true,
-              );
+              loaders.get.prime(key, value);
+              loaders.has.prime(key, true);
             });
 
             return items as T;
           }
 
           assertIsKeys(keys);
-          const values = await trace(loaders.get.loadMany, {
-            name: 'loaders.get.loadMany',
-          })(keys);
+          const values = await loaders.get.loadMany(keys);
 
           // throw error in case the edge config could not be found
           const error = values.find((v): v is Error => v instanceof Error);
@@ -235,9 +215,7 @@ export const createClient = trace(
             loaderOptions,
             loadersInstanceCache,
           );
-          return trace(loaders.digest.load, { name: 'loaders.digest.load' })(
-            '#',
-          ).then(clone);
+          return loaders.digest.load('#').then(clone);
         },
         { name: 'digest' },
       ),

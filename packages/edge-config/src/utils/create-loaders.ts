@@ -10,17 +10,23 @@ import { fetchWithHttpCache } from './fetch-with-http-cache';
 import { measure, trace } from './tracing';
 import { ERRORS, hasOwnProperty, isDynamicServerError } from '.';
 
+// eslint-disable-next-line no-console -- k
+console.log('Edge Config version with batchScheduleFn change');
+
 // The Edge Runtime does not support process.nextTick which is used
 // by dataloader's default batchScheduleFn function, so we need to
 // provide a different scheduling function for edge runtime
 //
 // copied from dataloader but swapped process.nextTick for nextTick of node:process
-let resolvedPromise: Promise<unknown> | undefined;
-const batchScheduleFnRaw: DataLoader.Options<
+// let resolvedPromise: Promise<unknown> | undefined;
+const batchScheduleFn: DataLoader.Options<
   string,
   unknown,
   string
->['batchScheduleFn'] =
+>['batchScheduleFn'] = (fn) => {
+  fn();
+};
+/*
   // process.nextTick is defined in Edge Runtime but will throw an error, same
   // for setImmediate. So instead we fall back to setTimeout for Edge Runtime.
   //
@@ -49,8 +55,7 @@ const batchScheduleFnRaw: DataLoader.Options<
         : (fn) => {
             setTimeout(fn);
           };
-
-const batchScheduleFn = trace(batchScheduleFnRaw, { name: 'batchScheduleFn' });
+*/
 
 const jsonParseCache = new Map<string, unknown>();
 

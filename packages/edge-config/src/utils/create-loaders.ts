@@ -10,9 +10,6 @@ import { fetchWithHttpCache } from './fetch-with-http-cache';
 import { measure, trace } from './tracing';
 import { ERRORS, hasOwnProperty, isDynamicServerError } from '.';
 
-// eslint-disable-next-line no-console -- k
-console.log('Edge Config version with batchScheduleFn change');
-
 // The Edge Runtime does not support process.nextTick which is used
 // by dataloader's default batchScheduleFn function, so we need to
 // provide a different scheduling function for edge runtime

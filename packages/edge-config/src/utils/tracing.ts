@@ -1,14 +1,21 @@
-import type { TracerProvider, Tracer, Attributes } from '@opentelemetry/api';
+import {
+  trace as traceApi,
+  type Tracer,
+  type Attributes,
+} from '@opentelemetry/api';
 import { name as pkgName, version } from '../../package.json';
 
-let tracerProvider: TracerProvider | undefined;
-
-export function setTracerProvider(nextTracerProvider: TracerProvider): void {
-  tracerProvider = nextTracerProvider;
+function getTracer(): Tracer {
+  return traceApi.getTracer(pkgName, version);
 }
 
-function getTracer(): Tracer | undefined {
-  return tracerProvider?.getTracer(pkgName, version);
+function isPromise<T>(p: unknown): p is Promise<T> {
+  return (
+    p !== null &&
+    typeof p === 'object' &&
+    'then' in p &&
+    typeof p.then === 'function'
+  );
 }
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any -- bc */
@@ -16,64 +23,69 @@ export function trace<F extends (...args: any) => any>(
   fn: F,
   options: {
     name: string;
-    tags?: Record<string, string | number | boolean>;
-    tagSuccess?: (
+    attributes?: Attributes;
+    attributesSuccess?: (
       result: ReturnType<F> extends PromiseLike<infer U> ? U : ReturnType<F>,
     ) => Attributes;
-    tagError?: (error: Error) => Attributes;
+    attributesError?: (error: Error) => Attributes;
   } = {
     name: fn.name,
   },
 ): F {
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- k
-  const traced = function (this: unknown) {
-    // eslint-disable-next-line prefer-rest-params -- k
-    const args = arguments as unknown as unknown[];
-    // eslint-disable-next-line @typescript-eslint/no-this-alias -- k
-    const that = this;
-
+  const traced = function (this: unknown, ...args: unknown[]): unknown {
     const tracer = getTracer();
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- k
-    if (!tracer) return fn.apply(that, args);
+    if (!tracer) return fn.apply(this, args);
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- k
     return tracer.startActiveSpan(options.name, (span) => {
-      if (options.tags) span.setAttributes(options.tags);
+      if (options.attributes) span.setAttributes(options.attributes);
 
       try {
-        const result = fn.apply(that, args);
+        const result = fn.apply(this, args);
 
-        if (result instanceof Promise) {
+        if (isPromise(result)) {
           result
             .then((value) => {
-              if (options.tagSuccess)
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- k
-                span.setAttributes(options.tagSuccess(value));
+              if (options.attributesSuccess) {
+                span.setAttributes(
+                  options.attributesSuccess(
+                    value as ReturnType<F> extends PromiseLike<infer U>
+                      ? U
+                      : ReturnType<F>,
+                  ),
+                );
+              }
+
               span.setStatus({ code: 1 }); // 1 = Ok
               span.end();
             })
             .catch((error) => {
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- k
-              if (options.tagError) span.setAttributes(options.tagError(error));
+              if (options.attributesError) {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- k
+                span.setAttributes(options.attributesError(error));
+              }
+
               span.setStatus({
                 code: 2, // 2 = Error
                 message: error instanceof Error ? error.message : undefined,
               });
+
               span.end();
             });
         } else {
-          if (options.tagSuccess)
+          if (options.attributesSuccess) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- k
-            span.setAttributes(options.tagSuccess(result));
+            span.setAttributes(options.attributesSuccess(result));
+          }
+
           span.setStatus({ code: 1 }); // 1 = Ok
           span.end();
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- k
-        return result;
+        return result as unknown;
       } catch (error: any) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- k
-        if (options.tagError) span.setAttributes(options.tagError(error));
+        if (options.attributesError) {
+          span.setAttributes(options.attributesError(error as Error));
+        }
 
         span.setStatus({
           code: 2, // 2 = Error

@@ -9,7 +9,7 @@ export default function AppClientUpload(): JSX.Element {
   const [blob, setBlob] = useState<PutBlobResult | null>(null);
   return (
     <>
-      <h1 className="text-xl mb-4">App Router Client Upload</h1>
+      <h1 className="text-xl mb-4">App Router Client Upload (multipart)</h1>
 
       <form
         onSubmit={async (event): Promise<void> => {
@@ -23,6 +23,7 @@ export default function AppClientUpload(): JSX.Element {
           const blobResult = await upload(file.name, file, {
             access: 'public',
             handleUploadUrl: `/vercel/blob/api/app/handle-blob-upload/edge`,
+            multipart: true,
           });
 
           setBlob(blobResult);

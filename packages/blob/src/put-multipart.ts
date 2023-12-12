@@ -6,6 +6,7 @@ import type { PutBlobApiResponse, PutBlobResult, PutBody } from './put';
 import { getApiUrl, validateBlobApiResponse } from './helpers';
 
 // Most browsers will cap requests at 6 concurrent uploads per domain (Vercel Blob API domain)
+// TODO Set it to 10 in non browser environments
 const maxConcurrentUploads = 6;
 
 // 5MB is the minimum part size accepted by Vercel Blob
@@ -46,6 +47,7 @@ export async function multipartPut(
   const parts = await uploadParts(
     createMultipartUploadResponse.uploadId,
     createMultipartUploadResponse.key,
+    pathname,
     stream,
     baseHeaders,
   );
@@ -54,6 +56,7 @@ export async function multipartPut(
   await completeMultiPartUpload(
     createMultipartUploadResponse.uploadId,
     createMultipartUploadResponse.key,
+    pathname,
     parts,
     baseHeaders,
   );
@@ -71,18 +74,19 @@ export async function multipartPut(
 async function completeMultiPartUpload(
   uploadId: string,
   key: string,
+  pathname: string,
   parts: CompletedPart[],
   headers: Record<string, string>,
 ): Promise<CompleteMultiPartUploadApiResponse> {
-  const apiUrl = new URL(getApiUrl(`/mpu`));
-  apiUrl.searchParams.set('action', 'complete');
-  apiUrl.searchParams.set('uploadId', uploadId);
-  apiUrl.searchParams.set('key', key);
+  const apiUrl = new URL(getApiUrl(`/mpu/${pathname}`));
   const apiResponse = await fetch(apiUrl, {
     method: 'POST',
     headers: {
       ...headers,
       'content-type': 'application/json',
+      'x-mpu-action': 'complete',
+      'x-mpu-upload-id': encodeURI(uploadId),
+      'x-mpu-key': encodeURI(key),
     },
     body: JSON.stringify(parts),
   });
@@ -96,12 +100,13 @@ async function createMultiPartUpload(
 ): Promise<CreateMultiPartUploadApiResponse> {
   debug('mpu: create', 'pathname:', pathname);
 
-  const apiUrl = new URL(getApiUrl(`/mpu`));
-  apiUrl.searchParams.set('action', 'create');
-  apiUrl.searchParams.set('pathname', pathname);
+  const apiUrl = new URL(getApiUrl(`/mpu/${pathname}`));
   const apiResponse = await fetch(apiUrl, {
     method: 'POST',
-    headers,
+    headers: {
+      ...headers,
+      'x-mpu-action': 'create',
+    },
   });
 
   await validateBlobApiResponse(apiResponse);
@@ -127,6 +132,7 @@ interface CompletedPart {
 function uploadParts(
   uploadId: string,
   key: string,
+  pathname: string,
   stream: ReadableStream<ArrayBuffer>,
   headers: Record<string, string>,
 ): Promise<CompletedPart[]> {
@@ -144,6 +150,11 @@ function uploadParts(
     let currentBytesInMemory = 0;
     let doneReading = false;
 
+    // This must be outside the read loop, in case we reach the maxBytesInMemory and
+    // we exit the loop but some bytes are still to be sent on the next read invocation.
+    let arrayBuffers: ArrayBuffer[] = [];
+    let currentPartBytesRead = 0;
+
     read().catch(cancel);
 
     async function read(): Promise<void> {
@@ -156,16 +167,11 @@ function uploadParts(
       );
 
       reading = true;
-      let arrayBuffers: ArrayBuffer[] = [];
-      let currentPartBytesRead = 0;
+
       while (currentBytesInMemory < maxBytesInMemory && !rejected) {
         try {
           // eslint-disable-next-line no-await-in-loop -- A for loop is fine here.
           const { value, done } = await reader.read();
-
-          if (value) {
-            currentBytesInMemory += value.byteLength;
-          }
 
           if (done) {
             doneReading = true;
@@ -176,24 +182,41 @@ function uploadParts(
                 partNumber: currentPartNumber++,
                 blob: new Blob(arrayBuffers),
               });
+
               sendParts();
             }
             reading = false;
             return;
           }
 
-          arrayBuffers.push(value);
-          currentPartBytesRead += value.byteLength;
+          currentBytesInMemory += value.byteLength;
 
-          if (currentPartBytesRead >= partSizeInBytes) {
-            partsToUpload.push({
-              partNumber: currentPartNumber++,
-              blob: new Blob(arrayBuffers),
-            });
+          // This code ensures that each part will be exactly of `partSizeInBytes` size
+          // Otherwise R2 will refuse it. AWS S3 is fine with parts of different sizes.
+          let valueOffset = 0;
+          while (valueOffset < value.byteLength) {
+            const remainingPartSize = partSizeInBytes - currentPartBytesRead;
+            const endOffset = Math.min(
+              valueOffset + remainingPartSize,
+              value.byteLength,
+            );
 
-            arrayBuffers = [];
-            currentPartBytesRead = 0;
-            sendParts();
+            const chunk = value.slice(valueOffset, endOffset);
+
+            arrayBuffers.push(chunk);
+            currentPartBytesRead += chunk.byteLength;
+            valueOffset = endOffset;
+
+            if (currentPartBytesRead === partSizeInBytes) {
+              partsToUpload.push({
+                partNumber: currentPartNumber++,
+                blob: new Blob(arrayBuffers),
+              });
+
+              arrayBuffers = [];
+              currentPartBytesRead = 0;
+              sendParts();
+            }
           }
         } catch (error) {
           cancel(error);
@@ -212,31 +235,34 @@ function uploadParts(
     }
 
     async function sendPart(part: UploadPart): Promise<void> {
+      activeUploads++;
+
       debug(
         'mpu: upload send part start',
         'partNumber:',
         part.partNumber,
+        'size:',
+        part.blob.size,
         'activeUploads',
         activeUploads,
         'currentBytesInMemory:',
         currentBytesInMemory,
       );
 
-      const apiUrl = new URL(getApiUrl(`/${key}`));
-      apiUrl.searchParams.set('mpu', '1');
-      apiUrl.searchParams.set('action', 'upload');
-      apiUrl.searchParams.set('uploadId', uploadId);
-      apiUrl.searchParams.set('partNumber', part.partNumber.toString());
+      const apiUrl = new URL(getApiUrl(`/mpu/${pathname}`));
 
       try {
         const apiResponse = await fetch(apiUrl, {
-          method: 'PUT',
-          headers,
+          method: 'POST',
+          headers: {
+            ...headers,
+            'x-mpu-action': 'upload',
+            'x-mpu-key': encodeURI(key),
+            'x-mpu-upload-id': encodeURI(uploadId),
+            'x-mpu-part-number': part.partNumber.toString(),
+          },
           body: part.blob as BodyInit,
         });
-
-        currentBytesInMemory -= part.blob.size;
-        activeUploads--;
 
         debug(
           'mpu: upload send part end',
@@ -259,9 +285,13 @@ function uploadParts(
           etag: completedPart.etag,
         });
 
+        currentBytesInMemory -= part.blob.size;
+        activeUploads--;
+
         if (partsToUpload.length > 0) {
           sendParts();
         } else if (activeUploads === 0) {
+          reader.releaseLock();
           resolve(completedParts);
         }
 
@@ -282,10 +312,16 @@ function uploadParts(
         return;
       }
 
+      debug(
+        'send parts',
+        'activeUploads',
+        activeUploads,
+        'partsToUpload',
+        partsToUpload.length,
+      );
       while (activeUploads < maxConcurrentUploads && partsToUpload.length > 0) {
         const partToSend = partsToUpload.shift();
         if (partToSend) {
-          activeUploads++;
           void sendPart(partToSend);
         }
       }

@@ -62,6 +62,7 @@ export interface UploadOptions {
    * Additional data which will be sent to your `handleUpload` route.
    */
   clientPayload?: string;
+  multipart?: boolean;
 }
 
 /**

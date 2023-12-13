@@ -7,6 +7,7 @@ import type {
   EmbeddedEdgeConfig,
 } from '../types';
 import { fetchWithHttpCache } from './fetch-with-http-cache';
+import { deepFreeze } from './deep-freeze';
 import { measure, trace } from './tracing';
 import { ERRORS, hasOwnProperty, isDynamicServerError } from '.';
 
@@ -67,7 +68,7 @@ const cachedJsonParseTraced = trace(
 
     // freeze the object to avoid mutations of the return value of a "get" call
     // from affecting the return value of future "get" calls
-    jsonParseCache.set(edgeConfigId, Object.freeze(parsed));
+    jsonParseCache.set(edgeConfigId, deepFreeze(parsed));
     return parsed;
   },
   { name: 'cached JSON.parse' },

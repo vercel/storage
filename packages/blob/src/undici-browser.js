@@ -5,4 +5,4 @@
 // moving forward we will have to solve this problem in a more robust way
 // reusing https://github.com/inrupt/universal-fetch
 // or seeing how/if cross-fetch solves https://github.com/lquixada/cross-fetch/issues/69
-export const fetch = globalThis.fetch;
+export const fetch = globalThis.fetch.bind(globalThis);

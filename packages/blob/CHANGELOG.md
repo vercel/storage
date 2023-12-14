@@ -1,5 +1,12 @@
 # @vercel/blob
 
+## 0.16.1
+
+### Patch Changes
+
+- ae0ba27: Ensure fetch is bound to globalThis
+- 5624237: fix(deps): Change `jest-environment-jsdom` to a devDependency.
+
 ## 0.16.0
 
 ### Minor Changes

@@ -10,7 +10,7 @@ import { getApiUrl, validateBlobApiResponse } from './helpers';
 const maxConcurrentUploads = 6;
 
 // 5MB is the minimum part size accepted by Vercel Blob
-const partSizeInBytes = 25 * 1024 * 1024;
+const partSizeInBytes = 8 * 1024 * 1024;
 
 const maxBytesInMemory = maxConcurrentUploads * partSizeInBytes * 2;
 

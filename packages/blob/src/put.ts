@@ -82,45 +82,38 @@ export function createPutMethod<
       ? await getToken(pathname, options)
       : getTokenFromOptionsOrEnv(options);
 
-    const baseHeaders: Record<string, string> = {
+    const headers: Record<string, string> = {
       ...getApiVersionHeader(),
       authorization: `Bearer ${token}`,
     };
 
-    const headersForCreate: Record<string, string> = {};
-
     if (allowedOptions.includes('contentType') && options.contentType) {
-      headersForCreate['x-content-type'] = options.contentType;
+      headers['x-content-type'] = options.contentType;
     }
 
     if (
       allowedOptions.includes('addRandomSuffix') &&
       options.addRandomSuffix !== undefined
     ) {
-      headersForCreate['x-add-random-suffix'] = options.addRandomSuffix
-        ? '1'
-        : '0';
+      headers['x-add-random-suffix'] = options.addRandomSuffix ? '1' : '0';
     }
 
     if (
       allowedOptions.includes('cacheControlMaxAge') &&
       options.cacheControlMaxAge !== undefined
     ) {
-      headersForCreate['x-cache-control-max-age'] =
+      headers['x-cache-control-max-age'] =
         options.cacheControlMaxAge.toString();
     }
 
     if (options.multipart === true) {
-      return multipartPut(pathname, body, baseHeaders, headersForCreate);
+      return multipartPut(pathname, body, headers);
     }
 
     const blobApiResponse = await fetch(getApiUrl(`/${pathname}`), {
       method: 'PUT',
       body: body as BodyInit,
-      headers: {
-        ...baseHeaders,
-        ...headersForCreate,
-      },
+      headers,
       // required in order to stream some body types to Cloudflare
       // currently only supported in Node.js, we may have to feature detect this
       duplex: 'half',

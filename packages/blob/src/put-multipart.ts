@@ -10,11 +10,11 @@ import { getApiUrl, validateBlobApiResponse } from './helpers';
 const maxConcurrentUploads = 6;
 
 // 5MB is the minimum part size accepted by Vercel Blob
-const partSizeInBytes = 5 * 1024 * 1024;
+const partSizeInBytes = 25 * 1024 * 1024;
 
 const maxBytesInMemory = maxConcurrentUploads * partSizeInBytes * 2;
 
-interface CreateMultiPartUploadApiResponse extends PutBlobApiResponse {
+interface CreateMultiPartUploadApiResponse {
   uploadId: string;
   key: string;
 }
@@ -23,25 +23,20 @@ interface UploadPartApiResponse {
   etag: string;
 }
 
-interface CompleteMultiPartUploadApiResponse {
-  key: string;
-}
-
 export async function multipartPut(
   pathname: string,
   body: PutBody,
-  baseHeaders: Record<string, string>,
-  headersForCreate: Record<string, string>,
+  headers: Record<string, string>,
 ): Promise<PutBlobResult> {
-  debug('mpu: init', 'pathname:', pathname, 'headers:', headersForCreate);
+  debug('mpu: init', 'pathname:', pathname, 'headers:', headers);
 
   const stream = toReadableStream(body);
 
   // Step 1: Start multipart upload
-  const createMultipartUploadResponse = await createMultiPartUpload(pathname, {
-    ...baseHeaders,
-    ...headersForCreate,
-  });
+  const createMultipartUploadResponse = await createMultiPartUpload(
+    pathname,
+    headers,
+  );
 
   // Step 2: Upload parts one by one
   const parts = await uploadParts(
@@ -49,24 +44,17 @@ export async function multipartPut(
     createMultipartUploadResponse.key,
     pathname,
     stream,
-    baseHeaders,
+    headers,
   );
 
   // Step 3: Complete multipart upload
-  await completeMultiPartUpload(
+  const blob = await completeMultiPartUpload(
     createMultipartUploadResponse.uploadId,
     createMultipartUploadResponse.key,
     pathname,
     parts,
-    baseHeaders,
+    headers,
   );
-
-  const blob: PutBlobResult = {
-    url: createMultipartUploadResponse.url,
-    pathname: createMultipartUploadResponse.pathname,
-    contentType: createMultipartUploadResponse.contentType,
-    contentDisposition: createMultipartUploadResponse.contentDisposition,
-  };
 
   return blob;
 }
@@ -77,7 +65,7 @@ async function completeMultiPartUpload(
   pathname: string,
   parts: CompletedPart[],
   headers: Record<string, string>,
-): Promise<CompleteMultiPartUploadApiResponse> {
+): Promise<PutBlobResult> {
   const apiUrl = new URL(getApiUrl(`/mpu/${pathname}`));
   const apiResponse = await fetch(apiUrl, {
     method: 'POST',
@@ -93,7 +81,7 @@ async function completeMultiPartUpload(
 
   await validateBlobApiResponse(apiResponse);
 
-  return (await apiResponse.json()) as CompleteMultiPartUploadApiResponse;
+  return (await apiResponse.json()) as PutBlobApiResponse;
 }
 
 async function createMultiPartUpload(
@@ -182,7 +170,9 @@ function uploadParts(
             if (arrayBuffers.length > 0) {
               partsToUpload.push({
                 partNumber: currentPartNumber++,
-                blob: new Blob(arrayBuffers),
+                blob: new Blob(arrayBuffers, {
+                  type: 'application/octet-stream',
+                }),
               });
 
               sendParts();
@@ -212,7 +202,9 @@ function uploadParts(
             if (currentPartBytesRead === partSizeInBytes) {
               partsToUpload.push({
                 partNumber: currentPartNumber++,
-                blob: new Blob(arrayBuffers),
+                blob: new Blob(arrayBuffers, {
+                  type: 'application/octet-stream',
+                }),
               });
 
               arrayBuffers = [];

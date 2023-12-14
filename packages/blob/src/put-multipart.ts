@@ -91,6 +91,8 @@ async function completeMultiPartUpload(
     body: JSON.stringify(parts),
   });
 
+  await validateBlobApiResponse(apiResponse);
+
   return (await apiResponse.json()) as CompleteMultiPartUploadApiResponse;
 }
 
@@ -263,6 +265,13 @@ function uploadParts(
           },
           body: part.blob as BodyInit,
         });
+
+        try {
+          await validateBlobApiResponse(apiResponse);
+        } catch (error) {
+          cancel(error);
+          return;
+        }
 
         debug(
           'mpu: upload send part end',

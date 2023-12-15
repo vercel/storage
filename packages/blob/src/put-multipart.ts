@@ -3,13 +3,16 @@ import { Readable } from 'stream';
 import type { BodyInit } from 'undici';
 import { fetch } from 'undici';
 import type { PutBlobApiResponse, PutBlobResult, PutBody } from './put';
-import { getApiUrl, validateBlobApiResponse } from './helpers';
+import {
+  BlobMultipartUploadError,
+  getApiUrl,
+  validateBlobApiResponse,
+} from './helpers';
 
 // Most browsers will cap requests at 6 concurrent uploads per domain (Vercel Blob API domain)
-// TODO Set it to 10 in non browser environments
 const maxConcurrentUploads = 6;
 
-// 5MB is the minimum part size accepted by Vercel Blob
+// 5MB is the minimum part size accepted by Vercel Blob, we set it to 8mb like the aws cli
 const partSizeInBytes = 8 * 1024 * 1024;
 
 const maxBytesInMemory = maxConcurrentUploads * partSizeInBytes * 2;
@@ -67,21 +70,29 @@ async function completeMultiPartUpload(
   headers: Record<string, string>,
 ): Promise<PutBlobResult> {
   const apiUrl = new URL(getApiUrl(`/mpu/${pathname}`));
-  const apiResponse = await fetch(apiUrl, {
-    method: 'POST',
-    headers: {
-      ...headers,
-      'content-type': 'application/json',
-      'x-mpu-action': 'complete',
-      'x-mpu-upload-id': encodeURI(uploadId),
-      'x-mpu-key': encodeURI(key),
-    },
-    body: JSON.stringify(parts),
-  });
+  try {
+    const apiResponse = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'content-type': 'application/json',
+        'x-mpu-action': 'complete',
+        'x-mpu-upload-id': encodeURI(uploadId),
+        'x-mpu-key': encodeURI(key),
+      },
+      body: JSON.stringify(parts),
+    });
 
-  await validateBlobApiResponse(apiResponse);
+    await validateBlobApiResponse(apiResponse);
 
-  return (await apiResponse.json()) as PutBlobApiResponse;
+    return (await apiResponse.json()) as PutBlobApiResponse;
+  } catch (error: unknown) {
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      throw new BlobMultipartUploadError();
+    } else {
+      throw error;
+    }
+  }
 }
 
 async function createMultiPartUpload(
@@ -91,21 +102,29 @@ async function createMultiPartUpload(
   debug('mpu: create', 'pathname:', pathname);
 
   const apiUrl = new URL(getApiUrl(`/mpu/${pathname}`));
-  const apiResponse = await fetch(apiUrl, {
-    method: 'POST',
-    headers: {
-      ...headers,
-      'x-mpu-action': 'create',
-    },
-  });
+  try {
+    const apiResponse = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'x-mpu-action': 'create',
+      },
+    });
 
-  await validateBlobApiResponse(apiResponse);
+    await validateBlobApiResponse(apiResponse);
 
-  const json = await apiResponse.json();
+    const json = await apiResponse.json();
 
-  debug('mpu: create', json);
+    debug('mpu: create', json);
 
-  return json as CreateMultiPartUploadApiResponse;
+    return json as CreateMultiPartUploadApiResponse;
+  } catch (error: unknown) {
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      throw new BlobMultipartUploadError();
+    } else {
+      throw error;
+    }
+  }
 }
 
 interface UploadPart {
@@ -127,6 +146,7 @@ function uploadParts(
   headers: Record<string, string>,
 ): Promise<CompletedPart[]> {
   debug('mpu: upload init', 'key:', key);
+  const internalAbortController = new AbortController();
 
   return new Promise((resolve, reject) => {
     const partsToUpload: UploadPart[] = [];
@@ -247,6 +267,7 @@ function uploadParts(
 
       try {
         const apiResponse = await fetch(apiUrl, {
+          signal: internalAbortController.signal,
           method: 'POST',
           headers: {
             ...headers,
@@ -329,10 +350,18 @@ function uploadParts(
     }
 
     function cancel(error: unknown): void {
-      // TODO cancel multipart upload request to edge worker via abort controller
+      // a previous call already rejected the whole call, ignore
+      if (rejected) {
+        return;
+      }
       rejected = true;
+      internalAbortController.abort();
       reader.releaseLock();
-      reject(error);
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        reject(new BlobMultipartUploadError());
+      } else {
+        reject(error);
+      }
     }
   });
 }

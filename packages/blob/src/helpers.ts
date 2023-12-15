@@ -57,25 +57,25 @@ export class BlobError extends Error {
 
 export class BlobAccessError extends BlobError {
   constructor() {
-    super('Access denied, please provide a valid token for this resource');
+    super('Access denied, please provide a valid token for this resource.');
   }
 }
 
 export class BlobStoreNotFoundError extends BlobError {
   constructor() {
-    super('This store does not exist');
+    super('This store does not exist.');
   }
 }
 
 export class BlobStoreSuspendedError extends BlobError {
   constructor() {
-    super('This store has been suspended');
+    super('This store has been suspended.');
   }
 }
 
 export class BlobUnknownError extends BlobError {
   constructor() {
-    super('Unknown error, please visit https://vercel.com/help');
+    super('Unknown error, please visit https://vercel.com/help.');
   }
 }
 
@@ -87,7 +87,13 @@ export class BlobNotFoundError extends BlobError {
 
 export class BlobServiceNotAvailable extends BlobError {
   constructor() {
-    super('The blob service is currently not available. Please try again');
+    super('The blob service is currently not available. Please try again.');
+  }
+}
+
+export class BlobMultipartUploadError extends BlobError {
+  constructor() {
+    super('We could not upload your blob. Please try again.');
   }
 }
 

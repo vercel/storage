@@ -20,13 +20,18 @@ export default function AppClientUpload(): JSX.Element {
             return;
           }
 
-          const blobResult = await upload(file.name, file, {
-            access: 'public',
-            handleUploadUrl: `/vercel/blob/api/app/handle-blob-upload/edge`,
-            multipart: true,
-          });
+          try {
+            const blobResult = await upload(file.name, file, {
+              access: 'public',
+              handleUploadUrl: `/vercel/blob/api/app/handle-blob-upload/edge`,
+              multipart: true,
+            });
 
-          setBlob(blobResult);
+            setBlob(blobResult);
+          } catch (error: unknown) {
+            // eslint-disable-next-line no-console -- Fine for tests
+            console.log('error', error);
+          }
         }}
       >
         <input name="file" ref={inputFileRef} type="file" />

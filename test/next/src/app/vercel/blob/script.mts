@@ -17,73 +17,49 @@ console.log('=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*');
 console.log();
 
 async function run(): Promise<void> {
-  const nodejsStream = createReadStream('/Users/vvo/dev/movie-70mb.mp4');
-  nodejsStream.once('error', (error) => {
-    console.log(error);
-    throw error;
-  });
+  const urls = await Promise.all([
+    textFileExample(),
+    textFileNoRandomSuffixExample(),
+    textFileExampleWithCacheControlMaxAge(),
+    imageExample(),
+    videoExample(),
+    webpageExample(),
+    incomingMessageExample(),
+    axiosExample(),
+    gotExample(),
+    fetchExample(),
+    noExtensionExample(),
+    weirdCharactersExample(),
+    copyTextFile(),
+    listFolders(),
+    multipartNodeJsFileStream(),
+    fetchExampleMultipart(),
+  ]);
 
-  try {
-    const blob = await vercelBlob.put('test.mp4', nodejsStream, {
-      access: 'public',
-      multipart: true,
+  await Promise.all(
+    urls.map(async (url) => {
+      const blobDetails = await vercelBlob.head(url);
+      console.log(blobDetails, url);
+    }),
+  );
+
+  // list all blobs
+  let count = 0;
+  let hasMore = true;
+  let cursor: string | undefined;
+  while (hasMore) {
+    // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
+    const listResult = await vercelBlob.list({
+      cursor,
     });
-
-    console.log(blob);
-  } catch (error) {
-    console.log('cannot upload', error);
+    hasMore = listResult.hasMore;
+    cursor = listResult.cursor;
+    count += listResult.blobs.length;
   }
-  // try {
-  //   console.log(
-  //     await vercelBlob.put('test', 'COUCOU', {
-  //       access: 'public',
-  //     }),
-  //   );
-  // } catch (error) {
-  //   console.log('cannot upload', error);
-  // }
 
-  // const urls = await Promise.all([
-  //   textFileExample(),
-  //   textFileNoRandomSuffixExample(),
-  //   textFileExampleWithCacheControlMaxAge(),
-  //   imageExample(),
-  //   videoExample(),
-  //   webpageExample(),
-  //   incomingMessageExample(),
-  //   axiosExample(),
-  //   gotExample(),
-  //   fetchExample(),
-  //   noExtensionExample(),
-  //   weirdCharactersExample(),
-  //   copyTextFile(),
-  //   listFolders(),
-  // ]);
+  console.log(count, 'blobs in this store');
 
-  // await Promise.all(
-  //   urls.map(async (url) => {
-  //     const blobDetails = await vercelBlob.head(url);
-  //     console.log(blobDetails, url);
-  //   }),
-  // );
-
-  // // list all blobs
-  // let count = 0;
-  // let hasMore = true;
-  // let cursor: string | undefined;
-  // while (hasMore) {
-  //   // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
-  //   const listResult = await vercelBlob.list({
-  //     cursor,
-  //   });
-  //   hasMore = listResult.hasMore;
-  //   cursor = listResult.cursor;
-  //   count += listResult.blobs.length;
-  // }
-
-  // console.log(count, 'blobs in this store');
-
-  // await Promise.all(urls.map((url) => vercelBlob.del(url)));
+  await Promise.all(urls.map((url) => vercelBlob.del(url)));
 }
 
 async function textFileExample(): Promise<string> {
@@ -315,5 +291,50 @@ async function listFolders() {
 
   console.log('fold blobs example:', response, `(${Date.now() - start}ms)`);
 
+  return blob.url;
+}
+
+async function multipartNodeJsFileStream() {
+  const pathname = 'big-video.mp4';
+  const fullPath = `public/${pathname}`;
+  const stream = createReadStream(fullPath);
+  stream.once('error', (error) => {
+    console.log(error);
+    throw error;
+  });
+
+  const start = Date.now();
+
+  const blob = await vercelBlob.put(pathname, stream, {
+    access: 'public',
+    multipart: true,
+  });
+
+  console.log(
+    'Node.js multipart file stream example:',
+    blob.url,
+    `(${Date.now() - start}ms)`,
+  );
+
+  return blob.url;
+}
+
+async function fetchExampleMultipart(): Promise<string> {
+  const start = Date.now();
+
+  const response = await fetch(
+    'https://example-files.online-convert.com/video/mp4/example_big.mp4',
+  );
+
+  const blob = await vercelBlob.put(
+    'example_big.mp4',
+    response.body as ReadableStream,
+    {
+      access: 'public',
+      multipart: true,
+    },
+  );
+
+  console.log('fetch example:', blob.url, `(${Date.now() - start}ms)`);
   return blob.url;
 }

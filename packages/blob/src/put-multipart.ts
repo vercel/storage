@@ -10,9 +10,10 @@ import {
 } from './helpers';
 
 // Most browsers will cap requests at 6 concurrent uploads per domain (Vercel Blob API domain)
-const maxConcurrentUploads = 6;
+// In other environments, we can afford to be more aggressive
+const maxConcurrentUploads = typeof window !== 'undefined' ? 6 : 8;
 
-// 5MB is the minimum part size accepted by Vercel Blob, we set it to 8mb like the aws cli
+// 5MB is the minimum part size accepted by Vercel Blob, but we set our default part size to 8mb like the aws cli
 const partSizeInBytes = 8 * 1024 * 1024;
 
 const maxBytesInMemory = maxConcurrentUploads * partSizeInBytes * 2;

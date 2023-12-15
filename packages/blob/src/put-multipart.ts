@@ -2,6 +2,8 @@
 import { Readable } from 'stream';
 import type { BodyInit } from 'undici';
 import { fetch } from 'undici';
+import retry from 'async-retry';
+import bytes from 'bytes';
 import type { PutBlobApiResponse, PutBlobResult, PutBody } from './put';
 import {
   BlobMultipartUploadError,
@@ -160,6 +162,7 @@ function uploadParts(
     let rejected = false;
     let currentBytesInMemory = 0;
     let doneReading = false;
+    let bytesSent = 0;
 
     // This must be outside the read loop, in case we reach the maxBytesInMemory and
     // we exit the loop but some bytes are still to be sent on the next read invocation.
@@ -171,10 +174,12 @@ function uploadParts(
     async function read(): Promise<void> {
       debug(
         'mpu: upload read start',
-        'activeUploads',
+        'activeUploads:',
         activeUploads,
-        'currentBytesInMemory',
-        currentBytesInMemory,
+        'currentBytesInMemory:',
+        `${bytes(currentBytesInMemory)}/${bytes(maxBytesInMemory)}`,
+        'bytesSent:',
+        bytes(bytesSent),
       );
 
       reading = true;
@@ -240,10 +245,12 @@ function uploadParts(
 
       debug(
         'mpu: upload read end',
-        'activeUploads',
+        'activeUploads:',
         activeUploads,
-        'currentBytesInMemory',
-        currentBytesInMemory,
+        'currentBytesInMemory:',
+        `${bytes(currentBytesInMemory)}/${bytes(maxBytesInMemory)}`,
+        'bytesSent:',
+        bytes(bytesSent),
       );
 
       reading = false;
@@ -258,27 +265,39 @@ function uploadParts(
         part.partNumber,
         'size:',
         part.blob.size,
-        'activeUploads',
+        'activeUploads:',
         activeUploads,
         'currentBytesInMemory:',
-        currentBytesInMemory,
+        `${bytes(currentBytesInMemory)}/${bytes(maxBytesInMemory)}`,
+        'bytesSent:',
+        bytes(bytesSent),
       );
 
       const apiUrl = new URL(getApiUrl(`/mpu/${pathname}`));
 
       try {
-        const apiResponse = await fetch(apiUrl, {
-          signal: internalAbortController.signal,
-          method: 'POST',
-          headers: {
-            ...headers,
-            'x-mpu-action': 'upload',
-            'x-mpu-key': encodeURI(key),
-            'x-mpu-upload-id': encodeURI(uploadId),
-            'x-mpu-part-number': part.partNumber.toString(),
+        const apiResponse = await retry(
+          () => {
+            return fetch(apiUrl, {
+              signal: internalAbortController.signal,
+              method: 'POST',
+              headers: {
+                ...headers,
+                'x-mpu-action': 'upload',
+                'x-mpu-key': encodeURI(key),
+                'x-mpu-upload-id': encodeURI(uploadId),
+                'x-mpu-part-number': part.partNumber.toString(),
+              },
+              body: part.blob as BodyInit,
+            });
           },
-          body: part.blob as BodyInit,
-        });
+          {
+            onRetry: (error) => {
+              // eslint-disable-next-line no-console -- Ok for debugging
+              console.log('retrying', error.message);
+            },
+          },
+        );
 
         try {
           await validateBlobApiResponse(apiResponse);
@@ -294,7 +313,9 @@ function uploadParts(
           'activeUploads',
           activeUploads,
           'currentBytesInMemory:',
-          currentBytesInMemory,
+          `${bytes(currentBytesInMemory)}/${bytes(maxBytesInMemory)}`,
+          'bytesSent:',
+          bytes(bytesSent),
         );
 
         if (rejected) {
@@ -310,6 +331,7 @@ function uploadParts(
 
         currentBytesInMemory -= part.blob.size;
         activeUploads--;
+        bytesSent += part.blob.size;
 
         if (partsToUpload.length > 0) {
           sendParts();

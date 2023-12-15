@@ -16,44 +16,46 @@ import { ERRORS, hasOwnProperty, isDynamicServerError } from '.';
 // provide a different scheduling function for edge runtime
 //
 // copied from dataloader but swapped process.nextTick for nextTick of node:process
-// let resolvedPromise: Promise<unknown> | undefined;
+let resolvedPromise: Promise<unknown> | undefined;
 const batchScheduleFn: DataLoader.Options<
   string,
   unknown,
   string
->['batchScheduleFn'] = (fn) => {
-  fn();
-};
-/*
-  // process.nextTick is defined in Edge Runtime but will throw an error, same
-  // for setImmediate. So instead we fall back to setTimeout for Edge Runtime.
-  //
-  // Once Edge Runtime supports nextTick we can get rid of this which will
-  // enable batching.
-  //
-  // eslint-disable-next-line no-nested-ternary -- k
-  typeof EdgeRuntime === 'string'
-    ? (fn) => {
-        setTimeout(fn);
+>['batchScheduleFn'] = trace(
+  (fnRaw) => {
+    const fn = trace(fnRaw, { name: 'batchScheduleFnCallback' });
+
+    // process.nextTick is defined in Edge Runtime but will throw an error, same
+    // for setImmediate. So instead we fall back to setTimeout for Edge Runtime.
+    //
+    // Once Edge Runtime supports nextTick we can get rid of this which will
+    // enable batching.
+    if (typeof EdgeRuntime === 'string') {
+      setTimeout(fn);
+      return;
+    }
+
+    if (typeof process === 'object' && typeof process.nextTick === 'function') {
+      if (!resolvedPromise) {
+        resolvedPromise = Promise.resolve();
       }
-    : // eslint-disable-next-line no-nested-ternary -- k
-      typeof process === 'object' && typeof process.nextTick === 'function'
-      ? (fn) => {
-          if (!resolvedPromise) {
-            resolvedPromise = Promise.resolve();
-          }
-          void resolvedPromise.then(() => {
-            process.nextTick(fn);
-          });
-        }
-      : typeof setImmediate === 'function'
-        ? (fn) => {
-            setImmediate(fn);
-          }
-        : (fn) => {
-            setTimeout(fn);
-          };
-*/
+
+      void resolvedPromise.then(() => {
+        process.nextTick(fn);
+      });
+
+      return;
+    }
+
+    if (typeof setImmediate === 'function') {
+      setImmediate(fn);
+      return;
+    }
+
+    setTimeout(fn);
+  },
+  { name: 'batchScheduleFn' },
+);
 
 const jsonParseCache = new Map<string, unknown>();
 

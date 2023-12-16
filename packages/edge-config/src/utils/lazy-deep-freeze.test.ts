@@ -37,6 +37,25 @@ describe('freeze', () => {
       p.someNewProperty = true;
     }).toThrow('frozen');
   });
+
+  it('allows calling functions', () => {
+    const p = freeze({
+      x: () => true,
+    });
+    expect(p.x()).toEqual(true);
+  });
+
+  it('prevents functions from mutating object', () => {
+    const p = freeze({
+      y: 1,
+      inc() {
+        this.y += 1;
+      },
+    });
+    expect(() => {
+      p.inc();
+    }).toThrow('frozen');
+  });
 });
 
 describe('isFrozen', () => {

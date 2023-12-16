@@ -49,9 +49,6 @@ export function freeze<T extends object>(o: T): DeepReadonly<T> {
         writable: false,
       };
     },
-    isExtensible() {
-      return false;
-    },
     defineProperty() {
       throw new TypeError('frozen');
     },

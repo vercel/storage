@@ -80,3 +80,40 @@ describe('lift', () => {
     expect(p).not.toHaveProperty('newProperty');
   });
 });
+
+describe('sealing', () => {
+  it('does not appear as sealed', () => {
+    expect(Object.isSealed(freeze({}))).toBe(false);
+  });
+});
+
+describe('defineProperty', () => {
+  it('throws', () => {
+    expect(() =>
+      Object.defineProperty(freeze({ a: 1 }), 'a', { value: 2 }),
+    ).toThrow('frozen');
+  });
+});
+
+describe('getOwnPropertyDescriptor', () => {
+  it('returns a propertyDescriptor', () => {
+    // JSON.parse(JSON.stringify(Object.freeze({ a: 1 })));
+    expect(Object.getOwnPropertyDescriptor(freeze({ a: 1 }), 'a')).toEqual({
+      configurable: true,
+      enumerable: true,
+      value: 1,
+      writable: false,
+    });
+  });
+});
+
+describe('toString', () => {
+  it('should stringify like a regular object', () => {
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string -- ok
+    expect(freeze({ a: 1, t: 'hello', n: { a: 2 } }).toString()).toEqual(
+      '[object Object]',
+    );
+
+    expect(freeze({ list: ['a', 'b'] }).list.toString()).toEqual('a,b');
+  });
+});

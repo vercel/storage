@@ -1,5 +1,5 @@
+import type { DeepReadonly } from 'ts-essentials';
 import { hasOwnProperty } from '.';
-// import type { DeepReadonly } from 'ts-essentials';
 
 const freezeSymbol = Symbol('freeze');
 
@@ -7,11 +7,11 @@ export function isFrozen(o: object & { [freezeSymbol]?: boolean }): boolean {
   return o[freezeSymbol] === true;
 }
 
-export function lift<T extends object>(o: T): T {
+export function lift<T extends object>(o: DeepReadonly<T>): T {
   return JSON.parse(JSON.stringify(o)) as T;
 }
 
-export function freeze<T extends object>(o: T): Readonly<T> {
+export function freeze<T extends object>(o: T): DeepReadonly<T> {
   return new Proxy(o, {
     get(t, p, r) {
       if (p === freezeSymbol) return true;
@@ -34,7 +34,7 @@ export function freeze<T extends object>(o: T): Readonly<T> {
       }
 
       if (Array.isArray(value)) {
-        return value.map((v) => freeze(v));
+        return value.map(freeze) as DeepReadonly<typeof value>;
       }
 
       return value;
@@ -57,7 +57,8 @@ export function freeze<T extends object>(o: T): Readonly<T> {
       throw new TypeError('frozen');
     },
     set() {
+      // TypeError: Cannot assign to read only property 'name' of object '#<Object>'
       throw new TypeError('frozen');
     },
-  });
+  }) as DeepReadonly<T>;
 }

@@ -43,6 +43,8 @@ export function freeze<T extends object>(o: T): DeepReadonly<T> {
       const d = Reflect.getOwnPropertyDescriptor(t, p);
       return {
         ...d,
+        // we need to set this to true, otherwise we get
+        // TypeError: 'getOwnPropertyDescriptor' on proxy: trap reported non-configurability for property 'n' which is either non-existent or configurable in the proxy target
         configurable: true,
         writable: false,
       };

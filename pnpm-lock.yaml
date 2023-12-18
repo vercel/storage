@@ -93,6 +93,9 @@ importers:
       '@vercel/edge-config-fs':
         specifier: workspace:*
         version: link:../edge-config-fs
+      ts-essentials:
+        specifier: 9.4.1
+        version: 9.4.1(typescript@5.3.3)
     devDependencies:
       '@changesets/cli':
         specifier: 2.27.1
@@ -7190,6 +7193,17 @@ packages:
       typescript: '>=4.2.0'
     dependencies:
       typescript: 5.3.3
+
+  /ts-essentials@9.4.1(typescript@5.3.3):
+    resolution: {integrity: sha512-oke0rI2EN9pzHsesdmrOrnqv1eQODmJpd/noJjwj2ZPC3Z4N2wbjrOEqnsEgmvlO2+4fBb0a794DCna2elEVIQ==}
+    peerDependencies:
+      typescript: '>=4.1.0'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+    dependencies:
+      typescript: 5.3.3
+    dev: false
 
   /ts-interface-checker@0.1.13:
     resolution: {integrity: sha512-Y/arvbn+rrz3JCKl9C4kVNfTfSm2/mEp5FSz5EsZSANGPSlQrpRI5M4PKF+mJnE52jOO90PnPSc3Ur3bTQw0gA==}

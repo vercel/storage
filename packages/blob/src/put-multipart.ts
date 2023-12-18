@@ -440,7 +440,10 @@ function stringToUint8Array(s: string): Uint8Array {
 
 // Set process.env.DEBUG = 'blob' to enable debug logging
 function debug(message: string, ...args: unknown[]): void {
-  if (process.env.DEBUG?.includes('blob')) {
+  if (
+    process.env.DEBUG?.includes('blob') ||
+    process.env.NEXT_PUBLIC_DEBUG?.includes('blob')
+  ) {
     // eslint-disable-next-line no-console -- Ok for debugging
     console.debug(`vercel-blob: ${message}`, ...args);
   }

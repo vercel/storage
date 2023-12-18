@@ -47,7 +47,7 @@ export default function AppClientUpload(): JSX.Element {
           Blob url: <a href={blob.url}>{blob.url}</a>
           {blob.url.endsWith('.mp4') ? (
             // eslint-disable-next-line jsx-a11y/media-has-caption -- no caption for tests, this is fine
-            <video autoPlay controls>
+            <video controls>
               <source src={blob.url} type="video/mp4" />
             </video>
           ) : null}

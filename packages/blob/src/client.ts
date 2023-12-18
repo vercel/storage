@@ -275,11 +275,13 @@ export async function handleUpload({
         multipart,
       );
       const tokenPayload = payload.tokenPayload ?? clientPayload;
-      const defaultTokenDurationInSeconds = multipart ? 60 * 60 : 10 * 60;
+
+      // one hour
+      const oneHourInSeconds = 60 * 60;
       const now = new Date();
       const validUntil =
         payload.validUntil ??
-        now.setSeconds(now.getSeconds() + defaultTokenDurationInSeconds);
+        now.setSeconds(now.getSeconds() + oneHourInSeconds);
 
       return {
         type,

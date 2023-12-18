@@ -55,7 +55,7 @@ describe('upload()', () => {
       1,
       'http://localhost:3000/api/upload',
       {
-        body: '{"type":"blob.generate-client-token","payload":{"pathname":"foo.txt","callbackUrl":"http://localhost:3000/api/upload"}}',
+        body: '{"type":"blob.generate-client-token","payload":{"pathname":"foo.txt","callbackUrl":"http://localhost:3000/api/upload","clientPayload":null,"multipart":false}}',
         headers: { 'content-type': 'application/json' },
         method: 'POST',
       },

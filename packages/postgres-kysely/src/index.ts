@@ -21,8 +21,11 @@ type VercelPostgresDialectConfig = VercelPostgresPoolConfig & {
 };
 
 class VercelPostgresAdapter extends PostgresAdapter {
-  get supportsTransactionalDdl() {
-    return false;
+  // represented as readonly property to satisfy eslint rule:
+  // typescript-eslint/class-literal-property-style
+  private readonly _supportsTransactionalDdl = false;
+  public get supportsTransactionalDdl(): boolean {
+    return this._supportsTransactionalDdl;
   }
 }
 

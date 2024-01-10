@@ -215,7 +215,7 @@ export const createClient = trace(
             },
           );
         },
-        { name: 'get' },
+        { name: 'get', isVerboseTrace: false },
       ),
       has: trace(
         async function has(key): Promise<boolean> {
@@ -252,7 +252,7 @@ export const createClient = trace(
             },
           );
         },
-        { name: 'has' },
+        { name: 'has', isVerboseTrace: false },
       ),
       getAll: trace(
         async function getAll<T = EdgeConfigItems>(
@@ -311,7 +311,7 @@ export const createClient = trace(
             },
           );
         },
-        { name: 'getAll' },
+        { name: 'getAll', isVerboseTrace: false },
       ),
       digest: trace(
         async function digest(): Promise<string> {
@@ -342,7 +342,7 @@ export const createClient = trace(
             },
           );
         },
-        { name: 'digest' },
+        { name: 'digest', isVerboseTrace: false },
       ),
     };
 

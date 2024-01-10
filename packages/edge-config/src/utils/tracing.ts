@@ -1,7 +1,7 @@
 import {
   trace as traceApi,
   type Tracer,
-  type SpanAttributes,
+  type Attributes,
 } from '@opentelemetry/api';
 import { name as pkgName, version } from '../../package.json';
 
@@ -23,11 +23,11 @@ export function trace<F extends (...args: any) => any>(
   fn: F,
   options: {
     name: string;
-    attributes?: SpanAttributes;
+    attributes?: Attributes;
     attributesSuccess?: (
       result: ReturnType<F> extends PromiseLike<infer U> ? U : ReturnType<F>,
-    ) => SpanAttributes;
-    attributesError?: (error: Error) => SpanAttributes;
+    ) => Attributes;
+    attributesError?: (error: Error) => Attributes;
   } = {
     name: fn.name,
   },

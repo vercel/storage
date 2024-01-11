@@ -32,6 +32,7 @@ async function run(): Promise<void> {
     weirdCharactersExample(),
     copyTextFile(),
     listFolders(),
+    createFolder(),
   ]);
 
   await Promise.all(
@@ -288,6 +289,22 @@ async function listFolders() {
   });
 
   console.log('fold blobs example:', response, `(${Date.now() - start}ms)`);
+
+  return blob.url;
+}
+
+async function createFolder() {
+  const start = Date.now();
+
+  const blob = await vercelBlob.put('foolder/', undefined, {
+    access: 'public',
+  });
+
+  const response = await vercelBlob.list({
+    mode: 'folded',
+  });
+
+  console.log('create folder example:', response, `(${Date.now() - start}ms)`);
 
   return blob.url;
 }

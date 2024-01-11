@@ -22,8 +22,8 @@ export type { PutBlobResult, PutCommandOptions } from './put';
  *
  * If you want to upload from the browser directly, check out the documentation for client uploads: https://vercel.com/docs/storage/vercel-blob/using-blob-sdk#client-uploads
  *
- * @param pathname - The pathname to upload the blob to. This includes the filename.
- * @param body - The contents of your blob. This has to be a supported fetch body type https://developer.mozilla.org/en-US/docs/Web/API/fetch#body.
+ * @param pathname - The pathname to upload the blob to. For file upload this includes the filename. Pathnames that end with a slash are treated as folder creations.
+ * @param body - The contents of your blob. This has to be either a supported fetch body type https://developer.mozilla.org/en-US/docs/Web/API/fetch#body or undefined for folder creations.
  * @param options - Additional options like `token` or `contentType`.
  */
 export const put = createPutMethod<PutCommandOptions>({

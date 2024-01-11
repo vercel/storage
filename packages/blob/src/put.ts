@@ -42,23 +42,25 @@ export function createPutMethod<
   getToken?: (pathname: string, options: T) => Promise<string>;
   extraChecks?: (options: T) => void;
 }) {
-  return async function put(
-    pathname: string,
-    body:
-      | string
-      | Readable
-      | Blob
-      | ArrayBuffer
-      | FormData
-      | ReadableStream
-      | File,
+  return async function put<TPath extends string>(
+    pathname: TPath,
+    body: TPath extends `${infer _rest}/`
+      ? undefined
+      :
+          | string
+          | Readable
+          | Blob
+          | ArrayBuffer
+          | FormData
+          | ReadableStream
+          | File,
     options?: T,
   ): Promise<PutBlobResult> {
     if (!pathname) {
       throw new BlobError('pathname is required');
     }
 
-    if (!body) {
+    if (!body && !pathname.endsWith('/')) {
       throw new BlobError('body is required');
     }
 

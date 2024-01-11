@@ -62,6 +62,9 @@ export interface UploadOptions {
    * Additional data which will be sent to your `handleUpload` route.
    */
   clientPayload?: string;
+  /**
+   * Whether to use multipart upload. Use this when uploading large files. It will split the file into multiple parts, upload them in parallel and retry failed parts.
+   */
   multipart?: boolean;
 }
 

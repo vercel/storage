@@ -64,7 +64,7 @@ async function run(): Promise<void> {
 
 async function textFileExample(): Promise<string> {
   const start = Date.now();
-  const blob = await vercelBlob.put('folder/test.txt', 'Hello, world!', {
+  const blob = await vercelBlob.put('folderé/test.txt', 'Hello, world!', {
     access: 'public',
   });
   console.log('Text file example:', blob.url, `(${Date.now() - start}ms)`);
@@ -305,7 +305,8 @@ async function multipartNodeJsFileStream() {
 
   const start = Date.now();
 
-  const blob = await vercelBlob.put(pathname, stream, {
+  // testing with an accent
+  const blob = await vercelBlob.put(`éllo/${pathname}`, stream, {
     access: 'public',
     multipart: true,
   });

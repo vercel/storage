@@ -10,6 +10,7 @@ import {
   getApiUrl,
   validateBlobApiResponse,
 } from './helpers';
+import { debug } from './debug';
 
 // Most browsers will cap requests at 6 concurrent uploads per domain (Vercel Blob API domain)
 // In other environments, we can afford to be more aggressive
@@ -80,7 +81,9 @@ async function completeMultiPartUpload(
         ...headers,
         'content-type': 'application/json',
         'x-mpu-action': 'complete',
-        'x-mpu-upload-id': encodeURI(uploadId),
+        'x-mpu-upload-id': uploadId,
+        // key can be any utf8 character so we need to encode it as HTTP headers can only be us-ascii
+        // https://www.rfc-editor.org/rfc/rfc7230#section-3.2.4
         'x-mpu-key': encodeURI(key),
       },
       body: JSON.stringify(parts),
@@ -285,7 +288,7 @@ function uploadParts(
                 ...headers,
                 'x-mpu-action': 'upload',
                 'x-mpu-key': encodeURI(key),
-                'x-mpu-upload-id': encodeURI(uploadId),
+                'x-mpu-upload-id': uploadId,
                 'x-mpu-part-number': part.partNumber.toString(),
               },
               body: part.blob as BodyInit,
@@ -389,19 +392,15 @@ function uploadParts(
   });
 }
 
-function toReadableStream(
-  value:
-    | string
-    | Readable // Node.js streams
-    | Blob
-    | ArrayBuffer
-    | ReadableStream // Streams API (= Web streams in Node.js)
-    | File,
-): ReadableStream<ArrayBuffer> {
+function toReadableStream(value: PutBody): ReadableStream<ArrayBuffer> {
+  // Already a ReadableStream, nothing to do
   if (value instanceof ReadableStream) {
     return value as ReadableStream<ArrayBuffer>;
   }
 
+  // In the case of a Blob or File (which inherits from Blob), we could use .slice() to create pointers
+  // to the original data instead of loading data in memory gradually.
+  // Here's an explanation on this subject: https://stackoverflow.com/a/24834417
   if (value instanceof Blob) {
     return value.stream();
   }
@@ -413,6 +412,7 @@ function toReadableStream(
   const streamValue =
     value instanceof ArrayBuffer ? value : stringToUint8Array(value);
 
+  // from https://github.com/sindresorhus/to-readable-stream/blob/main/index.js
   return new ReadableStream<ArrayBuffer>({
     start(controller) {
       controller.enqueue(streamValue);
@@ -436,15 +436,4 @@ function isNodeJsReadableStream(value: PutBody): value is Readable {
 function stringToUint8Array(s: string): Uint8Array {
   const enc = new TextEncoder();
   return enc.encode(s);
-}
-
-// Set process.env.DEBUG = 'blob' to enable debug logging
-function debug(message: string, ...args: unknown[]): void {
-  if (
-    process.env.DEBUG?.includes('blob') ||
-    process.env.NEXT_PUBLIC_DEBUG?.includes('blob')
-  ) {
-    // eslint-disable-next-line no-console -- Ok for debugging
-    console.debug(`vercel-blob: ${message}`, ...args);
-  }
 }

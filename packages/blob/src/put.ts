@@ -44,8 +44,8 @@ export function createPutMethod<
 }) {
   return async function put<TPath extends string>(
     pathname: TPath,
-    body: TPath extends `${infer _rest}/`
-      ? undefined
+    bodyOrOptions: TPath extends `${string}/`
+      ? T
       :
           | string
           | Readable
@@ -54,14 +54,28 @@ export function createPutMethod<
           | FormData
           | ReadableStream
           | File,
-    options?: T,
+    optionsInput?: T,
   ): Promise<PutBlobResult> {
     if (!pathname) {
       throw new BlobError('pathname is required');
     }
 
-    if (!body && !pathname.endsWith('/')) {
+    const isEmptyFolder = pathname.endsWith('/');
+
+    // avoid using the options as body
+    const body = isEmptyFolder ? undefined : (bodyOrOptions as BodyInit);
+
+    // when no body is required options are the second argument
+    const options = isEmptyFolder ? (bodyOrOptions as T) : optionsInput;
+
+    // prevent empty bodies for files
+    if (!body && !isEmptyFolder) {
       throw new BlobError('body is required');
+    }
+
+    // runtime check for non TS users that provide all three args
+    if (bodyOrOptions && optionsInput && isEmptyFolder) {
+      throw new BlobError('body is not allowed for creating empty folders');
     }
 
     if (!options) {
@@ -107,7 +121,7 @@ export function createPutMethod<
 
     const blobApiResponse = await fetch(getApiUrl(`/${pathname}`), {
       method: 'PUT',
-      body: body as BodyInit,
+      body,
       headers,
       // required in order to stream some body types to Cloudflare
       // currently only supported in Node.js, we may have to feature detect this

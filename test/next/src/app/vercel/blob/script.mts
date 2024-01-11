@@ -296,7 +296,7 @@ async function listFolders() {
 async function createFolder() {
   const start = Date.now();
 
-  const blob = await vercelBlob.put('foolder/', undefined, {
+  const blob = await vercelBlob.put('foolder/file.txt', '', {
     access: 'public',
   });
 

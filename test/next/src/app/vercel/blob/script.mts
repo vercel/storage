@@ -300,11 +300,7 @@ async function createFolder() {
     access: 'public',
   });
 
-  const response = await vercelBlob.list({
-    mode: 'folded',
-  });
-
-  console.log('create folder example:', response, `(${Date.now() - start}ms)`);
+  console.log('create folder example:', blob, `(${Date.now() - start}ms)`);
 
   return blob.url;
 }

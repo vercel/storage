@@ -142,6 +142,7 @@ export const createClient = trace(
         '@vercel/edge-config: Invalid connection string provided',
       );
 
+    const edgeConfigId = connection.id;
     const baseUrl = connection.baseUrl;
     const version = connection.version; // version of the edge config read access api we talk to
     const headers: Record<string, string> = {
@@ -215,7 +216,7 @@ export const createClient = trace(
             },
           );
         },
-        { name: 'get', isVerboseTrace: false },
+        { name: 'get', isVerboseTrace: false, attributes: { edgeConfigId } },
       ),
       has: trace(
         async function has(key): Promise<boolean> {
@@ -252,7 +253,7 @@ export const createClient = trace(
             },
           );
         },
-        { name: 'has', isVerboseTrace: false },
+        { name: 'has', isVerboseTrace: false, attributes: { edgeConfigId } },
       ),
       getAll: trace(
         async function getAll<T = EdgeConfigItems>(
@@ -311,7 +312,7 @@ export const createClient = trace(
             },
           );
         },
-        { name: 'getAll', isVerboseTrace: false },
+        { name: 'getAll', isVerboseTrace: false, attributes: { edgeConfigId } },
       ),
       digest: trace(
         async function digest(): Promise<string> {
@@ -342,7 +343,7 @@ export const createClient = trace(
             },
           );
         },
-        { name: 'digest', isVerboseTrace: false },
+        { name: 'digest', isVerboseTrace: false, attributes: { edgeConfigId } },
       ),
     };
 

@@ -382,13 +382,10 @@ function init(): void {
  * @param key - the key to read
  * @returns the value stored under the given key, or undefined
  */
-export const get: EdgeConfigClient['get'] = trace(
-  (...args) => {
-    init();
-    return defaultEdgeConfigClient.get(...args);
-  },
-  { name: 'Edge Config default get' },
-);
+export const get: EdgeConfigClient['get'] = (...args) => {
+  init();
+  return defaultEdgeConfigClient.get(...args);
+};
 
 /**
  * Reads multiple or all values.
@@ -400,13 +397,10 @@ export const get: EdgeConfigClient['get'] = trace(
  * @param keys - the keys to read
  * @returns the value stored under the given key, or undefined
  */
-export const getAll: EdgeConfigClient['getAll'] = trace(
-  (...args) => {
-    init();
-    return defaultEdgeConfigClient.getAll(...args);
-  },
-  { name: 'Edge Config default getAll' },
-);
+export const getAll: EdgeConfigClient['getAll'] = (...args) => {
+  init();
+  return defaultEdgeConfigClient.getAll(...args);
+};
 
 /**
  * Check if a given key exists in the Edge Config.
@@ -418,13 +412,10 @@ export const getAll: EdgeConfigClient['getAll'] = trace(
  * @param key - the key to check
  * @returns true if the given key exists in the Edge Config.
  */
-export const has: EdgeConfigClient['has'] = trace(
-  (...args) => {
-    init();
-    return defaultEdgeConfigClient.has(...args);
-  },
-  { name: 'Edge Config default has' },
-);
+export const has: EdgeConfigClient['has'] = (...args) => {
+  init();
+  return defaultEdgeConfigClient.has(...args);
+};
 
 /**
  * Get the digest of the Edge Config.
@@ -435,10 +426,7 @@ export const has: EdgeConfigClient['has'] = trace(
  * @see {@link EdgeConfigClient.digest}
  * @returns The digest of the Edge Config.
  */
-export const digest: EdgeConfigClient['digest'] = trace(
-  (...args) => {
-    init();
-    return defaultEdgeConfigClient.digest(...args);
-  },
-  { name: 'Edge Config default digest' },
-);
+export const digest: EdgeConfigClient['digest'] = (...args) => {
+  init();
+  return defaultEdgeConfigClient.digest(...args);
+};

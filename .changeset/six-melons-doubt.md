@@ -42,12 +42,14 @@ const blob = await vercelBlob.put(
 ```
 
 ```ts
+const response = await fetch(
+  'https://example-files.online-convert.com/video/mp4/example_big.mp4',
+);
+
 const blob = await vercelBlob.put(
   'example_big.mp4',
   // this works too 👍, it will gradually read the file from internet and upload it
-  await fetch(
-    'https://example-files.online-convert.com/video/mp4/example_big.mp4',
-  ),
+  response.body,
   { access: 'public', multipart: true },
 );
 ```

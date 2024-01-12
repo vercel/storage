@@ -95,12 +95,6 @@ export class BlobServiceNotAvailable extends BlobError {
   }
 }
 
-export class BlobMultipartUploadError extends BlobError {
-  constructor() {
-    super('We could not upload your blob. Please try again.');
-  }
-}
-
 type BlobApiErrorCodes =
   | 'store_suspended'
   | 'forbidden'

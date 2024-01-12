@@ -6,7 +6,7 @@ import retry from 'async-retry';
 import bytes from 'bytes';
 import type { PutBlobApiResponse, PutBlobResult, PutBody } from './put';
 import {
-  BlobMultipartUploadError,
+  BlobServiceNotAvailable,
   getApiUrl,
   validateBlobApiResponse,
 } from './helpers';
@@ -94,7 +94,7 @@ async function completeMultiPartUpload(
     return (await apiResponse.json()) as PutBlobApiResponse;
   } catch (error: unknown) {
     if (error instanceof TypeError && error.message === 'Failed to fetch') {
-      throw new BlobMultipartUploadError();
+      throw new BlobServiceNotAvailable();
     } else {
       throw error;
     }
@@ -125,8 +125,12 @@ async function createMultiPartUpload(
 
     return json as CreateMultiPartUploadApiResponse;
   } catch (error: unknown) {
-    if (error instanceof TypeError && error.message === 'Failed to fetch') {
-      throw new BlobMultipartUploadError();
+    console.log(error);
+    if (
+      error instanceof TypeError &&
+      (error.message === 'Failed to fetch' || error.message === 'fetch failed')
+    ) {
+      throw new BlobServiceNotAvailable();
     } else {
       throw error;
     }
@@ -280,8 +284,8 @@ function uploadParts(
 
       try {
         const apiResponse = await retry(
-          () => {
-            return fetch(apiUrl, {
+          async () => {
+            const res = await fetch(apiUrl, {
               signal: internalAbortController.signal,
               method: 'POST',
               headers: {
@@ -293,6 +297,13 @@ function uploadParts(
               },
               body: part.blob as BodyInit,
             });
+
+            if (res.status >= 500) {
+              // this will be retried
+              throw new BlobServiceNotAvailable();
+            }
+
+            return res;
           },
           {
             onRetry: (error) => {
@@ -338,12 +349,13 @@ function uploadParts(
 
         if (partsToUpload.length > 0) {
           sendParts();
-        } else if (activeUploads === 0) {
-          reader.releaseLock();
-          resolve(completedParts);
         }
 
         if (doneReading) {
+          if (activeUploads === 0) {
+            reader.releaseLock();
+            resolve(completedParts);
+          }
           return;
         }
 
@@ -383,8 +395,12 @@ function uploadParts(
       rejected = true;
       internalAbortController.abort();
       reader.releaseLock();
-      if (error instanceof TypeError && error.message === 'Failed to fetch') {
-        reject(new BlobMultipartUploadError());
+      if (
+        error instanceof TypeError &&
+        (error.message === 'Failed to fetch' ||
+          error.message === 'fetch failed')
+      ) {
+        reject(new BlobServiceNotAvailable());
       } else {
         reject(error);
       }

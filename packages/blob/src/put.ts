@@ -42,25 +42,41 @@ export function createPutMethod<
   getToken?: (pathname: string, options: T) => Promise<string>;
   extraChecks?: (options: T) => void;
 }) {
-  return async function put(
-    pathname: string,
-    body:
-      | string
-      | Readable
-      | Blob
-      | ArrayBuffer
-      | FormData
-      | ReadableStream
-      | File,
-    options?: T,
+  return async function put<TPath extends string>(
+    pathname: TPath,
+    bodyOrOptions: TPath extends `${string}/`
+      ? T
+      :
+          | string
+          | Readable
+          | Blob
+          | ArrayBuffer
+          | FormData
+          | ReadableStream
+          | File,
+    optionsInput?: T,
   ): Promise<PutBlobResult> {
     if (!pathname) {
       throw new BlobError('pathname is required');
     }
 
-    if (!body) {
+    const isFolderCreation = pathname.endsWith('/');
+
+    // prevent empty bodies for files
+    if (!bodyOrOptions && !isFolderCreation) {
       throw new BlobError('body is required');
     }
+
+    // runtime check for non TS users that provide all three args
+    if (bodyOrOptions && optionsInput && isFolderCreation) {
+      throw new BlobError('body is not allowed for creating empty folders');
+    }
+
+    // avoid using the options as body
+    const body = isFolderCreation ? undefined : (bodyOrOptions as BodyInit);
+
+    // when no body is required options are the second argument
+    const options = isFolderCreation ? (bodyOrOptions as T) : optionsInput;
 
     if (!options) {
       throw new BlobError('missing options, see usage');
@@ -105,7 +121,7 @@ export function createPutMethod<
 
     const blobApiResponse = await fetch(getApiUrl(`/${pathname}`), {
       method: 'PUT',
-      body: body as BodyInit,
+      body,
       headers,
       // required in order to stream some body types to Cloudflare
       // currently only supported in Node.js, we may have to feature detect this

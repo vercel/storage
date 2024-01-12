@@ -34,6 +34,7 @@ async function run(): Promise<void> {
     listFolders(),
     multipartNodeJsFileStream(),
     fetchExampleMultipart(),
+    createFolder(),
   ]);
 
   await Promise.all(
@@ -337,5 +338,17 @@ async function fetchExampleMultipart(): Promise<string> {
   );
 
   console.log('fetch example:', blob.url, `(${Date.now() - start}ms)`);
+  return blob.url;
+}
+async function createFolder() {
+  const start = Date.now();
+
+  const blob = await vercelBlob.put('foolder/', {
+    access: 'public',
+    addRandomSuffix: false,
+  });
+
+  console.log('create folder example:', blob, `(${Date.now() - start}ms)`);
+
   return blob.url;
 }

@@ -52,18 +52,32 @@ export function createPutMethod<
   getToken?: (pathname: string, options: T) => Promise<string>;
   extraChecks?: (options: T) => void;
 }) {
-  return async function put(
-    pathname: string,
-    body: PutBody,
-    options?: T,
+  return async function put<TPath extends string>(
+    pathname: TPath,
+    bodyOrOptions: TPath extends `${string}/` ? T : PutBody,
+    optionsInput?: T,
   ): Promise<PutBlobResult> {
     if (!pathname) {
       throw new BlobError('pathname is required');
     }
 
-    if (!body) {
+    const isFolderCreation = pathname.endsWith('/');
+
+    // prevent empty bodies for files
+    if (!bodyOrOptions && !isFolderCreation) {
       throw new BlobError('body is required');
     }
+
+    // runtime check for non TS users that provide all three args
+    if (bodyOrOptions && optionsInput && isFolderCreation) {
+      throw new BlobError('body is not allowed for creating empty folders');
+    }
+
+    // avoid using the options as body
+    const body = isFolderCreation ? undefined : bodyOrOptions;
+
+    // when no body is required options are the second argument
+    const options = isFolderCreation ? (bodyOrOptions as T) : optionsInput;
 
     if (!options) {
       throw new BlobError('missing options, see usage');
@@ -106,7 +120,7 @@ export function createPutMethod<
         options.cacheControlMaxAge.toString();
     }
 
-    if (options.multipart === true) {
+    if (options.multipart === true && body) {
       return multipartPut(pathname, body, headers);
     }
 

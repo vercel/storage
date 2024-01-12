@@ -60,23 +60,23 @@ export function createPutMethod<
       throw new BlobError('pathname is required');
     }
 
-    const isEmptyFolder = pathname.endsWith('/');
-
-    // avoid using the options as body
-    const body = isEmptyFolder ? undefined : (bodyOrOptions as BodyInit);
-
-    // when no body is required options are the second argument
-    const options = isEmptyFolder ? (bodyOrOptions as T) : optionsInput;
+    const isFolderCreation = pathname.endsWith('/');
 
     // prevent empty bodies for files
-    if (!body && !isEmptyFolder) {
+    if (!bodyOrOptions && !isFolderCreation) {
       throw new BlobError('body is required');
     }
 
     // runtime check for non TS users that provide all three args
-    if (bodyOrOptions && optionsInput && isEmptyFolder) {
+    if (bodyOrOptions && optionsInput && isFolderCreation) {
       throw new BlobError('body is not allowed for creating empty folders');
     }
+
+    // avoid using the options as body
+    const body = isFolderCreation ? undefined : (bodyOrOptions as BodyInit);
+
+    // when no body is required options are the second argument
+    const options = isFolderCreation ? (bodyOrOptions as T) : optionsInput;
 
     if (!options) {
       throw new BlobError('missing options, see usage');

@@ -296,8 +296,9 @@ async function listFolders() {
 async function createFolder() {
   const start = Date.now();
 
-  const blob = await vercelBlob.put('foolder/file.txt', '', {
+  const blob = await vercelBlob.put('foolder/', {
     access: 'public',
+    addRandomSuffix: false,
   });
 
   console.log('create folder example:', blob, `(${Date.now() - start}ms)`);

@@ -84,7 +84,7 @@ describe('blob client', () => {
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
-          'Vercel Blob: Access denied, please provide a valid token for this resource',
+          'Vercel Blob: Access denied, please provide a valid token for this resource.',
         ),
       );
     });
@@ -99,7 +99,7 @@ describe('blob client', () => {
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
-          'Vercel Blob: Unknown error, please visit https://vercel.com/help',
+          'Vercel Blob: Unknown error, please visit https://vercel.com/help.',
         ),
       );
     });
@@ -123,7 +123,7 @@ describe('blob client', () => {
         .reply(403, { error: { code: 'store_suspended' } });
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
-        new Error('Vercel Blob: This store has been suspended'),
+        new Error('Vercel Blob: This store has been suspended.'),
       );
     });
 
@@ -136,7 +136,7 @@ describe('blob client', () => {
         .reply(403, { error: { code: 'store_not_found' } });
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
-        new Error('Vercel Blob: This store does not exist'),
+        new Error('Vercel Blob: This store does not exist.'),
       );
     });
 
@@ -225,7 +225,7 @@ describe('blob client', () => {
 
       await expect(del(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
-          'Vercel Blob: Access denied, please provide a valid token for this resource',
+          'Vercel Blob: Access denied, please provide a valid token for this resource.',
         ),
       );
     });
@@ -240,7 +240,7 @@ describe('blob client', () => {
 
       await expect(del(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
-          'Vercel Blob: Unknown error, please visit https://vercel.com/help',
+          'Vercel Blob: Unknown error, please visit https://vercel.com/help.',
         ),
       );
     });
@@ -310,7 +310,7 @@ describe('blob client', () => {
 
       await expect(list()).rejects.toThrow(
         new Error(
-          'Vercel Blob: Access denied, please provide a valid token for this resource',
+          'Vercel Blob: Access denied, please provide a valid token for this resource.',
         ),
       );
     });
@@ -324,7 +324,7 @@ describe('blob client', () => {
         .reply(500, 'Invalid token');
       await expect(list()).rejects.toThrow(
         new Error(
-          'Vercel Blob: Unknown error, please visit https://vercel.com/help',
+          'Vercel Blob: Unknown error, please visit https://vercel.com/help.',
         ),
       );
     });
@@ -446,7 +446,7 @@ describe('blob client', () => {
         }),
       ).rejects.toThrow(
         new Error(
-          'Vercel Blob: Access denied, please provide a valid token for this resource',
+          'Vercel Blob: Access denied, please provide a valid token for this resource.',
         ),
       );
     });
@@ -465,7 +465,7 @@ describe('blob client', () => {
         }),
       ).rejects.toThrow(
         new Error(
-          'Vercel Blob: Unknown error, please visit https://vercel.com/help',
+          'Vercel Blob: Unknown error, please visit https://vercel.com/help.',
         ),
       );
     });

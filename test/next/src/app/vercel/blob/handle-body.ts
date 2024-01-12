@@ -5,6 +5,7 @@ import { validateUploadToken } from './validate-upload-token';
 export async function handleBody(request: Request): Promise<NextResponse> {
   const { searchParams } = new URL(request.url);
   const pathname = searchParams.get('filename');
+  const multipart = searchParams.get('multipart') === '1';
 
   if (!request.body || pathname === null) {
     return NextResponse.json(
@@ -27,6 +28,7 @@ export async function handleBody(request: Request): Promise<NextResponse> {
   // Note: this will stream the file to Vercel's Blob Store
   const blob = await vercelBlob.put(pathname, request.body, {
     access: 'public',
+    multipart,
   });
 
   return NextResponse.json(blob);

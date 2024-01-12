@@ -39,13 +39,6 @@ export async function handleUploadHandler(
         }
 
         return {
-          maximumSizeInBytes: 10_000_000,
-          allowedContentTypes: [
-            'image/jpeg',
-            'image/png',
-            'image/gif',
-            'text/plain',
-          ],
           tokenPayload: JSON.stringify({
             userId: user?.id,
           }),

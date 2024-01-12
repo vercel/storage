@@ -1,7 +1,7 @@
 export default function Home(): JSX.Element {
   return (
     <main>
-      <h1>
+      <h1 className="text-xl mb-4">
         Vercel Blob Next.js Examples (
         <a href="https://github.com/vercel/blob/tree/main/example">
           code on GitHub
@@ -41,6 +41,10 @@ export default function Home(): JSX.Element {
         </li>
         <li>
           Client Upload → <a href="/vercel/blob/app/client">/app/client</a>
+        </li>
+        <li>
+          Client Upload (multipart) →{' '}
+          <a href="/vercel/blob/app/client-multipart">/app/client-multipart</a>
         </li>
         <li>
           List blob items → <a href="/vercel/blob/app/list">/app/list</a>

@@ -62,6 +62,10 @@ export interface UploadOptions {
    * Additional data which will be sent to your `handleUpload` route.
    */
   clientPayload?: string;
+  /**
+   * Whether to use multipart upload. Use this when uploading large files. It will split the file into multiple parts, upload them in parallel and retry failed parts.
+   */
+  multipart?: boolean;
 }
 
 /**
@@ -103,7 +107,8 @@ export const upload = createPutMethod<UploadOptions>({
     const clientToken = await retrieveClientToken({
       handleUploadUrl: options.handleUploadUrl,
       pathname,
-      clientPayload: options.clientPayload,
+      clientPayload: options.clientPayload ?? null,
+      multipart: options.multipart ?? false,
     });
     return clientToken;
   },
@@ -211,13 +216,18 @@ const EventTypes = {
 
 interface GenerateClientTokenEvent {
   type: (typeof EventTypes)['generateClientToken'];
-  payload: { pathname: string; callbackUrl: string; clientPayload?: string };
+  payload: {
+    pathname: string;
+    callbackUrl: string;
+    multipart: boolean;
+    clientPayload: string | null;
+  };
 }
 interface UploadCompletedEvent {
   type: (typeof EventTypes)['uploadCompleted'];
   payload: {
     blob: PutBlobResult;
-    tokenPayload?: string;
+    tokenPayload?: string | null;
   };
 }
 
@@ -229,7 +239,8 @@ export interface HandleUploadOptions {
   body: HandleUploadBody;
   onBeforeGenerateToken: (
     pathname: string,
-    clientPayload?: string,
+    clientPayload: string | null,
+    multipart: boolean,
   ) => Promise<
     Pick<
       GenerateClientTokenOptions,
@@ -238,7 +249,7 @@ export interface HandleUploadOptions {
       | 'validUntil'
       | 'addRandomSuffix'
       | 'cacheControlMaxAge'
-    > & { tokenPayload?: string }
+    > & { tokenPayload?: string | null }
   >;
   onUploadCompleted: (body: UploadCompletedEvent['payload']) => Promise<void>;
   token?: string;
@@ -260,9 +271,20 @@ export async function handleUpload({
   const type = body.type;
   switch (type) {
     case 'blob.generate-client-token': {
-      const { pathname, callbackUrl, clientPayload } = body.payload;
-      const payload = await onBeforeGenerateToken(pathname, clientPayload);
+      const { pathname, callbackUrl, clientPayload, multipart } = body.payload;
+      const payload = await onBeforeGenerateToken(
+        pathname,
+        clientPayload,
+        multipart,
+      );
       const tokenPayload = payload.tokenPayload ?? clientPayload;
+
+      // one hour
+      const oneHourInSeconds = 60 * 60;
+      const now = new Date();
+      const validUntil =
+        payload.validUntil ??
+        now.setSeconds(now.getSeconds() + oneHourInSeconds);
 
       return {
         type,
@@ -274,6 +296,7 @@ export async function handleUpload({
             callbackUrl,
             tokenPayload,
           },
+          validUntil,
         }),
       };
     }
@@ -309,7 +332,8 @@ export async function handleUpload({
 async function retrieveClientToken(options: {
   pathname: string;
   handleUploadUrl: string;
-  clientPayload?: string;
+  clientPayload: string | null;
+  multipart: boolean;
 }): Promise<string> {
   const { handleUploadUrl, pathname } = options;
   const url = isAbsoluteUrl(handleUploadUrl)
@@ -322,6 +346,7 @@ async function retrieveClientToken(options: {
       pathname,
       callbackUrl: url,
       clientPayload: options.clientPayload,
+      multipart: options.multipart,
     },
   };
 
@@ -400,7 +425,7 @@ export interface GenerateClientTokenOptions extends BlobCommandOptions {
   pathname: string;
   onUploadCompleted?: {
     callbackUrl: string;
-    tokenPayload?: string;
+    tokenPayload?: string | null;
   };
   maximumSizeInBytes?: number;
   allowedContentTypes?: string[];

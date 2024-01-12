@@ -125,7 +125,6 @@ async function createMultiPartUpload(
 
     return json as CreateMultiPartUploadApiResponse;
   } catch (error: unknown) {
-    console.log(error);
     if (
       error instanceof TypeError &&
       (error.message === 'Failed to fetch' || error.message === 'fetch failed')

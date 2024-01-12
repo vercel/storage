@@ -93,7 +93,10 @@ async function completeMultiPartUpload(
 
     return (await apiResponse.json()) as PutBlobApiResponse;
   } catch (error: unknown) {
-    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+    if (
+      error instanceof TypeError &&
+      (error.message === 'Failed to fetch' || error.message === 'fetch failed')
+    ) {
       throw new BlobServiceNotAvailable();
     } else {
       throw error;

@@ -22,7 +22,7 @@ export const getServerSideProps: GetServerSideProps = async (req) => {
 export default function Blob(props: vercelBlob.PutBlobResult): JSX.Element {
   return (
     <div>
-      <h1>Render an upload image on the browser</h1>
+      <h1 className="text-xl mb-4">Render an upload image on the browser</h1>
 
       {/* eslint-disable-next-line @next/next/no-img-element -- we want an image element here, fine */}
       <img alt="test" src={props.url} />

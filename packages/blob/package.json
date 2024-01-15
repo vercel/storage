@@ -1,6 +1,6 @@
 {
   "name": "@vercel/blob",
-  "version": "0.16.1",
+  "version": "0.17.1",
   "description": "The Vercel Blob JavaScript API client",
   "homepage": "https://vercel.com/storage/blob",
   "repository": {
@@ -25,7 +25,8 @@
   "module": "./dist/index.js",
   "browser": {
     "undici": "./dist/undici-browser.js",
-    "crypto": "./dist/crypto-browser.js"
+    "crypto": "./dist/crypto-browser.js",
+    "stream": "./dist/stream-browser.js"
   },
   "typesVersions": {
     "*": {
@@ -39,7 +40,7 @@
   ],
   "scripts": {
     "build": "tsup && pnpm run copy-shims",
-    "copy-shims": "cp src/undici-browser.js dist/undici-browser.js && cp src/crypto-browser.js dist/crypto-browser.js",
+    "copy-shims": "cp src/*-browser.js dist/",
     "dev": "pnpm run copy-shims && tsup --watch --clean=false",
     "lint": "eslint --max-warnings=0 .",
     "prepublishOnly": "pnpm run build",
@@ -59,11 +60,15 @@
     }
   },
   "dependencies": {
+    "async-retry": "1.3.3",
+    "bytes": "3.1.2",
     "undici": "5.28.2"
   },
   "devDependencies": {
     "@edge-runtime/jest-environment": "2.3.7",
     "@edge-runtime/types": "2.2.7",
+    "@types/async-retry": "1.4.8",
+    "@types/bytes": "3.1.4",
     "@types/jest": "29.5.11",
     "@types/node": "20.10.4",
     "eslint": "8.55.0",

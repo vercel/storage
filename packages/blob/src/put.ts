@@ -1,4 +1,5 @@
-import type { Readable } from 'node:stream';
+// eslint-disable-next-line unicorn/prefer-node-protocol -- node:stream does not resolve correctly in browser and edge
+import type { Readable } from 'stream';
 import type { BodyInit } from 'undici';
 import { fetch } from 'undici';
 import type { ClientPutCommandOptions } from './client';
@@ -10,6 +11,7 @@ import {
   BlobError,
   validateBlobApiResponse,
 } from './helpers';
+import { multipartPut } from './put-multipart';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface -- expose option interface for each API method for better extensibility in the future
 export interface PutCommandOptions extends CreateBlobCommandOptions {}
@@ -29,6 +31,14 @@ export interface PutBlobResult {
 
 export type PutBlobApiResponse = PutBlobResult;
 
+export type PutBody =
+  | string
+  | Readable // Node.js streams
+  | Blob
+  | ArrayBuffer
+  | ReadableStream // Streams API (= Web streams in Node.js)
+  | File;
+
 type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 
 export function createPutMethod<
@@ -44,16 +54,7 @@ export function createPutMethod<
 }) {
   return async function put<TPath extends string>(
     pathname: TPath,
-    bodyOrOptions: TPath extends `${string}/`
-      ? T
-      :
-          | string
-          | Readable
-          | Blob
-          | ArrayBuffer
-          | FormData
-          | ReadableStream
-          | File,
+    bodyOrOptions: TPath extends `${string}/` ? T : PutBody,
     optionsInput?: T,
   ): Promise<PutBlobResult> {
     if (!pathname) {
@@ -73,7 +74,7 @@ export function createPutMethod<
     }
 
     // avoid using the options as body
-    const body = isFolderCreation ? undefined : (bodyOrOptions as BodyInit);
+    const body = isFolderCreation ? undefined : bodyOrOptions;
 
     // when no body is required options are the second argument
     const options = isFolderCreation ? (bodyOrOptions as T) : optionsInput;
@@ -119,9 +120,13 @@ export function createPutMethod<
         options.cacheControlMaxAge.toString();
     }
 
+    if (options.multipart === true && body) {
+      return multipartPut(pathname, body, headers);
+    }
+
     const blobApiResponse = await fetch(getApiUrl(`/${pathname}`), {
       method: 'PUT',
-      body,
+      body: body as BodyInit,
       headers,
       // required in order to stream some body types to Cloudflare
       // currently only supported in Node.js, we may have to feature detect this

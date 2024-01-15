@@ -32,6 +32,11 @@ export interface CreateBlobCommandOptions extends BlobCommandOptions {
    * @defaultvalue 365 * 24 * 60 * 60 (1 Year)
    */
   cacheControlMaxAge?: number;
+  /**
+   * Whether to use multipart upload. Use this when uploading large files. It will split the file into multiple parts, upload them in parallel and retry failed parts.
+   * @defaultvalue false
+   */
+  multipart?: boolean;
 }
 
 export function getTokenFromOptionsOrEnv(options?: BlobCommandOptions): string {
@@ -56,25 +61,25 @@ export class BlobError extends Error {
 
 export class BlobAccessError extends BlobError {
   constructor() {
-    super('Access denied, please provide a valid token for this resource');
+    super('Access denied, please provide a valid token for this resource.');
   }
 }
 
 export class BlobStoreNotFoundError extends BlobError {
   constructor() {
-    super('This store does not exist');
+    super('This store does not exist.');
   }
 }
 
 export class BlobStoreSuspendedError extends BlobError {
   constructor() {
-    super('This store has been suspended');
+    super('This store has been suspended.');
   }
 }
 
 export class BlobUnknownError extends BlobError {
   constructor() {
-    super('Unknown error, please visit https://vercel.com/help');
+    super('Unknown error, please visit https://vercel.com/help.');
   }
 }
 
@@ -86,7 +91,7 @@ export class BlobNotFoundError extends BlobError {
 
 export class BlobServiceNotAvailable extends BlobError {
   constructor() {
-    super('The blob service is currently not available. Please try again');
+    super('The blob service is currently not available. Please try again.');
   }
 }
 

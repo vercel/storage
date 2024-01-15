@@ -29,7 +29,12 @@ export function FormBodyUpload({ action }: { action: string }): JSX.Element {
         }}
       >
         <input name="file" ref={inputFileRef} type="file" />
-        <button type="submit">Upload</button>
+        <button
+          className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded inline-flex items-center"
+          type="submit"
+        >
+          Upload
+        </button>
       </form>
       {blob ? (
         <div>

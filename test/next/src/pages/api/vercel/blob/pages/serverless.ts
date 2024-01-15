@@ -11,6 +11,7 @@ export default async function handleBody(
   response: NextApiResponse,
 ): Promise<void> {
   const pathname = request.query.filename as string;
+  const multipart = request.query.multipart === '1';
 
   if (!request.body || !pathname) {
     response.status(400).json({ message: 'No file to upload.' });
@@ -25,6 +26,7 @@ export default async function handleBody(
   // Note: this will stream the file to Vercel's Blob Store
   const blob = await vercelBlob.put(pathname, request.body as string, {
     access: 'public',
+    multipart,
   });
 
   response.json(blob);

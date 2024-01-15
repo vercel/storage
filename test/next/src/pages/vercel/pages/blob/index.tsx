@@ -21,7 +21,7 @@ export default function Blob(
 ): JSX.Element {
   return (
     <div>
-      <h1>blob</h1>
+      <h1 className="text-xl mb-4">blob</h1>
 
       <p id="blob-path">{props.pathname}</p>
       <p id="blob-content">{props.content}</p>

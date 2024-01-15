@@ -1,11 +1,18 @@
 import type { Connection } from '../types';
+import { trace } from './tracing';
 
 export const ERRORS = {
-  UNEXPECTED: '@vercel/edge-config: Unexpected error',
   UNAUTHORIZED: '@vercel/edge-config: Unauthorized',
-  NETWORK: '@vercel/edge-config: Network error',
   EDGE_CONFIG_NOT_FOUND: '@vercel/edge-config: Edge Config not found',
 };
+
+export class UnexpectedNetworkError extends Error {
+  constructor(res: Response) {
+    super(
+      `@vercel/edge-config: Unexpected error due to response with status code ${res.status}`,
+    );
+  }
+}
 
 /**
  * Checks if an object has a property
@@ -42,14 +49,17 @@ export function assertIsKeys(keys: unknown): asserts keys is string[] {
 /**
  * Creates a deep clone of an object.
  */
-export function clone<T>(value: T): T {
-  // only available since node v17.0.0
-  if (typeof structuredClone === 'function') return structuredClone<T>(value);
+export const clone = trace(
+  function clone<T>(value: T): T {
+    // only available since node v17.0.0
+    if (typeof structuredClone === 'function') return structuredClone<T>(value);
 
-  // poor man's polyfill for structuredClone
-  if (value === undefined) return value;
-  return JSON.parse(JSON.stringify(value)) as T;
-}
+    // poor man's polyfill for structuredClone
+    if (value === undefined) return value;
+    return JSON.parse(JSON.stringify(value)) as T;
+  },
+  { name: 'clone' },
+);
 
 /**
  * Parses internal edge config connection strings
@@ -158,27 +168,3 @@ export function parseConnectionString(
   if (connection) return connection;
   return parseExternalConnectionString(connectionString);
 }
-
-/**
- * Works around an issue in Next.js.
- *
- * Next.js problematically expects to be able to throw DynamicServerError and
- * for it to be passed all the way upwards, but we are catching all errors and
- * mapping them to a generic NetworkError.
- *
- * We do this catch-all to prevent leaky abstractions.
- * Otherwise we might leak our implementation details through errors.
- *
- * But this breaks Next.js. So we need to make an exception for it until Next.js
- * no longer expects this behavior.
- *
- * Without this fix, Next.js would fail builds of in which edge config is read
- * from async page components.
- *
- * https://github.com/vercel/storage/issues/119
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- [@vercel/style-guide@5 migration]
-export const isDynamicServerError = (error: any): boolean =>
-  error instanceof Error &&
-  hasOwnProperty(error, 'digest') &&
-  error.digest === 'DYNAMIC_SERVER_USAGE';

@@ -1,3 +1,5 @@
+import { trace } from './tracing';
+
 interface CachedResponseEntry {
   etag: string;
   response: string;
@@ -95,59 +97,70 @@ function extractStaleIfError(cacheControlHeader: string | null): number | null {
  * This is similar to fetch, but it also implements ETag semantics, and
  * it implmenets stale-if-error semantics.
  */
-export async function fetchWithCachedResponse(
-  url: string,
-  options: FetchOptions = {},
-): Promise<ResponseWithCachedResponse> {
-  const { headers: customHeaders = new Headers(), ...customOptions } = options;
-  const authHeader = customHeaders.get('Authorization');
-  const cacheKey = `${url},${authHeader || ''}`;
+export const fetchWithCachedResponse = trace(
+  async function fetchWithCachedResponse(
+    url: string,
+    options: FetchOptions = {},
+  ): Promise<ResponseWithCachedResponse> {
+    const { headers: customHeaders = new Headers(), ...customOptions } =
+      options;
+    const authHeader = customHeaders.get('Authorization');
+    const cacheKey = `${url},${authHeader || ''}`;
 
-  const cachedResponseEntry = cache.get(cacheKey);
+    const cachedResponseEntry = cache.get(cacheKey);
 
-  if (cachedResponseEntry) {
-    const { etag, response: cachedResponse } = cachedResponseEntry;
-    const headers = new Headers(customHeaders);
-    headers.set('If-None-Match', etag);
+    if (cachedResponseEntry) {
+      const { etag, response: cachedResponse } = cachedResponseEntry;
+      const headers = new Headers(customHeaders);
+      headers.set('If-None-Match', etag);
 
-    const staleIfError = extractStaleIfError(headers.get('Cache-Control'));
+      const staleIfError = extractStaleIfError(headers.get('Cache-Control'));
 
-    const res: ResponseWithCachedResponse = await fetch(url, {
-      ...customOptions,
-      headers,
-    }).then(
-      createHandleStaleIfError(cachedResponseEntry, staleIfError),
-      createHandleStaleIfErrorException(cachedResponseEntry, staleIfError),
-    );
+      const res: ResponseWithCachedResponse = await fetch(url, {
+        ...customOptions,
+        headers,
+      }).then(
+        createHandleStaleIfError(cachedResponseEntry, staleIfError),
+        createHandleStaleIfErrorException(cachedResponseEntry, staleIfError),
+      );
 
-    if (res.status === 304) {
-      res.cachedResponseBody = JSON.parse(cachedResponse);
+      if (res.status === 304) {
+        res.cachedResponseBody = JSON.parse(cachedResponse);
+        return res;
+      }
+
+      const newETag = res.headers.get('ETag');
+      if (res.ok && newETag)
+        cache.set(cacheKey, {
+          etag: newETag,
+          response: await res.clone().text(),
+          headers: Object.fromEntries(res.headers.entries()),
+          status: res.status,
+          time: Date.now(),
+        });
       return res;
     }
 
-    const newETag = res.headers.get('ETag');
-    if (res.ok && newETag)
+    const res = await fetch(url, options);
+    const etag = res.headers.get('ETag');
+    if (res.ok && etag) {
       cache.set(cacheKey, {
-        etag: newETag,
+        etag,
         response: await res.clone().text(),
         headers: Object.fromEntries(res.headers.entries()),
         status: res.status,
         time: Date.now(),
       });
+    }
+
     return res;
-  }
-
-  const res = await fetch(url, options);
-  const etag = res.headers.get('ETag');
-  if (res.ok && etag) {
-    cache.set(cacheKey, {
-      etag,
-      response: await res.clone().text(),
-      headers: Object.fromEntries(res.headers.entries()),
-      status: res.status,
-      time: Date.now(),
-    });
-  }
-
-  return res;
-}
+  },
+  {
+    name: 'fetchWithCachedResponse',
+    attributesSuccess(result) {
+      return {
+        status: result.status,
+      };
+    },
+  },
+);

@@ -26,8 +26,10 @@ export async function head(
   url: string,
   options?: BlobCommandOptions,
 ): Promise<HeadBlobResult> {
+  const searchParams = new URLSearchParams({ url });
+
   const headResult = await requestApi<HeadBlobApiResponse>(
-    `?url=${url}`,
+    `?${searchParams.toString()}`,
     // HEAD can't have body as a response, so we use GET
     { method: 'GET' },
     options,

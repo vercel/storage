@@ -7,6 +7,11 @@ export interface BlobCommandOptions {
    * @defaultvalue process.env.BLOB_READ_WRITE_TOKEN
    */
   token?: string;
+  /**
+   * The amount of times to retry the API requests if they fail.
+   * @defaultvalue 10
+   */
+  retries?: number;
 }
 
 // shared interface for put and copy

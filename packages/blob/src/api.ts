@@ -150,6 +150,7 @@ export async function requestApi<TResponse>(
       return res;
     },
     {
+      retries: commandOptions?.retries ?? 10,
       onRetry: (error) => {
         debug(`retrying API request to ${pathname}`, error.message);
       },

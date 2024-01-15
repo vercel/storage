@@ -97,7 +97,9 @@ describe('blob client', () => {
         })
         .reply(500, 'Invalid token');
 
-      await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
+      await expect(
+        head(`${BLOB_STORE_BASE_URL}/foo-id.txt`, { retries: 0 }),
+      ).rejects.toThrow(
         new Error(
           'Vercel Blob: Unknown error, please visit https://vercel.com/help.',
         ),
@@ -148,9 +150,9 @@ describe('blob client', () => {
         })
         .reply(502, { error: { code: 'service_unavailable' } });
 
-      await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
-        new BlobServiceNotAvailable(),
-      );
+      await expect(
+        head(`${BLOB_STORE_BASE_URL}/foo-id.txt`, { retries: 0 }),
+      ).rejects.toThrow(new BlobServiceNotAvailable());
     });
   });
 
@@ -238,7 +240,9 @@ describe('blob client', () => {
         })
         .reply(500, 'Invalid token');
 
-      await expect(del(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
+      await expect(
+        del(`${BLOB_STORE_BASE_URL}/foo-id.txt`, { retries: 0 }),
+      ).rejects.toThrow(
         new Error(
           'Vercel Blob: Unknown error, please visit https://vercel.com/help.',
         ),
@@ -322,7 +326,7 @@ describe('blob client', () => {
           method: 'GET',
         })
         .reply(500, 'Invalid token');
-      await expect(list()).rejects.toThrow(
+      await expect(list({ retries: 0 })).rejects.toThrow(
         new Error(
           'Vercel Blob: Unknown error, please visit https://vercel.com/help.',
         ),
@@ -462,6 +466,7 @@ describe('blob client', () => {
         put('foo.txt', 'Test Body', {
           access: 'public',
           contentType: 'text/plain',
+          retries: 0,
         }),
       ).rejects.toThrow(
         new Error(

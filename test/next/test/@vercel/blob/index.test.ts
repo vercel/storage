@@ -23,7 +23,7 @@ test.describe('@vercel/blob', () => {
             },
           })
           .then((r) => r.json())) as PutBlobResult;
-        expect(data.contentDisposition).toBe('attachment; filename="test.txt"');
+        expect(data.contentDisposition).toBe('inline; filename="test.txt"');
         expect(data.contentType).toBe('text/plain');
         expect(data.pathname).toBe(`${prefix}/test.txt`);
         const content = await request.get(data.url).then((r) => r.text());
@@ -141,9 +141,7 @@ test.describe('@vercel/blob', () => {
                 },
               })
               .then((r) => r.json())) as PutBlobResult;
-            expect(data.contentDisposition).toBe(
-              'attachment; filename="test.txt"',
-            );
+            expect(data.contentDisposition).toBe('inline; filename="test.txt"');
             expect(data.contentType).toBe('text/plain');
             expect(data.pathname).toBe(`${prefix}/test.txt`);
             const content = await request.get(data.url).then((r) => r.text());

@@ -143,8 +143,8 @@ export async function requestApi<TResponse>(
       const res = await fetch(apiUrl, options);
 
       if (res.status >= 500) {
-        // this will be retried
-        throw new BlobServiceNotAvailable();
+        // this will be retried and shown to the user if no more retries are left
+        await validateBlobApiResponse(res);
       }
 
       return res;
@@ -157,6 +157,7 @@ export async function requestApi<TResponse>(
     },
   );
 
+  // this will throw for 4xx responses
   await validateBlobApiResponse(apiResponse);
 
   return (await apiResponse.json()) as TResponse;

@@ -5,8 +5,8 @@ import {
   assertIsKeys,
   clone,
   ERRORS,
+  UnexpectedNetworkError,
   hasOwnProperty,
-  isDynamicServerError,
   parseConnectionString,
   pick,
 } from './utils';
@@ -192,29 +192,23 @@ export const createClient = trace(
               headers: new Headers(headers),
               cache: 'no-store',
             },
-          ).then<T | undefined, undefined>(
-            async (res) => {
-              if (res.ok) return res.json();
-              await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+          ).then<T | undefined, undefined>(async (res) => {
+            if (res.ok) return res.json();
+            await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
 
-              if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
-              if (res.status === 404) {
-                // if the x-edge-config-digest header is present, it means
-                // the edge config exists, but the item does not
-                if (res.headers.has('x-edge-config-digest')) return undefined;
-                // if the x-edge-config-digest header is not present, it means
-                // the edge config itself does not exist
-                throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-              }
-              if (res.cachedResponseBody !== undefined)
-                return res.cachedResponseBody as T;
-              throw new Error(ERRORS.UNEXPECTED);
-            },
-            (error) => {
-              if (isDynamicServerError(error)) throw error;
-              throw new Error(ERRORS.NETWORK);
-            },
-          );
+            if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
+            if (res.status === 404) {
+              // if the x-edge-config-digest header is present, it means
+              // the edge config exists, but the item does not
+              if (res.headers.has('x-edge-config-digest')) return undefined;
+              // if the x-edge-config-digest header is not present, it means
+              // the edge config itself does not exist
+              throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
+            }
+            if (res.cachedResponseBody !== undefined)
+              return res.cachedResponseBody as T;
+            throw new UnexpectedNetworkError(res);
+          });
         },
         { name: 'get', isVerboseTrace: false, attributes: { edgeConfigId } },
       ),
@@ -233,25 +227,19 @@ export const createClient = trace(
             method: 'HEAD',
             headers: new Headers(headers),
             cache: 'no-store',
-          }).then(
-            (res) => {
-              if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
-              if (res.status === 404) {
-                // if the x-edge-config-digest header is present, it means
-                // the edge config exists, but the item does not
-                if (res.headers.has('x-edge-config-digest')) return false;
-                // if the x-edge-config-digest header is not present, it means
-                // the edge config itself does not exist
-                throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-              }
-              if (res.ok) return true;
-              throw new Error(ERRORS.UNEXPECTED);
-            },
-            (error) => {
-              if (isDynamicServerError(error)) throw error;
-              throw new Error(ERRORS.NETWORK);
-            },
-          );
+          }).then((res) => {
+            if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
+            if (res.status === 404) {
+              // if the x-edge-config-digest header is present, it means
+              // the edge config exists, but the item does not
+              if (res.headers.has('x-edge-config-digest')) return false;
+              // if the x-edge-config-digest header is not present, it means
+              // the edge config itself does not exist
+              throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
+            }
+            if (res.ok) return true;
+            throw new UnexpectedNetworkError(res);
+          });
         },
         { name: 'has', isVerboseTrace: false, attributes: { edgeConfigId } },
       ),
@@ -292,25 +280,19 @@ export const createClient = trace(
               headers: new Headers(headers),
               cache: 'no-store',
             },
-          ).then<T>(
-            async (res) => {
-              if (res.ok) return res.json();
-              await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+          ).then<T>(async (res) => {
+            if (res.ok) return res.json();
+            await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
 
-              if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
-              // the /items endpoint never returns 404, so if we get a 404
-              // it means the edge config itself did not exist
-              if (res.status === 404)
-                throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-              if (res.cachedResponseBody !== undefined)
-                return res.cachedResponseBody as T;
-              throw new Error(ERRORS.UNEXPECTED);
-            },
-            (error) => {
-              if (isDynamicServerError(error)) throw error;
-              throw new Error(ERRORS.NETWORK);
-            },
-          );
+            if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
+            // the /items endpoint never returns 404, so if we get a 404
+            // it means the edge config itself did not exist
+            if (res.status === 404)
+              throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
+            if (res.cachedResponseBody !== undefined)
+              return res.cachedResponseBody as T;
+            throw new UnexpectedNetworkError(res);
+          });
         },
         { name: 'getAll', isVerboseTrace: false, attributes: { edgeConfigId } },
       ),
@@ -328,20 +310,14 @@ export const createClient = trace(
               headers: new Headers(headers),
               cache: 'no-store',
             },
-          ).then(
-            async (res) => {
-              if (res.ok) return res.json() as Promise<string>;
-              await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+          ).then(async (res) => {
+            if (res.ok) return res.json() as Promise<string>;
+            await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
 
-              if (res.cachedResponseBody !== undefined)
-                return res.cachedResponseBody as string;
-              throw new Error(ERRORS.UNEXPECTED);
-            },
-            (error) => {
-              if (isDynamicServerError(error)) throw error;
-              throw new Error(ERRORS.NETWORK);
-            },
-          );
+            if (res.cachedResponseBody !== undefined)
+              return res.cachedResponseBody as string;
+            throw new UnexpectedNetworkError(res);
+          });
         },
         { name: 'digest', isVerboseTrace: false, attributes: { edgeConfigId } },
       ),

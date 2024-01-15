@@ -147,11 +147,9 @@ describe('default Edge Config', () => {
 
     describe('when the network fails', () => {
       it('should throw a Network error', async () => {
-        fetchMock.mockReject();
+        fetchMock.mockReject(new Error('Unexpected fetch error'));
 
-        await expect(get('foo')).rejects.toThrow(
-          '@vercel/edge-config: Network error',
-        );
+        await expect(get('foo')).rejects.toThrow('Unexpected fetch error');
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(
@@ -174,7 +172,7 @@ describe('default Edge Config', () => {
         fetchMock.mockResponse('', { status: 500 });
 
         await expect(get('foo')).rejects.toThrow(
-          '@vercel/edge-config: Unexpected error',
+          '@vercel/edge-config: Unexpected error due to response with status code 500',
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -273,11 +271,9 @@ describe('default Edge Config', () => {
 
     describe('when the network fails', () => {
       it('should throw a Network error', async () => {
-        fetchMock.mockReject();
+        fetchMock.mockReject(new Error('Unexpected fetch error'));
 
-        await expect(getAll()).rejects.toThrow(
-          '@vercel/edge-config: Network error',
-        );
+        await expect(getAll()).rejects.toThrow('Unexpected fetch error');
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items?version=1`, {
@@ -297,7 +293,7 @@ describe('default Edge Config', () => {
         fetchMock.mockResponse('', { status: 500 });
 
         await expect(getAll()).rejects.toThrow(
-          '@vercel/edge-config: Unexpected error',
+          '@vercel/edge-config: Unexpected error due to response with status code 500',
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -434,7 +430,7 @@ describe('default Edge Config', () => {
         fetchMock.mockResponse('', { status: 500 });
 
         await expect(digest()).rejects.toThrow(
-          '@vercel/edge-config: Unexpected error',
+          '@vercel/edge-config: Unexpected error due to response with status code 500',
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -453,7 +449,7 @@ describe('default Edge Config', () => {
         fetchMock.mockResponse('', { status: 404 });
 
         await expect(digest()).rejects.toThrow(
-          '@vercel/edge-config: Unexpected error',
+          '@vercel/edge-config: Unexpected error due to response with status code 404',
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -471,11 +467,9 @@ describe('default Edge Config', () => {
 
     describe('when the network fails', () => {
       it('should throw a Network error', async () => {
-        fetchMock.mockReject();
+        fetchMock.mockReject(new Error('Unexpected fetch error'));
 
-        await expect(digest()).rejects.toThrow(
-          '@vercel/edge-config: Network error',
-        );
+        await expect(digest()).rejects.toThrow('Unexpected fetch error');
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest?version=1`, {

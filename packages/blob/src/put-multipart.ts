@@ -1,16 +1,9 @@
-// eslint-disable-next-line unicorn/prefer-node-protocol -- node:stream does not resolve correctly in browser and edge
-import { Readable } from 'stream';
-import type { BodyInit } from 'undici';
-import { fetch } from 'undici';
-import retry from 'async-retry';
+import { Readable } from 'node:stream';
 import bytes from 'bytes';
-import type { PutBlobApiResponse, PutBlobResult, PutBody } from './put';
-import {
-  BlobServiceNotAvailable,
-  getApiUrl,
-  validateBlobApiResponse,
-} from './helpers';
+import type { BodyInit } from 'undici';
+import { BlobServiceNotAvailable, requestApi } from './api';
 import { debug } from './debug';
+import type { PutBlobApiResponse, PutBlobResult, PutBody } from './put';
 
 // Most browsers will cap requests at 6 concurrent uploads per domain (Vercel Blob API domain)
 // In other environments, we can afford to be more aggressive
@@ -73,25 +66,28 @@ async function completeMultiPartUpload(
   parts: CompletedPart[],
   headers: Record<string, string>,
 ): Promise<PutBlobResult> {
-  const apiUrl = new URL(getApiUrl(`/mpu/${pathname}`));
   try {
-    const apiResponse = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        ...headers,
-        'content-type': 'application/json',
-        'x-mpu-action': 'complete',
-        'x-mpu-upload-id': uploadId,
-        // key can be any utf8 character so we need to encode it as HTTP headers can only be us-ascii
-        // https://www.rfc-editor.org/rfc/rfc7230#section-3.2.4
-        'x-mpu-key': encodeURI(key),
+    const response = await requestApi<PutBlobApiResponse>(
+      `/mpu/${pathname}`,
+      {
+        method: 'POST',
+        headers: {
+          ...headers,
+          'content-type': 'application/json',
+          'x-mpu-action': 'complete',
+          'x-mpu-upload-id': uploadId,
+          // key can be any utf8 character so we need to encode it as HTTP headers can only be us-ascii
+          // https://www.rfc-editor.org/rfc/rfc7230#section-3.2.4
+          'x-mpu-key': encodeURI(key),
+        },
+        body: JSON.stringify(parts),
       },
-      body: JSON.stringify(parts),
-    });
+      undefined,
+    );
 
-    await validateBlobApiResponse(apiResponse);
+    debug('mpu: complete', response);
 
-    return (await apiResponse.json()) as PutBlobApiResponse;
+    return response;
   } catch (error: unknown) {
     if (
       error instanceof TypeError &&
@@ -110,23 +106,22 @@ async function createMultiPartUpload(
 ): Promise<CreateMultiPartUploadApiResponse> {
   debug('mpu: create', 'pathname:', pathname);
 
-  const apiUrl = new URL(getApiUrl(`/mpu/${pathname}`));
   try {
-    const apiResponse = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        ...headers,
-        'x-mpu-action': 'create',
+    const response = await requestApi<CreateMultiPartUploadApiResponse>(
+      `/mpu/${pathname}`,
+      {
+        method: 'POST',
+        headers: {
+          ...headers,
+          'x-mpu-action': 'create',
+        },
       },
-    });
+      undefined,
+    );
 
-    await validateBlobApiResponse(apiResponse);
+    debug('mpu: create', response);
 
-    const json = await apiResponse.json();
-
-    debug('mpu: create', json);
-
-    return json as CreateMultiPartUploadApiResponse;
+    return response;
   } catch (error: unknown) {
     if (
       error instanceof TypeError &&
@@ -282,46 +277,24 @@ function uploadParts(
         bytes(bytesSent),
       );
 
-      const apiUrl = new URL(getApiUrl(`/mpu/${pathname}`));
-
       try {
-        const apiResponse = await retry(
-          async () => {
-            const res = await fetch(apiUrl, {
-              signal: internalAbortController.signal,
-              method: 'POST',
-              headers: {
-                ...headers,
-                'x-mpu-action': 'upload',
-                'x-mpu-key': encodeURI(key),
-                'x-mpu-upload-id': uploadId,
-                'x-mpu-part-number': part.partNumber.toString(),
-              },
-              // weird things between undici types and native fetch types
-              body: part.blob as BodyInit,
-            });
-
-            if (res.status >= 500) {
-              // this will be retried
-              throw new BlobServiceNotAvailable();
-            }
-
-            return res;
-          },
+        const completedPart = await requestApi<UploadPartApiResponse>(
+          `/mpu/${pathname}`,
           {
-            onRetry: (error) => {
-              // eslint-disable-next-line no-console -- Ok for debugging
-              console.log('retrying', error.message);
+            signal: internalAbortController.signal,
+            method: 'POST',
+            headers: {
+              ...headers,
+              'x-mpu-action': 'upload',
+              'x-mpu-key': encodeURI(key),
+              'x-mpu-upload-id': uploadId,
+              'x-mpu-part-number': part.partNumber.toString(),
             },
+            // weird things between undici types and native fetch types
+            body: part.blob as BodyInit,
           },
+          undefined,
         );
-
-        try {
-          await validateBlobApiResponse(apiResponse);
-        } catch (error) {
-          cancel(error);
-          return;
-        }
 
         debug(
           'mpu: upload send part end',
@@ -339,8 +312,6 @@ function uploadParts(
           return;
         }
 
-        const completedPart =
-          (await apiResponse.json()) as UploadPartApiResponse;
         completedParts.push({
           partNumber: part.partNumber,
           etag: completedPart.etag,

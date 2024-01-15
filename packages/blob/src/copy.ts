@@ -1,12 +1,6 @@
-import { fetch } from 'undici';
+import { requestApi } from './api';
 import type { CreateBlobCommandOptions } from './helpers';
-import {
-  BlobError,
-  getApiUrl,
-  getApiVersionHeader,
-  getTokenFromOptionsOrEnv,
-  validateBlobApiResponse,
-} from './helpers';
+import { BlobError } from './helpers';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface -- expose option interface for each API method for better extensibility in the future
 export interface CopyCommandOptions extends CreateBlobCommandOptions {}
@@ -41,10 +35,7 @@ export async function copy(
     throw new BlobError('access must be "public"');
   }
 
-  const headers: Record<string, string> = {
-    ...getApiVersionHeader(),
-    authorization: `Bearer ${getTokenFromOptionsOrEnv(options)}`,
-  };
+  const headers: Record<string, string> = {};
 
   if (options.addRandomSuffix !== undefined) {
     headers['x-add-random-suffix'] = options.addRandomSuffix ? '1' : '0';
@@ -58,12 +49,9 @@ export async function copy(
     headers['x-cache-control-max-age'] = options.cacheControlMaxAge.toString();
   }
 
-  const blobApiResponse = await fetch(
-    getApiUrl(`/${toPathname}?fromUrl=${fromUrl}`),
+  return requestApi<CopyBlobResult>(
+    `/${toPathname}?fromUrl=${fromUrl}`,
     { method: 'PUT', headers },
+    options,
   );
-
-  await validateBlobApiResponse(blobApiResponse);
-
-  return (await blobApiResponse.json()) as CopyBlobResult;
 }

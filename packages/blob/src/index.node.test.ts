@@ -1,5 +1,5 @@
 import { type Interceptable, MockAgent, setGlobalDispatcher } from 'undici';
-import { BlobServiceNotAvailable } from './helpers';
+import { BlobServiceNotAvailable } from './api';
 import { list, head, del, put } from './index';
 
 const BLOB_API_URL = 'https://blob.vercel-storage.com';

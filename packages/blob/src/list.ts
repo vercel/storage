@@ -1,11 +1,5 @@
-import { fetch } from 'undici';
+import { requestApi } from './api';
 import type { BlobCommandOptions } from './helpers';
-import {
-  getApiUrl,
-  getApiVersionHeader,
-  getTokenFromOptionsOrEnv,
-  validateBlobApiResponse,
-} from './helpers';
 
 export interface ListBlobResultBlob {
   url: string;
@@ -73,31 +67,26 @@ type ListCommandResult<
 export async function list<
   M extends 'expanded' | 'folded' | undefined = undefined,
 >(options?: ListCommandOptions<M>): Promise<ListCommandResult<M>> {
-  const listApiUrl = new URL(getApiUrl());
+  const searchParams = new URLSearchParams();
+
   if (options?.limit) {
-    listApiUrl.searchParams.set('limit', options.limit.toString());
+    searchParams.set('limit', options.limit.toString());
   }
   if (options?.prefix) {
-    listApiUrl.searchParams.set('prefix', options.prefix);
+    searchParams.set('prefix', options.prefix);
   }
   if (options?.cursor) {
-    listApiUrl.searchParams.set('cursor', options.cursor);
+    searchParams.set('cursor', options.cursor);
   }
   if (options?.mode) {
-    listApiUrl.searchParams.set('mode', options.mode);
+    searchParams.set('mode', options.mode);
   }
 
-  const blobApiResponse = await fetch(listApiUrl, {
-    method: 'GET',
-    headers: {
-      ...getApiVersionHeader(),
-      authorization: `Bearer ${getTokenFromOptionsOrEnv(options)}`,
-    },
-  });
-
-  await validateBlobApiResponse(blobApiResponse);
-
-  const results = (await blobApiResponse.json()) as ListBlobApiResponse;
+  const results = await requestApi<ListBlobApiResponse>(
+    `?${searchParams.toString()}`,
+    { method: 'GET' },
+    options,
+  );
 
   if (options?.mode === 'folded') {
     return {

@@ -68,7 +68,7 @@ describe('upload()', () => {
         duplex: 'half',
         headers: {
           authorization: 'Bearer fake-token-for-test',
-          'x-api-version': '5',
+          'x-api-version': '6',
         },
         method: 'PUT',
       },

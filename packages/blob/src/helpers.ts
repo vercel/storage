@@ -147,7 +147,7 @@ export async function validateBlobApiResponse(
 // This version is used to ensure that the client and server are compatible
 // The server (Vercel Blob API) uses this information to change its behavior like the
 // response format
-const BLOB_API_VERSION = 5;
+const BLOB_API_VERSION = 6;
 
 export function getApiVersionHeader(): { 'x-api-version'?: string } {
   let versionOverride = null;

@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.17.1
+
+### Patch Changes
+
+- d4c06b0: chore(blob): fix types on client.put
+
 ## 0.17.0
 
 ### Minor Changes

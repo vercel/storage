@@ -87,6 +87,8 @@ describe('client uploads', () => {
           payload: {
             pathname: 'newfile.txt',
             callbackUrl: 'https://example.com',
+            multipart: false,
+            clientPayload: null,
           },
         },
         onBeforeGenerateToken: async (pathname) => {
@@ -102,7 +104,7 @@ describe('client uploads', () => {
       });
       expect(jsonResponse).toMatchInlineSnapshot(`
         {
-          "clientToken": "vercel_blob_client_12345fakeStoreId_ODBiNjcyZDgyZTNkOTYyNTcwMTQ4NTFhNzJlOTEzZmI0MzQ4NWEzNzE0NzhjNGE0ZGRlN2IxMzRmYjI0NTkxOS5leUowYjJ0bGJsQmhlV3h2WVdRaU9pSnVaWGRtYVd4bExuUjRkQ0lzSW5CaGRHaHVZVzFsSWpvaWJtVjNabWxzWlM1MGVIUWlMQ0p2YmxWd2JHOWhaRU52YlhCc1pYUmxaQ0k2ZXlKallXeHNZbUZqYTFWeWJDSTZJbWgwZEhCek9pOHZaWGhoYlhCc1pTNWpiMjBpTENKMGIydGxibEJoZVd4dllXUWlPaUp1WlhkbWFXeGxMblI0ZENKOUxDSjJZV3hwWkZWdWRHbHNJam94TmpjeU5UTXhNak13TURBd2ZRPT0=",
+          "clientToken": "vercel_blob_client_12345fakeStoreId_Y2JhNTlmNWM3MmZmMGZmM2I2YzVlYzgwNTU3MDgwMWE1YTA4ZGU2MjIyNTFkNjRiYTI1NjVjNmRjYmFkYmQ5Yy5leUowYjJ0bGJsQmhlV3h2WVdRaU9pSnVaWGRtYVd4bExuUjRkQ0lzSW5CaGRHaHVZVzFsSWpvaWJtVjNabWxzWlM1MGVIUWlMQ0p2YmxWd2JHOWhaRU52YlhCc1pYUmxaQ0k2ZXlKallXeHNZbUZqYTFWeWJDSTZJbWgwZEhCek9pOHZaWGhoYlhCc1pTNWpiMjBpTENKMGIydGxibEJoZVd4dllXUWlPaUp1WlhkbWFXeGxMblI0ZENKOUxDSjJZV3hwWkZWdWRHbHNJam94TmpjeU5UTTBPREF3TURBd2ZRPT0=",
           "type": "blob.generate-client-token",
         }
       `);
@@ -117,7 +119,7 @@ describe('client uploads', () => {
           tokenPayload: 'newfile.txt',
         },
         pathname: 'newfile.txt',
-        validUntil: 1672531230000,
+        validUntil: 1672534800000,
       });
     });
 
@@ -176,6 +178,7 @@ describe('client uploads', () => {
             pathname: 'newfile.txt',
             callbackUrl: 'https://example.com',
             clientPayload: 'custom-metadata-from-client',
+            multipart: false,
           },
         },
         onBeforeGenerateToken: async () => {
@@ -191,7 +194,7 @@ describe('client uploads', () => {
       });
       expect(jsonResponse).toMatchInlineSnapshot(`
         {
-          "clientToken": "vercel_blob_client_12345fakeStoreId_YjgzZDU4YzFkZjM3MmNlN2JhMTk1MmVlYjE4YWMwOTczNGI3NjhlOTljMmE0ZTdiM2M0MTliOGJlNDg5YTFiZS5leUpoWkdSU1lXNWtiMjFUZFdabWFYZ2lPbVpoYkhObExDSndZWFJvYm1GdFpTSTZJbTVsZDJacGJHVXVkSGgwSWl3aWIyNVZjR3h2WVdSRGIyMXdiR1YwWldRaU9uc2lZMkZzYkdKaFkydFZjbXdpT2lKb2RIUndjem92TDJWNFlXMXdiR1V1WTI5dElpd2lkRzlyWlc1UVlYbHNiMkZrSWpvaVkzVnpkRzl0TFcxbGRHRmtZWFJoTFdaeWIyMHRZMnhwWlc1MEluMHNJblpoYkdsa1ZXNTBhV3dpT2pFMk56STFNekV5TXpBd01EQjk=",
+          "clientToken": "vercel_blob_client_12345fakeStoreId_NThhZGE3YTVkODBjNTcxMmIyMzJlMTAzMDM3MTgwYzI5NzVlMjUzYjhkYzU4MzFkZTZjMzk4ZmEwNmY2ODI5Ny5leUpoWkdSU1lXNWtiMjFUZFdabWFYZ2lPbVpoYkhObExDSndZWFJvYm1GdFpTSTZJbTVsZDJacGJHVXVkSGgwSWl3aWIyNVZjR3h2WVdSRGIyMXdiR1YwWldRaU9uc2lZMkZzYkdKaFkydFZjbXdpT2lKb2RIUndjem92TDJWNFlXMXdiR1V1WTI5dElpd2lkRzlyWlc1UVlYbHNiMkZrSWpvaVkzVnpkRzl0TFcxbGRHRmtZWFJoTFdaeWIyMHRZMnhwWlc1MEluMHNJblpoYkdsa1ZXNTBhV3dpT2pFMk56STFNelE0TURBd01EQjk=",
           "type": "blob.generate-client-token",
         }
       `);
@@ -207,7 +210,7 @@ describe('client uploads', () => {
             "tokenPayload": "custom-metadata-from-client",
           },
           "pathname": "newfile.txt",
-          "validUntil": 1672531230000,
+          "validUntil": 1672534800000,
         }
       `);
     });
@@ -228,6 +231,7 @@ describe('client uploads', () => {
             pathname: 'newfile.txt',
             callbackUrl: 'https://example.com',
             clientPayload: 'custom-metadata-from-client-we-expect',
+            multipart: false,
           },
         },
         onBeforeGenerateToken: async (pathname, clientPayload) => {

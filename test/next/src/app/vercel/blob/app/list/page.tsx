@@ -82,7 +82,7 @@ export default function AppList(): JSX.Element {
 
   return (
     <div className="p-4 flex flex-col gap-4">
-      <h1>App Router List blob items</h1>
+      <h1 className="text-xl mb-4">App Router List blob items</h1>
       <div className="flex gap-2">
         <input
           className="shadow appearance-none border rounded  py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"

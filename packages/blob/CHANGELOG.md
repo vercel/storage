@@ -1,5 +1,95 @@
 # @vercel/blob
 
+## 0.18.0
+
+### Minor Changes
+
+- dc7ba0e: feat(blob): allow inline content disposition for certain blobs
+
+  Once you use this new version, then most common medias won't be automatically
+  downloading but rather will display the content inline.
+
+  Already uploaded files will not change their behavior.
+  You can reupload them if you want to change their behavior.
+
+  Fixes #509
+
+## 0.17.1
+
+### Patch Changes
+
+- d4c06b0: chore(blob): fix types on client.put
+
+## 0.17.0
+
+### Minor Changes
+
+- 898c14a: feat(blob): Add multipart option to reliably upload medium and large files
+
+  It turns out, uploading large files using Vercel Blob has been a struggle for users.
+  Before this change, file uploads were limited to around 200MB for technical reasons.
+  Before this change, even uploading a file of 100MB could fail for various reasons (network being one of them).
+
+  To solve this for good, we're introducting a new option to `put` and `upload` calls: `multipart: true`. This new option will make sure your file is uploaded parts by parts to Vercel Blob, and when some parts are failing, we will retry them. This option is available for server and client uploads.
+
+  Usage:
+
+  ```ts
+  const blob = await put('file.png', file, {
+    access: 'public',
+    multipart: true, // `false` by default
+  });
+
+  // and:
+  const blob = await upload('file.png', file, {
+    access: 'public',
+    handleUploadUrl: '/api/upload',
+    multipart: true,
+  });
+  ```
+
+  If your `file` is a Node.js stream or a [ReadableStream](https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream) then we will gradually read and upload it without blowing out your server or browser memory.
+
+  More examples:
+
+  ```ts
+  import { createReadStream } from 'node:fs';
+
+  const blob = await vercelBlob.put(
+    'elon.mp4',
+    // this works 👍, it will gradually read the file from the system and upload it
+    createReadStream('/users/Elon/me.mp4'),
+    { access: 'public', multipart: true },
+  );
+  ```
+
+  ```ts
+  const response = await fetch(
+    'https://example-files.online-convert.com/video/mp4/example_big.mp4',
+  );
+
+  const blob = await vercelBlob.put(
+    'example_big.mp4',
+    // this works too 👍, it will gradually read the file from internet and upload it
+    response.body,
+    { access: 'public', multipart: true },
+  );
+  ```
+
+### Patch Changes
+
+- fd1781f: feat(blob): allow folder creation
+
+  This allows the creation of empty folders in the blob store. Before this change the SDK would always require a body, which is prohibited by the API.
+  Now the the SDK validates if the operation is a folder creation by checking if the pathname ends with a trailling slash.
+
+  ```ts
+  const blob = await vercelBlob.put('folder/', {
+    access: 'public',
+    addRandomSuffix: false,
+  });
+  ```
+
 ## 0.16.1
 
 ### Patch Changes

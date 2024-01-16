@@ -32,6 +32,9 @@ async function run(): Promise<void> {
     weirdCharactersExample(),
     copyTextFile(),
     listFolders(),
+    multipartNodeJsFileStream(),
+    fetchExampleMultipart(),
+    createFolder(),
   ]);
 
   await Promise.all(
@@ -62,7 +65,7 @@ async function run(): Promise<void> {
 
 async function textFileExample(): Promise<string> {
   const start = Date.now();
-  const blob = await vercelBlob.put('folder/test.txt', 'Hello, world!', {
+  const blob = await vercelBlob.put('folderé/test.txt', 'Hello, world!', {
     access: 'public',
   });
   console.log('Text file example:', blob.url, `(${Date.now() - start}ms)`);
@@ -288,6 +291,64 @@ async function listFolders() {
   });
 
   console.log('fold blobs example:', response, `(${Date.now() - start}ms)`);
+
+  return blob.url;
+}
+
+async function multipartNodeJsFileStream() {
+  const pathname = 'big-video.mp4';
+  const fullPath = `public/${pathname}`;
+  const stream = createReadStream(fullPath);
+  stream.once('error', (error) => {
+    console.log(error);
+    throw error;
+  });
+
+  const start = Date.now();
+
+  // testing with an accent
+  const blob = await vercelBlob.put(`éllo/${pathname}`, stream, {
+    access: 'public',
+    multipart: true,
+  });
+
+  console.log(
+    'Node.js multipart file stream example:',
+    blob.url,
+    `(${Date.now() - start}ms)`,
+  );
+
+  return blob.url;
+}
+
+async function fetchExampleMultipart(): Promise<string> {
+  const start = Date.now();
+
+  const response = await fetch(
+    'https://example-files.online-convert.com/video/mp4/example_big.mp4',
+  );
+
+  const blob = await vercelBlob.put(
+    'example_big.mp4',
+    response.body as ReadableStream,
+    {
+      access: 'public',
+      multipart: true,
+    },
+  );
+
+  console.log('fetch example:', blob.url, `(${Date.now() - start}ms)`);
+  return blob.url;
+}
+async function createFolder() {
+  const start = Date.now();
+
+  const blob = await vercelBlob.put('foolder/', {
+    access: 'public',
+    addRandomSuffix: false,
+  });
+
+  console.log('create folder example:', blob, `(${Date.now() - start}ms)`);
 
   return blob.url;
 }

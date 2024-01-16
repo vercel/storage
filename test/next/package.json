@@ -1,6 +1,6 @@
 {
   "name": "vercel-storage-integration-test-suite",
-  "version": "0.1.36",
+  "version": "0.1.39",
   "private": true,
   "scripts": {
     "build": "next build",
@@ -11,6 +11,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@tailwindcss/forms": "0.5.7",
     "@types/node": "20.10.4",
     "@types/react": "18.2.42",
     "@types/react-dom": "18.2.17",

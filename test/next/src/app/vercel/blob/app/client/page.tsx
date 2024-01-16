@@ -9,7 +9,7 @@ export default function AppClientUpload(): JSX.Element {
   const [blob, setBlob] = useState<PutBlobResult | null>(null);
   return (
     <>
-      <h1>App Router Client Upload</h1>
+      <h1 className="text-xl mb-4">App Router Client Upload</h1>
 
       <form
         onSubmit={async (event): Promise<void> => {
@@ -29,7 +29,12 @@ export default function AppClientUpload(): JSX.Element {
         }}
       >
         <input name="file" ref={inputFileRef} type="file" />
-        <button type="submit">Upload</button>
+        <button
+          className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded inline-flex items-center"
+          type="submit"
+        >
+          Upload
+        </button>
       </form>
       {blob ? (
         <div>

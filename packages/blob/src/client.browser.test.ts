@@ -55,7 +55,7 @@ describe('upload()', () => {
       1,
       'http://localhost:3000/api/upload',
       {
-        body: '{"type":"blob.generate-client-token","payload":{"pathname":"foo.txt","callbackUrl":"http://localhost:3000/api/upload"}}',
+        body: '{"type":"blob.generate-client-token","payload":{"pathname":"foo.txt","callbackUrl":"http://localhost:3000/api/upload","clientPayload":null,"multipart":false}}',
         headers: { 'content-type': 'application/json' },
         method: 'POST',
       },
@@ -68,7 +68,7 @@ describe('upload()', () => {
         duplex: 'half',
         headers: {
           authorization: 'Bearer fake-token-for-test',
-          'x-api-version': '5',
+          'x-api-version': '6',
         },
         method: 'PUT',
       },

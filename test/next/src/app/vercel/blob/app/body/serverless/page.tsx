@@ -5,7 +5,9 @@ import { FormBodyUpload } from '../../../form-body-upload';
 export default function AppFormDataServerless(): JSX.Element {
   return (
     <>
-      <h1>App Router direct body upload example via a Serverless Function</h1>
+      <h1 className="text-xl mb-4">
+        App Router direct body upload example via a Serverless Function
+      </h1>
       <p>
         This <a href="https://nextjs.org/docs/app">Next.js App Router</a>{' '}
         example uses a{' '}

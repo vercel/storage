@@ -23,7 +23,7 @@ test.describe('@vercel/blob', () => {
             },
           })
           .then((r) => r.json())) as PutBlobResult;
-        expect(data.contentDisposition).toBe('attachment; filename="test.txt"');
+        expect(data.contentDisposition).toBe('inline; filename="test.txt"');
         expect(data.contentType).toBe('text/plain');
         expect(data.pathname).toBe(`${prefix}/test.txt`);
         const content = await request.get(data.url).then((r) => r.text());
@@ -93,6 +93,60 @@ test.describe('@vercel/blob', () => {
           expect(await page.locator('#blob-content').textContent()).toBe(
             `Hello from ${prefix}/test-app-client.txt`,
           );
+        });
+      });
+    });
+
+    test.describe('multipart upload', () => {
+      test('multipart client upload', async ({ browser }) => {
+        const callback = '/vercel/blob/api/app/handle-blob-upload/serverless';
+        const browserContext = await browser.newContext();
+        await browserContext.addCookies([
+          {
+            name: 'clientUpload',
+            value: process.env.BLOB_UPLOAD_SECRET ?? '',
+            path: '/',
+            domain: (
+              process.env.PLAYWRIGHT_TEST_BASE_URL ?? 'localhost'
+            ).replace('https://', ''),
+          },
+        ]);
+        const page = await browserContext.newPage();
+        await page.goto(
+          `vercel/blob/app/test/client?filename=${prefix}/test-app-client.txt&callback=${callback}&multipart=1`,
+        );
+
+        const textContent = await page.locator('#blob-path').textContent();
+        expect(textContent).toBe(`${prefix}/test-app-client.txt`);
+        expect(await page.locator('#blob-content').textContent()).toBe(
+          `Hello from ${prefix}/test-app-client.txt`,
+        );
+      });
+
+      test.describe('multipart server upload (app router)', () => {
+        [
+          'vercel/blob/api/app/body/edge',
+          'vercel/blob/api/app/body/serverless',
+          'api/vercel/blob/pages/edge',
+          'api/vercel/blob/pages/serverless',
+        ].forEach((path) => {
+          test(path, async ({ request }) => {
+            const data = (await request
+              .post(`${path}?filename=${prefix}/test.txt&multipart=1`, {
+                data: `Hello world ${path} ${prefix}`,
+                headers: {
+                  cookie: `clientUpload=${
+                    process.env.BLOB_UPLOAD_SECRET ?? ''
+                  }`,
+                },
+              })
+              .then((r) => r.json())) as PutBlobResult;
+            expect(data.contentDisposition).toBe('inline; filename="test.txt"');
+            expect(data.contentType).toBe('text/plain');
+            expect(data.pathname).toBe(`${prefix}/test.txt`);
+            const content = await request.get(data.url).then((r) => r.text());
+            expect(content).toBe(`Hello world ${path} ${prefix}`);
+          });
         });
       });
     });

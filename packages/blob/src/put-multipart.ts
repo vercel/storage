@@ -5,6 +5,7 @@ import type { BodyInit } from 'undici';
 import { BlobServiceNotAvailable, requestApi } from './api';
 import { debug } from './debug';
 import type { PutBlobApiResponse, PutBlobResult, PutBody } from './put';
+import type { BlobCommandOptions } from './helpers';
 
 // Most browsers will cap requests at 6 concurrent uploads per domain (Vercel Blob API domain)
 // In other environments, we can afford to be more aggressive
@@ -28,6 +29,7 @@ export async function multipartPut(
   pathname: string,
   body: PutBody,
   headers: Record<string, string>,
+  options: BlobCommandOptions,
 ): Promise<PutBlobResult> {
   debug('mpu: init', 'pathname:', pathname, 'headers:', headers);
 
@@ -37,6 +39,7 @@ export async function multipartPut(
   const createMultipartUploadResponse = await createMultiPartUpload(
     pathname,
     headers,
+    options,
   );
 
   // Step 2: Upload parts one by one
@@ -46,6 +49,7 @@ export async function multipartPut(
     pathname,
     stream,
     headers,
+    options,
   );
 
   // Step 3: Complete multipart upload
@@ -55,6 +59,7 @@ export async function multipartPut(
     pathname,
     parts,
     headers,
+    options,
   );
 
   return blob;
@@ -66,6 +71,7 @@ async function completeMultiPartUpload(
   pathname: string,
   parts: CompletedPart[],
   headers: Record<string, string>,
+  options: BlobCommandOptions,
 ): Promise<PutBlobResult> {
   try {
     const response = await requestApi<PutBlobApiResponse>(
@@ -83,7 +89,7 @@ async function completeMultiPartUpload(
         },
         body: JSON.stringify(parts),
       },
-      undefined,
+      options,
     );
 
     debug('mpu: complete', response);
@@ -104,6 +110,7 @@ async function completeMultiPartUpload(
 async function createMultiPartUpload(
   pathname: string,
   headers: Record<string, string>,
+  options: BlobCommandOptions,
 ): Promise<CreateMultiPartUploadApiResponse> {
   debug('mpu: create', 'pathname:', pathname);
 
@@ -117,7 +124,7 @@ async function createMultiPartUpload(
           'x-mpu-action': 'create',
         },
       },
-      undefined,
+      options,
     );
 
     debug('mpu: create', response);
@@ -152,6 +159,7 @@ function uploadParts(
   pathname: string,
   stream: ReadableStream<ArrayBuffer>,
   headers: Record<string, string>,
+  options: BlobCommandOptions,
 ): Promise<CompletedPart[]> {
   debug('mpu: upload init', 'key:', key);
   const internalAbortController = new AbortController();
@@ -294,7 +302,7 @@ function uploadParts(
             // weird things between undici types and native fetch types
             body: part.blob as BodyInit,
           },
-          undefined,
+          options,
         );
 
         debug(

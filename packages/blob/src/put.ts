@@ -4,7 +4,7 @@ import type { BodyInit } from 'undici';
 import { requestApi } from './api';
 import type { ClientPutCommandOptions } from './client';
 import type { CreateBlobCommandOptions } from './helpers';
-import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
+import { BlobError } from './helpers';
 import { multipartPut } from './put-multipart';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface -- expose option interface for each API method for better extensibility in the future
@@ -86,13 +86,11 @@ export function createPutMethod<
       extraChecks(options);
     }
 
-    const token = getToken
-      ? await getToken(pathname, options)
-      : getTokenFromOptionsOrEnv(options);
+    if (getToken) {
+      options.token = await getToken(pathname, options);
+    }
 
-    const headers: Record<string, string> = {
-      authorization: `Bearer ${token}`,
-    };
+    const headers: Record<string, string> = {};
 
     if (allowedOptions.includes('contentType') && options.contentType) {
       headers['x-content-type'] = options.contentType;
@@ -114,7 +112,7 @@ export function createPutMethod<
     }
 
     if (options.multipart === true && body) {
-      return multipartPut(pathname, body, headers);
+      return multipartPut(pathname, body, headers, options);
     }
 
     return requestApi<PutBlobApiResponse>(

@@ -60,7 +60,7 @@ export interface BlobApiError {
 // response format
 const BLOB_API_VERSION = 6;
 
-function getApiVersionHeader(): { 'x-api-version'?: string } {
+function getApiVersion(): string {
   let versionOverride = null;
   try {
     // wrapping this code in a try/catch as this function is used in the browser and Vite doesn't define the process.env.
@@ -72,9 +72,7 @@ function getApiVersionHeader(): { 'x-api-version'?: string } {
     // noop
   }
 
-  return {
-    'x-api-version': `${versionOverride ?? BLOB_API_VERSION}`,
-  };
+  return `${versionOverride ?? BLOB_API_VERSION}`;
 }
 
 function getApiUrl(pathname = ''): string {
@@ -126,18 +124,19 @@ async function validateBlobApiResponse(response: Response): Promise<void> {
 
 export async function requestApi<TResponse>(
   pathname: string,
-  options: RequestInit,
+  init: RequestInit,
   commandOptions: BlobCommandOptions | undefined,
 ): Promise<TResponse> {
-  options.headers = {
-    ...getApiVersionHeader(),
+  init.headers = {
+    'x-api-version': getApiVersion(),
     authorization: `Bearer ${getTokenFromOptionsOrEnv(commandOptions)}`,
-    ...options.headers,
+
+    ...init.headers,
   };
 
   const apiResponse = await retry(
     async () => {
-      const res = await fetch(getApiUrl(pathname), options);
+      const res = await fetch(getApiUrl(pathname), init);
 
       if (res.status >= 500) {
         // this will be retried and shown to the user if no more retries are left

@@ -1,5 +1,16 @@
-import type { DatabaseConnection, Dialect, Driver, KyselyConfig } from 'kysely';
-import { PostgresDialect, PostgresDriver, Kysely } from 'kysely';
+import type {
+  DatabaseConnection,
+  Dialect,
+  DialectAdapter,
+  Driver,
+  KyselyConfig,
+} from 'kysely';
+import {
+  PostgresDialect,
+  PostgresDriver,
+  Kysely,
+  PostgresAdapter,
+} from 'kysely';
 import type { Pool } from '@neondatabase/serverless';
 import { createPool } from '@vercel/postgres';
 import type { VercelPostgresPoolConfig } from '@vercel/postgres';
@@ -9,9 +20,22 @@ type VercelPostgresDialectConfig = VercelPostgresPoolConfig & {
   pool: Pool;
 };
 
+class VercelPostgresAdapter extends PostgresAdapter {
+  // represented as readonly property to satisfy eslint rule:
+  // typescript-eslint/class-literal-property-style
+  private readonly _supportsTransactionalDdl = false;
+  public get supportsTransactionalDdl(): boolean {
+    return this._supportsTransactionalDdl;
+  }
+}
+
 class VercelPostgresDialect extends PostgresDialect implements Dialect {
   constructor(private config: VercelPostgresDialectConfig) {
     super(config);
+  }
+
+  createAdapter(): DialectAdapter {
+    return new VercelPostgresAdapter();
   }
 
   createDriver(): Driver {

@@ -129,18 +129,15 @@ export async function requestApi<TResponse>(
   options: RequestInit,
   commandOptions: BlobCommandOptions | undefined,
 ): Promise<TResponse> {
-  const apiUrl = new URL(getApiUrl(pathname));
-
   options.headers = {
     ...getApiVersionHeader(),
     authorization: `Bearer ${getTokenFromOptionsOrEnv(commandOptions)}`,
-
     ...options.headers,
   };
 
   const apiResponse = await retry(
     async () => {
-      const res = await fetch(apiUrl, options);
+      const res = await fetch(getApiUrl(pathname), options);
 
       if (res.status >= 500) {
         // this will be retried and shown to the user if no more retries are left

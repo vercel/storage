@@ -1,5 +1,11 @@
 # @vercel/postgres-kysely
 
+## 0.7.0
+
+### Minor Changes
+
+- f70264e: Correct VercelPostgresDialect to return an adapter that reports that transactions are _not_ supported
+
 ## 0.6.0
 
 ### Minor Changes

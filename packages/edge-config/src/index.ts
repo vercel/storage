@@ -1,4 +1,5 @@
 import { readFile } from '@vercel/edge-config-fs';
+import type { DeepReadonly } from 'ts-essentials';
 import { name as sdkName, version as sdkVersion } from '../package.json';
 import {
   assertIsKey,
@@ -80,6 +81,46 @@ const getFileSystemEdgeConfig = trace(
     name: 'getFileSystemEdgeConfig',
   },
 );
+
+/**
+ *
+ */
+const getPrivateEdgeConfig = trace(
+  async function getPrivateEdgeConfig(
+    connection: Connection,
+  ): Promise<DeepReadonly<EmbeddedEdgeConfig> | null> {
+    const hijackedGlobal = globalThis as {
+      __privateEdgeConfig?: {
+        get: (id: string) => Promise<DeepReadonly<EmbeddedEdgeConfig> | null>;
+      };
+    };
+
+    if (
+      typeof hijackedGlobal.__privateEdgeConfig === 'object' &&
+      typeof hijackedGlobal.__privateEdgeConfig.get === 'function'
+    ) {
+      return hijackedGlobal.__privateEdgeConfig.get(connection.id);
+    }
+
+    return null;
+  },
+  {
+    name: 'getPrivateEdgeConfig',
+  },
+);
+
+/**
+ *
+ */
+async function getLocalEdgeConfig(
+  connection: Connection,
+): Promise<DeepReadonly<EmbeddedEdgeConfig> | null> {
+  const edgeConfig =
+    (await getPrivateEdgeConfig(connection)) ||
+    (await getFileSystemEdgeConfig(connection));
+
+  return edgeConfig;
+}
 
 async function consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(
   res: Response,
@@ -173,7 +214,7 @@ export const createClient = trace(
         async function get<T = EdgeConfigValue>(
           key: string,
         ): Promise<T | undefined> {
-          const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+          const localEdgeConfig = await getLocalEdgeConfig(connection);
 
           if (localEdgeConfig) {
             assertIsKey(key);
@@ -214,7 +255,7 @@ export const createClient = trace(
       ),
       has: trace(
         async function has(key): Promise<boolean> {
-          const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+          const localEdgeConfig = await getLocalEdgeConfig(connection);
 
           if (localEdgeConfig) {
             assertIsKey(key);
@@ -247,7 +288,7 @@ export const createClient = trace(
         async function getAll<T = EdgeConfigItems>(
           keys?: (keyof T)[],
         ): Promise<T> {
-          const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+          const localEdgeConfig = await getLocalEdgeConfig(connection);
 
           if (localEdgeConfig) {
             if (keys === undefined) {
@@ -298,7 +339,7 @@ export const createClient = trace(
       ),
       digest: trace(
         async function digest(): Promise<string> {
-          const localEdgeConfig = await getFileSystemEdgeConfig(connection);
+          const localEdgeConfig = await getLocalEdgeConfig(connection);
 
           if (localEdgeConfig) {
             return Promise.resolve(localEdgeConfig.digest);

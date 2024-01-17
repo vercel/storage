@@ -89,6 +89,16 @@ function getApiUrl(pathname = ''): string {
   return `${baseUrl || 'https://blob.vercel-storage.com'}${pathname}`;
 }
 
+function getRetries(): number {
+  try {
+    const retries = process.env.VERCEL_BLOB_RETRIES || '10';
+
+    return parseInt(retries, 10);
+  } catch {
+    return 10;
+  }
+}
+
 async function validateBlobApiResponse(response: Response): Promise<void> {
   if (!response.ok) {
     let data: unknown;
@@ -127,16 +137,17 @@ export async function requestApi<TResponse>(
   init: RequestInit,
   commandOptions: BlobCommandOptions | undefined,
 ): Promise<TResponse> {
-  init.headers = {
-    'x-api-version': getApiVersion(),
-    authorization: `Bearer ${getTokenFromOptionsOrEnv(commandOptions)}`,
-
-    ...init.headers,
-  };
-
   const apiResponse = await retry(
     async () => {
-      const res = await fetch(getApiUrl(pathname), init);
+      const res = await fetch(getApiUrl(pathname), {
+        ...init,
+        headers: {
+          'x-api-version': getApiVersion(),
+          authorization: `Bearer ${getTokenFromOptionsOrEnv(commandOptions)}`,
+
+          ...init.headers,
+        },
+      });
 
       if (res.status >= 500) {
         // this will be retried and shown to the user if no more retries are left
@@ -146,7 +157,7 @@ export async function requestApi<TResponse>(
       return res;
     },
     {
-      retries: commandOptions?.retries ?? 10,
+      retries: getRetries(),
       onRetry: (error) => {
         debug(`retrying API request to ${pathname}`, error.message);
       },

@@ -23,11 +23,6 @@ interface CommonCreateBlobCommandOptions {
    * Whether to use multipart upload. Use this when uploading large files. It will split the file into multiple parts, upload them in parallel and retry failed parts.
    */
   multipart?: boolean;
-  /**
-   * The amount of times to retry the API requests if they fail.
-   * @defaultvalue 10
-   */
-  retries?: number;
 }
 
 export interface ClientPutCommandOptions

@@ -1,3 +1,5 @@
+import type { DeepReadonly } from 'ts-essentials';
+
 export interface EmbeddedEdgeConfig {
   digest: string;
   items: Record<string, EdgeConfigValue>;
@@ -38,7 +40,9 @@ export interface EdgeConfigClient {
    * @param key - the key to read
    * @returns the value stored under the given key, or undefined
    */
-  get: <T = EdgeConfigValue>(key: string) => Promise<T | undefined>;
+  get: <T = EdgeConfigValue>(
+    key: string,
+  ) => Promise<DeepReadonly<T> | undefined>;
   /**
    * Reads multiple or all values.
    *
@@ -47,7 +51,7 @@ export interface EdgeConfigClient {
    * @param keys - the keys to read
    * @returns Returns all entries when called with no arguments or only entries matching the given keys otherwise.
    */
-  getAll: <T = EdgeConfigItems>(keys?: (keyof T)[]) => Promise<T>;
+  getAll: <T = EdgeConfigItems>(keys?: (keyof T)[]) => Promise<DeepReadonly<T>>;
   /**
    * Check if a given key exists in the Edge Config.
    *

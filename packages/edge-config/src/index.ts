@@ -4,7 +4,6 @@ import { name as sdkName, version as sdkVersion } from '../package.json';
 import {
   assertIsKey,
   assertIsKeys,
-  clone,
   ERRORS,
   UnexpectedNetworkError,
   hasOwnProperty,
@@ -213,7 +212,7 @@ export const createClient = trace(
       get: trace(
         async function get<T = EdgeConfigValue>(
           key: string,
-        ): Promise<T | undefined> {
+        ): Promise<DeepReadonly<T> | undefined> {
           const localEdgeConfig = await getLocalEdgeConfig(connection);
 
           if (localEdgeConfig) {
@@ -223,7 +222,9 @@ export const createClient = trace(
             // our original value, and so the reference changes.
             //
             // This makes it consistent with the real API.
-            return Promise.resolve(clone(localEdgeConfig.items[key]) as T);
+            return Promise.resolve(
+              localEdgeConfig.items[key] as DeepReadonly<T>,
+            );
           }
 
           assertIsKey(key);
@@ -233,7 +234,7 @@ export const createClient = trace(
               headers: new Headers(headers),
               cache: 'no-store',
             },
-          ).then<T | undefined, undefined>(async (res) => {
+          ).then<DeepReadonly<T> | undefined, undefined>(async (res) => {
             if (res.ok) return res.json();
             await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
 
@@ -247,7 +248,7 @@ export const createClient = trace(
               throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
             }
             if (res.cachedResponseBody !== undefined)
-              return res.cachedResponseBody as T;
+              return res.cachedResponseBody as DeepReadonly<T>;
             throw new UnexpectedNetworkError(res);
           });
         },
@@ -287,17 +288,17 @@ export const createClient = trace(
       getAll: trace(
         async function getAll<T = EdgeConfigItems>(
           keys?: (keyof T)[],
-        ): Promise<T> {
+        ): Promise<DeepReadonly<T>> {
           const localEdgeConfig = await getLocalEdgeConfig(connection);
 
           if (localEdgeConfig) {
             if (keys === undefined) {
-              return Promise.resolve(clone(localEdgeConfig.items) as T);
+              return Promise.resolve(localEdgeConfig.items as DeepReadonly<T>);
             }
 
             assertIsKeys(keys);
             return Promise.resolve(
-              clone(pick(localEdgeConfig.items, keys)) as T,
+              pick(localEdgeConfig.items, keys) as DeepReadonly<T>,
             );
           }
 
@@ -311,7 +312,7 @@ export const createClient = trace(
 
           // empty search keys array was given,
           // so skip the request and return an empty object
-          if (search === '') return Promise.resolve({} as T);
+          if (search === '') return Promise.resolve({} as DeepReadonly<T>);
 
           return fetchWithCachedResponse(
             `${baseUrl}/items?version=${version}${
@@ -321,7 +322,7 @@ export const createClient = trace(
               headers: new Headers(headers),
               cache: 'no-store',
             },
-          ).then<T>(async (res) => {
+          ).then<DeepReadonly<T>>(async (res) => {
             if (res.ok) return res.json();
             await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
 

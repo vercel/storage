@@ -1,5 +1,5 @@
 import { readFile } from '@vercel/edge-config-fs';
-import type { DeepReadonly } from 'ts-essentials';
+import type { DeepReadonly, DeepWritable } from 'ts-essentials';
 import { name as sdkName, version as sdkVersion } from '../package.json';
 import {
   assertIsKey,
@@ -454,9 +454,9 @@ export const digest: EdgeConfigClient['digest'] = (...args) => {
  * Safely clones a read-only Edge Config object and makes it mutable.
  */
 export function cloneEdgeConfig<T = EdgeConfigValue>(
-  edgeConfigValue: DeepReadonly<T>,
-): T {
+  edgeConfigValue: T,
+): DeepWritable<T> {
   // Use JSON.parse and JSON.stringify instead of anything else due to
   // the value possibly being a Proxy object.
-  return JSON.parse(JSON.stringify(edgeConfigValue)) as T;
+  return JSON.parse(JSON.stringify(edgeConfigValue)) as DeepWritable<T>;
 }

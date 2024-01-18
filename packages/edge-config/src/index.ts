@@ -449,3 +449,14 @@ export const digest: EdgeConfigClient['digest'] = (...args) => {
   init();
   return defaultEdgeConfigClient.digest(...args);
 };
+
+/**
+ * Safely clones a read-only Edge Config object and makes it mutable.
+ */
+export function cloneEdgeConfig<T = EdgeConfigValue>(
+  edgeConfigValue: DeepReadonly<T>,
+): T {
+  // Use JSON.parse and JSON.stringify instead of anything else due to
+  // the value possibly being a Proxy object.
+  return JSON.parse(JSON.stringify(edgeConfigValue)) as T;
+}

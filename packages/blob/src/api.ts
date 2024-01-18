@@ -99,37 +99,49 @@ function getRetries(): number {
   }
 }
 
-async function validateBlobApiResponse(response: Response): Promise<void> {
-  if (!response.ok) {
-    let data: unknown;
+// reads the body of a error response
+async function getBlobApiError(
+  response: Response,
+): Promise<BlobApiError['error'] | undefined> {
+  try {
+    const data = await response.json();
 
-    try {
-      data = await response.json();
-    } catch {
-      throw new BlobUnknownError();
-    }
-
-    const error = (data as BlobApiError).error;
-
-    switch (error?.code) {
-      case 'store_suspended':
-        throw new BlobStoreSuspendedError();
-      case 'forbidden':
-        throw new BlobAccessError();
-      case 'not_found':
-        throw new BlobNotFoundError();
-      case 'store_not_found':
-        throw new BlobStoreNotFoundError();
-      case 'bad_request':
-        throw new BlobError(error.message ?? 'Bad request');
-      case 'service_unavailable':
-        throw new BlobServiceNotAvailable();
-      case 'unknown_error':
-      case 'not_allowed':
-      default:
-        throw new BlobUnknownError();
-    }
+    return (data as BlobApiError).error;
+  } catch {
+    return { code: 'unknown_error' };
   }
+}
+
+// converts BlobApiError object into BlobError class
+function getBlobError(error: BlobApiError['error']): BlobError {
+  switch (error?.code) {
+    case 'store_suspended':
+      return new BlobStoreSuspendedError();
+    case 'forbidden':
+      return new BlobAccessError();
+    case 'not_found':
+      return new BlobNotFoundError();
+    case 'store_not_found':
+      return new BlobStoreNotFoundError();
+    case 'bad_request':
+      return new BlobError(error.message ?? 'Bad request');
+    case 'service_unavailable':
+      return new BlobServiceNotAvailable();
+    case 'unknown_error':
+    case 'not_allowed':
+    default:
+      return new BlobUnknownError();
+  }
+}
+
+async function validateBlobApiResponse(response: Response): Promise<void> {
+  if (response.ok) {
+    return;
+  }
+
+  const apiError = await getBlobApiError(response);
+
+  throw getBlobError(apiError);
 }
 
 export async function requestApi<TResponse>(
@@ -149,9 +161,14 @@ export async function requestApi<TResponse>(
         },
       });
 
-      if (res.status >= 500) {
-        // this will be retried and shown to the user if no more retries are left
-        await validateBlobApiResponse(res);
+      if (res.status < 500) {
+        return res;
+      }
+
+      const error = await getBlobApiError(res);
+      const { code } = error ?? {};
+      if (code === 'unknown_error' || code === 'service_unavailable') {
+        throw getBlobError(error);
       }
 
       return res;

@@ -519,8 +519,7 @@ describe('createClient', () => {
           const edgeConfig = createClient(process.env.EDGE_CONFIG);
           const someArray = await edgeConfig.get<string[]>('someArray');
           expect(someArray).toEqual([]);
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- [@vercel/style-guide@5 migration]
-          someArray!.push('intruder');
+          (someArray as string[]).push('intruder');
           // the pushed value on the old return value may not make it onto the
           // next get
           await expect(edgeConfig.get('someArray')).resolves.toEqual([]);

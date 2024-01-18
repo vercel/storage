@@ -34,6 +34,8 @@ const jsonParseCache = new Map<string, unknown>();
 const readFileTraced = trace(readFile, { name: 'readFile' });
 const jsonParseTraced = trace(JSON.parse, { name: 'JSON.parse' });
 
+const privateEdgeConfigSymbol = Symbol.for('privateEdgeConfig');
+
 const cachedJsonParseTraced = trace(
   (edgeConfigId: string, content: string) => {
     const cached = jsonParseCache.get(edgeConfigId);
@@ -88,17 +90,20 @@ const getPrivateEdgeConfig = trace(
   async function getPrivateEdgeConfig(
     connection: Connection,
   ): Promise<DeepReadonly<EmbeddedEdgeConfig> | null> {
-    const hijackedGlobal = globalThis as {
-      __privateEdgeConfig?: {
-        get: (id: string) => Promise<DeepReadonly<EmbeddedEdgeConfig> | null>;
-      };
-    };
+    const privateEdgeConfig = Reflect.get(
+      globalThis,
+      privateEdgeConfigSymbol,
+    ) as
+      | {
+          get: (id: string) => Promise<DeepReadonly<EmbeddedEdgeConfig> | null>;
+        }
+      | undefined;
 
     if (
-      typeof hijackedGlobal.__privateEdgeConfig === 'object' &&
-      typeof hijackedGlobal.__privateEdgeConfig.get === 'function'
+      typeof privateEdgeConfig === 'object' &&
+      typeof privateEdgeConfig.get === 'function'
     ) {
-      return hijackedGlobal.__privateEdgeConfig.get(connection.id);
+      return privateEdgeConfig.get(connection.id);
     }
 
     return null;

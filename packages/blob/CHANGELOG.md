@@ -1,5 +1,14 @@
 # @vercel/blob
 
+## 0.19.0
+
+### Minor Changes
+
+- d44bd3b: feat(blob): add retry to all blob requests
+
+  This change generalizes the way we request the internal Blob API. This moves api version, authorization, response validation and error handling all into one place.
+  Also this adds a retry mechanism to the API requests
+
 ## 0.18.0
 
 ### Minor Changes

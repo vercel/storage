@@ -1,13 +1,5 @@
-import { fetch } from 'undici';
+import { requestApi } from './api';
 import type { BlobCommandOptions } from './helpers';
-import {
-  getApiUrl,
-  getApiVersionHeader,
-  getTokenFromOptionsOrEnv,
-  validateBlobApiResponse,
-} from './helpers';
-
-type DeleteBlobApiResponse = null;
 
 /**
  * Deletes one or multiple blobs from your store.
@@ -20,17 +12,13 @@ export async function del(
   url: string[] | string,
   options?: BlobCommandOptions,
 ): Promise<void> {
-  const blobApiResponse = await fetch(getApiUrl('/delete'), {
-    method: 'POST',
-    headers: {
-      ...getApiVersionHeader(),
-      authorization: `Bearer ${getTokenFromOptionsOrEnv(options)}`,
-      'content-type': 'application/json',
+  await requestApi(
+    '/delete',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ urls: Array.isArray(url) ? url : [url] }),
     },
-    body: JSON.stringify({ urls: Array.isArray(url) ? url : [url] }),
-  });
-
-  await validateBlobApiResponse(blobApiResponse);
-
-  (await blobApiResponse.json()) as DeleteBlobApiResponse;
+    options,
+  );
 }

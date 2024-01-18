@@ -134,44 +134,41 @@ function getBlobError(error: BlobApiError['error']): BlobError {
   }
 }
 
-async function validateBlobApiResponse(response: Response): Promise<void> {
-  if (response.ok) {
-    return;
-  }
-
-  const apiError = await getBlobApiError(response);
-
-  throw getBlobError(apiError);
-}
-
 export async function requestApi<TResponse>(
   pathname: string,
   init: RequestInit,
   commandOptions: BlobCommandOptions | undefined,
 ): Promise<TResponse> {
+  const apiVersion = getApiVersion();
+  const token = getTokenFromOptionsOrEnv(commandOptions);
+
   const apiResponse = await retry(
-    async () => {
+    async (bail) => {
       const res = await fetch(getApiUrl(pathname), {
         ...init,
         headers: {
-          'x-api-version': getApiVersion(),
-          authorization: `Bearer ${getTokenFromOptionsOrEnv(commandOptions)}`,
+          'x-api-version': apiVersion,
+          authorization: `Bearer ${token}`,
 
           ...init.headers,
         },
       });
 
-      if (res.status < 500) {
+      if (res.ok) {
         return res;
       }
 
-      const error = await getBlobApiError(res);
-      const { code } = error ?? {};
-      if (code === 'unknown_error' || code === 'service_unavailable') {
-        throw getBlobError(error);
-      }
+      const apiError = await getBlobApiError(res);
+      const { code } = apiError ?? {};
+      const error = getBlobError(apiError);
 
-      return res;
+      if (code === 'unknown_error' || code === 'service_unavailable') {
+        // only retry for certain errors
+        throw error;
+      } else {
+        // don't retry for e.g. suspended stores
+        bail(error);
+      }
     },
     {
       retries: getRetries(),
@@ -181,8 +178,9 @@ export async function requestApi<TResponse>(
     },
   );
 
-  // this will throw for 4xx responses
-  await validateBlobApiResponse(apiResponse);
+  if (!apiResponse) {
+    throw new BlobUnknownError();
+  }
 
   return (await apiResponse.json()) as TResponse;
 }

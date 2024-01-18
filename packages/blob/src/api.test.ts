@@ -78,7 +78,7 @@ describe('api', () => {
     ])(
       `should retry '%s %s' error response`,
       async (status, code, error) => {
-        const fetchSpy = jest.spyOn(undici, 'fetch').mockImplementation(
+        const fetchMock = jest.spyOn(undici, 'fetch').mockImplementation(
           jest.fn().mockResolvedValue({
             status,
             ok: false,
@@ -93,7 +93,7 @@ describe('api', () => {
           requestApi('/api', { method: 'GET' }, undefined),
         ).rejects.toThrow(error);
 
-        expect(fetchSpy).toHaveBeenCalledTimes(2);
+        expect(fetchMock).toHaveBeenCalledTimes(2);
       },
       10000,
     );

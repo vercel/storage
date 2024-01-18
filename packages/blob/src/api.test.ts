@@ -1,5 +1,13 @@
 import undici from 'undici';
-import { BlobUnknownError, requestApi } from './api';
+import {
+  BlobAccessError,
+  BlobNotFoundError,
+  BlobServiceNotAvailable,
+  BlobStoreNotFoundError,
+  BlobStoreSuspendedError,
+  BlobUnknownError,
+  requestApi,
+} from './api';
 import { BlobError } from './helpers';
 
 describe('api', () => {
@@ -9,6 +17,8 @@ describe('api', () => {
     beforeEach(() => {
       jest.useFakeTimers({ advanceTimers: true });
       jest.resetAllMocks();
+      jest.restoreAllMocks();
+
       process.env = { ...OLD_ENV };
     });
 
@@ -63,23 +73,25 @@ describe('api', () => {
     });
 
     it.each([
-      [400, 'unknown_error'],
-      [500, 'service_unavailable'],
+      [400, 'unknown_error', BlobUnknownError],
+      [500, 'service_unavailable', BlobServiceNotAvailable],
     ])(
       `should retry '%s %s' error response`,
-      async () => {
-        const fetchSpy = jest
-          .spyOn(undici, 'fetch')
-          .mockImplementation(
-            jest.fn().mockResolvedValue({ status: 500, ok: false }),
-          );
+      async (status, code, error) => {
+        const fetchSpy = jest.spyOn(undici, 'fetch').mockImplementation(
+          jest.fn().mockResolvedValue({
+            status,
+            ok: false,
+            json: () => Promise.resolve({ error: { code } }),
+          }),
+        );
 
         process.env.VERCEL_BLOB_RETRIES = '1';
         process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
 
         await expect(
           requestApi('/api', { method: 'GET' }, undefined),
-        ).rejects.toThrow(BlobUnknownError);
+        ).rejects.toThrow(error);
 
         expect(fetchSpy).toHaveBeenCalledTimes(2);
       },
@@ -87,15 +99,15 @@ describe('api', () => {
     );
 
     it.each([
-      [300, 'store_suspended'],
-      [400, 'forbidden'],
-      [500, 'not_found'],
-      [600, 'bad_request'],
-      [700, 'store_not_found'],
-      [800, 'not_allowed'],
+      [300, 'store_suspended', BlobStoreSuspendedError],
+      [400, 'forbidden', BlobAccessError],
+      [500, 'not_found', BlobNotFoundError],
+      [600, 'bad_request', BlobError],
+      [700, 'store_not_found', BlobStoreNotFoundError],
+      [800, 'not_allowed', BlobUnknownError],
     ])(
       `should not retry '%s %s' response error response`,
-      async (status, code) => {
+      async (status, code, error) => {
         const fetchMock = jest.spyOn(undici, 'fetch').mockImplementation(
           jest.fn().mockResolvedValue({
             status,
@@ -106,7 +118,7 @@ describe('api', () => {
 
         await expect(
           requestApi('/api', { method: 'GET' }, { token: '123' }),
-        ).rejects.toThrow(BlobError);
+        ).rejects.toThrow(error);
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
       },

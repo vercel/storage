@@ -1,5 +1,5 @@
 import { type Interceptable, MockAgent, setGlobalDispatcher } from 'undici';
-import { BlobServiceNotAvailable } from './helpers';
+import { BlobServiceNotAvailable } from './api';
 import { list, head, del, put } from './index';
 
 const BLOB_API_URL = 'https://blob.vercel-storage.com';
@@ -25,6 +25,8 @@ describe('blob client', () => {
     setGlobalDispatcher(mockAgent);
     mockClient = mockAgent.get(BLOB_API_URL);
     jest.resetAllMocks();
+
+    process.env.VERCEL_BLOB_RETRIES = '0';
   });
 
   describe('head', () => {

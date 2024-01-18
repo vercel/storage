@@ -1,16 +1,10 @@
 // eslint-disable-next-line unicorn/prefer-node-protocol -- node:stream does not resolve correctly in browser and edge
 import type { Readable } from 'stream';
 import type { BodyInit } from 'undici';
-import { fetch } from 'undici';
+import { requestApi } from './api';
 import type { ClientPutCommandOptions } from './client';
 import type { CreateBlobCommandOptions } from './helpers';
-import {
-  getApiUrl,
-  getApiVersionHeader,
-  getTokenFromOptionsOrEnv,
-  BlobError,
-  validateBlobApiResponse,
-} from './helpers';
+import { BlobError } from './helpers';
 import { multipartPut } from './put-multipart';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface -- expose option interface for each API method for better extensibility in the future
@@ -92,14 +86,11 @@ export function createPutMethod<
       extraChecks(options);
     }
 
-    const token = getToken
-      ? await getToken(pathname, options)
-      : getTokenFromOptionsOrEnv(options);
+    if (getToken) {
+      options.token = await getToken(pathname, options);
+    }
 
-    const headers: Record<string, string> = {
-      ...getApiVersionHeader(),
-      authorization: `Bearer ${token}`,
-    };
+    const headers: Record<string, string> = {};
 
     if (allowedOptions.includes('contentType') && options.contentType) {
       headers['x-content-type'] = options.contentType;
@@ -121,22 +112,20 @@ export function createPutMethod<
     }
 
     if (options.multipart === true && body) {
-      return multipartPut(pathname, body, headers);
+      return multipartPut(pathname, body, headers, options);
     }
 
-    const blobApiResponse = await fetch(getApiUrl(`/${pathname}`), {
-      method: 'PUT',
-      body: body as BodyInit,
-      headers,
-      // required in order to stream some body types to Cloudflare
-      // currently only supported in Node.js, we may have to feature detect this
-      duplex: 'half',
-    });
-
-    await validateBlobApiResponse(blobApiResponse);
-
-    const blobResult = (await blobApiResponse.json()) as PutBlobApiResponse;
-
-    return blobResult;
+    return requestApi<PutBlobApiResponse>(
+      `/${pathname}`,
+      {
+        method: 'PUT',
+        body: body as BodyInit,
+        headers,
+        // required in order to stream some body types to Cloudflare
+        // currently only supported in Node.js, we may have to feature detect this
+        duplex: 'half',
+      },
+      options,
+    );
   };
 }

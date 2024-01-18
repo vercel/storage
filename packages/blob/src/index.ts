@@ -1,16 +1,18 @@
 import type { PutCommandOptions } from './put';
 import { createPutMethod } from './put';
 
-// expose the BlobError types
+// expose generic BlobError
+export { BlobError } from './helpers';
+
+// expose api BlobErrors
 export {
   BlobAccessError,
-  BlobError,
   BlobNotFoundError,
   BlobStoreNotFoundError,
   BlobStoreSuspendedError,
   BlobUnknownError,
   BlobServiceNotAvailable,
-} from './helpers';
+} from './api';
 
 // vercelBlob.put()
 

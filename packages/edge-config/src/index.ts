@@ -458,7 +458,7 @@ export const digest: EdgeConfigClient['digest'] = (...args) => {
 /**
  * Safely clones a read-only Edge Config object and makes it mutable.
  */
-export function cloneEdgeConfig<T = EdgeConfigValue>(
+export function clone<T = EdgeConfigValue>(
   edgeConfigValue: T,
 ): DeepWritable<T> {
   // Use JSON.parse and JSON.stringify instead of anything else due to

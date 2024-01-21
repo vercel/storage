@@ -81,7 +81,7 @@ It returns the same `get`, `getAll`, `has` and `digest` functions as the default
 
 By default, the value returned by `get` and `getAll` are immutable. Modifying the object might cause an error or other undefined behaviour.
 
-In order to make the returned value mutable, you can use the exported function `cloneEdgeConfig` to safely clone the object and make it mutable.
+In order to make the returned value mutable, you can use the exported function `clone` to safely clone the object and make it mutable.
 
 ## Writing Edge Config Items
 

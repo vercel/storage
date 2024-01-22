@@ -79,7 +79,7 @@ It returns the same `get`, `getAll`, `has` and `digest` functions as the default
 
 ### Making a value mutable
 
-By default, the value returned by `get` and `getAll` are immutable. Modifying the object might cause an error or other undefined behaviour.
+By default, the value returned by `get` and `getAll` is immutable. Modifying the object might cause an error or other undefined behaviour.
 
 In order to make the returned value mutable, you can use the exported function `clone` to safely clone the object and make it mutable.
 

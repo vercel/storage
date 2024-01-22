@@ -108,4 +108,15 @@ describe('swr-fn', () => {
     await expect(swrFn()).resolves.toEqual(['a']);
     fn.mockResolvedValueOnce([]);
   });
+
+  it('should not return a different value', async () => {
+    const myMap: Record<string, number> = { a: 70, b: 1337 };
+    const getter = (key: string): Promise<number | undefined> =>
+      Promise.resolve(myMap[key]);
+
+    const swrFn = swr(getter);
+
+    expect(await swrFn('a')).toBe(70);
+    expect(await swrFn('b')).toBe(1337);
+  });
 });

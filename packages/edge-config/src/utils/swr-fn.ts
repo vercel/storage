@@ -8,10 +8,12 @@ import { clone } from './index';
 export const swr = trace(
   function swr<T extends (...args: any[]) => Promise<any>>(fn: T): T {
     let latestInvocationId = 0;
-    let staleValuePromise: null | Promise<unknown> = null;
+    const staleValuePromiseMap = new Map<string, Promise<unknown>>();
 
     return (async (...args: any[]) => {
+      const argsKey = JSON.stringify(args);
       const currentInvocationId = ++latestInvocationId;
+      const staleValuePromise = staleValuePromiseMap.get(argsKey);
 
       if (staleValuePromise) {
         // clone to avoid referential equality of the returned value,
@@ -19,7 +21,7 @@ export const swr = trace(
         void fn(...args).then(
           (result) => {
             if (currentInvocationId === latestInvocationId) {
-              staleValuePromise = Promise.resolve(result);
+              staleValuePromiseMap.set(argsKey, Promise.resolve(result));
             }
           },
           () => void 0,
@@ -28,10 +30,12 @@ export const swr = trace(
       }
 
       const resultPromise = fn(...args);
-      staleValuePromise = resultPromise.then(clone, (e) => {
-        staleValuePromise = null;
+      staleValuePromiseMap.set(argsKey, resultPromise);
+      resultPromise.catch((e) => {
+        staleValuePromiseMap.delete(argsKey);
         throw e;
       });
+
       return resultPromise.then(clone);
     }) as T;
   },

@@ -514,23 +514,6 @@ describe('createClient', () => {
             'utf-8',
           );
         });
-
-        it('should not be able to modify the value for the next get', async () => {
-          const edgeConfig = createClient(process.env.EDGE_CONFIG);
-          const someArray = await edgeConfig.get<string[]>('someArray');
-          expect(someArray).toEqual([]);
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- [@vercel/style-guide@5 migration]
-          someArray!.push('intruder');
-          // the pushed value on the old return value may not make it onto the
-          // next get
-          await expect(edgeConfig.get('someArray')).resolves.toEqual([]);
-          expect(fetchMock).toHaveBeenCalledTimes(0);
-          expect(readFile).toHaveBeenCalledTimes(2);
-          expect(readFile).toHaveBeenCalledWith(
-            '/opt/edge-config/ecfg-1.json',
-            'utf-8',
-          );
-        });
       });
 
       describe('when the item does not exist', () => {

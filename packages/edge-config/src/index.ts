@@ -18,7 +18,6 @@ import type {
   EmbeddedEdgeConfig,
 } from './types';
 import { fetchWithCachedResponse } from './utils/fetch-with-cached-response';
-import { swr } from './utils/swr-fn';
 import { trace } from './utils/tracing';
 
 export {
@@ -116,6 +115,70 @@ const getPrivateEdgeConfig = trace(
 /**
  *
  */
+function createGetInMemoryEdgeConfig(
+  useDevelopmentCache: boolean,
+  connection: Connection,
+  headers: Record<string, string>,
+): () => Promise<EmbeddedEdgeConfig | null> {
+  let embeddedEdgeConfigPromise: Promise<EmbeddedEdgeConfig | null> | null =
+    null;
+  let lastRequest: Promise<EmbeddedEdgeConfig | null> | null = null;
+
+  return trace(
+    async () => {
+      if (!useDevelopmentCache) return null;
+
+      lastRequest ??= fetchWithCachedResponse(
+        `${connection.baseUrl}/items?version=${connection.version}`,
+        {
+          headers: new Headers(headers),
+          cache: 'no-store',
+        },
+      ).then(async (res) => {
+        const digest = res.headers.get('x-edge-config-digest');
+        let body: EdgeConfigValue | undefined;
+
+        // We ignore all errors here and just proceed.
+        if (!res.ok) {
+          await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+          body = res.cachedResponseBody as EdgeConfigValue | undefined;
+          if (!body) return null;
+        } else {
+          body = (await res.json()) as EdgeConfigItems;
+        }
+
+        return { digest, items: body } as EmbeddedEdgeConfig;
+      });
+
+      // Ensures that the last request will overwrite the `embeddedEdgeConfigPromise`
+      // and clean up the `lastRequest` cache to make sure the next call
+      // will trigger a new request.
+      void lastRequest
+        .then((resolved) => {
+          embeddedEdgeConfigPromise = Promise.resolve(resolved);
+        })
+        .finally(() => {
+          lastRequest = null;
+        });
+
+      embeddedEdgeConfigPromise ??= lastRequest;
+
+      // Ensure we don't keep a rejected promise in memory
+      embeddedEdgeConfigPromise.catch(() => {
+        embeddedEdgeConfigPromise = null;
+      });
+
+      return embeddedEdgeConfigPromise;
+    },
+    {
+      name: 'getInMemoryEdgeConfig',
+    },
+  );
+}
+
+/**
+ *
+ */
 async function getLocalEdgeConfig(
   connection: Connection,
 ): Promise<DeepReadonly<EmbeddedEdgeConfig> | null> {
@@ -208,17 +271,25 @@ export const createClient = trace(
      * While in development we use SWR-like behavior for the api client to
      * reduce latency.
      */
-    const shouldUseSwr =
+    const useDevelopmentCache =
       !options.disableDevelopmentCache &&
       process.env.NODE_ENV === 'development' &&
       process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
+
+    const getInMemoryEdgeConfig = createGetInMemoryEdgeConfig(
+      useDevelopmentCache,
+      connection,
+      headers,
+    );
 
     const api: Omit<EdgeConfigClient, 'connection'> = {
       get: trace(
         async function get<T = EdgeConfigValue>(
           key: string,
         ): Promise<DeepReadonly<T> | undefined> {
-          const localEdgeConfig = await getLocalEdgeConfig(connection);
+          const localEdgeConfig =
+            (await getInMemoryEdgeConfig()) ||
+            (await getLocalEdgeConfig(connection));
 
           if (localEdgeConfig) {
             assertIsKey(key);
@@ -261,7 +332,9 @@ export const createClient = trace(
       ),
       has: trace(
         async function has(key): Promise<boolean> {
-          const localEdgeConfig = await getLocalEdgeConfig(connection);
+          const localEdgeConfig =
+            (await getInMemoryEdgeConfig()) ||
+            (await getLocalEdgeConfig(connection));
 
           if (localEdgeConfig) {
             assertIsKey(key);
@@ -294,7 +367,9 @@ export const createClient = trace(
         async function getAll<T = EdgeConfigItems>(
           keys?: (keyof T)[],
         ): Promise<DeepReadonly<T>> {
-          const localEdgeConfig = await getLocalEdgeConfig(connection);
+          const localEdgeConfig =
+            (await getInMemoryEdgeConfig()) ||
+            (await getLocalEdgeConfig(connection));
 
           if (localEdgeConfig) {
             if (keys === undefined) {
@@ -345,7 +420,9 @@ export const createClient = trace(
       ),
       digest: trace(
         async function digest(): Promise<string> {
-          const localEdgeConfig = await getLocalEdgeConfig(connection);
+          const localEdgeConfig =
+            (await getInMemoryEdgeConfig()) ||
+            (await getLocalEdgeConfig(connection));
 
           if (localEdgeConfig) {
             return Promise.resolve(localEdgeConfig.digest);
@@ -370,15 +447,7 @@ export const createClient = trace(
       ),
     };
 
-    return shouldUseSwr
-      ? {
-          connection,
-          get: swr(api.get),
-          getAll: swr(api.getAll),
-          has: swr(api.has),
-          digest: swr(api.digest),
-        }
-      : { ...api, connection };
+    return { ...api, connection };
   },
   {
     name: 'createClient',

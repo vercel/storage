@@ -7,12 +7,10 @@ import { clone } from './index';
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument -- any necessary for generics */
 export const swr = trace(
   function swr<T extends (...args: any[]) => Promise<any>>(fn: T): T {
-    let latestInvocationId = 0;
     const staleValuePromiseMap = new Map<string, Promise<unknown>>();
 
     return (async (...args: any[]) => {
       const argsKey = JSON.stringify(args);
-      const currentInvocationId = ++latestInvocationId;
       const staleValuePromise = staleValuePromiseMap.get(argsKey);
 
       if (staleValuePromise) {
@@ -20,7 +18,8 @@ export const swr = trace(
         // which would unlock mutations
         void fn(...args).then(
           (result) => {
-            if (currentInvocationId === latestInvocationId) {
+            // Only update if the map wasn't updated otherwise (due to a newer call)
+            if (staleValuePromiseMap.get(argsKey) === staleValuePromise) {
               staleValuePromiseMap.set(argsKey, Promise.resolve(result));
             }
           },

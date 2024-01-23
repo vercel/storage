@@ -1,6 +1,6 @@
 {
   "name": "@vercel/postgres",
-  "version": "0.5.1",
+  "version": "0.7.1",
   "description": "Connect to Vercel Postgres databases on the Edge",
   "homepage": "https://vercel.com",
   "repository": {
@@ -44,7 +44,7 @@
     "testEnvironment": "node"
   },
   "dependencies": {
-    "@neondatabase/serverless": "0.6.0",
+    "@neondatabase/serverless": "0.7.2",
     "bufferutil": "4.0.8",
     "utf-8-validate": "6.0.3",
     "ws": "8.14.2"

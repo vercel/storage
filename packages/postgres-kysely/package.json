@@ -1,6 +1,6 @@
 {
   "name": "@vercel/postgres-kysely",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "An @vercel/postgres wrapper for the kysely ORM",
   "homepage": "https://vercel.com",
   "repository": {
@@ -44,13 +44,13 @@
     "testEnvironment": "node"
   },
   "dependencies": {
-    "@vercel/postgres": "workspace:0.5.1"
+    "@vercel/postgres": "workspace:0.7.1"
   },
   "devDependencies": {
     "@changesets/cli": "2.27.1",
     "@edge-runtime/jest-environment": "2.3.7",
     "@edge-runtime/types": "2.2.7",
-    "@neondatabase/serverless": "0.6.0",
+    "@neondatabase/serverless": "0.7.2",
     "@types/jest": "29.5.11",
     "@types/node": "20.10.4",
     "@types/ws": "8.5.10",

@@ -57,14 +57,14 @@
     "eslint": "8.55.0",
     "eslint-config-custom": "workspace:*",
     "jest": "29.7.0",
-    "kysely": "0.26.3",
+    "kysely": "0.27.2",
     "ts-jest": "29.1.1",
     "tsconfig": "workspace:*",
     "tsup": "8.0.1",
     "typescript": "5.3.3"
   },
   "peerDependencies": {
-    "kysely": "^0.24.2 || ^0.25.0 || ^0.26.0"
+    "kysely": "^0.24.2 || ^0.25.0 || ^0.26.0 || ^0.27.0"
   },
   "engines": {
     "node": ">=14.6"

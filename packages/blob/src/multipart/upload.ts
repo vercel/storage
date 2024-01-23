@@ -1,11 +1,9 @@
-// eslint-disable-next-line unicorn/prefer-node-protocol -- node:stream does not resolve correctly in browser and edge
-import { Readable } from 'stream';
 import bytes from 'bytes';
 import type { BodyInit } from 'undici';
-import { BlobServiceNotAvailable, requestApi } from './api';
-import { debug } from './debug';
-import type { PutBlobApiResponse, PutBlobResult, PutBody } from './put';
-import type { BlobCommandOptions } from './helpers';
+import { BlobServiceNotAvailable, requestApi } from '../api';
+import { debug } from '../debug';
+import type { BlobCommandOptions } from '../helpers';
+import type { CompletedPart } from './helpers';
 
 // Most browsers will cap requests at 6 concurrent uploads per domain (Vercel Blob API domain)
 // In other environments, we can afford to be more aggressive
@@ -16,144 +14,17 @@ const partSizeInBytes = 8 * 1024 * 1024;
 
 const maxBytesInMemory = maxConcurrentUploads * partSizeInBytes * 2;
 
-interface CreateMultiPartUploadApiResponse {
-  uploadId: string;
-  key: string;
-}
-
 interface UploadPartApiResponse {
   etag: string;
 }
 
-export async function multipartPut(
-  pathname: string,
-  body: PutBody,
-  headers: Record<string, string>,
-  options: BlobCommandOptions,
-): Promise<PutBlobResult> {
-  debug('mpu: init', 'pathname:', pathname, 'headers:', headers);
-
-  const stream = toReadableStream(body);
-
-  // Step 1: Start multipart upload
-  const createMultipartUploadResponse = await createMultiPartUpload(
-    pathname,
-    headers,
-    options,
-  );
-
-  // Step 2: Upload parts one by one
-  const parts = await uploadParts(
-    createMultipartUploadResponse.uploadId,
-    createMultipartUploadResponse.key,
-    pathname,
-    stream,
-    headers,
-    options,
-  );
-
-  // Step 3: Complete multipart upload
-  const blob = await completeMultiPartUpload(
-    createMultipartUploadResponse.uploadId,
-    createMultipartUploadResponse.key,
-    pathname,
-    parts,
-    headers,
-    options,
-  );
-
-  return blob;
-}
-
-async function completeMultiPartUpload(
-  uploadId: string,
-  key: string,
-  pathname: string,
-  parts: CompletedPart[],
-  headers: Record<string, string>,
-  options: BlobCommandOptions,
-): Promise<PutBlobResult> {
-  try {
-    const response = await requestApi<PutBlobApiResponse>(
-      `/mpu/${pathname}`,
-      {
-        method: 'POST',
-        headers: {
-          ...headers,
-          'content-type': 'application/json',
-          'x-mpu-action': 'complete',
-          'x-mpu-upload-id': uploadId,
-          // key can be any utf8 character so we need to encode it as HTTP headers can only be us-ascii
-          // https://www.rfc-editor.org/rfc/rfc7230#section-3.2.4
-          'x-mpu-key': encodeURI(key),
-        },
-        body: JSON.stringify(parts),
-      },
-      options,
-    );
-
-    debug('mpu: complete', response);
-
-    return response;
-  } catch (error: unknown) {
-    if (
-      error instanceof TypeError &&
-      (error.message === 'Failed to fetch' || error.message === 'fetch failed')
-    ) {
-      throw new BlobServiceNotAvailable();
-    } else {
-      throw error;
-    }
-  }
-}
-
-async function createMultiPartUpload(
-  pathname: string,
-  headers: Record<string, string>,
-  options: BlobCommandOptions,
-): Promise<CreateMultiPartUploadApiResponse> {
-  debug('mpu: create', 'pathname:', pathname);
-
-  try {
-    const response = await requestApi<CreateMultiPartUploadApiResponse>(
-      `/mpu/${pathname}`,
-      {
-        method: 'POST',
-        headers: {
-          ...headers,
-          'x-mpu-action': 'create',
-        },
-      },
-      options,
-    );
-
-    debug('mpu: create', response);
-
-    return response;
-  } catch (error: unknown) {
-    if (
-      error instanceof TypeError &&
-      (error.message === 'Failed to fetch' || error.message === 'fetch failed')
-    ) {
-      throw new BlobServiceNotAvailable();
-    } else {
-      throw error;
-    }
-  }
-}
-
-interface UploadPart {
+export interface BlobUploadPart {
   partNumber: number;
   blob: Blob;
 }
 
-interface CompletedPart {
-  partNumber: number;
-  etag: string;
-}
-
 // Can we rewrite this function without new Promise?
-function uploadParts(
+export function uploadAllParts(
   uploadId: string,
   key: string,
   pathname: string,
@@ -165,7 +36,7 @@ function uploadParts(
   const internalAbortController = new AbortController();
 
   return new Promise((resolve, reject) => {
-    const partsToUpload: UploadPart[] = [];
+    const partsToUpload: BlobUploadPart[] = [];
     const completedParts: CompletedPart[] = [];
     const reader = stream.getReader();
     let activeUploads = 0;
@@ -269,7 +140,7 @@ function uploadParts(
       reading = false;
     }
 
-    async function sendPart(part: UploadPart): Promise<void> {
+    async function sendPart(part: BlobUploadPart): Promise<void> {
       activeUploads++;
 
       debug(
@@ -362,6 +233,7 @@ function uploadParts(
         'partsToUpload',
         partsToUpload.length,
       );
+
       while (activeUploads < maxConcurrentUploads && partsToUpload.length > 0) {
         const partToSend = partsToUpload.shift();
         if (partToSend) {
@@ -389,50 +261,4 @@ function uploadParts(
       }
     }
   });
-}
-
-function toReadableStream(value: PutBody): ReadableStream<ArrayBuffer> {
-  // Already a ReadableStream, nothing to do
-  if (value instanceof ReadableStream) {
-    return value as ReadableStream<ArrayBuffer>;
-  }
-
-  // In the case of a Blob or File (which inherits from Blob), we could use .slice() to create pointers
-  // to the original data instead of loading data in memory gradually.
-  // Here's an explanation on this subject: https://stackoverflow.com/a/24834417
-  if (value instanceof Blob) {
-    return value.stream();
-  }
-
-  if (isNodeJsReadableStream(value)) {
-    return Readable.toWeb(value) as ReadableStream<ArrayBuffer>;
-  }
-
-  const streamValue =
-    value instanceof ArrayBuffer ? value : stringToUint8Array(value);
-
-  // from https://github.com/sindresorhus/to-readable-stream/blob/main/index.js
-  return new ReadableStream<ArrayBuffer>({
-    start(controller) {
-      controller.enqueue(streamValue);
-      controller.close();
-    },
-  });
-}
-
-// From https://github.com/sindresorhus/is-stream/
-function isNodeJsReadableStream(value: PutBody): value is Readable {
-  return (
-    typeof value === 'object' &&
-    typeof (value as Readable).pipe === 'function' &&
-    (value as Readable).readable &&
-    typeof (value as Readable)._read === 'function' &&
-    // @ts-expect-error _readableState does exists on Readable
-    typeof value._readableState === 'object'
-  );
-}
-
-function stringToUint8Array(s: string): Uint8Array {
-  const enc = new TextEncoder();
-  return enc.encode(s);
 }

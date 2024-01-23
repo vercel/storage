@@ -1,5 +1,6 @@
-import type { PutCommandOptions } from './put';
 import { createPutMethod } from './put';
+import type { PutCommandOptions } from './put-helpers';
+import { createMultipartPut } from './multipart/multipart-put';
 
 // expose generic BlobError
 export { BlobError } from './helpers';
@@ -16,7 +17,7 @@ export {
 
 // vercelBlob.put()
 
-export type { PutBlobResult, PutCommandOptions } from './put';
+export type { PutBlobResult, PutCommandOptions } from './put-helpers';
 
 /**
  * Uploads a blob into your store from your server.
@@ -55,3 +56,10 @@ export { list } from './list';
 
 export type { CopyBlobResult, CopyCommandOptions } from './copy';
 export { copy } from './copy';
+
+// vercelBlob.multipartPut()
+
+export type { MultipartPutResult } from './multipart/multipart-put';
+export const multipartPut = createMultipartPut<PutCommandOptions>({
+  allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
+});

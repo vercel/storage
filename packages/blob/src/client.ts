@@ -8,7 +8,7 @@ import { fetch } from 'undici';
 import type { BlobCommandOptions } from './helpers';
 import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
 import { createPutMethod } from './put';
-import type { PutBlobResult } from './put';
+import type { PutBlobResult } from './put-helpers';
 
 interface CommonCreateBlobCommandOptions {
   /**

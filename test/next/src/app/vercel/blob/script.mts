@@ -18,23 +18,24 @@ console.log();
 
 async function run(): Promise<void> {
   const urls = await Promise.all([
-    textFileExample(),
-    textFileNoRandomSuffixExample(),
-    textFileExampleWithCacheControlMaxAge(),
-    imageExample(),
-    videoExample(),
-    webpageExample(),
-    incomingMessageExample(),
-    axiosExample(),
-    gotExample(),
-    fetchExample(),
-    noExtensionExample(),
-    weirdCharactersExample(),
-    copyTextFile(),
-    listFolders(),
-    multipartNodeJsFileStream(),
-    fetchExampleMultipart(),
-    createFolder(),
+    // textFileExample(),
+    // textFileNoRandomSuffixExample(),
+    // textFileExampleWithCacheControlMaxAge(),
+    // imageExample(),
+    // videoExample(),
+    // webpageExample(),
+    // incomingMessageExample(),
+    // axiosExample(),
+    // gotExample(),
+    // fetchExample(),
+    // noExtensionExample(),
+    // weirdCharactersExample(),
+    // copyTextFile(),
+    // listFolders(),
+    // multipartNodeJsFileStream(),
+    // fetchExampleMultipart(),
+    // createFolder(),
+    createManualMultipartPut(),
   ]);
 
   await Promise.all(
@@ -340,6 +341,7 @@ async function fetchExampleMultipart(): Promise<string> {
   console.log('fetch example:', blob.url, `(${Date.now() - start}ms)`);
   return blob.url;
 }
+
 async function createFolder() {
   const start = Date.now();
 
@@ -351,4 +353,25 @@ async function createFolder() {
   console.log('create folder example:', blob, `(${Date.now() - start}ms)`);
 
   return blob.url;
+}
+
+async function createManualMultipartPut() {
+  const start = Date.now();
+
+  const upload = await vercelBlob.multipartPut('file.txt', {
+    access: 'public',
+    addRandomSuffix: false,
+  });
+
+  await upload.uploadPart('Hello ');
+
+  await upload.uploadPart('world');
+
+  await upload.uploadPart('!');
+
+  const blob = await upload.complete();
+
+  console.log('manual multipart put:', blob, `(${Date.now() - start}ms)`);
+
+  return 'blob.url';
 }

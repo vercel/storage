@@ -389,3 +389,32 @@ describe('connectionStrings', () => {
     });
   });
 });
+
+describe('in-memory cache with swr behaviour', () => {
+  const originalEnv = process.env.NODE_ENV;
+
+  beforeAll(() => {
+    process.env.NODE_ENV = 'development';
+  });
+
+  afterAll(() => {
+    process.env.NODE_ENV = originalEnv;
+  });
+
+  it('use in-memory cache', async () => {
+    fetchMock.mockResponse(JSON.stringify({ foo: 'bar' }));
+
+    const edgeConfig = pkg.createClient(
+      'https://edge-config.vercel.com/ecfg-2?token=token-2',
+    );
+    expect(await edgeConfig.get('foo')).toBe('bar');
+
+    fetchMock.mockResponse(JSON.stringify({ foo: 'bar2' }));
+    expect(await edgeConfig.get('foo')).toBe('bar'); // 1st call goes to the cache
+
+    await new Promise<void>((res) => {
+      setTimeout(res, 100);
+    });
+    expect(await edgeConfig.get('foo')).toBe('bar2'); // 2nd call is the updated one
+  });
+});

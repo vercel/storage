@@ -116,7 +116,7 @@ const getPrivateEdgeConfig = trace(
  *
  */
 function createGetInMemoryEdgeConfig(
-  useDevelopmentCache: boolean,
+  shouldUseDevelopmentCache: boolean,
   connection: Connection,
   headers: Record<string, string>,
 ): () => Promise<EmbeddedEdgeConfig | null> {
@@ -126,7 +126,7 @@ function createGetInMemoryEdgeConfig(
 
   return trace(
     async () => {
-      if (!useDevelopmentCache) return null;
+      if (!shouldUseDevelopmentCache) return null;
 
       lastRequest ??= fetchWithCachedResponse(
         `${connection.baseUrl}/items?version=${connection.version}`,
@@ -271,13 +271,13 @@ export const createClient = trace(
      * While in development we use SWR-like behavior for the api client to
      * reduce latency.
      */
-    const useDevelopmentCache =
+    const shouldUseDevelopmentCache =
       !options.disableDevelopmentCache &&
       process.env.NODE_ENV === 'development' &&
       process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
 
     const getInMemoryEdgeConfig = createGetInMemoryEdgeConfig(
-      useDevelopmentCache,
+      shouldUseDevelopmentCache,
       connection,
       headers,
     );

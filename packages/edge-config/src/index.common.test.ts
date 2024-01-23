@@ -413,7 +413,7 @@ describe('in-memory cache with swr behaviour', () => {
     expect(await edgeConfig.get('foo')).toBe('bar'); // 1st call goes to the cache
 
     await new Promise<void>((res) => {
-      setTimeout(res, 1000);
+      setTimeout(res, 100);
     });
     expect(await edgeConfig.get('foo')).toBe('bar2'); // 2nd call is the updated one
   });

@@ -6,6 +6,10 @@ import { BlobServiceNotAvailable, requestApi } from './api';
 import { debug } from './debug';
 import type { PutBlobApiResponse, PutBlobResult, PutBody } from './put';
 import type { BlobCommandOptions } from './helpers';
+import { MultipartApi } from './multipart-api';
+import { MultipartController } from './multipart-controller';
+import { MultipartMemory } from './multipart-memory';
+import { MultipartReader } from './multipart-reader';
 
 // Most browsers will cap requests at 6 concurrent uploads per domain (Vercel Blob API domain)
 // In other environments, we can afford to be more aggressive
@@ -21,7 +25,7 @@ interface CreateMultiPartUploadApiResponse {
   key: string;
 }
 
-interface UploadPartApiResponse {
+export interface UploadPartApiResponse {
   etag: string;
 }
 
@@ -43,14 +47,41 @@ export async function multipartPut(
   );
 
   // Step 2: Upload parts one by one
-  const parts = await uploadParts(
+  // const parts = await uploadParts(
+  //   createMultipartUploadResponse.uploadId,
+  //   createMultipartUploadResponse.key,
+  //   pathname,
+  //   stream,
+  //   headers,
+  //   options,
+  // );
+
+  const controller = new MultipartController();
+
+  const memory = new MultipartMemory();
+
+  const api = new MultipartApi(
     createMultipartUploadResponse.uploadId,
     createMultipartUploadResponse.key,
     pathname,
-    stream,
     headers,
     options,
+    memory,
+    controller,
   );
+
+  const reader = new MultipartReader(stream, controller, api, memory);
+  memory.reader = reader;
+
+  const parts = await new Promise<CompletedPart[]>((resolve, reject) => {
+    controller.reject = () => {
+      reader.releaseLock();
+      api.cancel();
+      reject();
+    };
+
+    controller.resolve = resolve;
+  });
 
   // Step 3: Complete multipart upload
   const blob = await completeMultiPartUpload(
@@ -142,12 +173,12 @@ async function createMultiPartUpload(
   }
 }
 
-interface UploadPart {
+export interface UploadPart {
   partNumber: number;
   blob: Blob;
 }
 
-interface CompletedPart {
+export interface CompletedPart {
   partNumber: number;
   etag: string;
 }

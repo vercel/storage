@@ -1,5 +1,13 @@
 # @vercel/postgres-kysely
 
+## 0.7.2
+
+### Patch Changes
+
+- 5d84a4a: chore(deps): update dependency kysely to v0.27.2
+- Updated dependencies [5d84a4a]
+  - @vercel/postgres@0.7.2
+
 ## 0.7.1
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @vercel/postgres
 
+## 0.7.1
+
+### Patch Changes
+
+- abfdf65: fix(deps): update dependency @neondatabase/serverless to v0.7.2
+
 ## 0.5.1
 
 ### Patch Changes

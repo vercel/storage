@@ -83,7 +83,8 @@ const getFileSystemEdgeConfig = trace(
 );
 
 /**
- *
+ * Will return an embedded Edge Config object from memory,
+ * but only when the `privateEdgeConfigSymbol` is in global scope.
  */
 const getPrivateEdgeConfig = trace(
   async function getPrivateEdgeConfig(
@@ -113,22 +114,30 @@ const getPrivateEdgeConfig = trace(
 );
 
 /**
- *
+ * Returns a function to retrieve the entire Edge Config.
+ * It'll keep the fetched Edge Config in memory, making subsequent calls fast,
+ * while revalidating in the background.
  */
 function createGetInMemoryEdgeConfig(
   shouldUseDevelopmentCache: boolean,
   connection: Connection,
   headers: Record<string, string>,
 ): () => Promise<EmbeddedEdgeConfig | null> {
+  // Functions as cache to keep track of the Edge Config.
   let embeddedEdgeConfigPromise: Promise<EmbeddedEdgeConfig | null> | null =
     null;
-  let lastRequest: Promise<EmbeddedEdgeConfig | null> | null = null;
+
+  // Promise that points to the most recent request.
+  // It'll ensure that subsequent calls won't make another fetch call,
+  // while one is still on-going.
+  // Will overwrite `embeddedEdgeConfigPromise` only when resolved.
+  let latestRequest: Promise<EmbeddedEdgeConfig | null> | null = null;
 
   return trace(
     async () => {
       if (!shouldUseDevelopmentCache) return null;
 
-      lastRequest ??= fetchWithCachedResponse(
+      latestRequest ??= fetchWithCachedResponse(
         `${connection.baseUrl}/items?version=${connection.version}`,
         {
           headers: new Headers(headers),
@@ -153,15 +162,15 @@ function createGetInMemoryEdgeConfig(
       // Ensures that the last request will overwrite the `embeddedEdgeConfigPromise`
       // and clean up the `lastRequest` cache to make sure the next call
       // will trigger a new request.
-      void lastRequest
+      void latestRequest
         .then((resolved) => {
           embeddedEdgeConfigPromise = Promise.resolve(resolved);
         })
         .finally(() => {
-          lastRequest = null;
+          latestRequest = null;
         });
 
-      embeddedEdgeConfigPromise ??= lastRequest;
+      embeddedEdgeConfigPromise ??= latestRequest;
 
       // Ensure we don't keep a rejected promise in memory
       embeddedEdgeConfigPromise.catch(() => {

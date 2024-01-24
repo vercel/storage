@@ -27,8 +27,45 @@ export function uploadAllParts(
 
     const reader = new MultipartReader(memory);
 
+    // setup reader
+
+    reader.doneEvent.once(() => {
+      // upload any remaining data
+      reader.flush();
+    });
+
+    const partSub = reader.partEvent.on((part: UploadPart) => {
+      // queue part for upload
+      api.enqueuePart(part);
+    });
+
+    // pass stream to reader
+    reader.streamReader = stream.getReader();
+
+    // setup api
+
+    const completedParts: CompletedPart[] = [];
+
+    const completePartSub = api.completePartEvent.on((part: CompletedPart) => {
+      completedParts.push(part);
+
+      if (reader.done && api.activeUploads === 0 && !api.hasPartsToUpload()) {
+        completePartSub.dispose();
+        partSub.dispose();
+
+        resolve(completedParts);
+      }
+    });
+
     function cancel(error: unknown): void {
+      // remove listeners
+      completePartSub.dispose();
+      partSub.dispose();
+
+      // abort requests
       api.cancel();
+
+      // release reader lock
       reader.cancel();
 
       if (
@@ -42,34 +79,11 @@ export function uploadAllParts(
       }
     }
 
-    const completedParts: CompletedPart[] = [];
+    // handle errors
+    reader.errorEvent.once(cancel);
+    api.errorEvent.once(cancel);
 
-    api.completePartEvent.on((part: CompletedPart) => {
-      completedParts.push(part);
-
-      if (reader.done && api.activeUploads === 0 && !api.hasPartsToUpload()) {
-        resolve(completedParts);
-      }
-    });
-
-    api.errorEvent.on(cancel);
-
-    reader.doneEvent.once(() => {
-      // upload any remaining data
-      reader.flush();
-    });
-
-    reader.partEvent.on((part: UploadPart) => {
-      // queue part for upload
-      api.enqueuePart(part);
-    });
-
-    reader.errorEvent.on(cancel);
-
-    // pass stream to reader
-    reader.streamReader = stream.getReader();
-
-    // kickof reader emitted parts will be uploaded
+    // kickof reader. emitted parts will be uploaded
     void reader.read();
   });
 }

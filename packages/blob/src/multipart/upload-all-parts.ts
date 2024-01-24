@@ -27,28 +27,7 @@ export function uploadAllParts(
 
     const reader = new MultipartReader(memory);
 
-    try {
-      const completedParts: CompletedPart[] = [];
-
-      api.on('completePart', (part: CompletedPart) => {
-        completedParts.push(part);
-
-        if (reader.done && api.activeUploads === 0 && !api.hasPartsToUpload) {
-          resolve(completedParts);
-        }
-      });
-
-      reader.on('done', () => {
-        // upload any remaining data
-        reader.flush();
-      });
-
-      reader.on('part', (part: UploadPart) => {
-        api.upload(part);
-      });
-
-      void reader.read(stream.getReader());
-    } catch (error) {
+    function cancel(error: unknown): void {
       api.cancel();
       reader.cancel();
 
@@ -62,5 +41,35 @@ export function uploadAllParts(
         reject(error);
       }
     }
+
+    const completedParts: CompletedPart[] = [];
+
+    api.on('completePart', (part: CompletedPart) => {
+      completedParts.push(part);
+
+      if (reader.done && api.activeUploads === 0 && !api.hasPartsToUpload) {
+        resolve(completedParts);
+      }
+    });
+
+    api.on('error', cancel);
+
+    reader.on('done', () => {
+      // upload any remaining data
+      reader.flush();
+    });
+
+    reader.on('part', (part: UploadPart) => {
+      // queue part for upload
+      api.enqueuePart(part);
+    });
+
+    reader.on('error', cancel);
+
+    // pass stream to reader
+    reader.streamReader = stream.getReader();
+
+    // kickof reader emitted parts will be uploaded
+    void reader.read();
   });
 }

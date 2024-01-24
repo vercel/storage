@@ -21,7 +21,7 @@ async function run(): Promise<void> {
     // textFileExample(),
     // textFileNoRandomSuffixExample(),
     // textFileExampleWithCacheControlMaxAge(),
-    imageExample(),
+    // imageExample(),
     // videoExample(),
     // webpageExample(),
     // incomingMessageExample(),
@@ -32,7 +32,7 @@ async function run(): Promise<void> {
     // weirdCharactersExample(),
     // copyTextFile(),
     // listFolders(),
-    // multipartNodeJsFileStream(),
+    multipartNodeJsFileStream(),
     // fetchExampleMultipart(),
     // createFolder(),
   ]);
@@ -60,7 +60,7 @@ async function run(): Promise<void> {
 
   console.log(count, 'blobs in this store');
 
-  // await Promise.all(urls.map((url) => vercelBlob.del(url)));
+  await Promise.all(urls.map((url) => vercelBlob.del(url)));
 }
 
 async function textFileExample(): Promise<string> {

@@ -1,10 +1,13 @@
 import EventEmitter from 'node:events';
 import { debug } from '../debug';
+import { BlobError } from '../helpers';
 import { PartSizeInBytes, type MultipartMemory } from './multipart-memory';
 
+// responsible for reading a stream and emitting parts with the correct size
 export class MultipartReader extends EventEmitter {
-  private _done = false;
-  private _reading = false;
+  // if the stream is done or canceled
+  private doneReading = false;
+  private isReading = false;
 
   private currentPartNumber = 1;
 
@@ -12,19 +15,15 @@ export class MultipartReader extends EventEmitter {
   private currentPart: ArrayBuffer[] = [];
   private currentPartSize = 0;
 
-  private reader: ReadableStreamDefaultReader<ArrayBuffer> | undefined;
+  private _streamReader: ReadableStreamDefaultReader<ArrayBuffer> | undefined;
 
   constructor(private readonly memory: MultipartMemory) {
     super();
   }
 
-  private get partNumber(): number {
-    return this.currentPartNumber++;
-  }
-
-  private uploadPart(): void {
+  private emitPart(): void {
     const newPart = {
-      partNumber: this.partNumber,
+      partNumber: this.currentPartNumber++,
       blob: new Blob(this.currentPart, { type: 'application/octet-stream' }),
     };
 
@@ -32,123 +31,141 @@ export class MultipartReader extends EventEmitter {
 
     this.emit('part', newPart);
 
+    // reset tmp storage for the next part
     this.currentPart = [];
     this.currentPartSize = 0;
-  }
-
-  private get partIsReady(): boolean {
-    return this.currentPartSize === PartSizeInBytes;
   }
 
   // This code ensures that each part will be exactly of `partSizeInBytes` size
   // Otherwise R2 will refuse it. AWS S3 is fine with parts of different sizes.
   private processValue(value: ArrayBuffer): void {
     let valueOffset = 0;
-    while (valueOffset < value.byteLength) {
-      const remainingPartSize = PartSizeInBytes - this.currentPartSize;
 
-      const endOffset = Math.min(
-        valueOffset + remainingPartSize,
-        value.byteLength,
-      );
+    try {
+      while (valueOffset < value.byteLength) {
+        const remainingPartSize = PartSizeInBytes - this.currentPartSize;
 
-      const chunk = value.slice(valueOffset, endOffset);
+        const endOffset = Math.min(
+          valueOffset + remainingPartSize,
+          value.byteLength,
+        );
 
-      this.currentPart.push(chunk);
-      this.currentPartSize += chunk.byteLength;
+        const chunk = value.slice(valueOffset, endOffset);
 
-      valueOffset = endOffset;
+        this.currentPart.push(chunk);
+        this.currentPartSize += chunk.byteLength;
 
-      if (this.partIsReady) {
-        this.uploadPart();
+        valueOffset = endOffset;
+
+        const partIsReady = this.currentPartSize === PartSizeInBytes;
+        if (partIsReady) {
+          this.emitPart();
+        }
       }
+    } catch (error) {
+      debug('mpu reader: error', error);
+
+      this.emit('error', error);
     }
   }
 
   private onFreeSpace(): void {
-    if (this._done || this._reading) {
+    this.memory.removeListener('freeSpace', this.onFreeSpace.bind(this));
+
+    if (this.doneReading || this.isReading) {
       return;
     }
-
-    this.memory.removeListener('freeSpace', this.onFreeSpace.bind(this));
 
     void this.read();
   }
 
-  public async read(
-    reader?: ReadableStreamDefaultReader<ArrayBuffer>,
-  ): Promise<void> {
-    // use the new reader
-    if (reader) {
-      this.reader = reader;
-    }
+  public set streamReader(
+    streamReader: ReadableStreamDefaultReader<ArrayBuffer>,
+  ) {
+    this._streamReader = streamReader;
+  }
 
-    if (!this.reader) {
-      throw new Error('No reader');
-    }
-
-    debug(
-      'mpu reader: start reading',
-      'currentPartNumber:',
-      this.currentPartNumber,
-      'currentPartSize:',
-      this.currentPartSize,
-    );
-
-    this.memory.debug();
-
-    this._reading = true;
-
-    while (this.memory.hasSpace()) {
-      // eslint-disable-next-line no-await-in-loop -- A for loop is fine here.
-      const { value, done } = await this.reader.read();
-
-      if (done) {
-        this._done = true;
-        this.reader = undefined;
-
-        debug('mpu: upload read consumed the whole stream');
-
-        // subscriber can decide to flush or read another stream
-        this.emit('done');
-
+  public async read(): Promise<void> {
+    try {
+      if (this.doneReading || this.isReading) {
         return;
       }
 
-      this.memory.useSpace(value.byteLength);
+      if (!this._streamReader) {
+        throw new BlobError('mpu reader error: no reader');
+      }
 
-      this.processValue(value);
+      debug(
+        'mpu reader: start reading',
+        'currentPartNumber:',
+        this.currentPartNumber,
+        'currentPartSize:',
+        this.currentPartSize,
+      );
+
+      this.memory.debug();
+
+      this.isReading = true;
+
+      while (this.memory.hasSpace()) {
+        // eslint-disable-next-line no-await-in-loop -- A for loop is fine here.
+        const { value, done } = await this._streamReader.read();
+
+        if (done) {
+          this.doneReading = true;
+          this._streamReader = undefined;
+
+          debug('mpu: upload read consumed the whole stream');
+
+          // subscriber can decide to flush or read another stream
+          this.emit('done');
+
+          return;
+        }
+
+        this.memory.useSpace(value.byteLength);
+
+        this.processValue(value);
+      }
+
+      debug(
+        'mpu reader: end read',
+        'currentPartNumber:',
+        this.currentPartNumber,
+        'currentPartSize:',
+        this.currentPartSize,
+      );
+
+      this.memory.debug();
+
+      this.isReading = false;
+
+      // resume reading if there is space in memory
+      this.memory.on('freeSpace', this.onFreeSpace.bind(this));
+    } catch (error) {
+      debug('mpu reader: error', error);
+
+      this.emit('error', error);
     }
-
-    debug(
-      'mpu reader: end read',
-      'currentPartNumber:',
-      this.currentPartNumber,
-      'currentPartSize:',
-      this.currentPartSize,
-    );
-
-    this.memory.debug();
-
-    this._reading = false;
-
-    // resume reading if there is space in memory
-    this.memory.on('freeSpace', this.onFreeSpace.bind(this));
   }
 
   public get done(): boolean {
-    return this._done && this.currentPart.length === 0;
+    return this.doneReading && this.currentPart.length === 0;
   }
 
   // send the remaining data in memory
   public flush(): void {
     if (this.currentPart.length > 0) {
-      this.uploadPart();
+      this.emitPart();
     }
   }
 
   public cancel(): void {
-    this._done = true;
-    this.reader?.releaseLock();
+    debug('mpu reader: cancel');
+
+    this.doneReading = true;
+
+    this._streamReader?.releaseLock();
+    this._streamReader = undefined;
   }
 }

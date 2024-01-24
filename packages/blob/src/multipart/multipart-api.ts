@@ -5,15 +5,14 @@ import { requestApi } from '../api';
 import type { BlobCommandOptions } from '../helpers';
 import type { UploadPart, UploadPartApiResponse } from '../put-multipart';
 import { debug } from '../debug';
-import type { MultipartMemory } from './multipart-memory';
+import { MaxConcurrentUploads, type MultipartMemory } from './multipart-memory';
 
-export const maxConcurrentUploads = typeof window !== 'undefined' ? 6 : 8;
-
+// responsible for queueing and uploading parts
 export class MultipartApi extends EventEmitter {
   private partsToUpload: UploadPart[] = [];
 
   private _activeUploads = 0;
-  private _totalBytesSent = 0;
+  private totalBytesSent = 0;
 
   private readonly abortController = new AbortController();
 
@@ -34,11 +33,7 @@ export class MultipartApi extends EventEmitter {
     return this._activeUploads;
   }
 
-  public get totalBytesSent(): number {
-    return this._totalBytesSent;
-  }
-
-  public upload(part: UploadPart): void {
+  public enqueuePart(part: UploadPart): void {
     debug('mpu api: queue part', part.partNumber);
 
     this.partsToUpload.push(part);
@@ -56,13 +51,13 @@ export class MultipartApi extends EventEmitter {
       'activeUploads:',
       this._activeUploads,
       'maxConcurrentUploads:',
-      maxConcurrentUploads,
+      MaxConcurrentUploads,
       'partsToUpload:',
       this.partsToUpload.length,
     );
 
     while (
-      this._activeUploads < maxConcurrentUploads &&
+      this._activeUploads < MaxConcurrentUploads &&
       this.hasPartsToUpload
     ) {
       const partToSend = this.partsToUpload.shift();
@@ -86,44 +81,50 @@ export class MultipartApi extends EventEmitter {
 
     debug('mpu api: upload part', part.partNumber, 'size:', part.blob.size);
 
-    const completedPart = await requestApi<UploadPartApiResponse>(
-      `/mpu/${this.pathname}`,
-      {
-        signal: this.abortController.signal,
-        method: 'POST',
-        headers: {
-          ...this.headers,
-          'x-mpu-action': 'upload',
-          'x-mpu-key': encodeURI(this.key),
-          'x-mpu-upload-id': this.uploadId,
-          'x-mpu-part-number': part.partNumber.toString(),
+    try {
+      const completedPart = await requestApi<UploadPartApiResponse>(
+        `/mpu/${this.pathname}`,
+        {
+          signal: this.abortController.signal,
+          method: 'POST',
+          headers: {
+            ...this.headers,
+            'x-mpu-action': 'upload',
+            'x-mpu-key': encodeURI(this.key),
+            'x-mpu-upload-id': this.uploadId,
+            'x-mpu-part-number': part.partNumber.toString(),
+          },
+          // weird things between undici types and native fetch types
+          body: part.blob as BodyInit,
         },
-        // weird things between undici types and native fetch types
-        body: part.blob as BodyInit,
-      },
-      this.options,
-    );
+        this.options,
+      );
 
-    debug(
-      'mpu api: completed upload part',
-      part.partNumber,
-      'activeUploads',
-      this._activeUploads,
-      'bytesSent:',
-      bytes(this._totalBytesSent),
-    );
+      debug(
+        'mpu api: completed upload part',
+        part.partNumber,
+        'activeUploads',
+        this._activeUploads,
+        'bytesSent:',
+        bytes(this.totalBytesSent),
+      );
 
-    this.memory.freeSpace(part.blob.size);
+      this.memory.freeSpace(part.blob.size);
 
-    this._activeUploads--;
-    this._totalBytesSent += part.blob.size;
+      this._activeUploads--;
+      this.totalBytesSent += part.blob.size;
 
-    this.evaluateQueue();
+      this.evaluateQueue();
 
-    this.emit('completePart', {
-      partNumber: part.partNumber,
-      etag: completedPart.etag,
-    });
+      this.emit('completePart', {
+        partNumber: part.partNumber,
+        etag: completedPart.etag,
+      });
+    } catch (error) {
+      debug('mpu api: error', error);
+
+      this.emit('error', error);
+    }
   }
 
   public cancel(): void {

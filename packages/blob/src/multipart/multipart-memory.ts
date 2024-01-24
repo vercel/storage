@@ -3,28 +3,35 @@
 import EventEmitter from 'node:events';
 import bytes from 'bytes';
 import { debug } from '../debug';
+import { BlobError } from '../helpers';
 
+// Most browsers will cap requests at 6 concurrent uploads per domain (Vercel Blob API domain)
 // In other environments, we can afford to be more aggressive
-const MaxConcurrentUploads = typeof window !== 'undefined' ? 6 : 8;
+export const MaxConcurrentUploads = typeof window !== 'undefined' ? 6 : 8;
 
 // 5MB is the minimum part size accepted by Vercel Blob, but we set our default part size to 8mb like the aws cli
 export const PartSizeInBytes = 8 * 1024 * 1024;
 
 const MaxBytesInMemory = MaxConcurrentUploads * PartSizeInBytes * 2;
 
+// manages the memory used by the multipart upload
 export class MultipartMemory extends EventEmitter {
-  private currentBytesInMemory = 0;
+  private availableMemorySpace = MaxBytesInMemory;
 
   public hasSpace(): boolean {
-    return this.currentBytesInMemory < MaxBytesInMemory;
+    return this.availableMemorySpace > 0;
   }
 
   public useSpace(value: number): void {
-    this.currentBytesInMemory += value;
+    if (!this.hasSpace()) {
+      throw new BlobError('mpu memory Error: no memory space left to use.');
+    }
+
+    this.availableMemorySpace -= value;
   }
 
   public freeSpace(value: number): void {
-    this.currentBytesInMemory -= value;
+    this.availableMemorySpace += value;
 
     debug('mpu memory: free space', bytes(value));
     this.debug();
@@ -33,9 +40,6 @@ export class MultipartMemory extends EventEmitter {
   }
 
   public debug(): void {
-    debug(
-      'mpu memory usage:',
-      `${bytes(this.currentBytesInMemory)}/${bytes(MaxBytesInMemory)}`,
-    );
+    debug('mpu memory usage:', bytes(this.availableMemorySpace));
   }
 }

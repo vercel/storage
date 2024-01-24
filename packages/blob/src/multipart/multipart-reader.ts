@@ -1,9 +1,8 @@
-import bytes from 'bytes';
-import { debug } from './debug';
+import EventEmitter from 'node:events';
+import { debug } from '../debug';
 import { PartSizeInBytes, type MultipartMemory } from './multipart-memory';
-import type { MultipartApi } from './multipart-api';
 
-export class MultipartReader {
+export class MultipartReader extends EventEmitter {
   private _done = false;
   private _reading = false;
 
@@ -15,20 +14,23 @@ export class MultipartReader {
 
   private reader: ReadableStreamDefaultReader<ArrayBuffer> | undefined;
 
-  constructor(
-    private readonly api: MultipartApi,
-    private readonly memory: MultipartMemory,
-  ) {}
+  constructor(private readonly memory: MultipartMemory) {
+    super();
+  }
 
   private get partNumber(): number {
     return this.currentPartNumber++;
   }
 
   private uploadPart(): void {
-    this.api.upload({
+    const newPart = {
       partNumber: this.partNumber,
       blob: new Blob(this.currentPart, { type: 'application/octet-stream' }),
-    });
+    };
+
+    debug('mpu reader: emit part', newPart.partNumber);
+
+    this.emit('part', newPart);
 
     this.currentPart = [];
     this.currentPartSize = 0;
@@ -63,41 +65,52 @@ export class MultipartReader {
     }
   }
 
-  public async read(
-    reader: ReadableStreamDefaultReader<ArrayBuffer>,
-  ): Promise<void> {
-    this.reader = reader;
-
-    if (this._reading) {
+  private onFreeSpace(): void {
+    if (this._done || this._reading) {
       return;
     }
 
+    this.memory.removeListener('freeSpace', this.onFreeSpace.bind(this));
+
+    void this.read();
+  }
+
+  public async read(
+    reader?: ReadableStreamDefaultReader<ArrayBuffer>,
+  ): Promise<void> {
+    // use the new reader
+    if (reader) {
+      this.reader = reader;
+    }
+
+    if (!this.reader) {
+      throw new Error('No reader');
+    }
+
     debug(
-      'mpu: upload read start',
-      'activeUploads:',
-      this.api.activeUploads,
-      'currentBytesInMemory:',
-      this.memory.debug(),
-      'bytesSent:',
-      bytes(this.api.totalBytesSent),
+      'mpu reader: start reading',
+      'currentPartNumber:',
+      this.currentPartNumber,
+      'currentPartSize:',
+      this.currentPartSize,
     );
+
+    this.memory.debug();
 
     this._reading = true;
 
-    while (this.memory.hasSpace() && !this._done) {
+    while (this.memory.hasSpace()) {
       // eslint-disable-next-line no-await-in-loop -- A for loop is fine here.
       const { value, done } = await this.reader.read();
 
       if (done) {
         this._done = true;
-        this._reading = false;
+        this.reader = undefined;
+
         debug('mpu: upload read consumed the whole stream');
 
-        // done is sent when the stream is fully consumed. `value` is undefined here,
-        // we just need to send the rest data in memory
-        if (this.currentPart.length > 0) {
-          this.uploadPart();
-        }
+        // subscriber can decide to flush or read another stream
+        this.emit('done');
 
         return;
       }
@@ -108,34 +121,30 @@ export class MultipartReader {
     }
 
     debug(
-      'mpu: read end',
-      'activeUploads:',
-      this.api.activeUploads,
-      'currentBytesInMemory:',
-      this.memory.debug(),
-      'bytesSent:',
-      bytes(this.api.totalBytesSent),
+      'mpu reader: end read',
+      'currentPartNumber:',
+      this.currentPartNumber,
+      'currentPartSize:',
+      this.currentPartSize,
     );
+
+    this.memory.debug();
 
     this._reading = false;
 
-    if (!this._done) {
-      this.memory.on('freeSpace', () => {
-        if (!this.reader) {
-          return;
-        }
-
-        void this.read(this.reader);
-      });
-    }
+    // resume reading if there is space in memory
+    this.memory.on('freeSpace', this.onFreeSpace.bind(this));
   }
 
   public get done(): boolean {
-    return this._done;
+    return this._done && this.currentPart.length === 0;
   }
 
-  public get reading(): boolean {
-    return this._reading;
+  // send the remaining data in memory
+  public flush(): void {
+    if (this.currentPart.length > 0) {
+      this.uploadPart();
+    }
   }
 
   public cancel(): void {

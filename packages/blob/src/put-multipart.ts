@@ -6,7 +6,7 @@ import { BlobServiceNotAvailable, requestApi } from './api';
 import { debug } from './debug';
 import type { PutBlobApiResponse, PutBlobResult, PutBody } from './put';
 import type { BlobCommandOptions } from './helpers';
-import { uploadAllParts } from './multipart-controller';
+import { uploadAllParts } from './multipart/multipart-controller';
 
 // Most browsers will cap requests at 6 concurrent uploads per domain (Vercel Blob API domain)
 // In other environments, we can afford to be more aggressive
@@ -51,7 +51,7 @@ export async function multipartPut(
   //   stream,
   //   headers,
   //   options,
-  // );
+  // );c
 
   const parts = await uploadAllParts(
     createMultipartUploadResponse.uploadId,

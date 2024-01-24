@@ -1,9 +1,9 @@
-import { BlobServiceNotAvailable } from './api';
+import { BlobServiceNotAvailable } from '../api';
+import type { CompletedPart, UploadPart } from '../put-multipart';
+import type { BlobCommandOptions } from '../helpers';
 import { MultipartApi } from './multipart-api';
 import { MultipartMemory } from './multipart-memory';
 import { MultipartReader } from './multipart-reader';
-import type { CompletedPart } from './put-multipart';
-import type { BlobCommandOptions } from './helpers';
 
 export function uploadAllParts(
   uploadId: string,
@@ -25,19 +25,28 @@ export function uploadAllParts(
       memory,
     );
 
-    const reader = new MultipartReader(api, memory);
-
-    const completedParts: CompletedPart[] = [];
-
-    api.on('completePart', (part: CompletedPart) => {
-      completedParts.push(part);
-
-      if (reader.done && api.activeUploads === 0 && !api.hasPartsToUpload) {
-        resolve(completedParts);
-      }
-    });
+    const reader = new MultipartReader(memory);
 
     try {
+      const completedParts: CompletedPart[] = [];
+
+      api.on('completePart', (part: CompletedPart) => {
+        completedParts.push(part);
+
+        if (reader.done && api.activeUploads === 0 && !api.hasPartsToUpload) {
+          resolve(completedParts);
+        }
+      });
+
+      reader.on('done', () => {
+        // upload any remaining data
+        reader.flush();
+      });
+
+      reader.on('part', (part: UploadPart) => {
+        api.upload(part);
+      });
+
       void reader.read(stream.getReader());
     } catch (error) {
       api.cancel();

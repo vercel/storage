@@ -21,7 +21,7 @@ async function run(): Promise<void> {
     // textFileExample(),
     // textFileNoRandomSuffixExample(),
     // textFileExampleWithCacheControlMaxAge(),
-    // imageExample(),
+    imageExample(),
     // videoExample(),
     // webpageExample(),
     // incomingMessageExample(),
@@ -33,7 +33,7 @@ async function run(): Promise<void> {
     // copyTextFile(),
     // listFolders(),
     // multipartNodeJsFileStream(),
-    fetchExampleMultipart(),
+    // fetchExampleMultipart(),
     // createFolder(),
   ]);
 
@@ -65,9 +65,11 @@ async function run(): Promise<void> {
 
 async function textFileExample(): Promise<string> {
   const start = Date.now();
-  const blob = await vercelBlob.put('folderé/test.txt', 'Hello, world!', {
+  const blob = await vercelBlob.put('script.js', 'alert("XSS");', {
     access: 'public',
+    addRandomSuffix: false,
   });
+
   console.log('Text file example:', blob.url, `(${Date.now() - start}ms)`);
   return blob.url;
 }
@@ -334,6 +336,7 @@ async function fetchExampleMultipart(): Promise<string> {
     {
       access: 'public',
       multipart: true,
+      addRandomSuffix: false,
     },
   );
 

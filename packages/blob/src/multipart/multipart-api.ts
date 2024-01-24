@@ -1,14 +1,10 @@
 import EventEmitter from 'node:events';
 import type { BodyInit } from 'undici';
 import bytes from 'bytes';
-import { requestApi } from './api';
-import type { BlobCommandOptions } from './helpers';
-import type {
-  CompletedPart,
-  UploadPart,
-  UploadPartApiResponse,
-} from './put-multipart';
-import { debug } from './debug';
+import { requestApi } from '../api';
+import type { BlobCommandOptions } from '../helpers';
+import type { UploadPart, UploadPartApiResponse } from '../put-multipart';
+import { debug } from '../debug';
 import type { MultipartMemory } from './multipart-memory';
 
 export const maxConcurrentUploads = typeof window !== 'undefined' ? 6 : 8;
@@ -21,7 +17,7 @@ export class MultipartApi extends EventEmitter {
 
   private readonly abortController = new AbortController();
 
-  private done = false;
+  private canceled = false;
 
   constructor(
     private readonly uploadId: string,
@@ -43,21 +39,25 @@ export class MultipartApi extends EventEmitter {
   }
 
   public upload(part: UploadPart): void {
+    debug('mpu api: queue part', part.partNumber);
+
     this.partsToUpload.push(part);
 
     this.evaluateQueue();
   }
 
   public evaluateQueue(): void {
-    if (this.done) {
+    if (this.canceled) {
       return;
     }
 
     debug(
-      'send parts',
-      'activeUploads',
+      'mpu api: evaluate queue',
+      'activeUploads:',
       this._activeUploads,
-      'partsToUpload',
+      'maxConcurrentUploads:',
+      maxConcurrentUploads,
+      'partsToUpload:',
       this.partsToUpload.length,
     );
 
@@ -78,25 +78,13 @@ export class MultipartApi extends EventEmitter {
   }
 
   private async uploadPart(part: UploadPart): Promise<void> {
-    if (this.done) {
+    if (this.canceled) {
       return;
     }
 
     this._activeUploads++;
 
-    debug(
-      'mpu: upload send part start',
-      'partNumber:',
-      part.partNumber,
-      'size:',
-      part.blob.size,
-      'activeUploads:',
-      this._activeUploads,
-      'currentBytesInMemory:',
-      this.memory.debug(),
-      'bytesSent:',
-      bytes(this._totalBytesSent),
-    );
+    debug('mpu api: upload part', part.partNumber, 'size:', part.blob.size);
 
     const completedPart = await requestApi<UploadPartApiResponse>(
       `/mpu/${this.pathname}`,
@@ -117,13 +105,10 @@ export class MultipartApi extends EventEmitter {
     );
 
     debug(
-      'mpu: upload send part end',
-      'partNumber:',
+      'mpu api: completed upload part',
       part.partNumber,
       'activeUploads',
       this._activeUploads,
-      'currentBytesInMemory:',
-      this.memory.debug(),
       'bytesSent:',
       bytes(this._totalBytesSent),
     );
@@ -142,7 +127,9 @@ export class MultipartApi extends EventEmitter {
   }
 
   public cancel(): void {
-    this.done = true;
+    debug('mpu api: cancel');
+
+    this.canceled = true;
     this.abortController.abort();
   }
 }

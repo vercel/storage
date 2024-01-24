@@ -2,6 +2,7 @@
 
 import EventEmitter from 'node:events';
 import bytes from 'bytes';
+import { debug } from '../debug';
 
 // In other environments, we can afford to be more aggressive
 const MaxConcurrentUploads = typeof window !== 'undefined' ? 6 : 8;
@@ -25,14 +26,16 @@ export class MultipartMemory extends EventEmitter {
   public freeSpace(value: number): void {
     this.currentBytesInMemory -= value;
 
+    debug('mpu memory: free space', bytes(value));
+    this.debug();
+
     this.emit('freeSpace');
   }
 
-  public spaceUsed(): number {
-    return this.currentBytesInMemory / MaxBytesInMemory;
-  }
-
-  public debug(): string {
-    return `${bytes(this.currentBytesInMemory)}/${bytes(MaxBytesInMemory)}`;
+  public debug(): void {
+    debug(
+      'mpu memory usage:',
+      `${bytes(this.currentBytesInMemory)}/${bytes(MaxBytesInMemory)}`,
+    );
   }
 }

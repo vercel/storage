@@ -1,9 +1,7 @@
-// Most browsers will cap requests at 6 concurrent uploads per domain (Vercel Blob API domain)
-
-import EventEmitter from 'node:events';
 import bytes from 'bytes';
 import { debug } from '../debug';
 import { BlobError } from '../helpers';
+import { Event } from './event';
 
 // Most browsers will cap requests at 6 concurrent uploads per domain (Vercel Blob API domain)
 // In other environments, we can afford to be more aggressive
@@ -15,8 +13,10 @@ export const PartSizeInBytes = 8 * 1024 * 1024;
 const MaxBytesInMemory = MaxConcurrentUploads * PartSizeInBytes * 2;
 
 // manages the memory used by the multipart upload
-export class MultipartMemory extends EventEmitter {
+export class MultipartMemory {
   private availableMemorySpace = MaxBytesInMemory;
+
+  public freeSpaceEvent = new Event<number>();
 
   public hasSpace(): boolean {
     return this.availableMemorySpace > 0;
@@ -36,7 +36,7 @@ export class MultipartMemory extends EventEmitter {
     debug('mpu memory: free space', bytes(value));
     this.debug();
 
-    this.emit('freeSpace');
+    this.freeSpaceEvent.emit(this.availableMemorySpace);
   }
 
   public debug(): void {

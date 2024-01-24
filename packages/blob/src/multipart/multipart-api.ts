@@ -1,22 +1,27 @@
-import EventEmitter from 'node:events';
 import type { BodyInit } from 'undici';
-import bytes from 'bytes';
 import { requestApi } from '../api';
 import type { BlobCommandOptions } from '../helpers';
-import type { UploadPart, UploadPartApiResponse } from '../put-multipart';
+import type {
+  CompletedPart,
+  UploadPart,
+  UploadPartApiResponse,
+} from '../put-multipart';
 import { debug } from '../debug';
 import { MaxConcurrentUploads, type MultipartMemory } from './multipart-memory';
+import { Event } from './event';
 
 // responsible for queueing and uploading parts
-export class MultipartApi extends EventEmitter {
+export class MultipartApi {
   private partsToUpload: UploadPart[] = [];
 
   private _activeUploads = 0;
-  private totalBytesSent = 0;
 
   private readonly abortController = new AbortController();
 
   private canceled = false;
+
+  public errorEvent = new Event<unknown>();
+  public completePartEvent = new Event<CompletedPart>();
 
   constructor(
     private readonly uploadId: string,
@@ -25,9 +30,7 @@ export class MultipartApi extends EventEmitter {
     private readonly headers: Record<string, string>,
     private readonly options: BlobCommandOptions,
     private readonly memory: MultipartMemory,
-  ) {
-    super();
-  }
+  ) {}
 
   public get activeUploads(): number {
     return this._activeUploads;
@@ -39,6 +42,10 @@ export class MultipartApi extends EventEmitter {
     this.partsToUpload.push(part);
 
     this.evaluateQueue();
+  }
+
+  public hasPartsToUpload(): boolean {
+    return this.partsToUpload.length > 0;
   }
 
   public evaluateQueue(): void {
@@ -58,7 +65,7 @@ export class MultipartApi extends EventEmitter {
 
     while (
       this._activeUploads < MaxConcurrentUploads &&
-      this.hasPartsToUpload
+      this.hasPartsToUpload()
     ) {
       const partToSend = this.partsToUpload.shift();
 
@@ -66,10 +73,6 @@ export class MultipartApi extends EventEmitter {
         void this.uploadPart(partToSend);
       }
     }
-  }
-
-  public get hasPartsToUpload(): boolean {
-    return this.partsToUpload.length > 0;
   }
 
   private async uploadPart(part: UploadPart): Promise<void> {
@@ -105,25 +108,22 @@ export class MultipartApi extends EventEmitter {
         part.partNumber,
         'activeUploads',
         this._activeUploads,
-        'bytesSent:',
-        bytes(this.totalBytesSent),
       );
 
       this.memory.freeSpace(part.blob.size);
 
       this._activeUploads--;
-      this.totalBytesSent += part.blob.size;
 
       this.evaluateQueue();
 
-      this.emit('completePart', {
+      this.completePartEvent.emit({
         partNumber: part.partNumber,
         etag: completedPart.etag,
       });
     } catch (error) {
       debug('mpu api: error', error);
 
-      this.emit('error', error);
+      this.errorEvent.emit(error);
     }
   }
 

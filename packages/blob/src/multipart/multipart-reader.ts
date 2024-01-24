@@ -1,10 +1,11 @@
-import EventEmitter from 'node:events';
 import { debug } from '../debug';
 import { BlobError } from '../helpers';
+import type { UploadPart } from '../put-multipart';
+import { Event } from './event';
 import { PartSizeInBytes, type MultipartMemory } from './multipart-memory';
 
 // responsible for reading a stream and emitting parts with the correct size
-export class MultipartReader extends EventEmitter {
+export class MultipartReader {
   // if the stream is done or canceled
   private doneReading = false;
   private isReading = false;
@@ -17,9 +18,11 @@ export class MultipartReader extends EventEmitter {
 
   private _streamReader: ReadableStreamDefaultReader<ArrayBuffer> | undefined;
 
-  constructor(private readonly memory: MultipartMemory) {
-    super();
-  }
+  public errorEvent = new Event<unknown>();
+  public partEvent = new Event<UploadPart>();
+  public doneEvent = new Event<boolean>();
+
+  constructor(private readonly memory: MultipartMemory) {}
 
   private emitPart(): void {
     const newPart = {
@@ -29,7 +32,7 @@ export class MultipartReader extends EventEmitter {
 
     debug('mpu reader: emit part', newPart.partNumber);
 
-    this.emit('part', newPart);
+    this.partEvent.emit(newPart);
 
     // reset tmp storage for the next part
     this.currentPart = [];
@@ -65,18 +68,8 @@ export class MultipartReader extends EventEmitter {
     } catch (error) {
       debug('mpu reader: error', error);
 
-      this.emit('error', error);
+      this.errorEvent.emit(error);
     }
-  }
-
-  private onFreeSpace(): void {
-    this.memory.removeListener('freeSpace', this.onFreeSpace.bind(this));
-
-    if (this.doneReading || this.isReading) {
-      return;
-    }
-
-    void this.read();
   }
 
   public set streamReader(
@@ -118,7 +111,7 @@ export class MultipartReader extends EventEmitter {
           debug('mpu: upload read consumed the whole stream');
 
           // subscriber can decide to flush or read another stream
-          this.emit('done');
+          this.doneEvent.emit(true);
 
           return;
         }
@@ -141,11 +134,11 @@ export class MultipartReader extends EventEmitter {
       this.isReading = false;
 
       // resume reading if there is space in memory
-      this.memory.on('freeSpace', this.onFreeSpace.bind(this));
+      this.memory.freeSpaceEvent.once(() => void this.read());
     } catch (error) {
       debug('mpu reader: error', error);
 
-      this.emit('error', error);
+      this.errorEvent.emit(error);
     }
   }
 

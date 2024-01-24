@@ -44,27 +44,27 @@ export function uploadAllParts(
 
     const completedParts: CompletedPart[] = [];
 
-    api.on('completePart', (part: CompletedPart) => {
+    api.completePartEvent.on((part: CompletedPart) => {
       completedParts.push(part);
 
-      if (reader.done && api.activeUploads === 0 && !api.hasPartsToUpload) {
+      if (reader.done && api.activeUploads === 0 && !api.hasPartsToUpload()) {
         resolve(completedParts);
       }
     });
 
-    api.on('error', cancel);
+    api.errorEvent.on(cancel);
 
-    reader.on('done', () => {
+    reader.doneEvent.once(() => {
       // upload any remaining data
       reader.flush();
     });
 
-    reader.on('part', (part: UploadPart) => {
+    reader.partEvent.on((part: UploadPart) => {
       // queue part for upload
       api.enqueuePart(part);
     });
 
-    reader.on('error', cancel);
+    reader.errorEvent.on(cancel);
 
     // pass stream to reader
     reader.streamReader = stream.getReader();

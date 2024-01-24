@@ -1,7 +1,7 @@
 // Most browsers will cap requests at 6 concurrent uploads per domain (Vercel Blob API domain)
 
+import EventEmitter from 'node:events';
 import bytes from 'bytes';
-import type { MultipartReader } from './multipart-reader';
 
 // In other environments, we can afford to be more aggressive
 const MaxConcurrentUploads = typeof window !== 'undefined' ? 6 : 8;
@@ -11,14 +11,8 @@ export const PartSizeInBytes = 8 * 1024 * 1024;
 
 const MaxBytesInMemory = MaxConcurrentUploads * PartSizeInBytes * 2;
 
-export class MultipartMemory {
+export class MultipartMemory extends EventEmitter {
   private currentBytesInMemory = 0;
-
-  private _reader: MultipartReader | undefined;
-
-  public set reader(reader: MultipartReader) {
-    this._reader = reader;
-  }
 
   public hasSpace(): boolean {
     return this.currentBytesInMemory < MaxBytesInMemory;
@@ -31,10 +25,7 @@ export class MultipartMemory {
   public freeSpace(value: number): void {
     this.currentBytesInMemory -= value;
 
-    // restart the reader if paused because of not enough memory space
-    if (this._reader && !this._reader.done && !this._reader.reading) {
-      void this._reader.read();
-    }
+    this.emit('freeSpace');
   }
 
   public spaceUsed(): number {

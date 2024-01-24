@@ -2,7 +2,6 @@ import bytes from 'bytes';
 import { debug } from './debug';
 import { PartSizeInBytes, type MultipartMemory } from './multipart-memory';
 import type { MultipartApi } from './multipart-api';
-import type { MultipartController } from './multipart-controller';
 
 export class MultipartReader {
   private _done = false;
@@ -14,16 +13,12 @@ export class MultipartReader {
   private currentPart: ArrayBuffer[] = [];
   private currentPartSize = 0;
 
-  private reader: ReadableStreamDefaultReader<ArrayBuffer>;
+  private reader: ReadableStreamDefaultReader<ArrayBuffer> | undefined;
 
   constructor(
-    readonly stream: ReadableStream<ArrayBuffer>,
-    private readonly controller: MultipartController,
     private readonly api: MultipartApi,
     private readonly memory: MultipartMemory,
-  ) {
-    this.reader = stream.getReader();
-  }
+  ) {}
 
   private get partNumber(): number {
     return this.currentPartNumber++;
@@ -68,7 +63,15 @@ export class MultipartReader {
     }
   }
 
-  public async read(): Promise<void> {
+  public async read(
+    reader: ReadableStreamDefaultReader<ArrayBuffer>,
+  ): Promise<void> {
+    this.reader = reader;
+
+    if (this._reading) {
+      return;
+    }
+
     debug(
       'mpu: upload read start',
       'activeUploads:',
@@ -81,35 +84,31 @@ export class MultipartReader {
 
     this._reading = true;
 
-    while (this.memory.hasSpace() && !this.controller.canceled) {
-      try {
-        // eslint-disable-next-line no-await-in-loop -- A for loop is fine here.
-        const { value, done } = await this.reader.read();
+    while (this.memory.hasSpace() && !this._done) {
+      // eslint-disable-next-line no-await-in-loop -- A for loop is fine here.
+      const { value, done } = await this.reader.read();
 
-        if (done) {
-          this._done = true;
-          this._reading = false;
-          debug('mpu: upload read consumed the whole stream');
+      if (done) {
+        this._done = true;
+        this._reading = false;
+        debug('mpu: upload read consumed the whole stream');
 
-          // done is sent when the stream is fully consumed. `value` is undefined here,
-          // we just need to send the rest data in memory
-          if (this.currentPart.length > 0) {
-            this.uploadPart();
-          }
-
-          return;
+        // done is sent when the stream is fully consumed. `value` is undefined here,
+        // we just need to send the rest data in memory
+        if (this.currentPart.length > 0) {
+          this.uploadPart();
         }
 
-        this.memory.useSpace(value.byteLength);
-
-        this.processValue(value);
-      } catch (error) {
-        this.controller.cancel(error);
+        return;
       }
+
+      this.memory.useSpace(value.byteLength);
+
+      this.processValue(value);
     }
 
     debug(
-      'mpu: upload read end',
+      'mpu: read end',
       'activeUploads:',
       this.api.activeUploads,
       'currentBytesInMemory:',
@@ -119,6 +118,16 @@ export class MultipartReader {
     );
 
     this._reading = false;
+
+    if (!this._done) {
+      this.memory.on('freeSpace', () => {
+        if (!this.reader) {
+          return;
+        }
+
+        void this.read(this.reader);
+      });
+    }
   }
 
   public get done(): boolean {
@@ -129,7 +138,8 @@ export class MultipartReader {
     return this._reading;
   }
 
-  public releaseLock(): void {
-    this.reader.releaseLock();
+  public cancel(): void {
+    this._done = true;
+    this.reader?.releaseLock();
   }
 }

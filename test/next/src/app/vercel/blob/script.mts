@@ -18,23 +18,23 @@ console.log();
 
 async function run(): Promise<void> {
   const urls = await Promise.all([
-    textFileExample(),
-    textFileNoRandomSuffixExample(),
-    textFileExampleWithCacheControlMaxAge(),
-    imageExample(),
-    videoExample(),
-    webpageExample(),
-    incomingMessageExample(),
-    axiosExample(),
-    gotExample(),
-    fetchExample(),
-    noExtensionExample(),
-    weirdCharactersExample(),
-    copyTextFile(),
-    listFolders(),
-    multipartNodeJsFileStream(),
+    // textFileExample(),
+    // textFileNoRandomSuffixExample(),
+    // textFileExampleWithCacheControlMaxAge(),
+    // imageExample(),
+    // videoExample(),
+    // webpageExample(),
+    // incomingMessageExample(),
+    // axiosExample(),
+    // gotExample(),
+    // fetchExample(),
+    // noExtensionExample(),
+    // weirdCharactersExample(),
+    // copyTextFile(),
+    // listFolders(),
+    // multipartNodeJsFileStream(),
     fetchExampleMultipart(),
-    createFolder(),
+    // createFolder(),
   ]);
 
   await Promise.all(
@@ -60,7 +60,7 @@ async function run(): Promise<void> {
 
   console.log(count, 'blobs in this store');
 
-  await Promise.all(urls.map((url) => vercelBlob.del(url)));
+  // await Promise.all(urls.map((url) => vercelBlob.del(url)));
 }
 
 async function textFileExample(): Promise<string> {

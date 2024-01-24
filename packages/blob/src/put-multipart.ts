@@ -6,10 +6,7 @@ import { BlobServiceNotAvailable, requestApi } from './api';
 import { debug } from './debug';
 import type { PutBlobApiResponse, PutBlobResult, PutBody } from './put';
 import type { BlobCommandOptions } from './helpers';
-import { MultipartApi } from './multipart-api';
-import { MultipartController } from './multipart-controller';
-import { MultipartMemory } from './multipart-memory';
-import { MultipartReader } from './multipart-reader';
+import { uploadAllParts } from './multipart-controller';
 
 // Most browsers will cap requests at 6 concurrent uploads per domain (Vercel Blob API domain)
 // In other environments, we can afford to be more aggressive
@@ -56,32 +53,14 @@ export async function multipartPut(
   //   options,
   // );
 
-  const controller = new MultipartController();
-
-  const memory = new MultipartMemory();
-
-  const api = new MultipartApi(
+  const parts = await uploadAllParts(
     createMultipartUploadResponse.uploadId,
     createMultipartUploadResponse.key,
     pathname,
+    stream,
     headers,
     options,
-    memory,
-    controller,
   );
-
-  const reader = new MultipartReader(stream, controller, api, memory);
-  memory.reader = reader;
-
-  const parts = await new Promise<CompletedPart[]>((resolve, reject) => {
-    controller.reject = () => {
-      reader.releaseLock();
-      api.cancel();
-      reject();
-    };
-
-    controller.resolve = resolve;
-  });
 
   // Step 3: Complete multipart upload
   const blob = await completeMultiPartUpload(

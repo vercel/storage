@@ -1,48 +1,57 @@
 import { BlobServiceNotAvailable } from './api';
+import { MultipartApi } from './multipart-api';
+import { MultipartMemory } from './multipart-memory';
+import { MultipartReader } from './multipart-reader';
 import type { CompletedPart } from './put-multipart';
+import type { BlobCommandOptions } from './helpers';
 
-export class MultipartController {
-  private _canceled = false;
-  private completedParts: CompletedPart[] = [];
+export function uploadAllParts(
+  uploadId: string,
+  key: string,
+  pathname: string,
+  stream: ReadableStream<ArrayBuffer>,
+  headers: Record<string, string>,
+  options: BlobCommandOptions,
+): Promise<CompletedPart[]> {
+  return new Promise((resolve, reject) => {
+    const memory = new MultipartMemory();
 
-  private _reject: (error: unknown) => void = () => {
-    /** noop */
-  };
-  private _resolve: (parts: CompletedPart[]) => void = () => {
-    /** noop */
-  };
+    const api = new MultipartApi(
+      uploadId,
+      key,
+      pathname,
+      headers,
+      options,
+      memory,
+    );
 
-  public set reject(reject: () => void) {
-    this._reject = reject;
-  }
+    const reader = new MultipartReader(api, memory);
 
-  public set resolve(resolve: () => void) {
-    this._resolve = resolve;
-  }
+    const completedParts: CompletedPart[] = [];
 
-  public get canceled(): boolean {
-    return this._canceled;
-  }
+    api.on('completePart', (part: CompletedPart) => {
+      completedParts.push(part);
 
-  public cancel(error: unknown): void {
-    if (this._canceled) {
-      return;
+      if (reader.done && api.activeUploads === 0 && !api.hasPartsToUpload) {
+        resolve(completedParts);
+      }
+    });
+
+    try {
+      void reader.read(stream.getReader());
+    } catch (error) {
+      api.cancel();
+      reader.cancel();
+
+      if (
+        error instanceof TypeError &&
+        (error.message === 'Failed to fetch' ||
+          error.message === 'fetch failed')
+      ) {
+        reject(new BlobServiceNotAvailable());
+      } else {
+        reject(error);
+      }
     }
-
-    this._canceled = true;
-    this.reject();
-
-    if (
-      error instanceof TypeError &&
-      (error.message === 'Failed to fetch' || error.message === 'fetch failed')
-    ) {
-      this._reject(new BlobServiceNotAvailable());
-    } else {
-      this._reject(error);
-    }
-  }
-
-  public completePart(part: CompletedPart): void {
-    this.completedParts.push(part);
-  }
+  });
 }

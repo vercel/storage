@@ -1,9 +1,9 @@
 import { requestApi } from './api';
-import type { CreateBlobCommandOptions } from './helpers';
+import type { CreateBlobOptions } from './helpers';
 import { BlobError } from './helpers';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface -- expose option interface for each API method for better extensibility in the future
-export interface CopyCommandOptions extends CreateBlobCommandOptions {}
+export interface CopyCommandOptions extends CreateBlobOptions {}
 
 export interface CopyBlobResult {
   url: string;

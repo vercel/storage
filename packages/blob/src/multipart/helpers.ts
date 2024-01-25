@@ -2,12 +2,12 @@
 import { Readable } from 'stream';
 import type { PutBody } from '../put-helpers';
 
-export interface UploadPart {
+export interface PartInput {
   partNumber: number;
   blob: PutBody;
 }
 
-export interface CompletedPart {
+export interface Part {
   partNumber: number;
   etag: string;
 }

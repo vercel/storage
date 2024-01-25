@@ -1,6 +1,11 @@
+import type { PutCommandOptions } from './put';
 import { createPutMethod } from './put';
-import type { PutCommandOptions } from './put-helpers';
-import { createMultipartPut } from './multipart/multipart-put';
+import { createCreateMultipartPutMethod } from './multipart/create';
+import type { MultipartPutCommandOptions } from './multipart/upload';
+import { createMultipartPutMethod } from './multipart/upload';
+import type { CompleteMultipartPutCommandOptions } from './multipart/complete';
+import { createCompleteMultipartPutMethod } from './multipart/complete';
+import type { CommonCreateBlobOptions } from './helpers';
 
 // expose generic BlobError
 export { BlobError } from './helpers';
@@ -17,7 +22,8 @@ export {
 
 // vercelBlob.put()
 
-export type { PutBlobResult, PutCommandOptions } from './put-helpers';
+export type { PutBlobResult } from './put-helpers';
+export type { PutCommandOptions };
 
 /**
  * Uploads a blob into your store from your server.
@@ -59,7 +65,21 @@ export { copy } from './copy';
 
 // vercelBlob.multipartPut()
 
-export type { MultipartPutResult } from './multipart/multipart-put';
-export const multipartPut = createMultipartPut<PutCommandOptions>({
-  allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
-});
+export const createMultipartPut =
+  createCreateMultipartPutMethod<CommonCreateBlobOptions>({
+    allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
+  });
+
+export type { MultipartPutCommandOptions };
+export const multipartPut =
+  createMultipartPutMethod<MultipartPutCommandOptions>({
+    allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
+  });
+
+export type { CompleteMultipartPutCommandOptions };
+export const completeMultipartPut =
+  createCompleteMultipartPutMethod<CompleteMultipartPutCommandOptions>({
+    allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
+  });
+
+export type { Part, PartInput } from './multipart/helpers';

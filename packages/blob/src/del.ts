@@ -1,5 +1,5 @@
 import { requestApi } from './api';
-import type { BlobCommandOptions } from './helpers';
+import type { BlobOptions } from './helpers';
 
 /**
  * Deletes one or multiple blobs from your store.
@@ -10,7 +10,7 @@ import type { BlobCommandOptions } from './helpers';
  */
 export async function del(
   url: string[] | string,
-  options?: BlobCommandOptions,
+  options?: BlobOptions,
 ): Promise<void> {
   await requestApi(
     '/delete',

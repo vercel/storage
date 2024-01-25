@@ -1,7 +1,7 @@
 // common util interface for blob raw commands, not meant to be used directly
 // this is why it's not exported from index/client
 
-export interface BlobCommandOptions {
+export interface BlobOptions {
   /**
    * Define your blob API token.
    * @defaultvalue process.env.BLOB_READ_WRITE_TOKEN
@@ -9,8 +9,8 @@ export interface BlobCommandOptions {
   token?: string;
 }
 
-// shared interface for put and copy
-export interface CreateBlobCommandOptions extends BlobCommandOptions {
+// shared interface for put, copy and multipartPut
+export interface CommonCreateBlobOptions extends BlobOptions {
   /**
    * Whether the blob should be publicly accessible. Support for private blobs is planned.
    */
@@ -30,6 +30,10 @@ export interface CreateBlobCommandOptions extends BlobCommandOptions {
    * @defaultvalue 365 * 24 * 60 * 60 (1 Year)
    */
   cacheControlMaxAge?: number;
+}
+
+// shared interface for put and copy
+export interface CreateBlobOptions extends CommonCreateBlobOptions {
   /**
    * Whether to use multipart upload. Use this when uploading large files. It will split the file into multiple parts, upload them in parallel and retry failed parts.
    * @defaultvalue false
@@ -37,7 +41,7 @@ export interface CreateBlobCommandOptions extends BlobCommandOptions {
   multipart?: boolean;
 }
 
-export function getTokenFromOptionsOrEnv(options?: BlobCommandOptions): string {
+export function getTokenFromOptionsOrEnv(options?: BlobOptions): string {
   if (options?.token) {
     return options.token;
   }

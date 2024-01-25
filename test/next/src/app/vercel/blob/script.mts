@@ -36,6 +36,7 @@ async function run(): Promise<void> {
     // fetchExampleMultipart(),
     // createFolder(),
     createManualMultipartPut(),
+    // createManualMultipartPutWithUtil
   ]);
 
   await Promise.all(
@@ -61,7 +62,7 @@ async function run(): Promise<void> {
 
   console.log(count, 'blobs in this store');
 
-  await Promise.all(urls.map((url) => vercelBlob.del(url)));
+  // await Promise.all(urls.map((url) => vercelBlob.del(url)));
 }
 
 async function textFileExample(): Promise<string> {
@@ -355,23 +356,63 @@ async function createFolder() {
   return blob.url;
 }
 
+async function createManualMultipartPutWithUtil() {
+  const start = Date.now();
+
+  const pathname = 'big-text.txt';
+  const fullPath = `public/${pathname}`;
+
+  const multiPartUpload = await vercelBlob.createMultipartPut('big-file.txt', {
+    access: 'public',
+  });
+
+  const part1 = await multiPartUpload.put(1, createReadStream(fullPath));
+
+  const part2 = await multiPartUpload.put(2, createReadStream(fullPath));
+
+  const blob = await multiPartUpload.complete([part1, part2]);
+
+  console.log(
+    'manual multipart put with util:',
+    blob,
+    `(${Date.now() - start}ms)`,
+  );
+
+  return blob.url;
+}
+
 async function createManualMultipartPut() {
   const start = Date.now();
 
-  const upload = await vercelBlob.multipartPut('file.txt', {
+  const pathname = 'big-text.txt';
+  const fullPath = `public/${pathname}`;
+
+  const { key, uploadId } = await vercelBlob.createMultipartPut(
+    'big-file.txt',
+    {
+      access: 'public',
+    },
+  );
+
+  const part1 = await vercelBlob.multipartPut(
+    fullPath,
+    createReadStream(fullPath),
+    { access: 'public', key, uploadId, partNumber: 1 },
+  );
+
+  const part2 = await vercelBlob.multipartPut(
+    fullPath,
+    createReadStream(fullPath),
+    { access: 'public', key, uploadId, partNumber: 2 },
+  );
+
+  const blob = await vercelBlob.completeMultipartPut(fullPath, [part1, part2], {
     access: 'public',
-    addRandomSuffix: false,
+    key,
+    uploadId,
   });
-
-  await upload.uploadPart('Hello ');
-
-  await upload.uploadPart('world');
-
-  await upload.uploadPart('!');
-
-  const blob = await upload.complete();
 
   console.log('manual multipart put:', blob, `(${Date.now() - start}ms)`);
 
-  return 'blob.url';
+  return blob.url;
 }

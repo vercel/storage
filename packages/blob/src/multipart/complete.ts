@@ -1,17 +1,66 @@
-import { requestApi, BlobServiceNotAvailable } from '../api';
+import { BlobServiceNotAvailable, requestApi } from '../api';
 import { debug } from '../debug';
-import type { BlobCommandOptions } from '../helpers';
-import type { PutBlobApiResponse, PutBlobResult } from '../put-helpers';
-import type { CompletedPart } from './helpers';
+import type { CommonCreateBlobOptions, BlobOptions } from '../helpers';
+import type {
+  CreatePutMethodOptions,
+  PutBlobApiResponse,
+  PutBlobResult,
+} from '../put-helpers';
+import { createPutHeaders, createPutOptions } from '../put-helpers';
+import type { Part } from './helpers';
 
-export async function completeMultiPartUpload(
-  uploadId: string,
-  key: string,
-  pathname: string,
-  parts: CompletedPart[],
-  headers: Record<string, string>,
-  options: BlobCommandOptions,
-): Promise<PutBlobResult> {
+// shared interface for server and client
+export interface CommonCompleteMultipartPutOptions {
+  uploadId: string;
+  key: string;
+}
+
+export type CompleteMultipartPutCommandOptions =
+  CommonCompleteMultipartPutOptions & CommonCreateBlobOptions;
+
+export function createCompleteMultipartPutMethod<
+  TOptions extends CompleteMultipartPutCommandOptions,
+>({ allowedOptions, getToken, extraChecks }: CreatePutMethodOptions<TOptions>) {
+  return async function createMultipartPut(
+    pathname: string,
+    parts: Part[],
+    optionsInput: TOptions,
+  ) {
+    const options = await createPutOptions({
+      pathname,
+      options: optionsInput,
+      extraChecks,
+      getToken,
+    });
+
+    const headers = createPutHeaders(allowedOptions, options);
+
+    return completeMultipartUpload({
+      uploadId: options.uploadId,
+      key: options.key,
+      pathname,
+      headers,
+      options,
+      parts,
+    });
+  };
+}
+
+export async function completeMultipartUpload({
+  uploadId,
+  key,
+  pathname,
+  parts,
+  headers,
+  options,
+}: {
+  uploadId: string;
+  key: string;
+  pathname: string;
+  parts: Part[];
+  headers: Record<string, string>;
+  options: BlobOptions;
+}): Promise<PutBlobResult> {
   try {
     const response = await requestApi<PutBlobApiResponse>(
       `/mpu/${pathname}`,

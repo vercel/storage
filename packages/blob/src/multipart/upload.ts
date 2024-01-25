@@ -2,8 +2,94 @@ import bytes from 'bytes';
 import type { BodyInit } from 'undici';
 import { BlobServiceNotAvailable, requestApi } from '../api';
 import { debug } from '../debug';
-import type { BlobCommandOptions } from '../helpers';
-import type { CompletedPart } from './helpers';
+import type { CommonCreateBlobOptions, BlobOptions } from '../helpers';
+import { createPutHeaders, createPutOptions } from '../put-helpers';
+import type { PutBody, CreatePutMethodOptions } from '../put-helpers';
+import type { Part, PartInput } from './helpers';
+
+// shared interface for server and client
+export interface CommonMultipartPutOptions {
+  uploadId: string;
+  key: string;
+  partNumber: number;
+  abortController?: AbortController;
+}
+
+export type MultipartPutCommandOptions = CommonMultipartPutOptions &
+  CommonCreateBlobOptions;
+
+export function createMultipartPutMethod<
+  TOptions extends MultipartPutCommandOptions,
+>({ allowedOptions, getToken, extraChecks }: CreatePutMethodOptions<TOptions>) {
+  return async function multipartPut(
+    pathname: string,
+    body: PutBody,
+    optionsInput: TOptions,
+  ): Promise<Part> {
+    const options = await createPutOptions({
+      pathname,
+      options: optionsInput,
+      extraChecks,
+      getToken,
+    });
+
+    const headers = createPutHeaders(allowedOptions, options);
+
+    const result = await uploadPart({
+      uploadId: options.uploadId,
+      key: options.key,
+      pathname,
+      part: { blob: body, partNumber: options.partNumber },
+      headers,
+      options,
+      abortController: options.abortController,
+    });
+
+    return {
+      etag: result.etag,
+      partNumber: options.partNumber,
+    };
+  };
+}
+
+export function uploadPart({
+  uploadId,
+  key,
+  pathname,
+  headers,
+  options,
+  abortController,
+  part,
+}: {
+  uploadId: string;
+  key: string;
+  pathname: string;
+  headers: Record<string, string>;
+  options: BlobOptions;
+  abortController?: AbortController;
+  part: PartInput;
+}): Promise<UploadPartApiResponse> {
+  return requestApi<UploadPartApiResponse>(
+    `/mpu/${pathname}`,
+    {
+      signal: abortController?.signal,
+      method: 'POST',
+      headers: {
+        ...headers,
+        'x-mpu-action': 'upload',
+        'x-mpu-key': encodeURI(key),
+        'x-mpu-upload-id': uploadId,
+        'x-mpu-part-number': part.partNumber.toString(),
+      },
+      // weird things between undici types and native fetch types
+      body: part.blob as BodyInit,
+      // required in order to stream some body types to Cloudflare
+      // currently only supported in Node.js, we may have to feature detect this
+      duplex: 'half',
+    },
+    options,
+  );
+}
 
 // Most browsers will cap requests at 6 concurrent uploads per domain (Vercel Blob API domain)
 // In other environments, we can afford to be more aggressive
@@ -24,20 +110,27 @@ export interface BlobUploadPart {
 }
 
 // Can we rewrite this function without new Promise?
-export function uploadAllParts(
-  uploadId: string,
-  key: string,
-  pathname: string,
-  stream: ReadableStream<ArrayBuffer>,
-  headers: Record<string, string>,
-  options: BlobCommandOptions,
-): Promise<CompletedPart[]> {
+export function uploadAllParts({
+  uploadId,
+  key,
+  pathname,
+  stream,
+  headers,
+  options,
+}: {
+  uploadId: string;
+  key: string;
+  pathname: string;
+  stream: ReadableStream<ArrayBuffer>;
+  headers: Record<string, string>;
+  options: BlobOptions;
+}): Promise<Part[]> {
   debug('mpu: upload init', 'key:', key);
   const internalAbortController = new AbortController();
 
   return new Promise((resolve, reject) => {
     const partsToUpload: BlobUploadPart[] = [];
-    const completedParts: CompletedPart[] = [];
+    const completedParts: Part[] = [];
     const reader = stream.getReader();
     let activeUploads = 0;
     let reading = false;
@@ -158,23 +251,15 @@ export function uploadAllParts(
       );
 
       try {
-        const completedPart = await requestApi<UploadPartApiResponse>(
-          `/mpu/${pathname}`,
-          {
-            signal: internalAbortController.signal,
-            method: 'POST',
-            headers: {
-              ...headers,
-              'x-mpu-action': 'upload',
-              'x-mpu-key': encodeURI(key),
-              'x-mpu-upload-id': uploadId,
-              'x-mpu-part-number': part.partNumber.toString(),
-            },
-            // weird things between undici types and native fetch types
-            body: part.blob as BodyInit,
-          },
+        const completedPart = await uploadPart({
+          uploadId,
+          key,
+          pathname,
+          headers,
           options,
-        );
+          abortController: internalAbortController,
+          part,
+        });
 
         debug(
           'mpu: upload send part end',

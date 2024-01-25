@@ -1,10 +1,8 @@
 // eslint-disable-next-line unicorn/prefer-node-protocol -- node:stream does not resolve correctly in browser and edge
 import type { Readable } from 'stream';
-import type { ClientPutCommandOptions } from './client';
-import type { CreateBlobCommandOptions, PartialBy } from './helpers';
+import type { ClientCommonCreateBlobOptions } from './client';
+import type { CommonCreateBlobOptions } from './helpers';
 import { BlobError } from './helpers';
-
-export type PutCommandOptions = CreateBlobCommandOptions;
 
 const putOptionHeaderMap = {
   cacheControlMaxAge: 'x-cache-control-max-age',
@@ -29,10 +27,8 @@ export type PutBody =
   | ReadableStream // Streams API (= Web streams in Node.js)
   | File;
 
-export type CreatePutOptions = PartialBy<
-  PutCommandOptions & ClientPutCommandOptions,
-  'token'
->;
+export type CommonPutCommandOptions = CommonCreateBlobOptions &
+  ClientCommonCreateBlobOptions;
 
 export interface CreatePutMethodOptions<TOptions> {
   allowedOptions: (keyof typeof putOptionHeaderMap)[];
@@ -40,7 +36,7 @@ export interface CreatePutMethodOptions<TOptions> {
   extraChecks?: (options: TOptions) => void;
 }
 
-export function createPutHeaders<TOptions extends CreatePutOptions>(
+export function createPutHeaders<TOptions extends CommonPutCommandOptions>(
   allowedOptions: CreatePutMethodOptions<TOptions>['allowedOptions'],
   options: TOptions,
 ): Record<string, string> {
@@ -70,12 +66,19 @@ export function createPutHeaders<TOptions extends CreatePutOptions>(
   return headers;
 }
 
-export async function createPutOptions<TOptions extends CreatePutOptions>(
-  pathname: string,
-  options?: TOptions,
-  extraChecks?: CreatePutMethodOptions<TOptions>['extraChecks'],
-  getToken?: CreatePutMethodOptions<TOptions>['getToken'],
-): Promise<TOptions> {
+export async function createPutOptions<
+  TOptions extends CommonPutCommandOptions,
+>({
+  pathname,
+  options,
+  extraChecks,
+  getToken,
+}: {
+  pathname: string;
+  options?: TOptions;
+  extraChecks?: CreatePutMethodOptions<TOptions>['extraChecks'];
+  getToken?: CreatePutMethodOptions<TOptions>['getToken'];
+}): Promise<TOptions> {
   if (!pathname) {
     throw new BlobError('pathname is required');
   }

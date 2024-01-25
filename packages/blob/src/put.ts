@@ -1,9 +1,9 @@
 import type { BodyInit } from 'undici';
 import { requestApi } from './api';
+import type { CreateBlobOptions } from './helpers';
 import { BlobError } from './helpers';
 import { automaticMultipartPut } from './multipart/automatic-multipart-put';
 import type {
-  CreatePutOptions,
   CreatePutMethodOptions,
   PutBody,
   PutBlobApiResponse,
@@ -11,7 +11,9 @@ import type {
 } from './put-helpers';
 import { createPutOptions, createPutHeaders } from './put-helpers';
 
-export function createPutMethod<TOptions extends CreatePutOptions>({
+export type PutCommandOptions = CreateBlobOptions;
+
+export function createPutMethod<TOptions extends PutCommandOptions>({
   allowedOptions,
   getToken,
   extraChecks,
@@ -36,13 +38,13 @@ export function createPutMethod<TOptions extends CreatePutOptions>({
     // avoid using the options as body
     const body = isFolderCreation ? undefined : bodyOrOptions;
 
-    const options = await createPutOptions(
+    const options = await createPutOptions({
       pathname,
       // when no body is required (for folder creations) options are the second argument
-      isFolderCreation ? (bodyOrOptions as TOptions) : optionsInput,
+      options: isFolderCreation ? (bodyOrOptions as TOptions) : optionsInput,
       extraChecks,
       getToken,
-    );
+    });
 
     const headers = createPutHeaders(allowedOptions, options);
 

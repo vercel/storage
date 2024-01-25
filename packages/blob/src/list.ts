@@ -1,5 +1,5 @@
 import { requestApi } from './api';
-import type { BlobCommandOptions } from './helpers';
+import type { BlobOptions } from './helpers';
 
 export interface ListBlobResultBlob {
   url: string;
@@ -30,7 +30,7 @@ interface ListBlobApiResponse extends Omit<ListBlobResult, 'blobs'> {
 
 export interface ListCommandOptions<
   M extends 'expanded' | 'folded' | undefined = undefined,
-> extends BlobCommandOptions {
+> extends BlobOptions {
   /**
    * The maximum number of blobs to return.
    * @defaultvalue 1000

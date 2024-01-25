@@ -2,7 +2,7 @@ import type { RequestInit, Response } from 'undici';
 import { fetch } from 'undici';
 import retry from 'async-retry';
 import { debug } from './debug';
-import type { BlobCommandOptions } from './helpers';
+import type { BlobOptions } from './helpers';
 import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
 
 export class BlobAccessError extends BlobError {
@@ -137,7 +137,7 @@ function getBlobError(error: BlobApiError['error']): BlobError {
 export async function requestApi<TResponse>(
   pathname: string,
   init: RequestInit,
-  commandOptions: BlobCommandOptions | undefined,
+  commandOptions: BlobOptions | undefined,
 ): Promise<TResponse> {
   const apiVersion = getApiVersion();
   const token = getTokenFromOptionsOrEnv(commandOptions);

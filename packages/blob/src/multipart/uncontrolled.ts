@@ -6,7 +6,7 @@ import { createMultipartUpload } from './create';
 import { toReadableStream } from './helpers';
 import { uploadAllParts } from './upload';
 
-// this automatically slices the body into parts and uploads all of them as multiple part
+// this automatically slices the body into parts and uploads all of them as multiple parts
 export async function uncontrolledMultipartPut(
   pathname: string,
   body: PutBody,

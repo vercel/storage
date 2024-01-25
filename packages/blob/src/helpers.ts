@@ -60,5 +60,3 @@ export class BlobError extends Error {
     super(`Vercel Blob: ${message}`);
   }
 }
-
-export type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;

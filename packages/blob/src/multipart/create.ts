@@ -10,7 +10,10 @@ import { uploadPart } from './upload';
 export function createCreateMultipartPutMethod<
   TOptions extends CommonCreateBlobOptions,
 >({ allowedOptions, getToken, extraChecks }: CreatePutMethodOptions<TOptions>) {
-  return async function multipartPut(pathname: string, optionsInput: TOptions) {
+  return async function createMultipartPut(
+    pathname: string,
+    optionsInput: TOptions,
+  ) {
     const options = await createPutOptions({
       pathname,
       options: optionsInput,

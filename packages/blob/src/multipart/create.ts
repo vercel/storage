@@ -41,8 +41,8 @@ export function createCreateMultipartPutMethod<
         });
 
         return {
-          partNumber,
           etag: result.etag,
+          partNumber,
         };
       },
 

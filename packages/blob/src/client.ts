@@ -18,7 +18,7 @@ import { createMultipartPutMethod } from './multipart/upload';
 import type { CommonMultipartPutOptions } from './multipart/upload';
 
 // interface for put, upload and multipartPut.
-// This types omits all options that are encoded by in the client token.
+// This types omits all options that are encoded in the client token.
 export interface ClientCommonCreateBlobOptions {
   /**
    * Whether the blob should be publicly accessible. Support for private blobs is planned.
@@ -181,7 +181,7 @@ type ClientMultipartUploadCommandOptions = ClientCommonCreateBlobOptions &
   CommonUploadOptions;
 
 export const multipartUpload =
-  createCreateMultipartPutMethod<ClientMultipartUploadCommandOptions>({
+  createMultipartPutMethod<ClientMultipartUploadCommandOptions>({
     allowedOptions: ['contentType'],
     extraChecks: createUploadExtraChecks('client/`multipartUpload`'),
     async getToken(pathname, options) {
@@ -200,18 +200,20 @@ type ClientCompleteMultipartUploadCommandOptions =
     CommonUploadOptions;
 
 export const completeMultipartUpload =
-  createCreateMultipartPutMethod<ClientCompleteMultipartUploadCommandOptions>({
-    allowedOptions: ['contentType'],
-    extraChecks: createUploadExtraChecks('client/`multipartUpload`'),
-    async getToken(pathname, options) {
-      return retrieveClientToken({
-        handleUploadUrl: options.handleUploadUrl,
-        pathname,
-        clientPayload: options.clientPayload ?? null,
-        multipart: true,
-      });
+  createCompleteMultipartPutMethod<ClientCompleteMultipartUploadCommandOptions>(
+    {
+      allowedOptions: ['contentType'],
+      extraChecks: createUploadExtraChecks('client/`multipartUpload`'),
+      async getToken(pathname, options) {
+        return retrieveClientToken({
+          handleUploadUrl: options.handleUploadUrl,
+          pathname,
+          clientPayload: options.clientPayload ?? null,
+          multipart: true,
+        });
+      },
     },
-  });
+  );
 
 // client.upload()
 // This is a client-side wrapper that will fetch the client token for you and then upload the file

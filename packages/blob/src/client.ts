@@ -7,7 +7,7 @@ import type { IncomingMessage } from 'node:http';
 // the `undici` module will be replaced with https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
 // for browser contexts. See ./undici-browser.js and ./package.json
 import { fetch } from 'undici';
-import type { BlobOptions } from './helpers';
+import type { BlobCommandOptions } from './helpers';
 import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
 import { createPutMethod } from './put';
 import type { PutBlobResult } from './put-helpers';
@@ -114,9 +114,9 @@ export const completeMultipartPut =
     extraChecks: createPutExtraChecks('client/`completeMultipartPut`'),
   });
 
-// client.upload()
-// This is a client-side wrapper that will fetch the client token for you and then upload the file
-export interface UploadOptions extends ClientCommonPutOptions {
+// upload methods
+
+export interface CommonUploadOptions {
   /**
    * A route that implements the `handleUpload` function for generating a client token.
    */
@@ -127,6 +127,95 @@ export interface UploadOptions extends ClientCommonPutOptions {
   clientPayload?: string;
 }
 
+function createUploadExtraChecks<
+  TOptions extends CommonUploadOptions & ClientCommonCreateBlobOptions,
+>(methodName: string) {
+  return function extraChecks(options: TOptions) {
+    if (typeof window === 'undefined') {
+      throw new BlobError(
+        `${methodName} must be called from a client environment`,
+      );
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX.
+    if (options.handleUploadUrl === undefined) {
+      throw new BlobError(
+        `${methodName} requires the 'handleUploadUrl' parameter`,
+      );
+    }
+
+    if (
+      // @ts-expect-error -- Runtime check for DX.
+      options.addRandomSuffix !== undefined ||
+      // @ts-expect-error -- Runtime check for DX.
+      options.cacheControlMaxAge !== undefined
+    ) {
+      throw new BlobError(
+        `${methodName} doesn't allow addRandomSuffix and cacheControlMaxAge. Configure these options at the server side when generating client tokens.`,
+      );
+    }
+  };
+}
+
+// client.multipartUpload
+
+export type ClientCreateMultipartUploadCommandOptions =
+  ClientCommonCreateBlobOptions & CommonUploadOptions;
+
+export const createMultipartUpload =
+  createCreateMultipartPutMethod<ClientCreateMultipartUploadCommandOptions>({
+    allowedOptions: ['contentType'],
+    extraChecks: createUploadExtraChecks('client/`createMultipartUpload`'),
+    async getToken(pathname, options) {
+      return retrieveClientToken({
+        handleUploadUrl: options.handleUploadUrl,
+        pathname,
+        clientPayload: options.clientPayload ?? null,
+        multipart: true,
+      });
+    },
+  });
+
+type ClientMultipartUploadCommandOptions = ClientCommonCreateBlobOptions &
+  CommonMultipartPutOptions &
+  CommonUploadOptions;
+
+export const multipartUpload =
+  createCreateMultipartPutMethod<ClientMultipartUploadCommandOptions>({
+    allowedOptions: ['contentType'],
+    extraChecks: createUploadExtraChecks('client/`multipartUpload`'),
+    async getToken(pathname, options) {
+      return retrieveClientToken({
+        handleUploadUrl: options.handleUploadUrl,
+        pathname,
+        clientPayload: options.clientPayload ?? null,
+        multipart: true,
+      });
+    },
+  });
+
+type ClientCompleteMultipartUploadCommandOptions =
+  ClientCommonCreateBlobOptions &
+    CommonCompleteMultipartPutOptions &
+    CommonUploadOptions;
+
+export const completeMultipartUpload =
+  createCreateMultipartPutMethod<ClientCompleteMultipartUploadCommandOptions>({
+    allowedOptions: ['contentType'],
+    extraChecks: createUploadExtraChecks('client/`multipartUpload`'),
+    async getToken(pathname, options) {
+      return retrieveClientToken({
+        handleUploadUrl: options.handleUploadUrl,
+        pathname,
+        clientPayload: options.clientPayload ?? null,
+        multipart: true,
+      });
+    },
+  });
+
+// client.upload()
+// This is a client-side wrapper that will fetch the client token for you and then upload the file
+export type UploadOptions = ClientCommonPutOptions & CommonUploadOptions;
 /**
  * Uploads a blob into your store from the client.
  * Detailed documentation can be found here: https://vercel.com/docs/storage/vercel-blob/using-blob-sdk#client-uploads
@@ -139,37 +228,14 @@ export interface UploadOptions extends ClientCommonPutOptions {
  */
 export const upload = createPutMethod<UploadOptions>({
   allowedOptions: ['contentType'],
-  extraChecks(options: UploadOptions) {
-    if (typeof window === 'undefined') {
-      throw new BlobError(
-        'client/`upload` must be called from a client environment',
-      );
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX.
-    if (options.handleUploadUrl === undefined) {
-      throw new BlobError('Missing `handleUploadUrl` parameter');
-    }
-
-    if (
-      // @ts-expect-error -- Runtime check for DX.
-      options.addRandomSuffix !== undefined ||
-      // @ts-expect-error -- Runtime check for DX.
-      options.cacheControlMaxAge !== undefined
-    ) {
-      throw new BlobError(
-        'addRandomSuffix and cacheControlMaxAge are not supported in client uploads. Configure these options at the server side when generating client tokens.',
-      );
-    }
-  },
-  async getToken(pathname: string, options: UploadOptions) {
-    const clientToken = await retrieveClientToken({
+  extraChecks: createUploadExtraChecks('client/`upload`'),
+  async getToken(pathname, options) {
+    return retrieveClientToken({
       handleUploadUrl: options.handleUploadUrl,
       pathname,
       clientPayload: options.clientPayload ?? null,
       multipart: options.multipart ?? false,
     });
-    return clientToken;
   },
 });
 
@@ -480,7 +546,7 @@ export async function generateClientTokenFromReadWriteToken({
   ).toString('base64')}`;
 }
 
-export interface GenerateClientTokenOptions extends BlobOptions {
+export interface GenerateClientTokenOptions extends BlobCommandOptions {
   pathname: string;
   onUploadCompleted?: {
     callbackUrl: string;

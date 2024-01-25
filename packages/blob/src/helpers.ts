@@ -1,7 +1,7 @@
 // common util interface for blob raw commands, not meant to be used directly
 // this is why it's not exported from index/client
 
-export interface BlobOptions {
+export interface BlobCommandOptions {
   /**
    * Define your blob API token.
    * @defaultvalue process.env.BLOB_READ_WRITE_TOKEN
@@ -10,7 +10,7 @@ export interface BlobOptions {
 }
 
 // shared interface for put, copy and multipartPut
-export interface CommonCreateBlobOptions extends BlobOptions {
+export interface CommonCreateBlobOptions extends BlobCommandOptions {
   /**
    * Whether the blob should be publicly accessible. Support for private blobs is planned.
    */
@@ -41,7 +41,7 @@ export interface CreateBlobOptions extends CommonCreateBlobOptions {
   multipart?: boolean;
 }
 
-export function getTokenFromOptionsOrEnv(options?: BlobOptions): string {
+export function getTokenFromOptionsOrEnv(options?: BlobCommandOptions): string {
   if (options?.token) {
     return options.token;
   }

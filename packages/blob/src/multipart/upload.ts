@@ -2,7 +2,7 @@ import bytes from 'bytes';
 import type { BodyInit } from 'undici';
 import { BlobServiceNotAvailable, requestApi } from '../api';
 import { debug } from '../debug';
-import type { CommonCreateBlobOptions, BlobOptions } from '../helpers';
+import type { CommonCreateBlobOptions, BlobCommandOptions } from '../helpers';
 import { createPutHeaders, createPutOptions } from '../put-helpers';
 import type { PutBody, CreatePutMethodOptions } from '../put-helpers';
 import type { Part, PartInput } from './helpers';
@@ -65,7 +65,7 @@ export function uploadPart({
   key: string;
   pathname: string;
   headers: Record<string, string>;
-  options: BlobOptions;
+  options: BlobCommandOptions;
   abortController?: AbortController;
   part: PartInput;
 }): Promise<UploadPartApiResponse> {
@@ -123,7 +123,7 @@ export function uploadAllParts({
   pathname: string;
   stream: ReadableStream<ArrayBuffer>;
   headers: Record<string, string>;
-  options: BlobOptions;
+  options: BlobCommandOptions;
 }): Promise<Part[]> {
   debug('mpu: upload init', 'key:', key);
   const internalAbortController = new AbortController();

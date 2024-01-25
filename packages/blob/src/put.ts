@@ -2,7 +2,7 @@ import type { BodyInit } from 'undici';
 import { requestApi } from './api';
 import type { CreateBlobOptions } from './helpers';
 import { BlobError } from './helpers';
-import { automaticMultipartPut } from './multipart/automatic-multipart-put';
+import { uncontrolledMultipartPut } from './multipart/uncontrolled';
 import type {
   CreatePutMethodOptions,
   PutBody,
@@ -49,7 +49,7 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
     const headers = createPutHeaders(allowedOptions, options);
 
     if (options.multipart === true && body) {
-      return automaticMultipartPut(pathname, body, headers, options);
+      return uncontrolledMultipartPut(pathname, body, headers, options);
     }
 
     return requestApi<PutBlobApiResponse>(

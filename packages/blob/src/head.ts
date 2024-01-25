@@ -1,5 +1,5 @@
 import { requestApi } from './api';
-import type { BlobOptions } from './helpers';
+import type { BlobCommandOptions } from './helpers';
 
 export interface HeadBlobResult {
   url: string;
@@ -24,7 +24,7 @@ interface HeadBlobApiResponse extends Omit<HeadBlobResult, 'uploadedAt'> {
  */
 export async function head(
   url: string,
-  options?: BlobOptions,
+  options?: BlobCommandOptions,
 ): Promise<HeadBlobResult> {
   const searchParams = new URLSearchParams({ url });
 

@@ -1,5 +1,5 @@
 import { debug } from '../debug';
-import type { BlobOptions } from '../helpers';
+import type { BlobCommandOptions } from '../helpers';
 import type { PutBody, PutBlobResult } from '../put-helpers';
 import { completeMultipartUpload } from './complete';
 import { createMultipartUpload } from './create';
@@ -7,11 +7,11 @@ import { toReadableStream } from './helpers';
 import { uploadAllParts } from './upload';
 
 // this automatically slices the body into parts and uploads all of them as multiple part
-export async function automaticMultipartPut(
+export async function uncontrolledMultipartPut(
   pathname: string,
   body: PutBody,
   headers: Record<string, string>,
-  options: BlobOptions,
+  options: BlobCommandOptions,
 ): Promise<PutBlobResult> {
   debug('mpu: init', 'pathname:', pathname, 'headers:', headers);
 

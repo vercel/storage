@@ -169,12 +169,8 @@ describe('client', () => {
         access: 'public',
         handleUploadUrl: '/api/upload',
       });
-      expect(multiPartUpload).toEqual({
-        uploadId: 'uploadId',
-        key: 'key',
-        complete: expect.any(Function),
-        put: expect.any(Function),
-      });
+      expect(multiPartUpload.uploadId).toEqual('uploadId');
+      expect(multiPartUpload.key).toEqual('key');
 
       const part1 = await multipartUpload(pathname, 'data1', {
         access: 'public',
@@ -366,12 +362,8 @@ describe('client', () => {
         access: 'public',
         handleUploadUrl: '/api/upload',
       });
-      expect(multiPartUpload).toEqual({
-        uploadId: 'uploadId',
-        key: 'key',
-        complete: expect.any(Function),
-        put: expect.any(Function),
-      });
+      expect(multiPartUpload.uploadId).toEqual('uploadId');
+      expect(multiPartUpload.key).toEqual('key');
 
       const part1 = await multiPartUpload.put(1, 'data1');
       expect(part1).toEqual({

@@ -3,7 +3,7 @@
 "vercel-storage-integration-test-suite": patch
 ---
 
-# feat(blob): add manual multipart upload methods
+# feat(blob): add advanced multipart upload methods
 
 This exposes the three different multipart steps as functions of the SDK. Before this change every multipart upload was uncontrolled, meaning the full data was passed to the SDK and it took care of chunking and uploading.
 Now it's possible to manually upload chunks and start and complete the multipart upload. All of the new functions can be used both on the server and the browser. There are two different API's that can be used.

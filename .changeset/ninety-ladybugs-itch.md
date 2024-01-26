@@ -10,7 +10,7 @@ Now it's possible to manually upload chunks and start and complete the multipart
 
 > When using manual multipart uploads **every upload part has to be of the same size** and **the callside has to take care of memory management and concurrent uploads**!
 
-## Fully manual
+## Individual methods
 
 Use `createMultipartPut`, `multipartPut` and `completeMultipartPut` to manage the upload.
 

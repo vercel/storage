@@ -57,7 +57,7 @@ export class BlobError extends Error {
   }
 }
 
-export function getDownloadURL(blobUrl: string): string {
+export function getDownloadUrl(blobUrl: string): string {
   const url = new URL(blobUrl);
 
   url.searchParams.set('download', '1');

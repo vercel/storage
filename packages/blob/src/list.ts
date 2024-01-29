@@ -7,6 +7,7 @@ export interface ListBlobResultBlob {
   pathname: string;
   size: number;
   uploadedAt: Date;
+  downloadUrl: string;
 }
 
 export interface ListBlobResult {

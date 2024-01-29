@@ -11,6 +11,7 @@ export interface CopyBlobResult {
   pathname: string;
   contentType?: string;
   contentDisposition: string;
+  downloadUrl: string;
 }
 
 /**

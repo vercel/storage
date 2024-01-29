@@ -26,6 +26,9 @@ export function createCreateMultipartUploaderMethod<
     );
 
     return {
+      key: createMultipartUploadResponse.key,
+      uploadId: createMultipartUploadResponse.uploadId,
+
       async uploadPart(partNumber: number, body: PutBody) {
         const result = await uploadPart({
           uploadId: createMultipartUploadResponse.uploadId,

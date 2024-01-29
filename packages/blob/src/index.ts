@@ -6,7 +6,7 @@ import { createMultipartUploadMethod } from './multipart/upload';
 import type { CompleteMultipartUploadCommandOptions } from './multipart/complete';
 import { createCompleteMultipartUploadMethod } from './multipart/complete';
 import type { CommonCreateBlobOptions } from './helpers';
-import { createCreateMultipartUploaderMethod } from './multipart/uploader';
+import { createCreateMultipartUploaderMethod } from './multipart/create-uploader';
 
 // expose generic BlobError
 export { BlobError } from './helpers';

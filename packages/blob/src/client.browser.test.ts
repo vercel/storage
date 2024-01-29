@@ -4,6 +4,7 @@ import {
   createMultipartUpload,
   multipartUpload,
   upload,
+  createMultipartUploader,
 } from './client';
 
 describe('client', () => {
@@ -102,25 +103,7 @@ describe('client', () => {
           .mockResolvedValueOnce({
             status: 200,
             ok: true,
-            json: () =>
-              Promise.resolve({
-                type: 'blob.generate-client-token',
-                clientToken: 'fake-client-token-for-test',
-              }),
-          })
-          .mockResolvedValueOnce({
-            status: 200,
-            ok: true,
             json: () => Promise.resolve({ key: 'key', uploadId: 'uploadId' }),
-          })
-          .mockResolvedValueOnce({
-            status: 200,
-            ok: true,
-            json: () =>
-              Promise.resolve({
-                type: 'blob.generate-client-token',
-                clientToken: 'fake-client-token-for-test',
-              }),
           })
           .mockResolvedValueOnce({
             status: 200,
@@ -130,25 +113,7 @@ describe('client', () => {
           .mockResolvedValueOnce({
             status: 200,
             ok: true,
-            json: () =>
-              Promise.resolve({
-                type: 'blob.generate-client-token',
-                clientToken: 'fake-client-token-for-test',
-              }),
-          })
-          .mockResolvedValueOnce({
-            status: 200,
-            ok: true,
             json: () => Promise.resolve({ etag: 'etag2' }),
-          })
-          .mockResolvedValueOnce({
-            status: 200,
-            ok: true,
-            json: () =>
-              Promise.resolve({
-                type: 'blob.generate-client-token',
-                clientToken: 'fake-client-token-for-test',
-              }),
           })
           .mockResolvedValueOnce({
             status: 200,
@@ -164,10 +129,11 @@ describe('client', () => {
       );
 
       const pathname = 'foo.txt';
+      const token = 'vercel_blob_client_fake_token_for_test';
 
       const multiPartUpload = await createMultipartUpload(pathname, {
         access: 'public',
-        handleUploadUrl: '/api/upload',
+        token,
       });
       expect(multiPartUpload.uploadId).toEqual('uploadId');
       expect(multiPartUpload.key).toEqual('key');
@@ -177,7 +143,7 @@ describe('client', () => {
         key: 'key',
         partNumber: 1,
         uploadId: 'uploadId',
-        handleUploadUrl: '/api/upload',
+        token,
       });
 
       expect(part1).toEqual({
@@ -190,7 +156,7 @@ describe('client', () => {
         key: 'key',
         partNumber: 2,
         uploadId: 'uploadId',
-        handleUploadUrl: '/api/upload',
+        token,
       });
       expect(part2).toEqual({
         etag: 'etag2',
@@ -201,7 +167,7 @@ describe('client', () => {
         access: 'public',
         key: 'key',
         uploadId: 'uploadId',
-        handleUploadUrl: '/api/upload',
+        token,
       });
       expect(blob).toEqual({
         contentDisposition: 'attachment; filename="foo.txt"',
@@ -210,23 +176,14 @@ describe('client', () => {
         url: 'https://storeId.public.blob.vercel-storage.com/foo.txt',
       });
 
-      expect(fetchMock).toHaveBeenCalledTimes(8);
+      expect(fetchMock).toHaveBeenCalledTimes(4);
 
       expect(fetchMock).toHaveBeenNthCalledWith(
         1,
-        'http://localhost:3000/api/upload',
-        {
-          body: '{"type":"blob.generate-client-token","payload":{"pathname":"foo.txt","callbackUrl":"http://localhost:3000/api/upload","clientPayload":null,"multipart":true}}',
-          headers: { 'content-type': 'application/json' },
-          method: 'POST',
-        },
-      );
-      expect(fetchMock).toHaveBeenNthCalledWith(
-        2,
         'https://blob.vercel-storage.com/mpu/foo.txt',
         {
           headers: {
-            authorization: 'Bearer fake-client-token-for-test',
+            authorization: 'Bearer vercel_blob_client_fake_token_for_test',
             'x-api-version': '6',
             'x-mpu-action': 'create',
           },
@@ -234,21 +191,12 @@ describe('client', () => {
         },
       );
       expect(fetchMock).toHaveBeenNthCalledWith(
-        3,
-        'http://localhost:3000/api/upload',
-        {
-          body: '{"type":"blob.generate-client-token","payload":{"pathname":"foo.txt","callbackUrl":"http://localhost:3000/api/upload","clientPayload":null,"multipart":true}}',
-          headers: { 'content-type': 'application/json' },
-          method: 'POST',
-        },
-      );
-      expect(fetchMock).toHaveBeenNthCalledWith(
-        4,
+        2,
         'https://blob.vercel-storage.com/mpu/foo.txt',
         {
           body: 'data1',
           headers: {
-            authorization: 'Bearer fake-client-token-for-test',
+            authorization: 'Bearer vercel_blob_client_fake_token_for_test',
             'x-api-version': '6',
             'x-mpu-action': 'upload',
             'x-mpu-key': 'key',
@@ -260,21 +208,12 @@ describe('client', () => {
         },
       );
       expect(fetchMock).toHaveBeenNthCalledWith(
-        5,
-        'http://localhost:3000/api/upload',
-        {
-          body: '{"type":"blob.generate-client-token","payload":{"pathname":"foo.txt","callbackUrl":"http://localhost:3000/api/upload","clientPayload":null,"multipart":true}}',
-          headers: { 'content-type': 'application/json' },
-          method: 'POST',
-        },
-      );
-      expect(fetchMock).toHaveBeenNthCalledWith(
-        6,
+        3,
         'https://blob.vercel-storage.com/mpu/foo.txt',
         {
           body: 'data2',
           headers: {
-            authorization: 'Bearer fake-client-token-for-test',
+            authorization: 'Bearer vercel_blob_client_fake_token_for_test',
             'x-api-version': '6',
             'x-mpu-action': 'upload',
             'x-mpu-key': 'key',
@@ -286,16 +225,7 @@ describe('client', () => {
         },
       );
       expect(fetchMock).toHaveBeenNthCalledWith(
-        7,
-        'http://localhost:3000/api/upload',
-        {
-          body: '{"type":"blob.generate-client-token","payload":{"pathname":"foo.txt","callbackUrl":"http://localhost:3000/api/upload","clientPayload":null,"multipart":true}}',
-          headers: { 'content-type': 'application/json' },
-          method: 'POST',
-        },
-      );
-      expect(fetchMock).toHaveBeenNthCalledWith(
-        8,
+        4,
         'https://blob.vercel-storage.com/mpu/foo.txt',
         {
           body: JSON.stringify([
@@ -304,7 +234,7 @@ describe('client', () => {
           ]),
           headers: {
             'content-type': 'application/json',
-            authorization: 'Bearer fake-client-token-for-test',
+            authorization: 'Bearer vercel_blob_client_fake_token_for_test',
             'x-api-version': '6',
             'x-mpu-action': 'complete',
             'x-mpu-key': 'key',
@@ -315,19 +245,10 @@ describe('client', () => {
       );
     });
 
-    it('should upload a file using the util function', async () => {
+    it('should upload a file using the uploader', async () => {
       const fetchMock = jest.spyOn(undici, 'fetch').mockImplementation(
         jest
           .fn()
-          .mockResolvedValueOnce({
-            status: 200,
-            ok: true,
-            json: () =>
-              Promise.resolve({
-                type: 'blob.generate-client-token',
-                clientToken: 'fake-client-token-for-test',
-              }),
-          })
           .mockResolvedValueOnce({
             status: 200,
             ok: true,
@@ -357,21 +278,22 @@ describe('client', () => {
       );
 
       const pathname = 'foo.txt';
+      const token = 'vercel_blob_client_fake_token_for_test';
 
-      const multiPartUpload = await createMultipartUpload(pathname, {
+      const multiPartUpload = await createMultipartUploader(pathname, {
         access: 'public',
-        handleUploadUrl: '/api/upload',
+        token,
       });
       expect(multiPartUpload.uploadId).toEqual('uploadId');
       expect(multiPartUpload.key).toEqual('key');
 
-      const part1 = await multiPartUpload.put(1, 'data1');
+      const part1 = await multiPartUpload.uploadPart(1, 'data1');
       expect(part1).toEqual({
         etag: 'etag1',
         partNumber: 1,
       });
 
-      const part2 = await multiPartUpload.put(2, 'data2');
+      const part2 = await multiPartUpload.uploadPart(2, 'data2');
       expect(part2).toEqual({
         etag: 'etag2',
         partNumber: 2,
@@ -385,23 +307,14 @@ describe('client', () => {
         url: 'https://storeId.public.blob.vercel-storage.com/foo.txt',
       });
 
-      expect(fetchMock).toHaveBeenCalledTimes(5);
+      expect(fetchMock).toHaveBeenCalledTimes(4);
 
       expect(fetchMock).toHaveBeenNthCalledWith(
         1,
-        'http://localhost:3000/api/upload',
-        {
-          body: '{"type":"blob.generate-client-token","payload":{"pathname":"foo.txt","callbackUrl":"http://localhost:3000/api/upload","clientPayload":null,"multipart":true}}',
-          headers: { 'content-type': 'application/json' },
-          method: 'POST',
-        },
-      );
-      expect(fetchMock).toHaveBeenNthCalledWith(
-        2,
         'https://blob.vercel-storage.com/mpu/foo.txt',
         {
           headers: {
-            authorization: 'Bearer fake-client-token-for-test',
+            authorization: 'Bearer vercel_blob_client_fake_token_for_test',
             'x-api-version': '6',
             'x-mpu-action': 'create',
           },
@@ -409,12 +322,12 @@ describe('client', () => {
         },
       );
       expect(fetchMock).toHaveBeenNthCalledWith(
-        3,
+        2,
         'https://blob.vercel-storage.com/mpu/foo.txt',
         {
           body: 'data1',
           headers: {
-            authorization: 'Bearer fake-client-token-for-test',
+            authorization: 'Bearer vercel_blob_client_fake_token_for_test',
             'x-api-version': '6',
             'x-mpu-action': 'upload',
             'x-mpu-key': 'key',
@@ -426,12 +339,12 @@ describe('client', () => {
         },
       );
       expect(fetchMock).toHaveBeenNthCalledWith(
-        4,
+        3,
         'https://blob.vercel-storage.com/mpu/foo.txt',
         {
           body: 'data2',
           headers: {
-            authorization: 'Bearer fake-client-token-for-test',
+            authorization: 'Bearer vercel_blob_client_fake_token_for_test',
             'x-api-version': '6',
             'x-mpu-action': 'upload',
             'x-mpu-key': 'key',
@@ -443,7 +356,7 @@ describe('client', () => {
         },
       );
       expect(fetchMock).toHaveBeenNthCalledWith(
-        5,
+        4,
         'https://blob.vercel-storage.com/mpu/foo.txt',
         {
           body: JSON.stringify([
@@ -452,7 +365,7 @@ describe('client', () => {
           ]),
           headers: {
             'content-type': 'application/json',
-            authorization: 'Bearer fake-client-token-for-test',
+            authorization: 'Bearer vercel_blob_client_fake_token_for_test',
             'x-api-version': '6',
             'x-mpu-action': 'complete',
             'x-mpu-key': 'key',

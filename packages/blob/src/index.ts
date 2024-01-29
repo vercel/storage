@@ -2,7 +2,7 @@ import type { PutCommandOptions } from './put';
 import { createPutMethod } from './put';
 
 // expose generic BlobError and download url util
-export { BlobError, createDownloadURL } from './helpers';
+export { BlobError, getDownloadURL } from './helpers';
 
 // expose api BlobErrors
 export {

@@ -21,6 +21,7 @@ export interface PutBlobResult {
   pathname: string;
   contentType: string;
   contentDisposition: string;
+  downloadUrl: string;
 }
 
 export type PutBlobApiResponse = PutBlobResult;

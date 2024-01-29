@@ -9,6 +9,7 @@ export interface HeadBlobResult {
   contentType: string;
   contentDisposition: string;
   cacheControl: string;
+  downloadUrl: string;
 }
 
 interface HeadBlobApiResponse extends Omit<HeadBlobResult, 'uploadedAt'> {

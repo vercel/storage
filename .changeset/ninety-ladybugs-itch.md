@@ -39,18 +39,18 @@ const blob = await vercelBlob.completeMultipartPut(fullPath, [part1, part2], {
 });
 ```
 
-## Semi manual
+## Using an Uploader
 
 Since there is some data that stays the same across all multipart methods you can also use the util function that are returned by `createMultipartPut`. We keep some data in the closure of `createMultipartPut` and therefor expose a simpler `put` and `complete` function.
 
 ```ts
-const multiPartUpload = await vercelBlob.createMultipartPut('big-file.txt', {
+const uploader = await vercelBlob.createMultipartUploader('big-file.txt', {
   access: 'public',
 });
 
-const part1 = await multiPartUpload.put(1, createReadStream(fullPath));
+const part1 = await multiPartUpload.uploadPart(1, createReadStream(fullPath));
 
-const part2 = await multiPartUpload.put(2, createReadStream(fullPath));
+const part2 = await multiPartUpload.uploadPart(2, createReadStream(fullPath));
 
 const blob = await multiPartUpload.complete([part1, part2]);
 ```

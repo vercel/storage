@@ -1,11 +1,12 @@
 import type { PutCommandOptions } from './put';
 import { createPutMethod } from './put';
-import { createCreateMultipartPutMethod } from './multipart/create';
-import type { MultipartPutCommandOptions } from './multipart/upload';
-import { createMultipartPutMethod } from './multipart/upload';
-import type { CompleteMultipartPutCommandOptions } from './multipart/complete';
-import { createCompleteMultipartPutMethod } from './multipart/complete';
+import { createCreateMultipartUploadMethod } from './multipart/create';
+import type { MultipartUploadCommandOptions } from './multipart/upload';
+import { createMultipartUploadMethod } from './multipart/upload';
+import type { CompleteMultipartUploadCommandOptions } from './multipart/complete';
+import { createCompleteMultipartUploadMethod } from './multipart/complete';
 import type { CommonCreateBlobOptions } from './helpers';
+import { createCreateMultipartUploaderMethod } from './multipart/uploader';
 
 // expose generic BlobError
 export { BlobError } from './helpers';
@@ -65,20 +66,25 @@ export { copy } from './copy';
 
 // vercelBlob.multipartPut()
 
-export const createMultipartPut =
-  createCreateMultipartPutMethod<CommonCreateBlobOptions>({
+export const createMultipartUpload =
+  createCreateMultipartUploadMethod<CommonCreateBlobOptions>({
     allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
   });
 
-export type { MultipartPutCommandOptions };
-export const multipartPut =
-  createMultipartPutMethod<MultipartPutCommandOptions>({
+export const createMultipartUploader =
+  createCreateMultipartUploaderMethod<CommonCreateBlobOptions>({
     allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
   });
 
-export type { CompleteMultipartPutCommandOptions };
-export const completeMultipartPut =
-  createCompleteMultipartPutMethod<CompleteMultipartPutCommandOptions>({
+export type { MultipartUploadCommandOptions };
+export const multipartUpload =
+  createMultipartUploadMethod<MultipartUploadCommandOptions>({
+    allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
+  });
+
+export type { CompleteMultipartUploadCommandOptions };
+export const completeMultipartUpload =
+  createCompleteMultipartUploadMethod<CompleteMultipartUploadCommandOptions>({
     allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
   });
 

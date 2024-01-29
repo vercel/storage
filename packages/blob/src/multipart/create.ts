@@ -1,19 +1,13 @@
 import { BlobServiceNotAvailable, requestApi } from '../api';
 import { debug } from '../debug';
 import type { BlobCommandOptions, CommonCreateBlobOptions } from '../helpers';
-import type { PutBody, CreatePutMethodOptions } from '../put-helpers';
+import type { CreatePutMethodOptions } from '../put-helpers';
 import { createPutHeaders, createPutOptions } from '../put-helpers';
-import { completeMultipartUpload } from './complete';
-import type { Part } from './helpers';
-import { uploadPart } from './upload';
 
-export function createCreateMultipartPutMethod<
+export function createCreateMultipartUploadMethod<
   TOptions extends CommonCreateBlobOptions,
 >({ allowedOptions, getToken, extraChecks }: CreatePutMethodOptions<TOptions>) {
-  return async function createMultipartPut(
-    pathname: string,
-    optionsInput: TOptions,
-  ) {
+  return async (pathname: string, optionsInput: TOptions) => {
     const options = await createPutOptions({
       pathname,
       options: optionsInput,
@@ -32,33 +26,6 @@ export function createCreateMultipartPutMethod<
     return {
       key: createMultipartUploadResponse.key,
       uploadId: createMultipartUploadResponse.uploadId,
-
-      async put(partNumber: number, body: PutBody) {
-        const result = await uploadPart({
-          uploadId: createMultipartUploadResponse.uploadId,
-          key: createMultipartUploadResponse.key,
-          pathname,
-          part: { partNumber, blob: body },
-          headers,
-          options,
-        });
-
-        return {
-          etag: result.etag,
-          partNumber,
-        };
-      },
-
-      async complete(parts: Part[]) {
-        return completeMultipartUpload({
-          uploadId: createMultipartUploadResponse.uploadId,
-          key: createMultipartUploadResponse.key,
-          pathname,
-          parts,
-          headers,
-          options,
-        });
-      },
     };
   };
 }

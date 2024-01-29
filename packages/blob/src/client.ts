@@ -11,11 +11,11 @@ import type { BlobCommandOptions } from './helpers';
 import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
 import { createPutMethod } from './put';
 import type { PutBlobResult } from './put-helpers';
-import type { CommonCompleteMultipartPutOptions } from './multipart/complete';
-import { createCompleteMultipartPutMethod } from './multipart/complete';
-import { createCreateMultipartPutMethod } from './multipart/create';
-import { createMultipartPutMethod } from './multipart/upload';
-import type { CommonMultipartPutOptions } from './multipart/upload';
+import type { CommonCompleteMultipartUploadOptions } from './multipart/complete';
+import { createCompleteMultipartUploadMethod } from './multipart/complete';
+import { createCreateMultipartUploadMethod } from './multipart/create';
+import { createMultipartUploadMethod } from './multipart/upload';
+import type { CommonMultipartUploadOptions } from './multipart/upload';
 
 // interface for put, upload and multipartPut.
 // This types omits all options that are encoded in the client token.
@@ -85,34 +85,37 @@ export const put = createPutMethod<ClientPutCommandOptions>({
 
 // vercelBlob.multipartPut()
 
-export type ClientCreateMultipartPutCommandOptions =
+export type ClientCreateMultipartUploadCommandOptions =
   ClientCommonCreateBlobOptions & ClientTokenOptions;
 
-export const createMultipartPut =
-  createCreateMultipartPutMethod<ClientCreateMultipartPutCommandOptions>({
+export const createMultipartUpload =
+  createCreateMultipartUploadMethod<ClientCreateMultipartUploadCommandOptions>({
     allowedOptions: ['contentType'],
-    extraChecks: createPutExtraChecks('client/`createMultipartPut`'),
+    extraChecks: createPutExtraChecks('client/`createMultipartUpload`'),
   });
 
-type ClientMultipartPutCommandOptions = ClientCommonCreateBlobOptions &
+type ClientMultipartUploadCommandOptions = ClientCommonCreateBlobOptions &
   ClientTokenOptions &
-  CommonMultipartPutOptions;
+  CommonMultipartUploadOptions;
 
-export const multipartPut =
-  createMultipartPutMethod<ClientMultipartPutCommandOptions>({
+export const multipartUpload =
+  createMultipartUploadMethod<ClientMultipartUploadCommandOptions>({
     allowedOptions: ['contentType'],
-    extraChecks: createPutExtraChecks('client/`multipartPut`'),
+    extraChecks: createPutExtraChecks('client/`multipartUpload`'),
   });
 
-type ClientCompleteMultipartPutCommandOptions = ClientCommonCreateBlobOptions &
-  ClientTokenOptions &
-  CommonCompleteMultipartPutOptions;
+type ClientCompleteMultipartUploadCommandOptions =
+  ClientCommonCreateBlobOptions &
+    ClientTokenOptions &
+    CommonCompleteMultipartUploadOptions;
 
-export const completeMultipartPut =
-  createCompleteMultipartPutMethod<ClientCompleteMultipartPutCommandOptions>({
-    allowedOptions: ['contentType'],
-    extraChecks: createPutExtraChecks('client/`completeMultipartPut`'),
-  });
+export const completeMultipartUpload =
+  createCompleteMultipartUploadMethod<ClientCompleteMultipartUploadCommandOptions>(
+    {
+      allowedOptions: ['contentType'],
+      extraChecks: createPutExtraChecks('client/`completeMultipartUpload`'),
+    },
+  );
 
 // upload methods
 
@@ -126,94 +129,6 @@ export interface CommonUploadOptions {
    */
   clientPayload?: string;
 }
-
-function createUploadExtraChecks<
-  TOptions extends CommonUploadOptions & ClientCommonCreateBlobOptions,
->(methodName: string) {
-  return function extraChecks(options: TOptions) {
-    if (typeof window === 'undefined') {
-      throw new BlobError(
-        `${methodName} must be called from a client environment`,
-      );
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX.
-    if (options.handleUploadUrl === undefined) {
-      throw new BlobError(
-        `${methodName} requires the 'handleUploadUrl' parameter`,
-      );
-    }
-
-    if (
-      // @ts-expect-error -- Runtime check for DX.
-      options.addRandomSuffix !== undefined ||
-      // @ts-expect-error -- Runtime check for DX.
-      options.cacheControlMaxAge !== undefined
-    ) {
-      throw new BlobError(
-        `${methodName} doesn't allow addRandomSuffix and cacheControlMaxAge. Configure these options at the server side when generating client tokens.`,
-      );
-    }
-  };
-}
-
-// client.multipartUpload
-
-export type ClientCreateMultipartUploadCommandOptions =
-  ClientCommonCreateBlobOptions & CommonUploadOptions;
-
-export const createMultipartUpload =
-  createCreateMultipartPutMethod<ClientCreateMultipartUploadCommandOptions>({
-    allowedOptions: ['contentType'],
-    extraChecks: createUploadExtraChecks('client/`createMultipartUpload`'),
-    async getToken(pathname, options) {
-      return retrieveClientToken({
-        handleUploadUrl: options.handleUploadUrl,
-        pathname,
-        clientPayload: options.clientPayload ?? null,
-        multipart: true,
-      });
-    },
-  });
-
-type ClientMultipartUploadCommandOptions = ClientCommonCreateBlobOptions &
-  CommonMultipartPutOptions &
-  CommonUploadOptions;
-
-export const multipartUpload =
-  createMultipartPutMethod<ClientMultipartUploadCommandOptions>({
-    allowedOptions: ['contentType'],
-    extraChecks: createUploadExtraChecks('client/`multipartUpload`'),
-    async getToken(pathname, options) {
-      return retrieveClientToken({
-        handleUploadUrl: options.handleUploadUrl,
-        pathname,
-        clientPayload: options.clientPayload ?? null,
-        multipart: true,
-      });
-    },
-  });
-
-type ClientCompleteMultipartUploadCommandOptions =
-  ClientCommonCreateBlobOptions &
-    CommonCompleteMultipartPutOptions &
-    CommonUploadOptions;
-
-export const completeMultipartUpload =
-  createCompleteMultipartPutMethod<ClientCompleteMultipartUploadCommandOptions>(
-    {
-      allowedOptions: ['contentType'],
-      extraChecks: createUploadExtraChecks('client/`multipartUpload`'),
-      async getToken(pathname, options) {
-        return retrieveClientToken({
-          handleUploadUrl: options.handleUploadUrl,
-          pathname,
-          clientPayload: options.clientPayload ?? null,
-          multipart: true,
-        });
-      },
-    },
-  );
 
 // client.upload()
 // This is a client-side wrapper that will fetch the client token for you and then upload the file
@@ -230,7 +145,31 @@ export type UploadOptions = ClientCommonPutOptions & CommonUploadOptions;
  */
 export const upload = createPutMethod<UploadOptions>({
   allowedOptions: ['contentType'],
-  extraChecks: createUploadExtraChecks('client/`upload`'),
+  extraChecks(options) {
+    if (typeof window === 'undefined') {
+      throw new BlobError(
+        'client/`upload` must be called from a client environment',
+      );
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX.
+    if (options.handleUploadUrl === undefined) {
+      throw new BlobError(
+        "client/`upload` requires the 'handleUploadUrl' parameter",
+      );
+    }
+
+    if (
+      // @ts-expect-error -- Runtime check for DX.
+      options.addRandomSuffix !== undefined ||
+      // @ts-expect-error -- Runtime check for DX.
+      options.cacheControlMaxAge !== undefined
+    ) {
+      throw new BlobError(
+        "client/`upload` doesn't allow addRandomSuffix and cacheControlMaxAge. Configure these options at the server side when generating client tokens.",
+      );
+    }
+  },
   async getToken(pathname, options) {
     return retrieveClientToken({
       handleUploadUrl: options.handleUploadUrl,

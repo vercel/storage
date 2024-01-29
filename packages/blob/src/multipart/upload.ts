@@ -8,24 +8,24 @@ import type { PutBody, CreatePutMethodOptions } from '../put-helpers';
 import type { Part, PartInput } from './helpers';
 
 // shared interface for server and client
-export interface CommonMultipartPutOptions {
+export interface CommonMultipartUploadOptions {
   uploadId: string;
   key: string;
   partNumber: number;
   abortController?: AbortController;
 }
 
-export type MultipartPutCommandOptions = CommonMultipartPutOptions &
+export type MultipartUploadCommandOptions = CommonMultipartUploadOptions &
   CommonCreateBlobOptions;
 
-export function createMultipartPutMethod<
-  TOptions extends MultipartPutCommandOptions,
+export function createMultipartUploadMethod<
+  TOptions extends MultipartUploadCommandOptions,
 >({ allowedOptions, getToken, extraChecks }: CreatePutMethodOptions<TOptions>) {
-  return async function multipartPut(
+  return async (
     pathname: string,
     body: PutBody,
     optionsInput: TOptions,
-  ): Promise<Part> {
+  ): Promise<Part> => {
     const options = await createPutOptions({
       pathname,
       options: optionsInput,

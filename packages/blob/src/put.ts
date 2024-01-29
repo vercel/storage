@@ -116,7 +116,7 @@ export function createPutMethod<
       return multipartPut(pathname, body, headers, options);
     }
 
-    return requestApi<PutBlobApiResponse>(
+    const response = await requestApi<PutBlobApiResponse>(
       `/${pathname}`,
       {
         method: 'PUT',
@@ -128,5 +128,13 @@ export function createPutMethod<
       },
       options,
     );
+
+    return {
+      url: response.url,
+      downloadUrl: response.downloadUrl,
+      pathname: response.pathname,
+      contentType: response.contentType,
+      contentDisposition: response.contentDisposition,
+    };
   };
 }

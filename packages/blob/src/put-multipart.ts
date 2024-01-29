@@ -94,7 +94,13 @@ async function completeMultiPartUpload(
 
     debug('mpu: complete', response);
 
-    return response;
+    return {
+      url: response.url,
+      downloadUrl: response.downloadUrl,
+      pathname: response.pathname,
+      contentType: response.contentType,
+      contentDisposition: response.contentDisposition,
+    };
   } catch (error: unknown) {
     if (
       error instanceof TypeError &&
@@ -129,7 +135,10 @@ async function createMultiPartUpload(
 
     debug('mpu: create', response);
 
-    return response;
+    return {
+      uploadId: response.uploadId,
+      key: response.key,
+    };
   } catch (error: unknown) {
     if (
       error instanceof TypeError &&

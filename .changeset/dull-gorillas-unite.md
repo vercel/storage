@@ -1,5 +1,5 @@
 ---
-"@vercel/blob": patch
+"@vercel/blob": minor
 "vercel-storage-integration-test-suite": patch
 ---
 

@@ -7,6 +7,7 @@ const BLOB_STORE_BASE_URL = 'https://storeId.public.blob.vercel-storage.com';
 
 const mockedFileMeta = {
   url: `${BLOB_STORE_BASE_URL}/foo-id.txt`,
+  downloadUrl: `${BLOB_STORE_BASE_URL}/foo-id.txt?download=1`,
   size: 12345,
   uploadedAt: '2023-05-04T15:12:07.818Z',
   pathname: 'foo.txt',
@@ -47,8 +48,10 @@ describe('blob client', () => {
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).resolves
         .toMatchInlineSnapshot(`
               {
+                "cacheControl": undefined,
                 "contentDisposition": "attachment; filename="foo.txt"",
                 "contentType": "text/plain",
+                "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo-id.txt?download=1",
                 "pathname": "foo.txt",
                 "size": 12345,
                 "uploadedAt": 2023-05-04T15:12:07.818Z,
@@ -251,6 +254,7 @@ describe('blob client', () => {
   describe('list', () => {
     const mockedFileMetaList = {
       url: mockedFileMeta.url,
+      downloadUrl: mockedFileMeta.downloadUrl,
       pathname: mockedFileMeta.pathname,
       size: mockedFileMeta.size,
       uploadedAt: mockedFileMeta.uploadedAt,
@@ -280,12 +284,14 @@ describe('blob client', () => {
         {
           "blobs": [
             {
+              "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo-id.txt?download=1",
               "pathname": "foo.txt",
               "size": 12345,
               "uploadedAt": 2023-05-04T15:12:07.818Z,
               "url": "https://storeId.public.blob.vercel-storage.com/foo-id.txt",
             },
             {
+              "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo-id.txt?download=1",
               "pathname": "foo.txt",
               "size": 12345,
               "uploadedAt": 2023-05-04T15:12:07.818Z,
@@ -352,6 +358,7 @@ describe('blob client', () => {
         {
           "blobs": [
             {
+              "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo-id.txt?download=1",
               "pathname": "foo.txt",
               "size": 12345,
               "uploadedAt": 2023-05-04T15:12:07.818Z,
@@ -374,6 +381,7 @@ describe('blob client', () => {
   describe('put', () => {
     const mockedFileMetaPut = {
       url: mockedFileMeta.url,
+      downloadUrl: mockedFileMeta.downloadUrl,
       pathname: mockedFileMeta.pathname,
       contentType: mockedFileMeta.contentType,
       contentDisposition: mockedFileMeta.contentDisposition,
@@ -404,6 +412,7 @@ describe('blob client', () => {
         {
           "contentDisposition": "attachment; filename="foo.txt"",
           "contentType": "text/plain",
+          "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo-id.txt?download=1",
           "pathname": "foo.txt",
           "url": "https://storeId.public.blob.vercel-storage.com/foo-id.txt",
         }

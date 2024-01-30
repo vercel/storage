@@ -50,9 +50,17 @@ export async function copy(
     headers['x-cache-control-max-age'] = options.cacheControlMaxAge.toString();
   }
 
-  return requestApi<CopyBlobResult>(
+  const response = await requestApi<CopyBlobResult>(
     `/${toPathname}?fromUrl=${fromUrl}`,
     { method: 'PUT', headers },
     options,
   );
+
+  return {
+    url: response.url,
+    downloadUrl: response.downloadUrl,
+    pathname: response.pathname,
+    contentType: response.contentType,
+    contentDisposition: response.contentDisposition,
+  };
 }

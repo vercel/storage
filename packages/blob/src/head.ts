@@ -29,21 +29,21 @@ export async function head(
 ): Promise<HeadBlobResult> {
   const searchParams = new URLSearchParams({ url });
 
-  const headResult = await requestApi<HeadBlobApiResponse>(
+  const response = await requestApi<HeadBlobApiResponse>(
     `?${searchParams.toString()}`,
     // HEAD can't have body as a response, so we use GET
     { method: 'GET' },
     options,
   );
 
-  return mapBlobResult(headResult);
-}
-
-function mapBlobResult(blobResult: HeadBlobApiResponse): HeadBlobResult;
-
-function mapBlobResult(blobResult: HeadBlobApiResponse): HeadBlobResult {
   return {
-    ...blobResult,
-    uploadedAt: new Date(blobResult.uploadedAt),
+    url: response.url,
+    downloadUrl: response.downloadUrl,
+    pathname: response.pathname,
+    size: response.size,
+    contentType: response.contentType,
+    contentDisposition: response.contentDisposition,
+    cacheControl: response.cacheControl,
+    uploadedAt: new Date(response.uploadedAt),
   };
 }

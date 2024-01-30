@@ -18,7 +18,7 @@
  - **Use stale-while-revalidate during development**
 
    When `@vercel/edge-config` is used during development, with `NODE_ENV` being set to `development`, the most recent result will be kept in-memory and returned instead of waiting for another network request to complete. In the background, a new request will then be started to ensure the in-memory data gets updated.
-   This behaviour can be changed by setting the environment variable `EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR` to `1`, or by using the `disableDevelopmentCache` option on the `createClient` function.
+   This behaviour can be disabled by setting the environment variable `EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR` to `1`, or by using the `disableDevelopmentCache` option on the `createClient` function.
 
  - **Genric catch-all errors are not thrown anymore**
 

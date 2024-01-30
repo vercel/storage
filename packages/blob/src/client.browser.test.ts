@@ -56,6 +56,7 @@ describe('client', () => {
       {
         "contentDisposition": "attachment; filename="foo.txt"",
         "contentType": "text/plain",
+        "downloadUrl": "https://storeId.public.blob.vercel-storage.com/superfoo.txt?download=1",
         "pathname": "foo.txt",
         "url": "https://storeId.public.blob.vercel-storage.com/superfoo.txt",
       }

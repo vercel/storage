@@ -1,5 +1,18 @@
 # vercel-storage-integration-test-suite
 
+## 0.2.0
+
+### Minor Changes
+
+- 5d71dda: # feat(blob): add `downloadUrl` and `getDownloadUrl`
+
+  Adds a new blob property called `downloadUrl`. This URL will have the `content-disposition` set to `attachment` meaning it will force browsers to start a download instead of showing a preview. This URL can be used to implement download links. In addition to this new field the sdk is also exposing a new util function called `getDownloadUrl` which can also be used to derive a download URL from a blob URL.
+
+### Patch Changes
+
+- Updated dependencies [5d71dda]
+  - @vercel/blob@0.20.0
+
 ## 0.1.43
 
 ### Patch Changes

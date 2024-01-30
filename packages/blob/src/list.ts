@@ -3,6 +3,7 @@ import type { BlobCommandOptions } from './helpers';
 
 export interface ListBlobResultBlob {
   url: string;
+  downloadUrl: string;
   pathname: string;
   size: number;
   uploadedAt: Date;

@@ -79,7 +79,7 @@ describe('client', () => {
           duplex: 'half',
           headers: {
             authorization: 'Bearer fake-token-for-test',
-            'x-api-version': '6',
+            'x-api-version': '7',
           },
           method: 'PUT',
         },

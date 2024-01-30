@@ -58,7 +58,7 @@ export interface BlobApiError {
 // This version is used to ensure that the client and server are compatible
 // The server (Vercel Blob API) uses this information to change its behavior like the
 // response format
-const BLOB_API_VERSION = 6;
+const BLOB_API_VERSION = 7;
 
 function getApiVersion(): string {
   let versionOverride = null;

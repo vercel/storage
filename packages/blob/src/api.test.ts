@@ -63,7 +63,7 @@ describe('api', () => {
           body: '{"foo":"bar"}',
           headers: {
             authorization: 'Bearer 123',
-            'x-api-version': '6',
+            'x-api-version': '7',
           },
           method: 'POST',
         },

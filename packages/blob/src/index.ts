@@ -8,8 +8,8 @@ import { createCompleteMultipartUploadMethod } from './multipart/complete';
 import type { CommonCreateBlobOptions } from './helpers';
 import { createCreateMultipartUploaderMethod } from './multipart/create-uploader';
 
-// expose generic BlobError
-export { BlobError } from './helpers';
+// expose generic BlobError and download url util
+export { BlobError, getDownloadUrl } from './helpers';
 
 // expose api BlobErrors
 export {

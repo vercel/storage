@@ -12,27 +12,27 @@ Now it's possible to manually upload chunks and start and complete the multipart
 
 ## Individual methods
 
-Use `createMultipartPut`, `multipartPut` and `completeMultipartPut` to manage the upload.
+Use `createMultipartUpload`, `multipartUpload` and `completeMultipartUpload` to manage the upload.
 
 ```ts
-const { key, uploadId } = await vercelBlob.createMultipartPut(
+const { key, uploadId } = await vercelBlob.createMcreateMultipartUploadltipartPut(
   'big-file.txt',
   { access: 'public' },
 );
 
-const part1 = await vercelBlob.multipartPut(
+const part1 = await vercelBlob.multipartUpload(
   fullPath,
   createReadStream(fullPath),
   { access: 'public', key, uploadId, partNumber: 1 },
 );
 
-const part2 = await vercelBlob.multipartPut(
+const part2 = await vercelBlob.multipartUpload(
   fullPath,
   createReadStream(fullPath),
   { access: 'public', key, uploadId, partNumber: 2 },
 );
 
-const blob = await vercelBlob.completeMultipartPut(fullPath, [part1, part2], {
+const blob = await vercelBlob.completeMultipartUpload(fullPath, [part1, part2], {
   access: 'public',
   key,
   uploadId,
@@ -41,7 +41,7 @@ const blob = await vercelBlob.completeMultipartPut(fullPath, [part1, part2], {
 
 ## Using an Uploader
 
-Since there is some data that stays the same across all multipart methods you can also use the util function that are returned by `createMultipartPut`. We keep some data in the closure of `createMultipartPut` and therefor expose a simpler `put` and `complete` function.
+Since there is some data that stays the same across all multipart methods you can also use the `createMultipartUploader`. We keep some data in the closure of `createMultipartUploader` and therefor expose a simpler `put` and `complete` function.
 
 ```ts
 const uploader = await vercelBlob.createMultipartUploader('big-file.txt', {

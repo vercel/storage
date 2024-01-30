@@ -40,6 +40,7 @@ describe('client', () => {
             json: () =>
               Promise.resolve({
                 url: `https://storeId.public.blob.vercel-storage.com/superfoo.txt`,
+                downloadUrl: `https://storeId.public.blob.vercel-storage.com/superfoo.txt?download=1`,
                 pathname: 'foo.txt',
                 contentType: 'text/plain',
                 contentDisposition: 'attachment; filename="foo.txt"',
@@ -185,7 +186,7 @@ describe('client', () => {
         {
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
-            'x-api-version': '6',
+            'x-api-version': '7',
             'x-mpu-action': 'create',
           },
           method: 'POST',
@@ -198,7 +199,7 @@ describe('client', () => {
           body: 'data1',
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
-            'x-api-version': '6',
+            'x-api-version': '7',
             'x-mpu-action': 'upload',
             'x-mpu-key': 'key',
             'x-mpu-upload-id': 'uploadId',
@@ -215,7 +216,7 @@ describe('client', () => {
           body: 'data2',
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
-            'x-api-version': '6',
+            'x-api-version': '7',
             'x-mpu-action': 'upload',
             'x-mpu-key': 'key',
             'x-mpu-upload-id': 'uploadId',
@@ -236,7 +237,7 @@ describe('client', () => {
           headers: {
             'content-type': 'application/json',
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
-            'x-api-version': '6',
+            'x-api-version': '7',
             'x-mpu-action': 'complete',
             'x-mpu-key': 'key',
             'x-mpu-upload-id': 'uploadId',
@@ -316,7 +317,7 @@ describe('client', () => {
         {
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
-            'x-api-version': '6',
+            'x-api-version': '7',
             'x-mpu-action': 'create',
           },
           method: 'POST',
@@ -329,7 +330,7 @@ describe('client', () => {
           body: 'data1',
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
-            'x-api-version': '6',
+            'x-api-version': '7',
             'x-mpu-action': 'upload',
             'x-mpu-key': 'key',
             'x-mpu-upload-id': 'uploadId',
@@ -346,7 +347,7 @@ describe('client', () => {
           body: 'data2',
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
-            'x-api-version': '6',
+            'x-api-version': '7',
             'x-mpu-action': 'upload',
             'x-mpu-key': 'key',
             'x-mpu-upload-id': 'uploadId',
@@ -367,7 +368,7 @@ describe('client', () => {
           headers: {
             'content-type': 'application/json',
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
-            'x-api-version': '6',
+            'x-api-version': '7',
             'x-mpu-action': 'complete',
             'x-mpu-key': 'key',
             'x-mpu-upload-id': 'uploadId',

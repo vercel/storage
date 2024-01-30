@@ -9,7 +9,7 @@ export interface BlobCommandOptions {
   token?: string;
 }
 
-// shared interface for put, copy and multipartPut
+// shared interface for put, copy and multipartUpload
 export interface CommonCreateBlobOptions extends BlobCommandOptions {
   /**
    * Whether the blob should be publicly accessible. Support for private blobs is planned.

@@ -35,8 +35,8 @@ async function run(): Promise<void> {
     multipartNodeJsFileStream(),
     fetchExampleMultipart(),
     createFolder(),
-    createManualMultipartPut(),
-    createManualMultipartPutWithUtil(),
+    manualMultipartUpload(),
+    manualMultipartUploader(),
   ]);
 
   await Promise.all(
@@ -356,7 +356,7 @@ async function createFolder() {
   return blob.url;
 }
 
-async function createManualMultipartPutWithUtil() {
+async function manualMultipartUploader() {
   const start = Date.now();
 
   const pathname = 'big-text.txt';
@@ -381,7 +381,7 @@ async function createManualMultipartPutWithUtil() {
   return blob.url;
 }
 
-async function createManualMultipartPut() {
+async function manualMultipartUpload() {
   const start = Date.now();
 
   const pathname = 'big-text.txt';

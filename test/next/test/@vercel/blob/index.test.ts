@@ -31,6 +31,7 @@ test.describe('@vercel/blob', () => {
       });
     });
   });
+
   test.describe('page', () => {
     test('serverless', async ({ page }) => {
       await page.goto(`vercel/pages/blob?filename=${prefix}/test-page.txt`);

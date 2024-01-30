@@ -18,6 +18,7 @@ const putOptionHeaderMap = {
 
 export interface PutBlobResult {
   url: string;
+  downloadUrl: string;
   pathname: string;
   contentType: string;
   contentDisposition: string;

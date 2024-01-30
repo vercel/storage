@@ -7,6 +7,7 @@ export interface CopyCommandOptions extends CreateBlobCommandOptions {}
 
 export interface CopyBlobResult {
   url: string;
+  downloadUrl: string;
   pathname: string;
   contentType?: string;
   contentDisposition: string;

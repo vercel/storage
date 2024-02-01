@@ -15,14 +15,13 @@
     myArrayClone.push('127.0.0.1');
    ```
 
- - SDK now uses stale-while-revalidate semantics during development
+ - The SDK now uses stale-while-revalidate semantics during development
 
    When `@vercel/edge-config` is used during development, with `NODE_ENV` being set to `development`, the most recent result will be kept in-memory and returned instead of waiting for another network request to complete. In the background, a new request will then be started to ensure the in-memory data gets updated.
    This behaviour can be disabled by setting the environment variable `EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR` to `1`, or by using the `disableDevelopmentCache` option on the `createClient` function.
 
  - **BREAKING CHANGE** SDK now throws underlying errors
- Previous versions of the `@vercel/edge-config` package would catch most errors thrown by native functions and throw a generic network error instead - even if the underlying issue wasn't a network error. The new version will throw the original errors.
- 
- **Note** applications which rely on the `@vercel/edge-config: Unexpected error` and `@vercel/edge-config: Network error` errors must adapt to the new implementation by ensuring other types of errors are handled as well.
 
-   Previous versions of the `@vercel/edge-config` package used to catch most errors thrown by native functions and replace them with a generic error. The new version will not replace the native errors. **Note** that applications that relied on the `@vercel/edge-config: Unexpected error` and `@vercel/edge-config: Network error` errors must adapt to the new implementation.
+   Previous versions of the `@vercel/edge-config` package would catch most errors thrown by native functions and throw a generic network error instead - even if the underlying issue wasn't a network error. The new version will throw the original errors.
+ 
+   **Note** applications which rely on the `@vercel/edge-config: Unexpected error` and `@vercel/edge-config: Network error` errors must adapt to the new implementation by ensuring other types of errors are handled as well.

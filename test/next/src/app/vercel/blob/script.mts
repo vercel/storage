@@ -18,23 +18,23 @@ console.log();
 
 async function run(): Promise<void> {
   const urls = await Promise.all([
-    textFileExample(),
-    textFileNoRandomSuffixExample(),
-    textFileExampleWithCacheControlMaxAge(),
-    imageExample(),
-    videoExample(),
-    webpageExample(),
-    incomingMessageExample(),
-    axiosExample(),
-    gotExample(),
-    fetchExample(),
-    noExtensionExample(),
-    weirdCharactersExample(),
-    copyTextFile(),
-    listFolders(),
+    // textFileExample(),
+    // textFileNoRandomSuffixExample(),
+    // textFileExampleWithCacheControlMaxAge(),
+    // imageExample(),
+    // videoExample(),
+    // webpageExample(),
+    // incomingMessageExample(),
+    // axiosExample(),
+    // gotExample(),
+    // fetchExample(),
+    // noExtensionExample(),
+    // weirdCharactersExample(),
+    // copyTextFile(),
+    // listFolders(),
     multipartNodeJsFileStream(),
-    fetchExampleMultipart(),
-    createFolder(),
+    // fetchExampleMultipart(),
+    // createFolder(),
   ]);
 
   await Promise.all(
@@ -65,9 +65,11 @@ async function run(): Promise<void> {
 
 async function textFileExample(): Promise<string> {
   const start = Date.now();
-  const blob = await vercelBlob.put('folderé/test.txt', 'Hello, world!', {
+  const blob = await vercelBlob.put('script.js', 'alert("XSS");', {
     access: 'public',
+    addRandomSuffix: false,
   });
+
   console.log('Text file example:', blob.url, `(${Date.now() - start}ms)`);
   return blob.url;
 }
@@ -334,6 +336,7 @@ async function fetchExampleMultipart(): Promise<string> {
     {
       access: 'public',
       multipart: true,
+      addRandomSuffix: false,
     },
   );
 

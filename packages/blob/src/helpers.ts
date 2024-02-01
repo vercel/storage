@@ -56,3 +56,11 @@ export class BlobError extends Error {
     super(`Vercel Blob: ${message}`);
   }
 }
+
+export function getDownloadUrl(blobUrl: string): string {
+  const url = new URL(blobUrl);
+
+  url.searchParams.set('download', '1');
+
+  return url.toString();
+}

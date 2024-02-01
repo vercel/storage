@@ -3,6 +3,7 @@ import type { BlobCommandOptions } from './helpers';
 
 export interface ListBlobResultBlob {
   url: string;
+  downloadUrl: string;
   pathname: string;
   size: number;
   uploadedAt: Date;
@@ -82,7 +83,7 @@ export async function list<
     searchParams.set('mode', options.mode);
   }
 
-  const results = await requestApi<ListBlobApiResponse>(
+  const response = await requestApi<ListBlobApiResponse>(
     `?${searchParams.toString()}`,
     { method: 'GET' },
     options,
@@ -90,17 +91,17 @@ export async function list<
 
   if (options?.mode === 'folded') {
     return {
-      folders: results.folders ?? [],
-      cursor: results.cursor,
-      hasMore: results.hasMore,
-      blobs: results.blobs.map(mapBlobResult),
+      folders: response.folders ?? [],
+      cursor: response.cursor,
+      hasMore: response.hasMore,
+      blobs: response.blobs.map(mapBlobResult),
     } as ListCommandResult<M>;
   }
 
   return {
-    cursor: results.cursor,
-    hasMore: results.hasMore,
-    blobs: results.blobs.map(mapBlobResult),
+    cursor: response.cursor,
+    hasMore: response.hasMore,
+    blobs: response.blobs.map(mapBlobResult),
   } as ListCommandResult<M>;
 }
 
@@ -108,7 +109,10 @@ function mapBlobResult(
   blobResult: ListBlobApiResponseBlob,
 ): ListBlobResultBlob {
   return {
-    ...blobResult,
+    url: blobResult.url,
+    downloadUrl: blobResult.downloadUrl,
+    pathname: blobResult.pathname,
+    size: blobResult.size,
     uploadedAt: new Date(blobResult.uploadedAt),
   };
 }

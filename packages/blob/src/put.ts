@@ -18,6 +18,7 @@ const putOptionHeaderMap = {
 
 export interface PutBlobResult {
   url: string;
+  downloadUrl: string;
   pathname: string;
   contentType: string;
   contentDisposition: string;
@@ -115,7 +116,7 @@ export function createPutMethod<
       return multipartPut(pathname, body, headers, options);
     }
 
-    return requestApi<PutBlobApiResponse>(
+    const response = await requestApi<PutBlobApiResponse>(
       `/${pathname}`,
       {
         method: 'PUT',
@@ -127,5 +128,13 @@ export function createPutMethod<
       },
       options,
     );
+
+    return {
+      url: response.url,
+      downloadUrl: response.downloadUrl,
+      pathname: response.pathname,
+      contentType: response.contentType,
+      contentDisposition: response.contentDisposition,
+    };
   };
 }

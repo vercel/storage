@@ -340,6 +340,7 @@ async function fetchExampleMultipart(): Promise<string> {
   console.log('fetch example:', blob.url, `(${Date.now() - start}ms)`);
   return blob.url;
 }
+
 async function createFolder() {
   const start = Date.now();
 

@@ -8,13 +8,13 @@
 
    ```typescript
     import { get } from '@vercel/edge-config';
-    const countries = await get('allowedCountries');
+    const countries = await get('allowedCountryCodes');
     countries.DE = true; // Won't be possible anymore and throw an error
    ```
 
    Moving forward, modifications like the above will cause an error.
 
-   If there is a need to modify the value, then the `clone` function can be used to copy the value and make it writable again.
+   If there is a need to modify the value, then the `clone` function can be used to clone the value and make it modifiable.
 
    ```typescript
     import { get, clone } from '@vercel/edge-config';

@@ -82,7 +82,10 @@ export const put = createPutMethod<ClientPutCommandOptions>({
   extraChecks: createPutExtraChecks('client/`put`'),
 });
 
-// vercelBlob.multipartUpload()
+// vercelBlob. createMultipartUpload()
+// vercelBlob. uploadPart()
+// vercelBlob. completeMultipartUpload()
+// vercelBlob. createMultipartUploaded()
 
 export type ClientCreateMultipartUploadCommandOptions =
   ClientCommonCreateBlobOptions & ClientTokenOptions;

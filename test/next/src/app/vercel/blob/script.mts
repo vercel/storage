@@ -394,13 +394,13 @@ async function manualMultipartUpload() {
     },
   );
 
-  const part1 = await vercelBlob.multipartUpload(
+  const part1 = await vercelBlob.uploadPart(
     fullPath,
     createReadStream(fullPath),
     { access: 'public', key, uploadId, partNumber: 1 },
   );
 
-  const part2 = await vercelBlob.multipartUpload(
+  const part2 = await vercelBlob.uploadPart(
     fullPath,
     createReadStream(fullPath),
     { access: 'public', key, uploadId, partNumber: 2 },

@@ -15,7 +15,7 @@ Now it's possible to manually upload chunks and start and complete the multipart
 Use `createMultipartUpload`, `multipartUpload` and `completeMultipartUpload` to manage the upload.
 
 ```ts
-const { key, uploadId } = await vercelBlob.createMcreateMultipartUploadltipartPut(
+const { key, uploadId } = await vercelBlob.createMultipartUpload(
   'big-file.txt',
   { access: 'public' },
 );

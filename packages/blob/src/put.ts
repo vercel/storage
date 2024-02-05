@@ -1,6 +1,6 @@
 import type { BodyInit } from 'undici';
 import { requestApi } from './api';
-import type { CreateBlobOptions } from './helpers';
+import type { CommonCreateBlobOptions } from './helpers';
 import { BlobError } from './helpers';
 import { uncontrolledMultipartUpload } from './multipart/uncontrolled';
 import type {
@@ -11,7 +11,13 @@ import type {
 } from './put-helpers';
 import { createPutOptions, createPutHeaders } from './put-helpers';
 
-export type PutCommandOptions = CreateBlobOptions;
+export interface PutCommandOptions extends CommonCreateBlobOptions {
+  /**
+   * Whether to use multipart upload. Use this when uploading large files. It will split the file into multiple parts, upload them in parallel and retry failed parts.
+   * @defaultvalue false
+   */
+  multipart?: boolean;
+}
 
 export function createPutMethod<TOptions extends PutCommandOptions>({
   allowedOptions,

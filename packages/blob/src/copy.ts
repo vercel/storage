@@ -1,8 +1,8 @@
 import { requestApi } from './api';
-import type { CreateBlobOptions } from './helpers';
+import type { CommonCreateBlobOptions } from './helpers';
 import { BlobError } from './helpers';
 
-export type CopyCommandOptions = CreateBlobOptions;
+export type CopyCommandOptions = CommonCreateBlobOptions;
 
 export interface CopyBlobResult {
   url: string;

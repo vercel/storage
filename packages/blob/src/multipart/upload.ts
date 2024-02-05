@@ -15,11 +15,11 @@ export interface CommonMultipartUploadOptions {
   abortController?: AbortController;
 }
 
-export type MultipartUploadCommandOptions = CommonMultipartUploadOptions &
+export type UploadPartCommandOptions = CommonMultipartUploadOptions &
   CommonCreateBlobOptions;
 
-export function createMultipartUploadMethod<
-  TOptions extends MultipartUploadCommandOptions,
+export function createUploadPartMethod<
+  TOptions extends UploadPartCommandOptions,
 >({ allowedOptions, getToken, extraChecks }: CreatePutMethodOptions<TOptions>) {
   return async (
     pathname: string,

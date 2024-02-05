@@ -12,7 +12,7 @@ import type { PutBlobResult } from './put-helpers';
 import type { CommonCompleteMultipartUploadOptions } from './multipart/complete';
 import { createCompleteMultipartUploadMethod } from './multipart/complete';
 import { createCreateMultipartUploadMethod } from './multipart/create';
-import { createMultipartUploadMethod } from './multipart/upload';
+import { createUploadPartMethod } from './multipart/upload';
 import type { CommonMultipartUploadOptions } from './multipart/upload';
 import { createCreateMultipartUploaderMethod } from './multipart/create-uploader';
 
@@ -105,8 +105,8 @@ type ClientMultipartUploadCommandOptions = ClientCommonCreateBlobOptions &
   ClientTokenOptions &
   CommonMultipartUploadOptions;
 
-export const multipartUpload =
-  createMultipartUploadMethod<ClientMultipartUploadCommandOptions>({
+export const uploadPart =
+  createUploadPartMethod<ClientMultipartUploadCommandOptions>({
     allowedOptions: ['contentType'],
     extraChecks: createPutExtraChecks('client/`multipartUpload`'),
   });

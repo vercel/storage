@@ -2,7 +2,7 @@ import undici from 'undici';
 import {
   completeMultipartUpload,
   createMultipartUpload,
-  multipartUpload,
+  uploadPart,
   upload,
   createMultipartUploader,
 } from './client';
@@ -133,14 +133,14 @@ describe('client', () => {
       const pathname = 'foo.txt';
       const token = 'vercel_blob_client_fake_token_for_test';
 
-      const multiPartUpload = await createMultipartUpload(pathname, {
+      const { uploadId, key } = await createMultipartUpload(pathname, {
         access: 'public',
         token,
       });
-      expect(multiPartUpload.uploadId).toEqual('uploadId');
-      expect(multiPartUpload.key).toEqual('key');
+      expect(uploadId).toEqual('uploadId');
+      expect(key).toEqual('key');
 
-      const part1 = await multipartUpload(pathname, 'data1', {
+      const part1 = await uploadPart(pathname, 'data1', {
         access: 'public',
         key: 'key',
         partNumber: 1,
@@ -153,7 +153,7 @@ describe('client', () => {
         partNumber: 1,
       });
 
-      const part2 = await multipartUpload(pathname, 'data2', {
+      const part2 = await uploadPart(pathname, 'data2', {
         access: 'public',
         key: 'key',
         partNumber: 2,
@@ -282,26 +282,26 @@ describe('client', () => {
       const pathname = 'foo.txt';
       const token = 'vercel_blob_client_fake_token_for_test';
 
-      const multiPartUpload = await createMultipartUploader(pathname, {
+      const uploader = await createMultipartUploader(pathname, {
         access: 'public',
         token,
       });
-      expect(multiPartUpload.uploadId).toEqual('uploadId');
-      expect(multiPartUpload.key).toEqual('key');
+      expect(uploader.uploadId).toEqual('uploadId');
+      expect(uploader.key).toEqual('key');
 
-      const part1 = await multiPartUpload.uploadPart(1, 'data1');
+      const part1 = await uploader.uploadPart(1, 'data1');
       expect(part1).toEqual({
         etag: 'etag1',
         partNumber: 1,
       });
 
-      const part2 = await multiPartUpload.uploadPart(2, 'data2');
+      const part2 = await uploader.uploadPart(2, 'data2');
       expect(part2).toEqual({
         etag: 'etag2',
         partNumber: 2,
       });
 
-      const blob = await multiPartUpload.complete([part1, part2]);
+      const blob = await uploader.complete([part1, part2]);
       expect(blob).toEqual({
         contentDisposition: 'attachment; filename="foo.txt"',
         contentType: 'text/plain',

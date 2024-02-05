@@ -1,8 +1,8 @@
 import type { PutCommandOptions } from './put';
 import { createPutMethod } from './put';
 import { createCreateMultipartUploadMethod } from './multipart/create';
-import type { MultipartUploadCommandOptions } from './multipart/upload';
-import { createMultipartUploadMethod } from './multipart/upload';
+import type { UploadPartCommandOptions } from './multipart/upload';
+import { createUploadPartMethod } from './multipart/upload';
 import type { CompleteMultipartUploadCommandOptions } from './multipart/complete';
 import { createCompleteMultipartUploadMethod } from './multipart/complete';
 import type { CommonCreateBlobOptions } from './helpers';
@@ -76,11 +76,10 @@ export const createMultipartUploader =
     allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
   });
 
-export type { MultipartUploadCommandOptions };
-export const multipartUpload =
-  createMultipartUploadMethod<MultipartUploadCommandOptions>({
-    allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
-  });
+export type { UploadPartCommandOptions };
+export const uploadPart = createUploadPartMethod<UploadPartCommandOptions>({
+  allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
+});
 
 export type { CompleteMultipartUploadCommandOptions };
 export const completeMultipartUpload =

@@ -1,61 +1,28 @@
-// eslint-disable-next-line unicorn/prefer-node-protocol -- node:stream does not resolve correctly in browser and edge
-import type { Readable } from 'stream';
 import type { BodyInit } from 'undici';
 import { requestApi } from './api';
-import type { ClientPutCommandOptions } from './client';
-import type { CreateBlobCommandOptions } from './helpers';
+import type { CreateBlobOptions } from './helpers';
 import { BlobError } from './helpers';
-import { multipartPut } from './put-multipart';
+import { uncontrolledMultipartUpload } from './multipart/uncontrolled';
+import type {
+  CreatePutMethodOptions,
+  PutBody,
+  PutBlobApiResponse,
+  PutBlobResult,
+} from './put-helpers';
+import { createPutOptions, createPutHeaders } from './put-helpers';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface -- expose option interface for each API method for better extensibility in the future
-export interface PutCommandOptions extends CreateBlobCommandOptions {}
+export type PutCommandOptions = CreateBlobOptions;
 
-const putOptionHeaderMap = {
-  cacheControlMaxAge: 'x-cache-control-max-age',
-  addRandomSuffix: 'x-add-random-suffix',
-  contentType: 'x-content-type',
-};
-
-export interface PutBlobResult {
-  url: string;
-  downloadUrl: string;
-  pathname: string;
-  contentType: string;
-  contentDisposition: string;
-}
-
-export type PutBlobApiResponse = PutBlobResult;
-
-export type PutBody =
-  | string
-  | Readable // Node.js streams
-  | Blob
-  | ArrayBuffer
-  | ReadableStream // Streams API (= Web streams in Node.js)
-  | File;
-
-type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
-
-export function createPutMethod<
-  T extends PartialBy<PutCommandOptions & ClientPutCommandOptions, 'token'>,
->({
+export function createPutMethod<TOptions extends PutCommandOptions>({
   allowedOptions,
   getToken,
   extraChecks,
-}: {
-  allowedOptions: (keyof typeof putOptionHeaderMap)[];
-  getToken?: (pathname: string, options: T) => Promise<string>;
-  extraChecks?: (options: T) => void;
-}) {
+}: CreatePutMethodOptions<TOptions>) {
   return async function put<TPath extends string>(
     pathname: TPath,
-    bodyOrOptions: TPath extends `${string}/` ? T : PutBody,
-    optionsInput?: T,
+    bodyOrOptions: TPath extends `${string}/` ? TOptions : PutBody,
+    optionsInput?: TPath extends `${string}/` ? never : TOptions,
   ): Promise<PutBlobResult> {
-    if (!pathname) {
-      throw new BlobError('pathname is required');
-    }
-
     const isFolderCreation = pathname.endsWith('/');
 
     // prevent empty bodies for files
@@ -71,49 +38,18 @@ export function createPutMethod<
     // avoid using the options as body
     const body = isFolderCreation ? undefined : bodyOrOptions;
 
-    // when no body is required options are the second argument
-    const options = isFolderCreation ? (bodyOrOptions as T) : optionsInput;
+    const options = await createPutOptions({
+      pathname,
+      // when no body is required (for folder creations) options are the second argument
+      options: isFolderCreation ? (bodyOrOptions as TOptions) : optionsInput,
+      extraChecks,
+      getToken,
+    });
 
-    if (!options) {
-      throw new BlobError('missing options, see usage');
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX.
-    if (options.access !== 'public') {
-      throw new BlobError('access must be "public"');
-    }
-
-    if (extraChecks) {
-      extraChecks(options);
-    }
-
-    if (getToken) {
-      options.token = await getToken(pathname, options);
-    }
-
-    const headers: Record<string, string> = {};
-
-    if (allowedOptions.includes('contentType') && options.contentType) {
-      headers['x-content-type'] = options.contentType;
-    }
-
-    if (
-      allowedOptions.includes('addRandomSuffix') &&
-      options.addRandomSuffix !== undefined
-    ) {
-      headers['x-add-random-suffix'] = options.addRandomSuffix ? '1' : '0';
-    }
-
-    if (
-      allowedOptions.includes('cacheControlMaxAge') &&
-      options.cacheControlMaxAge !== undefined
-    ) {
-      headers['x-cache-control-max-age'] =
-        options.cacheControlMaxAge.toString();
-    }
+    const headers = createPutHeaders(allowedOptions, options);
 
     if (options.multipart === true && body) {
-      return multipartPut(pathname, body, headers, options);
+      return uncontrolledMultipartUpload(pathname, body, headers, options);
     }
 
     const response = await requestApi<PutBlobApiResponse>(

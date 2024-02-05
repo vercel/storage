@@ -64,7 +64,10 @@ export { list } from './list';
 export type { CopyBlobResult, CopyCommandOptions } from './copy';
 export { copy } from './copy';
 
-// vercelBlob.multipartUpload()
+// vercelBlob. createMultipartUpload()
+// vercelBlob. uploadPart()
+// vercelBlob. completeMultipartUpload()
+// vercelBlob. createMultipartUploaded()
 
 export const createMultipartUpload =
   createCreateMultipartUploadMethod<CommonCreateBlobOptions>({

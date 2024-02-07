@@ -13,7 +13,7 @@ import type { CommonCompleteMultipartUploadOptions } from './multipart/complete'
 import { createCompleteMultipartUploadMethod } from './multipart/complete';
 import { createCreateMultipartUploadMethod } from './multipart/create';
 import { createUploadPartMethod } from './multipart/upload';
-import type { CommonMultipartUploadOptions } from './multipart/upload';
+import type { CommonUploadPartOptions } from './multipart/upload';
 import { createCreateMultipartUploaderMethod } from './multipart/create-uploader';
 
 // interface for put, upload and multipartUpload.
@@ -106,7 +106,7 @@ export const createMultipartUploader =
 
 type ClientMultipartUploadCommandOptions = ClientCommonCreateBlobOptions &
   ClientTokenOptions &
-  CommonMultipartUploadOptions;
+  CommonUploadPartOptions;
 
 export const uploadPart =
   createUploadPartMethod<ClientMultipartUploadCommandOptions>({

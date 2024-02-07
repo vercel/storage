@@ -19,24 +19,24 @@ console.log();
 async function run(): Promise<void> {
   const urls = await Promise.all([
     textFileExample(),
-    textFileNoRandomSuffixExample(),
-    textFileExampleWithCacheControlMaxAge(),
-    imageExample(),
-    videoExample(),
-    webpageExample(),
-    incomingMessageExample(),
-    axiosExample(),
-    gotExample(),
-    fetchExample(),
-    noExtensionExample(),
-    weirdCharactersExample(),
-    copyTextFile(),
-    listFolders(),
-    multipartNodeJsFileStream(),
-    fetchExampleMultipart(),
-    createFolder(),
-    manualMultipartUpload(),
-    manualMultipartUploader(),
+    // textFileNoRandomSuffixExample(),
+    // textFileExampleWithCacheControlMaxAge(),
+    // imageExample(),
+    // videoExample(),
+    // webpageExample(),
+    // incomingMessageExample(),
+    // axiosExample(),
+    // gotExample(),
+    // fetchExample(),
+    // noExtensionExample(),
+    // weirdCharactersExample(),
+    // copyTextFile(),
+    // listFolders(),
+    // multipartNodeJsFileStream(),
+    // fetchExampleMultipart(),
+    // createFolder(),
+    // manualMultipartUpload(),
+    // manualMultipartUploader(),
   ]);
 
   await Promise.all(
@@ -67,8 +67,21 @@ async function run(): Promise<void> {
 
 async function textFileExample(): Promise<string> {
   const start = Date.now();
+
+  await Promise.all(
+    Array.from({ length: 1000 }, async (_, i) => {
+      const blob = await vercelBlob.put(`test-${i}.txt`, 'Hello, world!', {
+        access: 'public',
+        addRandomSuffix: false,
+      });
+
+      console.log('Text file example:', blob.url, `(${Date.now() - start}ms)`);
+    }),
+  );
+
   const blob = await vercelBlob.put('folderé/test.txt', 'Hello, world!', {
     access: 'public',
+    addRandomSuffix: false,
   });
   console.log('Text file example:', blob.url, `(${Date.now() - start}ms)`);
   return blob.url;
@@ -389,10 +402,10 @@ async function manualMultipartUpload() {
 
   const { key, uploadId } = await vercelBlob.createMultipartUpload(
     'big-file.txt',
-    {
-      access: 'public',
-    },
+    { access: 'public' },
   );
+
+  console.log(key);
 
   const part1 = await vercelBlob.uploadPart(
     fullPath,

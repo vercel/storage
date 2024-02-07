@@ -10,11 +10,14 @@ export interface BlobCommandOptions {
 }
 
 // shared interface for put, copy and multipartUpload
-export interface CommonCreateBlobOptions extends BlobCommandOptions {
+export interface AccessBlobOptions extends BlobCommandOptions {
   /**
    * Whether the blob should be publicly accessible. Support for private blobs is planned.
    */
   access: 'public';
+}
+// shared interface for put, copy
+export interface CommonCreateBlobOptions extends AccessBlobOptions {
   /**
    * Adds a random suffix to the filename.
    * @defaultvalue true

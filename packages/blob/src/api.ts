@@ -41,6 +41,16 @@ export class BlobServiceNotAvailable extends BlobError {
   }
 }
 
+export class BlobServiceRateLimited extends BlobError {
+  constructor(seconds?: number) {
+    super(
+      `Too many requests please lower the number of concurrent requests ${
+        seconds ? ` - try again in ${seconds} seconds` : ''
+      }.`,
+    );
+  }
+}
+
 type BlobApiErrorCodes =
   | 'store_suspended'
   | 'forbidden'
@@ -49,7 +59,8 @@ type BlobApiErrorCodes =
   | 'bad_request'
   | 'store_not_found'
   | 'not_allowed'
-  | 'service_unavailable';
+  | 'service_unavailable'
+  | 'rate_limited';
 
 export interface BlobApiError {
   error?: { code?: BlobApiErrorCodes; message?: string };
@@ -162,13 +173,41 @@ export async function requestApi<TResponse>(
       const { code } = apiError ?? {};
       const error = getBlobError(apiError);
 
+      // only retry for certain errors
       if (code === 'unknown_error' || code === 'service_unavailable') {
-        // only retry for certain errors
         throw error;
-      } else {
-        // don't retry for e.g. suspended stores
-        bail(error);
       }
+
+      if (code === 'rate_limited') {
+        const retryAfter = res.headers.get('retry-after');
+        // don't retry without a retry-after header
+        if (!retryAfter) {
+          bail(new BlobServiceRateLimited());
+          return;
+        }
+
+        const retryAfterSeconds = parseInt(retryAfter, 10);
+        const retryError = new BlobServiceRateLimited(retryAfterSeconds);
+
+        // don't retry for long wait times
+        if (retryAfterSeconds > 2 * 60) {
+          bail(retryError);
+          return;
+        }
+
+        await new Promise<void>((resolve) => {
+          debug(
+            `waiting for ${retryAfterSeconds} seconds because of rate limit`,
+          );
+          setTimeout(resolve, 1000 * retryAfterSeconds);
+        });
+
+        // retry
+        throw retryError;
+      }
+
+      // don't retry for e.g. suspended stores
+      bail(error);
     },
     {
       retries: getRetries(),

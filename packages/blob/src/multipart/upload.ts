@@ -2,21 +2,21 @@ import bytes from 'bytes';
 import type { BodyInit } from 'undici';
 import { BlobServiceNotAvailable, requestApi } from '../api';
 import { debug } from '../debug';
-import type { BlobCommandOptions, AccessBlobOptions } from '../helpers';
+import type { CommonCreateBlobOptions, BlobCommandOptions } from '../helpers';
 import { createPutHeaders, createPutOptions } from '../put-helpers';
 import type { PutBody, CreatePutMethodOptions } from '../put-helpers';
 import type { Part, PartInput } from './helpers';
 
 // shared interface for server and client
-export interface CommonUploadPartOptions {
+export interface CommonMultipartUploadOptions {
   uploadId: string;
   key: string;
   partNumber: number;
   abortController?: AbortController;
 }
 
-export type UploadPartCommandOptions = CommonUploadPartOptions &
-  AccessBlobOptions;
+export type UploadPartCommandOptions = CommonMultipartUploadOptions &
+  CommonCreateBlobOptions;
 
 export function createUploadPartMethod<
   TOptions extends UploadPartCommandOptions,

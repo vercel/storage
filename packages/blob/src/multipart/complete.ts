@@ -1,6 +1,6 @@
 import { BlobServiceNotAvailable, requestApi } from '../api';
 import { debug } from '../debug';
-import type { BlobCommandOptions, CommonCreateBlobOptions } from '../helpers';
+import type { CommonCreateBlobOptions, BlobCommandOptions } from '../helpers';
 import type {
   CreatePutMethodOptions,
   PutBlobApiResponse,

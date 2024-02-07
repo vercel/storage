@@ -42,7 +42,7 @@ export class BlobServiceNotAvailable extends BlobError {
 }
 
 export class BlobServiceRateLimited extends BlobError {
-  public retryAfter: number;
+  public readonly retryAfter: number;
 
   constructor(seconds?: number) {
     super(
@@ -118,9 +118,10 @@ function createBlobServiceRateLimited(
   response: Response,
 ): BlobServiceRateLimited {
   const retryAfter = response.headers.get('retry-after');
-  const seconds = parseInt(retryAfter ?? '0', 10);
 
-  return new BlobServiceRateLimited(seconds);
+  return new BlobServiceRateLimited(
+    retryAfter ? parseInt(retryAfter, 10) : undefined,
+  );
 }
 
 // reads the body of a error response

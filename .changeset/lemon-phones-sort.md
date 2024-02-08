@@ -12,7 +12,7 @@
     countries.DE = true; // Will now cause TypeScript to error
    ```
 
-   Moving forward, modifications like the above will cause an error.
+   Moving forward, modifications like the above will cause a type error.
 
    If there is a need to modify the value, then the `clone` function can be used to clone the data and make it modifiable.
 

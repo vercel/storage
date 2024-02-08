@@ -4,7 +4,7 @@
 
  - **BREAKING CHANGE** Return values are now read-only to improve in-memory caching
 
-   It used to be possible to change the returned value as seen this example:
+   It used to be possible to change the returned value as shown in this example:
 
    ```typescript
     import { get } from '@vercel/edge-config';

@@ -9,7 +9,7 @@
    ```typescript
     import { get } from '@vercel/edge-config';
     const countries = await get('allowedCountryCodes');
-    countries.DE = true; // Won't be possible anymore and throw an error
+    countries.DE = true; // Will now cause TypeScript to error
    ```
 
    Moving forward, modifications like the above will cause an error.

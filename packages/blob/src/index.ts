@@ -1,5 +1,12 @@
 import type { PutCommandOptions } from './put';
 import { createPutMethod } from './put';
+import { createCreateMultipartUploadMethod } from './multipart/create';
+import type { UploadPartCommandOptions } from './multipart/upload';
+import { createUploadPartMethod } from './multipart/upload';
+import type { CompleteMultipartUploadCommandOptions } from './multipart/complete';
+import { createCompleteMultipartUploadMethod } from './multipart/complete';
+import type { CommonCreateBlobOptions } from './helpers';
+import { createCreateMultipartUploaderMethod } from './multipart/create-uploader';
 
 // expose generic BlobError and download url util
 export { BlobError, getDownloadUrl } from './helpers';
@@ -16,7 +23,8 @@ export {
 
 // vercelBlob.put()
 
-export type { PutBlobResult, PutCommandOptions } from './put';
+export type { PutBlobResult } from './put-helpers';
+export type { PutCommandOptions };
 
 /**
  * Uploads a blob into your store from your server.
@@ -55,3 +63,31 @@ export { list } from './list';
 
 export type { CopyBlobResult, CopyCommandOptions } from './copy';
 export { copy } from './copy';
+
+// vercelBlob. createMultipartUpload()
+// vercelBlob. uploadPart()
+// vercelBlob. completeMultipartUpload()
+// vercelBlob. createMultipartUploaded()
+
+export const createMultipartUpload =
+  createCreateMultipartUploadMethod<CommonCreateBlobOptions>({
+    allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
+  });
+
+export const createMultipartUploader =
+  createCreateMultipartUploaderMethod<CommonCreateBlobOptions>({
+    allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
+  });
+
+export type { UploadPartCommandOptions };
+export const uploadPart = createUploadPartMethod<UploadPartCommandOptions>({
+  allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
+});
+
+export type { CompleteMultipartUploadCommandOptions };
+export const completeMultipartUpload =
+  createCompleteMultipartUploadMethod<CompleteMultipartUploadCommandOptions>({
+    allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
+  });
+
+export type { Part, PartInput } from './multipart/helpers';

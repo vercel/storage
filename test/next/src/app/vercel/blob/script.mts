@@ -35,6 +35,8 @@ async function run(): Promise<void> {
     multipartNodeJsFileStream(),
     fetchExampleMultipart(),
     createFolder(),
+    manualMultipartUpload(),
+    manualMultipartUploader(),
   ]);
 
   await Promise.all(
@@ -350,6 +352,67 @@ async function createFolder() {
   });
 
   console.log('create folder example:', blob, `(${Date.now() - start}ms)`);
+
+  return blob.url;
+}
+
+async function manualMultipartUploader() {
+  const start = Date.now();
+
+  const pathname = 'big-text.txt';
+  const fullPath = `public/${pathname}`;
+
+  const uploader = await vercelBlob.createMultipartUploader('big-file.txt', {
+    access: 'public',
+  });
+
+  const part1 = await uploader.uploadPart(1, createReadStream(fullPath));
+
+  const part2 = await uploader.uploadPart(2, createReadStream(fullPath));
+
+  const blob = await uploader.complete([part1, part2]);
+
+  console.log(
+    'manual multipart put with util:',
+    blob,
+    `(${Date.now() - start}ms)`,
+  );
+
+  return blob.url;
+}
+
+async function manualMultipartUpload() {
+  const start = Date.now();
+
+  const pathname = 'big-text.txt';
+  const fullPath = `public/${pathname}`;
+
+  const { key, uploadId } = await vercelBlob.createMultipartUpload(
+    'big-file.txt',
+    {
+      access: 'public',
+    },
+  );
+
+  const part1 = await vercelBlob.uploadPart(
+    fullPath,
+    createReadStream(fullPath),
+    { access: 'public', key, uploadId, partNumber: 1 },
+  );
+
+  const part2 = await vercelBlob.uploadPart(
+    fullPath,
+    createReadStream(fullPath),
+    { access: 'public', key, uploadId, partNumber: 2 },
+  );
+
+  const blob = await vercelBlob.completeMultipartUpload(
+    fullPath,
+    [part1, part2],
+    { access: 'public', key, uploadId },
+  );
+
+  console.log('manual multipart put:', blob, `(${Date.now() - start}ms)`);
 
   return blob.url;
 }

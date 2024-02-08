@@ -9,8 +9,8 @@ export interface BlobCommandOptions {
   token?: string;
 }
 
-// shared interface for put and copy
-export interface CreateBlobCommandOptions extends BlobCommandOptions {
+// shared interface for put, copy and multipartUpload
+export interface CommonCreateBlobOptions extends BlobCommandOptions {
   /**
    * Whether the blob should be publicly accessible. Support for private blobs is planned.
    */
@@ -30,11 +30,6 @@ export interface CreateBlobCommandOptions extends BlobCommandOptions {
    * @defaultvalue 365 * 24 * 60 * 60 (1 Year)
    */
   cacheControlMaxAge?: number;
-  /**
-   * Whether to use multipart upload. Use this when uploading large files. It will split the file into multiple parts, upload them in parallel and retry failed parts.
-   * @defaultvalue false
-   */
-  multipart?: boolean;
 }
 
 export function getTokenFromOptionsOrEnv(options?: BlobCommandOptions): string {

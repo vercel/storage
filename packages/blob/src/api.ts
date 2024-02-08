@@ -41,6 +41,20 @@ export class BlobServiceNotAvailable extends BlobError {
   }
 }
 
+export class BlobServiceRateLimited extends BlobError {
+  public readonly retryAfter: number;
+
+  constructor(seconds?: number) {
+    super(
+      `Too many requests please lower the number of concurrent requests ${
+        seconds ? ` - try again in ${seconds} seconds` : ''
+      }.`,
+    );
+
+    this.retryAfter = seconds ?? 0;
+  }
+}
+
 type BlobApiErrorCodes =
   | 'store_suspended'
   | 'forbidden'
@@ -49,7 +63,8 @@ type BlobApiErrorCodes =
   | 'bad_request'
   | 'store_not_found'
   | 'not_allowed'
-  | 'service_unavailable';
+  | 'service_unavailable'
+  | 'rate_limited';
 
 export interface BlobApiError {
   error?: { code?: BlobApiErrorCodes; message?: string };
@@ -99,39 +114,63 @@ function getRetries(): number {
   }
 }
 
-// reads the body of a error response
-async function getBlobApiError(
+function createBlobServiceRateLimited(
   response: Response,
-): Promise<BlobApiError['error'] | undefined> {
-  try {
-    const data = await response.json();
+): BlobServiceRateLimited {
+  const retryAfter = response.headers.get('retry-after');
 
-    return (data as BlobApiError).error;
-  } catch {
-    return { code: 'unknown_error' };
-  }
+  return new BlobServiceRateLimited(
+    retryAfter ? parseInt(retryAfter, 10) : undefined,
+  );
 }
 
-// converts BlobApiError object into BlobError class
-function getBlobError(error: BlobApiError['error']): BlobError {
-  switch (error?.code) {
+// reads the body of a error response
+async function getBlobError(
+  response: Response,
+): Promise<{ code: string; error: BlobError }> {
+  let code: BlobApiErrorCodes;
+  let message: string | undefined;
+
+  try {
+    const data = (await response.json()) as BlobApiError;
+
+    code = data.error?.code ?? 'unknown_error';
+    message = data.error?.message;
+  } catch {
+    code = 'unknown_error';
+  }
+
+  let error: BlobError;
+  switch (code) {
     case 'store_suspended':
-      return new BlobStoreSuspendedError();
+      error = new BlobStoreSuspendedError();
+      break;
     case 'forbidden':
-      return new BlobAccessError();
+      error = new BlobAccessError();
+      break;
     case 'not_found':
-      return new BlobNotFoundError();
+      error = new BlobNotFoundError();
+      break;
     case 'store_not_found':
-      return new BlobStoreNotFoundError();
+      error = new BlobStoreNotFoundError();
+      break;
     case 'bad_request':
-      return new BlobError(error.message ?? 'Bad request');
+      error = new BlobError(message ?? 'Bad request');
+      break;
     case 'service_unavailable':
-      return new BlobServiceNotAvailable();
+      error = new BlobServiceNotAvailable();
+      break;
+    case 'rate_limited':
+      error = createBlobServiceRateLimited(response);
+      break;
     case 'unknown_error':
     case 'not_allowed':
     default:
-      return new BlobUnknownError();
+      error = new BlobUnknownError();
+      break;
   }
+
+  return { code, error };
 }
 
 export async function requestApi<TResponse>(
@@ -158,17 +197,15 @@ export async function requestApi<TResponse>(
         return res;
       }
 
-      const apiError = await getBlobApiError(res);
-      const { code } = apiError ?? {};
-      const error = getBlobError(apiError);
+      const { code, error } = await getBlobError(res);
 
+      // only retry for certain errors
       if (code === 'unknown_error' || code === 'service_unavailable') {
-        // only retry for certain errors
         throw error;
-      } else {
-        // don't retry for e.g. suspended stores
-        bail(error);
       }
+
+      // don't retry for e.g. suspended stores
+      bail(error);
     },
     {
       retries: getRetries(),

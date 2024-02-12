@@ -1,5 +1,14 @@
 # vercel-storage-integration-test-suite
 
+## 0.2.2
+
+### Patch Changes
+
+- Updated dependencies [fcdc55e]
+- Updated dependencies [52c2fe2]
+  - @vercel/edge-config@1.0.0
+  - @vercel/blob@0.22.0
+
 ## 0.2.1
 
 ### Patch Changes

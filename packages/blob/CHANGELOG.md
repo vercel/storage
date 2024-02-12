@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.22.0
+
+### Minor Changes
+
+- 52c2fe2: feat(blob): add rate limited error
+
 ## 0.21.0
 
 ### Minor Changes

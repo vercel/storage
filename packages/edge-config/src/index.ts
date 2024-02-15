@@ -149,7 +149,7 @@ function createGetInMemoryEdgeConfig(
 
         // We ignore all errors here and just proceed.
         if (!res.ok) {
-          await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+          await consumeResponseBody(res);
           body = res.cachedResponseBody as EdgeConfigValue | undefined;
           if (!body) return null;
         } else {
@@ -198,14 +198,25 @@ async function getLocalEdgeConfig(
   return edgeConfig;
 }
 
-async function consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(
-  res: Response,
-): Promise<void> {
-  if (typeof EdgeRuntime !== 'undefined') return;
-
-  // Read body to avoid memory leaks in nodejs
-  // see https://github.com/nodejs/undici/blob/v5.21.2/README.md#garbage-collection
-  // see https://github.com/node-fetch/node-fetch/issues/83
+/**
+ * This function reads the respone body
+ *
+ * Reading the response body serves two purposes
+ *
+ * 1) In Node.js it avoids memory leaks
+ *
+ * See https://github.com/nodejs/undici/blob/v5.21.2/README.md#garbage-collection
+ * See https://github.com/node-fetch/node-fetch/issues/83
+ *
+ * 2) In Cloudflare it avoids running into a deadlock. They have a maximum number
+ * of concurrent fetches (which is documented). Concurrency counts until the
+ * body of a response is read. It is not uncommon to never read a response body
+ * (e.g. if you only care about the status code). This can lead to deadlock as
+ * fetches appear to never resolve.
+ *
+ * See https://developers.cloudflare.com/workers/platform/limits/#simultaneous-open-connections
+ */
+async function consumeResponseBody(res: Response): Promise<void> {
   await res.arrayBuffer();
 }
 
@@ -321,7 +332,7 @@ export const createClient = trace(
             },
           ).then<DeepReadonly<T> | undefined, undefined>(async (res) => {
             if (res.ok) return res.json();
-            await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+            await consumeResponseBody(res);
 
             if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
             if (res.status === 404) {
@@ -413,7 +424,7 @@ export const createClient = trace(
             },
           ).then<DeepReadonly<T>>(async (res) => {
             if (res.ok) return res.json();
-            await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+            await consumeResponseBody(res);
 
             if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
             // the /items endpoint never returns 404, so if we get a 404
@@ -445,7 +456,7 @@ export const createClient = trace(
             },
           ).then(async (res) => {
             if (res.ok) return res.json() as Promise<string>;
-            await consumeResponseBodyInNodeJsRuntimeToPreventMemoryLeak(res);
+            await consumeResponseBody(res);
 
             if (res.cachedResponseBody !== undefined)
               return res.cachedResponseBody as string;

@@ -342,7 +342,7 @@ export function uploadAllParts({
       ) {
         reject(new BlobServiceNotAvailable());
       } else {
-        reject(error);
+        reject(error as Error);
       }
     }
   });

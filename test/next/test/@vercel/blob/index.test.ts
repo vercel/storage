@@ -2,9 +2,8 @@ import crypto from 'node:crypto';
 import { test, expect } from '@playwright/test';
 import type { PutBlobResult } from '@vercel/blob';
 
-const prefix = `${
-  process.env.GITHUB_PR_NUMBER || crypto.randomBytes(10).toString('hex')
-}`;
+const prefix =
+  process.env.GITHUB_PR_NUMBER || crypto.randomBytes(10).toString('hex');
 
 test.describe('@vercel/blob', () => {
   test.describe('api', () => {

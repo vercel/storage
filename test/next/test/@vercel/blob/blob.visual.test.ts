@@ -1,9 +1,8 @@
 import crypto from 'node:crypto';
 import { test, expect } from '@playwright/test';
 
-const prefix = `${
-  process.env.GITHUB_PR_NUMBER || crypto.randomBytes(10).toString('hex')
-}`;
+const prefix =
+  process.env.GITHUB_PR_NUMBER || crypto.randomBytes(10).toString('hex');
 
 test.describe('@vercel/blob', () => {
   test.describe('page', () => {

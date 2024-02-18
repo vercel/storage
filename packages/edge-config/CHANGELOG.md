@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 1.0.2
+
+### Patch Changes
+
+- 78d5814: prevents having too many open connections
+
 ## 1.0.1
 
 ### Patch Changes

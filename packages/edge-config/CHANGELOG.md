@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 1.0.1
+
+### Patch Changes
+
+- 4e7e216: mark @opentelemetry/api as optional peer dependency
+
 ## 1.0.0
 
 ### Major Changes

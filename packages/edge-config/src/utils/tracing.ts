@@ -1,12 +1,17 @@
-import {
-  trace as traceApi,
-  type Tracer,
-  type Attributes,
-} from '@opentelemetry/api';
+import type { Tracer, Attributes, TraceAPI } from '@opentelemetry/api';
 import { name as pkgName, version } from '../../package.json';
 
+let traceApi: TraceAPI | null;
+
+try {
+  // @ts-expect-error top-level await is fine
+  traceApi = await import('@opentelemetry/api').then((mod) => mod.trace);
+} catch {
+  traceApi = null;
+}
+
 function getTracer(): Tracer | undefined {
-  return traceApi.getTracer(pkgName, version);
+  return traceApi?.getTracer(pkgName, version);
 }
 
 function isPromise<T>(p: unknown): p is Promise<T> {

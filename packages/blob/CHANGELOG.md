@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.22.1
+
+### Patch Changes
+
+- 69a5c52: fix(blob): correctly handle Node.js buffers as input
+
 ## 0.22.0
 
 ### Minor Changes

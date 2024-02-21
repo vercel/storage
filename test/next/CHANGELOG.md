@@ -1,5 +1,12 @@
 # vercel-storage-integration-test-suite
 
+## 0.2.5
+
+### Patch Changes
+
+- Updated dependencies [69a5c52]
+  - @vercel/blob@0.22.1
+
 ## 0.2.4
 
 ### Patch Changes

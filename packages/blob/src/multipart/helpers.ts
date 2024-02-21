@@ -1,5 +1,8 @@
 // eslint-disable-next-line unicorn/prefer-node-protocol -- node:stream does not resolve correctly in browser and edge
 import { Readable } from 'stream';
+// eslint-disable-next-line unicorn/prefer-node-protocol -- node:buffer does not resolve correctly in browser and edge
+import type { Buffer } from 'buffer';
+import isBuffer from 'is-buffer';
 import type { PutBody } from '../put-helpers';
 
 export interface PartInput {
@@ -29,8 +32,15 @@ export function toReadableStream(value: PutBody): ReadableStream<ArrayBuffer> {
     return Readable.toWeb(value) as ReadableStream<ArrayBuffer>;
   }
 
-  const streamValue =
-    value instanceof ArrayBuffer ? value : stringToUint8Array(value);
+  let streamValue: Uint8Array | ArrayBuffer;
+
+  if (value instanceof ArrayBuffer) {
+    streamValue = value;
+  } else if (isNodeJsBufferOrString(value)) {
+    streamValue = value.buffer;
+  } else {
+    streamValue = stringToUint8Array(value);
+  }
 
   // from https://github.com/sindresorhus/to-readable-stream/blob/main/index.js
   return new ReadableStream<ArrayBuffer>({
@@ -56,4 +66,8 @@ function isNodeJsReadableStream(value: PutBody): value is Readable {
 function stringToUint8Array(s: string): Uint8Array {
   const enc = new TextEncoder();
   return enc.encode(s);
+}
+
+function isNodeJsBufferOrString(input: Buffer | string): input is Buffer {
+  return isBuffer(input);
 }

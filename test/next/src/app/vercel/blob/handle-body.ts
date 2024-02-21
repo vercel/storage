@@ -6,6 +6,7 @@ export async function handleBody(request: Request): Promise<NextResponse> {
   const { searchParams } = new URL(request.url);
   const pathname = searchParams.get('filename');
   const multipart = searchParams.get('multipart') === '1';
+  const useBuffer = searchParams.get('useBuffer') === '1';
 
   if (!request.body || pathname === null) {
     return NextResponse.json(
@@ -25,8 +26,16 @@ export async function handleBody(request: Request): Promise<NextResponse> {
     );
   }
 
+  let body: ReadableStream | Buffer;
+
+  if (useBuffer) {
+    body = Buffer.from(await request.arrayBuffer());
+  } else {
+    body = request.body;
+  }
+
   // Note: this will stream the file to Vercel's Blob Store
-  const blob = await vercelBlob.put(pathname, request.body, {
+  const blob = await vercelBlob.put(pathname, body, {
     access: 'public',
     multipart,
   });

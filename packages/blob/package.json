@@ -63,7 +63,7 @@
     "async-retry": "1.3.3",
     "bytes": "3.1.2",
     "is-buffer": "2.0.5",
-    "undici": "5.28.2"
+    "undici": "5.28.3"
   },
   "devDependencies": {
     "@edge-runtime/jest-environment": "2.3.10",

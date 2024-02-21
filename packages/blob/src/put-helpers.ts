@@ -23,6 +23,7 @@ export type PutBlobApiResponse = PutBlobResult;
 export type PutBody =
   | string
   | Readable // Node.js streams
+  | Buffer // Node.js buffers
   | Blob
   | ArrayBuffer
   | ReadableStream // Streams API (= Web streams in Node.js)

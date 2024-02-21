@@ -28,6 +28,8 @@ export {
   type EmbeddedEdgeConfig,
 };
 
+export { initTracing } from './utils/tracing';
+
 const jsonParseCache = new Map<string, unknown>();
 
 const readFileTraced = trace(readFile, { name: 'readFile' });
@@ -478,7 +480,7 @@ let defaultEdgeConfigClient: EdgeConfigClient;
 
 // lazy init fn so the default edge config does not throw in case
 // process.env.EDGE_CONFIG is not defined and its methods are never used.
-function init(): void {
+function initClient(): void {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- [@vercel/style-guide@5 migration]
   if (!defaultEdgeConfigClient) {
     defaultEdgeConfigClient = createClient(process.env.EDGE_CONFIG);
@@ -496,7 +498,7 @@ function init(): void {
  * @returns the value stored under the given key, or undefined
  */
 export const get: EdgeConfigClient['get'] = (...args) => {
-  init();
+  initClient();
   return defaultEdgeConfigClient.get(...args);
 };
 
@@ -511,7 +513,7 @@ export const get: EdgeConfigClient['get'] = (...args) => {
  * @returns the value stored under the given key, or undefined
  */
 export const getAll: EdgeConfigClient['getAll'] = (...args) => {
-  init();
+  initClient();
   return defaultEdgeConfigClient.getAll(...args);
 };
 
@@ -526,7 +528,7 @@ export const getAll: EdgeConfigClient['getAll'] = (...args) => {
  * @returns true if the given key exists in the Edge Config.
  */
 export const has: EdgeConfigClient['has'] = (...args) => {
-  init();
+  initClient();
   return defaultEdgeConfigClient.has(...args);
 };
 
@@ -540,7 +542,7 @@ export const has: EdgeConfigClient['has'] = (...args) => {
  * @returns The digest of the Edge Config.
  */
 export const digest: EdgeConfigClient['digest'] = (...args) => {
-  init();
+  initClient();
   return defaultEdgeConfigClient.digest(...args);
 };
 

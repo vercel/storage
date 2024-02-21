@@ -1,12 +1,37 @@
-import {
-  trace as traceApi,
-  type Tracer,
-  type Attributes,
-} from '@opentelemetry/api';
+import type { TraceAPI, Tracer, Attributes } from '@opentelemetry/api';
 import { name as pkgName, version } from '../../package.json';
 
+let traceApi: TraceAPI | null = null;
+
+/**
+ * Initalizes the tracing for the Edge Config by trying to load
+ * the `@opentelemetry/api` package.
+ */
+export async function initTracing() {
+  try {
+    traceApi = require('@opentelemetry/api').trace;
+  } catch (error) {
+    console.error(
+      '@vercel/edge-config: Failed to load `@opentelemetry/api`',
+      error,
+    );
+  }
+
+  try {
+    if (traceApi === null) {
+      const otel = await import('@opentelemetry/api');
+      traceApi = otel.trace;
+    }
+  } catch (error) {
+    console.error(
+      '@vercel/edge-config: Failed to load `@opentelemetry/api`',
+      error,
+    );
+  }
+}
+
 function getTracer(): Tracer | undefined {
-  return traceApi.getTracer(pkgName, version);
+  return traceApi?.getTracer(pkgName, version);
 }
 
 function isPromise<T>(p: unknown): p is Promise<T> {

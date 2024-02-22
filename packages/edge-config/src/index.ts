@@ -20,6 +20,8 @@ import type {
 import { fetchWithCachedResponse } from './utils/fetch-with-cached-response';
 import { trace } from './utils/tracing';
 
+export { setTracer } from './utils/tracing';
+
 export {
   parseConnectionString,
   type EdgeConfigClient,

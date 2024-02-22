@@ -1,12 +1,18 @@
-import {
-  trace as traceApi,
-  type Tracer,
-  type Attributes,
-} from '@opentelemetry/api';
+import type { TraceAPI, Tracer, Attributes } from '@opentelemetry/api';
 import { name as pkgName, version } from '../../package.json';
 
+let traceApi: TraceAPI | null = null;
+
+/**
+ * Allows setting the `@opentelemetry/api` tracer to generate traces
+ * for Edge Config related operations.
+ */
+export function setTracer(tracer: TraceAPI) {
+  traceApi = tracer;
+}
+
 function getTracer(): Tracer | undefined {
-  return traceApi.getTracer(pkgName, version);
+  return traceApi?.getTracer(pkgName, version);
 }
 
 function isPromise<T>(p: unknown): p is Promise<T> {

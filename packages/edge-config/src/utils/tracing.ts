@@ -7,7 +7,7 @@ let traceApi: TraceAPI | null = null;
  * Allows setting the `@opentelemetry/api` tracer to generate traces
  * for Edge Config related operations.
  */
-export function setTracer(tracer: TraceAPI) {
+export function setTracer(tracer: TraceAPI): void {
   traceApi = tracer;
 }
 

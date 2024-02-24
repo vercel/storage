@@ -14,10 +14,9 @@ export function setTracer(tracer: TraceAPI): void {
 }
 
 function getTracer(): Tracer | undefined {
-  const maybeTraceApi: undefined | TraceAPI = Reflect.get(
-    globalThis,
-    edgeConfigTraceSymbol,
-  );
+  const maybeTraceApi = Reflect.get(globalThis, edgeConfigTraceSymbol) as
+    | undefined
+    | TraceAPI;
   return maybeTraceApi?.getTracer(pkgName, version);
 }
 

@@ -48,13 +48,6 @@ export function trace<F extends (...args: any) => any>(
 ): F {
   const traced = function (this: unknown, ...args: unknown[]): unknown {
     const tracer = getTracer();
-
-    if (!tracer) {
-      console.error('Tracer was not initalized yet for', options.name);
-    } else {
-      console.log('Tracer exists for', options.name);
-    }
-
     if (!tracer) return fn.apply(this, args);
 
     const shouldTrace =

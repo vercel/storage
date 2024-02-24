@@ -1,18 +1,24 @@
 import type { TraceAPI, Tracer, Attributes } from '@opentelemetry/api';
 import { name as pkgName, version } from '../../package.json';
 
-let traceApi: TraceAPI | null = null;
+// Use a symbol to avoid having global variable that is scoped to this file,
+// as it can lead to issues with cjs and mjs being used at the same time.
+const edgeConfigTraceSymbol = Symbol.for('@vercel/edge-config:global-trace');
 
 /**
  * Allows setting the `@opentelemetry/api` tracer to generate traces
  * for Edge Config related operations.
  */
 export function setTracer(tracer: TraceAPI): void {
-  traceApi = tracer;
+  Reflect.set(globalThis, edgeConfigTraceSymbol, tracer);
 }
 
 function getTracer(): Tracer | undefined {
-  return traceApi?.getTracer(pkgName, version);
+  const maybeTraceApi: undefined | TraceAPI = Reflect.get(
+    globalThis,
+    edgeConfigTraceSymbol,
+  );
+  return maybeTraceApi?.getTracer(pkgName, version);
 }
 
 function isPromise<T>(p: unknown): p is Promise<T> {
@@ -42,6 +48,13 @@ export function trace<F extends (...args: any) => any>(
 ): F {
   const traced = function (this: unknown, ...args: unknown[]): unknown {
     const tracer = getTracer();
+
+    if (!tracer) {
+      console.error('Tracer was not initalized yet for', options.name);
+    } else {
+      console.log('Tracer exists for', options.name);
+    }
+
     if (!tracer) return fn.apply(this, args);
 
     const shouldTrace =

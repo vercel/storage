@@ -119,6 +119,19 @@ export default (req) => {
 export const config = { runtime: 'edge' };
 ```
 
+## OpenTelemetry Tracing
+
+The `@vercel/edge-config` package makes use of the OpenTelemetry standard to trace certain functions for observability. In order to enable it, use the function `setTracerProvider` to set the `TracerProvider` that should be used by the SDK.
+
+```js
+import { setTracerProvider } from '@vercel/edge-config';
+import { trace } from '@opentelemetry/api';
+
+setTracerProvider(trace);
+```
+
+More verbose traces can be enabled by setting the `EDGE_CONFIG_TRACE_VERBOSE` environment variable to `true`.
+
 ## Caught a Bug?
 
 1. [Fork](https://help.github.com/articles/fork-a-repo/) this repository to your own GitHub account and then [clone](https://help.github.com/articles/cloning-a-repository/) it to your local device

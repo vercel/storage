@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 1.1.0
+
+### Minor Changes
+
+- 5fb6969: Make `@opentelemetry/api` optional and expose a `setTracerProvider` function
+
 ## 1.0.2
 
 ### Patch Changes

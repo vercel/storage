@@ -219,7 +219,7 @@ async function getLocalEdgeConfig(
  * See https://developers.cloudflare.com/workers/platform/limits/#simultaneous-open-connections
  */
 async function consumeResponseBody(res: Response): Promise<void> {
-  await res.arrayBuffer();
+  await res.body?.cancel();
 }
 
 interface EdgeConfigClientOptions {

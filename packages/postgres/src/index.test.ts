@@ -1,6 +1,7 @@
 import {
   createClient,
   createPool,
+  fragment,
   postgresConnectionString,
   sql,
   db,
@@ -15,6 +16,9 @@ describe('@vercel/postgres', () => {
   });
   it('exports sql', () => {
     expect(typeof sql).toEqual('function');
+  });
+  it('exports fragment', () => {
+    expect(typeof fragment).toEqual('function');
   });
   it('exports postgresConnectionString', () => {
     expect(typeof postgresConnectionString).toEqual('function');

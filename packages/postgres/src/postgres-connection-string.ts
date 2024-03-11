@@ -31,7 +31,7 @@ export function postgresConnectionString(
 }
 
 export function isPooledConnectionString(connectionString: string): boolean {
-  return connectionString.includes('-pooler.');
+  return connectionString.includes('pooler.');
 }
 
 export function isDirectConnectionString(connectionString: string): boolean {

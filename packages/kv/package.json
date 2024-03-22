@@ -43,7 +43,7 @@
     "testEnvironment": "node"
   },
   "dependencies": {
-    "@upstash/redis": "1.25.2"
+    "@upstash/redis": "1.29.0"
   },
   "devDependencies": {
     "@changesets/cli": "2.27.1",

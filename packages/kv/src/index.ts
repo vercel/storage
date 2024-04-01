@@ -1,4 +1,5 @@
-import type { Agent } from 'node:https';
+// eslint-disable-next-line unicorn/prefer-node-protocol -- Webpack doesn't like node: protocol
+import type { Agent } from 'https';
 import { Redis } from '@upstash/redis';
 import type { ScanCommandOptions, RedisConfigNodejs } from '@upstash/redis';
 
@@ -82,8 +83,8 @@ function getAgent(): Agent | undefined {
     return undefined;
   }
   const AgentClass: typeof Agent =
-    // eslint-disable-next-line @typescript-eslint/consistent-type-imports, @typescript-eslint/no-var-requires -- Legacy Node.js import.
-    (require('node:https') as typeof import('node:https')).Agent;
+    // eslint-disable-next-line @typescript-eslint/consistent-type-imports, @typescript-eslint/no-var-requires, unicorn/prefer-node-protocol -- Legacy Node.js import.
+    (require('https') as typeof import('https')).Agent;
   return new AgentClass({ keepAlive: true });
 }
 

@@ -1,3 +1,4 @@
+import type { Agent } from 'node:https';
 import { Redis } from '@upstash/redis';
 import type { ScanCommandOptions, RedisConfigNodejs } from '@upstash/redis';
 
@@ -76,11 +77,23 @@ export class VercelKV extends Redis {
   }
 }
 
+function getAgent(): Agent | undefined {
+  if (typeof EdgeRuntime === 'string') {
+    return undefined;
+  }
+  const AgentClass: typeof Agent =
+    // eslint-disable-next-line @typescript-eslint/consistent-type-imports, @typescript-eslint/no-var-requires -- Legacy Node.js import.
+    (require('node:https') as typeof import('node:https')).Agent;
+  return new AgentClass({ keepAlive: true });
+}
+
 export function createClient(config: RedisConfigNodejs): VercelKV {
   return new VercelKV({
     // The Next.js team recommends no value or `default` for fetch requests's `cache` option
     // upstash/redis defaults to `no-store`, so we enforce `default`
     cache: 'default',
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- RedisConfigNodejs['agent'] is any
+    agent: config.agent || getAgent(),
     ...config,
   });
 }

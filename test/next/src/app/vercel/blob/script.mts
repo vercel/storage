@@ -362,7 +362,7 @@ async function manualMultipartUploader() {
   const pathname = 'big-text.txt';
   const fullPath = `public/${pathname}`;
 
-  const uploader = await vercelBlob.createMultipartUploader('big-file.txt', {
+  const uploader = await vercelBlob.createMultipartUploader('big-file-2.txt', {
     access: 'public',
   });
 

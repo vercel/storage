@@ -1,5 +1,11 @@
 # @vercel/postgres
 
+## 0.8.0
+
+### Minor Changes
+
+- e36fa70: feat(types): re-export pg-types for Drizzle
+
 ## 0.7.2
 
 ### Patch Changes

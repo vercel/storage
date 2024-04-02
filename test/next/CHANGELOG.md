@@ -1,5 +1,13 @@
 # vercel-storage-integration-test-suite
 
+## 0.2.7
+
+### Patch Changes
+
+- Updated dependencies [e36fa70]
+  - @vercel/postgres@0.8.0
+  - @vercel/postgres-kysely@0.8.0
+
 ## 0.2.6
 
 ### Patch Changes

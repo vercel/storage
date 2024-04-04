@@ -57,8 +57,8 @@ importers:
         specifier: 2.0.5
         version: 2.0.5
       undici:
-        specifier: 5.28.3
-        version: 5.28.3
+        specifier: 6.11.1
+        version: 6.11.1
     devDependencies:
       '@edge-runtime/jest-environment':
         specifier: 2.3.10
@@ -7902,11 +7902,9 @@ packages:
       '@fastify/busboy': 2.1.0
     dev: false
 
-  /undici@5.28.3:
-    resolution: {integrity: sha512-3ItfzbrhDlINjaP0duwnNsKpDQk3acHI3gVJ1z4fmwMK31k5G9OVIAMLSIaP6w4FaGkaAkN6zaQO9LUvZ1t7VA==}
-    engines: {node: '>=14.0'}
-    dependencies:
-      '@fastify/busboy': 2.1.0
+  /undici@6.11.1:
+    resolution: {integrity: sha512-KyhzaLJnV1qa3BSHdj4AZ2ndqI0QWPxYzaIOio0WzcEJB9gvuysprJSLtpvc2D9mhR9jPDUk7xlJlZbH2KR5iw==}
+    engines: {node: '>=18.0'}
     dev: false
 
   /universalify@0.1.2:

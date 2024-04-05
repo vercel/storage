@@ -18,25 +18,26 @@ console.log();
 
 async function run(): Promise<void> {
   const urls = await Promise.all([
-    textFileExample(),
-    textFileNoRandomSuffixExample(),
-    textFileExampleWithCacheControlMaxAge(),
-    imageExample(),
-    videoExample(),
-    webpageExample(),
-    incomingMessageExample(),
-    axiosExample(),
-    gotExample(),
-    fetchExample(),
-    noExtensionExample(),
-    weirdCharactersExample(),
-    copyTextFile(),
-    listFolders(),
-    multipartNodeJsFileStream(),
-    fetchExampleMultipart(),
-    createFolder(),
-    manualMultipartUpload(),
-    manualMultipartUploader(),
+    // textFileExample(),
+    // textFileNoRandomSuffixExample(),
+    // textFileExampleWithCacheControlMaxAge(),
+    // imageExample(),
+    // videoExample(),
+    // webpageExample(),
+    // incomingMessageExample(),
+    // axiosExample(),
+    // gotExample(),
+    // fetchExample(),
+    // noExtensionExample(),
+    // weirdCharactersExample(),
+    // copyTextFile(),
+    // listFolders(),
+    // multipartNodeJsFileStream(),
+    // fetchExampleMultipart(),
+    // createFolder(),
+    // manualMultipartUpload(),
+    // manualMultipartUploader(),
+    cancelPut(),
   ]);
 
   await Promise.all(
@@ -360,15 +361,15 @@ async function manualMultipartUploader() {
   const start = Date.now();
 
   const pathname = 'big-text.txt';
-  const fullPath = `public/${pathname}`;
+  const localPath = `public/${pathname}`;
 
   const uploader = await vercelBlob.createMultipartUploader('big-file-2.txt', {
     access: 'public',
   });
 
-  const part1 = await uploader.uploadPart(1, createReadStream(fullPath));
+  const part1 = await uploader.uploadPart(1, createReadStream(localPath));
 
-  const part2 = await uploader.uploadPart(2, createReadStream(fullPath));
+  const part2 = await uploader.uploadPart(2, createReadStream(localPath));
 
   const blob = await uploader.complete([part1, part2]);
 
@@ -385,34 +386,56 @@ async function manualMultipartUpload() {
   const start = Date.now();
 
   const pathname = 'big-text.txt';
-  const fullPath = `public/${pathname}`;
+  const localPath = `public/${pathname}`;
 
-  const { key, uploadId } = await vercelBlob.createMultipartUpload(
-    'big-file.txt',
-    {
-      access: 'public',
-    },
-  );
+  const { key, uploadId } = await vercelBlob.createMultipartUpload(pathname, {
+    access: 'public',
+  });
 
   const part1 = await vercelBlob.uploadPart(
-    fullPath,
-    createReadStream(fullPath),
+    pathname,
+    createReadStream(localPath),
     { access: 'public', key, uploadId, partNumber: 1 },
   );
 
   const part2 = await vercelBlob.uploadPart(
-    fullPath,
-    createReadStream(fullPath),
+    pathname,
+    createReadStream(localPath),
     { access: 'public', key, uploadId, partNumber: 2 },
   );
 
   const blob = await vercelBlob.completeMultipartUpload(
-    fullPath,
+    pathname,
     [part1, part2],
     { access: 'public', key, uploadId },
   );
 
   console.log('manual multipart put:', blob, `(${Date.now() - start}ms)`);
+
+  return blob.url;
+}
+
+async function cancelPut() {
+  const start = Date.now();
+
+  const pathname = 'canceled.txt';
+  const localPath = `public/big-text.txt`;
+
+  const abortController = new AbortController();
+
+  const upload = await vercelBlob.createMultipartUploader(pathname, {
+    access: 'public',
+    abortSignal: abortController.signal,
+  });
+
+  const part1 = await upload.uploadPart(1, createReadStream(localPath));
+
+  upload.uploadPart(2, createReadStream(localPath));
+  abortController.abort();
+
+  const blob = await upload.complete([part1]);
+
+  console.log('canceled put:', blob, `(${Date.now() - start}ms)`);
 
   return blob.url;
 }

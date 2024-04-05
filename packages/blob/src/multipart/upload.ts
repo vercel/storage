@@ -128,6 +128,11 @@ export function uploadAllParts({
   debug('mpu: upload init', 'key:', key);
   const internalAbortController = new AbortController();
 
+  // we connect the internal abort controller to the external abortSignal to allow the user to cancel the upload
+  options.abortSignal?.addEventListener('abort', () => {
+    internalAbortController.abort();
+  });
+
   return new Promise((resolve, reject) => {
     const partsToUpload: BlobUploadPart[] = [];
     const completedParts: Part[] = [];

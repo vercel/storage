@@ -183,15 +183,24 @@ export async function requestApi<TResponse>(
 
   const apiResponse = await retry(
     async (bail) => {
-      const res = await fetch(getApiUrl(pathname), {
-        ...init,
-        headers: {
-          'x-api-version': apiVersion,
-          authorization: `Bearer ${token}`,
+      let res: Response;
+      try {
+        res = await fetch(getApiUrl(pathname), {
+          ...init,
+          headers: {
+            'x-api-version': apiVersion,
+            authorization: `Bearer ${token}`,
 
-          ...init.headers,
-        },
-      });
+            ...init.headers,
+          },
+        });
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          bail(error);
+        }
+
+        throw error;
+      }
 
       if (res.ok) {
         return res;

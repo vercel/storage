@@ -85,7 +85,10 @@ export async function list<
 
   const response = await requestApi<ListBlobApiResponse>(
     `?${searchParams.toString()}`,
-    { method: 'GET' },
+    {
+      method: 'GET',
+      signal: options?.abortSignal,
+    },
     options,
   );
 

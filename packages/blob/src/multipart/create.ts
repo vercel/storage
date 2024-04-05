@@ -51,6 +51,7 @@ export async function createMultipartUpload(
           ...headers,
           'x-mpu-action': 'create',
         },
+        signal: options.abortSignal,
       },
       options,
     );

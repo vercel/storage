@@ -51,7 +51,11 @@ export async function copy(
 
   const response = await requestApi<CopyBlobResult>(
     `/${toPathname}?fromUrl=${fromUrl}`,
-    { method: 'PUT', headers },
+    {
+      method: 'PUT',
+      headers,
+      signal: options.abortSignal,
+    },
     options,
   );
 

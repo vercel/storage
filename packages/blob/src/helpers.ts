@@ -7,6 +7,10 @@ export interface BlobCommandOptions {
    * @defaultvalue process.env.BLOB_READ_WRITE_TOKEN
    */
   token?: string;
+  /**
+   * Abortsignal to cancel the running request.
+   */
+  abortSignal?: AbortSignal;
 }
 
 // shared interface for put, copy and multipartUpload

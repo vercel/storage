@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.22.3
+
+### Patch Changes
+
+- 5b9b53d: Remove dependency pins in package.json.
+
 ## 0.22.2
 
 ### Patch Changes

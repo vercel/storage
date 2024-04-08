@@ -1,5 +1,17 @@
 # @vercel/blob
 
+## 0.22.3
+
+### Patch Changes
+
+- 5b9b53d: Remove dependency pins in package.json.
+
+## 0.22.2
+
+### Patch Changes
+
+- 13988ed: BREAKING CHANGE: The `contentType` field of the PutBlobResult is now optional which might break TS builds. This aligns the SDK typings with the actual Response of the Blob API.
+
 ## 0.22.1
 
 ### Patch Changes

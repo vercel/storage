@@ -66,6 +66,7 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
         headers,
         // required in order to stream some body types to Cloudflare
         // currently only supported in Node.js, we may have to feature detect this
+        // note: this doesn't send a content-length to the server
         duplex: 'half',
       },
       options,

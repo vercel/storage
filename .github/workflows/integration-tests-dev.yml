@@ -55,6 +55,12 @@ jobs:
         env:
           BLOB_UPLOAD_SECRET: ${{ secrets.BLOB_UPLOAD_SECRET }}
 
+      - name: Run Blob Playwright tests in development mode using the alternative api
+        run: pnpm integration-test -- @vercel/blob
+        env:
+          BLOB_UPLOAD_SECRET: ${{ secrets.BLOB_UPLOAD_SECRET }}
+          VERCEL_BLOB_API_URL: 'https://vercel.com/api/blob'
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:

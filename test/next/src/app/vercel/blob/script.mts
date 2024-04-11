@@ -18,33 +18,37 @@ console.log();
 
 async function run(): Promise<void> {
   const urls = await Promise.all([
-    // textFileExample(),
-    // textFileNoRandomSuffixExample(),
-    // textFileExampleWithCacheControlMaxAge(),
-    // imageExample(),
-    // videoExample(),
-    // webpageExample(),
-    // incomingMessageExample(),
-    // axiosExample(),
-    // gotExample(),
-    // fetchExample(),
-    // noExtensionExample(),
-    // weirdCharactersExample(),
-    // copyTextFile(),
-    // listFolders(),
-    // multipartNodeJsFileStream(),
-    // fetchExampleMultipart(),
-    // createFolder(),
-    // manualMultipartUpload(),
-    // manualMultipartUploader(),
+    textFileExample(),
+    textFileNoRandomSuffixExample(),
+    textFileExampleWithCacheControlMaxAge(),
+    imageExample(),
+    videoExample(),
+    webpageExample(),
+    incomingMessageExample(),
+    axiosExample(),
+    gotExample(),
+    fetchExample(),
+    noExtensionExample(),
+    weirdCharactersExample(),
+    copyTextFile(),
+    listFolders(),
+    multipartNodeJsFileStream(),
+    fetchExampleMultipart(),
+    createFolder(),
+    manualMultipartUpload(),
+    manualMultipartUploader(),
     cancelPut(),
   ]);
 
-  await Promise.all(
-    urls.map(async (url) => {
-      const blobDetails = await vercelBlob.head(url);
-      console.log(blobDetails, url);
-    }),
+  const filteredUrls = await Promise.all(
+    urls
+      .filter((url): url is string => Boolean(url))
+      .map(async (url) => {
+        const blobDetails = await vercelBlob.head(url);
+        console.log(blobDetails, url);
+
+        return blobDetails.url;
+      }),
   );
 
   // list all blobs
@@ -63,7 +67,9 @@ async function run(): Promise<void> {
 
   console.log(count, 'blobs in this store');
 
-  await Promise.all(urls.map((url) => vercelBlob.del(url)));
+  console.log(filteredUrls);
+
+  await Promise.all(filteredUrls.map((url) => vercelBlob.del(url)));
 }
 
 async function textFileExample(): Promise<string> {
@@ -418,24 +424,18 @@ async function manualMultipartUpload() {
 async function cancelPut() {
   const start = Date.now();
 
-  const pathname = 'canceled.txt';
-  const localPath = `public/big-text.txt`;
-
   const abortController = new AbortController();
 
-  const upload = await vercelBlob.createMultipartUploader(pathname, {
-    access: 'public',
-    abortSignal: abortController.signal,
-  });
+  try {
+    const promise = vercelBlob.put('canceled.txt', 'test', {
+      access: 'public',
+      abortSignal: abortController.signal,
+    });
 
-  const part1 = await upload.uploadPart(1, createReadStream(localPath));
+    abortController.abort();
 
-  upload.uploadPart(2, createReadStream(localPath));
-  abortController.abort();
-
-  const blob = await upload.complete([part1]);
-
-  console.log('canceled put:', blob, `(${Date.now() - start}ms)`);
-
-  return blob.url;
+    await promise;
+  } catch {
+    console.log('canceled put:', `(${Date.now() - start}ms)`);
+  }
 }

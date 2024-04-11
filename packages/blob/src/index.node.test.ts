@@ -1,6 +1,6 @@
 import { type Interceptable, MockAgent, setGlobalDispatcher } from 'undici';
-import { BlobServiceNotAvailable } from './api';
-import { list, head, del, put } from './index';
+import { BlobRequestAbortedError, BlobServiceNotAvailable } from './api';
+import { list, head, del, put, copy } from './index';
 
 const BLOB_API_URL = 'https://blob.vercel-storage.com';
 const BLOB_STORE_BASE_URL = 'https://storeId.public.blob.vercel-storage.com';
@@ -566,5 +566,27 @@ describe('blob client', () => {
       });
       expect(headers['x-cache-control-max-age']).toEqual('60');
     });
+
+    const table: [string, (signal: AbortSignal) => Promise<unknown>][] = [
+      ['put', (s) => put('p', 'b', { access: 'public', abortSignal: s })],
+      ['del', (s) => del('path', { abortSignal: s })],
+      ['list', (s) => list({ abortSignal: s })],
+      ['copy', (s) => copy('f', 't', { access: 'public', abortSignal: s })],
+      ['head', (s) => head('u', { abortSignal: s })],
+    ];
+
+    it.each(table)(
+      'cancels requests with an abort controller: %s',
+      async (_, operation) => {
+        await expect(async () => {
+          const controller = new AbortController();
+          const promise = operation(controller.signal);
+
+          controller.abort();
+
+          await promise;
+        }).rejects.toThrow(BlobRequestAbortedError);
+      },
+    );
   });
 });

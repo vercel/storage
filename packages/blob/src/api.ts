@@ -55,6 +55,12 @@ export class BlobServiceRateLimited extends BlobError {
   }
 }
 
+export class BlobRequestAbortedError extends BlobError {
+  constructor() {
+    super('The request was aborted.');
+  }
+}
+
 type BlobApiErrorCodes =
   | 'store_suspended'
   | 'forbidden'
@@ -196,7 +202,8 @@ export async function requestApi<TResponse>(
         });
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
-          bail(error);
+          bail(new BlobRequestAbortedError());
+          return;
         }
 
         throw error;

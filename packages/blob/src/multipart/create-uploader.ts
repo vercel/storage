@@ -26,10 +26,14 @@ export function createCreateMultipartUploaderMethod<
     );
 
     // all sdk functions expose an abort signal but upload part requires a controller
-    const internalAbortController = new AbortController();
-    options.abortSignal?.addEventListener('abort', () => {
-      internalAbortController.abort();
-    });
+    let internalAbortController: AbortController | undefined;
+    if (options.abortSignal) {
+      internalAbortController = new AbortController();
+
+      options.abortSignal.addEventListener('abort', () => {
+        internalAbortController?.abort();
+      });
+    }
 
     return {
       key: createMultipartUploadResponse.key,

@@ -572,7 +572,7 @@ describe('blob client', () => {
       ['del', (s) => del('file.txt', { abortSignal: s })],
       ['list', (s) => list({ abortSignal: s })],
       ['copy', (s) => copy('file.txt', 'destination.txt', { access: 'public', abortSignal: s })],
-      ['head', (s) => head('u', { abortSignal: s })],
+      ['head', (s) => head('file.txt', { abortSignal: s })],
     ];
 
     it.each(table)(

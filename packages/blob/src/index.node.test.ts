@@ -571,7 +571,7 @@ describe('blob client', () => {
       ['put', (s) => put('file.txt', 'Hello World!', { access: 'public', abortSignal: s })],
       ['del', (s) => del('path', { abortSignal: s })],
       ['list', (s) => list({ abortSignal: s })],
-      ['copy', (s) => copy('f', 't', { access: 'public', abortSignal: s })],
+      ['copy', (s) => copy('file.txt', 'destination.txt', { access: 'public', abortSignal: s })],
       ['head', (s) => head('u', { abortSignal: s })],
     ];
 

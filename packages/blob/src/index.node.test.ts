@@ -568,7 +568,7 @@ describe('blob client', () => {
     });
 
     const table: [string, (signal: AbortSignal) => Promise<unknown>][] = [
-      ['put', (s) => put('p', 'b', { access: 'public', abortSignal: s })],
+      ['put', (s) => put('file.txt', 'Hello World!', { access: 'public', abortSignal: s })],
       ['del', (s) => del('path', { abortSignal: s })],
       ['list', (s) => list({ abortSignal: s })],
       ['copy', (s) => copy('f', 't', { access: 'public', abortSignal: s })],

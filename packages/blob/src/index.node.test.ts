@@ -569,7 +569,7 @@ describe('blob client', () => {
 
     const table: [string, (signal: AbortSignal) => Promise<unknown>][] = [
       ['put', (s) => put('file.txt', 'Hello World!', { access: 'public', abortSignal: s })],
-      ['del', (s) => del('path', { abortSignal: s })],
+      ['del', (s) => del('file.txt', { abortSignal: s })],
       ['list', (s) => list({ abortSignal: s })],
       ['copy', (s) => copy('file.txt', 'destination.txt', { access: 'public', abortSignal: s })],
       ['head', (s) => head('u', { abortSignal: s })],

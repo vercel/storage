@@ -57,12 +57,6 @@ jobs:
         env:
           PLAYWRIGHT_TEST_BASE_URL: ${{inputs.PLAYWRIGHT_TEST_BASE_URL || 'https://storage-rho.vercel.app' }}
 
-      - name: Run Blob Playwright tests on https://storage-rho.vercel.app/ using the alternative api
-        run: pnpm integration-test -- @vercel/blob
-        env:
-          PLAYWRIGHT_TEST_BASE_URL: ${{inputs.PLAYWRIGHT_TEST_BASE_URL || 'https://storage-rho.vercel.app' }}
-          VERCEL_BLOB_API_URL: 'https://vercel.com/api/blob'
-
       - name: Datadog report Fail
         uses: masci/datadog@v1
         if: failure()

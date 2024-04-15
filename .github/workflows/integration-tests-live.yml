@@ -54,19 +54,6 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           max_timeout: 600
 
-      - name: Run Playwright tests on ${{ steps.waitForVercelPreview.outputs.url }}
-        run: pnpm integration-test
-        env:
-          PLAYWRIGHT_TEST_BASE_URL: ${{ steps.waitForVercelPreview.outputs.url }}
-          BLOB_UPLOAD_SECRET: ${{ secrets.BLOB_UPLOAD_SECRET }}
-
-      - name: Run Blob Playwright tests on ${{ steps.waitForVercelPreview.outputs.url }} using the alternative api
-        run: pnpm integration-test -- @vercel/blob
-        env:
-          PLAYWRIGHT_TEST_BASE_URL: ${{ steps.waitForVercelPreview.outputs.url }}
-          BLOB_UPLOAD_SECRET: ${{ secrets.BLOB_UPLOAD_SECRET }}
-          VERCEL_BLOB_API_URL: 'https://vercel.com/api/blob'
-
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -39,10 +39,18 @@ async function run(): Promise<void> {
     manualMultipartUploader(),
   ]);
 
+  // multipart uploads are frequently not immediately available so we have to wait a bit
+  await new Promise((resolve) => setTimeout(resolve, 5000));
+
   await Promise.all(
     urls.map(async (url) => {
-      const blobDetails = await vercelBlob.head(url);
-      console.log(blobDetails, url);
+      try {
+        const blobDetails = await vercelBlob.head(url);
+        console.log(blobDetails, url);
+      } catch (err) {
+        console.log('url', err);
+        process.exit(1);
+      }
     }),
   );
 
@@ -76,10 +84,14 @@ async function textFileExample(): Promise<string> {
 
 async function textFileNoRandomSuffixExample(): Promise<string> {
   const start = Date.now();
-  const blob = await vercelBlob.put('folder/test.txt', 'Hello, world!', {
-    access: 'public',
-    addRandomSuffix: false,
-  });
+  const blob = await vercelBlob.put(
+    `folder/test${Date.now()}.txt`,
+    'Hello, world!',
+    {
+      access: 'public',
+      addRandomSuffix: false,
+    },
+  );
   console.log('Text file example:', blob.url, `(${Date.now() - start}ms)`);
   return blob.url;
 }
@@ -266,9 +278,13 @@ async function copyTextFile() {
     cacheControlMaxAge: 120,
   });
 
-  const copiedBlob = await vercelBlob.copy(blob.url, 'destination/copy.txt', {
-    access: 'public',
-  });
+  const copiedBlob = await vercelBlob.copy(
+    blob.url,
+    `destination/copy${Date.now()}.txt`,
+    {
+      access: 'public',
+    },
+  );
 
   console.log(
     'copy blob example:',
@@ -346,7 +362,7 @@ async function fetchExampleMultipart(): Promise<string> {
 async function createFolder() {
   const start = Date.now();
 
-  const blob = await vercelBlob.put('foolder/', {
+  const blob = await vercelBlob.put(`foolder${Date.now()}/`, {
     access: 'public',
     addRandomSuffix: false,
   });

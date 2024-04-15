@@ -44,13 +44,8 @@ async function run(): Promise<void> {
 
   await Promise.all(
     urls.map(async (url) => {
-      try {
-        const blobDetails = await vercelBlob.head(url);
-        console.log(blobDetails, url);
-      } catch (err) {
-        console.log('url', err);
-        process.exit(1);
-      }
+      const blobDetails = await vercelBlob.head(url);
+      console.log(blobDetails, url);
     }),
   );
 

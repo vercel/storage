@@ -54,6 +54,12 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           max_timeout: 600
 
+      - name: Run Playwright tests on ${{ steps.waitForVercelPreview.outputs.url }}
+        run: pnpm integration-test
+        env:
+          PLAYWRIGHT_TEST_BASE_URL: ${{ steps.waitForVercelPreview.outputs.url }}
+          BLOB_UPLOAD_SECRET: ${{ secrets.BLOB_UPLOAD_SECRET }}
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:

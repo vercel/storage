@@ -67,8 +67,6 @@ async function run(): Promise<void> {
 
   console.log(count, 'blobs in this store');
 
-  console.log(filteredUrls);
-
   await Promise.all(filteredUrls.map((url) => vercelBlob.del(url)));
 }
 

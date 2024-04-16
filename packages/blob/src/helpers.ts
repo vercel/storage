@@ -8,7 +8,7 @@ export interface BlobCommandOptions {
    */
   token?: string;
   /**
-   * Abortsignal to cancel the running request.
+   * `AbortSignal` to cancel the running request. See https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal
    */
   abortSignal?: AbortSignal;
 }

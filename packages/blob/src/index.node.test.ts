@@ -1,6 +1,15 @@
 import { type Interceptable, MockAgent, setGlobalDispatcher } from 'undici';
 import { BlobRequestAbortedError, BlobServiceNotAvailable } from './api';
-import { list, head, del, put, copy } from './index';
+import {
+  list,
+  head,
+  del,
+  put,
+  copy,
+  createMultipartUpload,
+  uploadPart,
+  completeMultipartUpload,
+} from './index';
 
 const BLOB_API_URL = 'https://blob.vercel-storage.com';
 const BLOB_STORE_BASE_URL = 'https://storeId.public.blob.vercel-storage.com';
@@ -568,11 +577,72 @@ describe('blob client', () => {
     });
 
     const table: [string, (signal: AbortSignal) => Promise<unknown>][] = [
-      ['put', (s) => put('file.txt', 'Hello World!', { access: 'public', abortSignal: s })],
-      ['del', (s) => del('file.txt', { abortSignal: s })],
-      ['list', (s) => list({ abortSignal: s })],
-      ['copy', (s) => copy('file.txt', 'destination.txt', { access: 'public', abortSignal: s })],
-      ['head', (s) => head('file.txt', { abortSignal: s })],
+      [
+        'put',
+        (abortSignal) =>
+          put('file.txt', 'Hello World!', { access: 'public', abortSignal }),
+      ],
+      [
+        'multipart put',
+        (abortSignal) =>
+          put('file.txt', 'Big file', {
+            access: 'public',
+            abortSignal,
+            multipart: true,
+          }),
+      ],
+      [
+        'create multipart upload',
+        (abortSignal) =>
+          createMultipartUpload('big-file.txt', {
+            access: 'public',
+            abortSignal,
+          }),
+      ],
+      [
+        'upload part',
+        (abortSignal) =>
+          uploadPart('big-file.txt', 'Big file', {
+            access: 'public',
+            key: 'big-file.txt',
+            uploadId: '1',
+            partNumber: 1,
+            abortSignal,
+          }),
+      ],
+      [
+        'complete multipart upload',
+        (abortSignal) =>
+          completeMultipartUpload('big-file.txt', [], {
+            access: 'public',
+            key: 'big-file.txt',
+            uploadId: '1',
+            abortSignal,
+          }),
+      ],
+      [
+        'del',
+        (abortSignal) =>
+          del('https://mystore.public.blob.vercel-storage.com/file.txt', {
+            abortSignal,
+          }),
+      ],
+      ['list', (abortSignal) => list({ abortSignal })],
+      [
+        'copy',
+        (abortSignal) =>
+          copy('from.txt', 'destination.txt', {
+            access: 'public',
+            abortSignal,
+          }),
+      ],
+      [
+        'head',
+        (abortSignal) =>
+          head('https://mystore.public.blob.vercel-storage.com/file.txt', {
+            abortSignal,
+          }),
+      ],
     ];
 
     it.each(table)(

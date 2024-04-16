@@ -12,7 +12,6 @@ export interface CommonMultipartUploadOptions {
   uploadId: string;
   key: string;
   partNumber: number;
-  abortController?: AbortController;
 }
 
 export type UploadPartCommandOptions = CommonMultipartUploadOptions &
@@ -42,7 +41,6 @@ export function createUploadPartMethod<
       part: { blob: body, partNumber: options.partNumber },
       headers,
       options,
-      abortController: options.abortController,
     });
 
     return {
@@ -52,13 +50,13 @@ export function createUploadPartMethod<
   };
 }
 
-export function uploadPart({
+export async function uploadPart({
   uploadId,
   key,
   pathname,
   headers,
   options,
-  abortController,
+  abortController = new AbortController(),
   part,
 }: {
   uploadId: string;
@@ -69,10 +67,10 @@ export function uploadPart({
   abortController?: AbortController;
   part: PartInput;
 }): Promise<UploadPartApiResponse> {
-  return requestApi<UploadPartApiResponse>(
+  const responsePromise = requestApi<UploadPartApiResponse>(
     `/mpu/${pathname}`,
     {
-      signal: abortController?.signal,
+      signal: abortController.signal,
       method: 'POST',
       headers: {
         ...headers,
@@ -90,6 +88,24 @@ export function uploadPart({
     },
     options,
   );
+
+  function handleAbort(): void {
+    abortController.abort();
+  }
+
+  if (options.abortSignal?.aborted) {
+    // abort if the signal is already aborted
+    handleAbort();
+  } else {
+    // we connect the internal abort controller to the external abortSignal to allow the user to cancel the upload
+    options.abortSignal?.addEventListener('abort', handleAbort);
+  }
+
+  const response = await responsePromise;
+
+  options.abortSignal?.removeEventListener('abort', handleAbort);
+
+  return response;
 }
 
 // Most browsers will cap requests at 6 concurrent uploads per domain (Vercel Blob API domain)
@@ -128,11 +144,6 @@ export function uploadAllParts({
 }): Promise<Part[]> {
   debug('mpu: upload init', 'key:', key);
   const internalAbortController = new AbortController();
-
-  // we connect the internal abort controller to the external abortSignal to allow the user to cancel the upload
-  options.abortSignal?.addEventListener('abort', () => {
-    internalAbortController.abort();
-  });
 
   return new Promise((resolve, reject) => {
     const partsToUpload: BlobUploadPart[] = [];

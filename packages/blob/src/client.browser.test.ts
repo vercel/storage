@@ -133,9 +133,12 @@ describe('client', () => {
       const pathname = 'foo.txt';
       const token = 'vercel_blob_client_fake_token_for_test';
 
+      const abortController = new AbortController();
+
       const { uploadId, key } = await createMultipartUpload(pathname, {
         access: 'public',
         token,
+        abortSignal: abortController.signal,
       });
       expect(uploadId).toEqual('uploadId');
       expect(key).toEqual('key');
@@ -146,6 +149,7 @@ describe('client', () => {
         partNumber: 1,
         uploadId: 'uploadId',
         token,
+        abortSignal: abortController.signal,
       });
 
       expect(part1).toEqual({
@@ -159,6 +163,7 @@ describe('client', () => {
         partNumber: 2,
         uploadId: 'uploadId',
         token,
+        abortSignal: abortController.signal,
       });
       expect(part2).toEqual({
         etag: 'etag2',
@@ -170,6 +175,7 @@ describe('client', () => {
         key: 'key',
         uploadId: 'uploadId',
         token,
+        abortSignal: abortController.signal,
       });
       expect(blob).toEqual({
         contentDisposition: 'attachment; filename="foo.txt"',
@@ -190,6 +196,7 @@ describe('client', () => {
             'x-mpu-action': 'create',
           },
           method: 'POST',
+          signal: abortController.signal,
         },
       );
       expect(fetchMock).toHaveBeenNthCalledWith(
@@ -207,6 +214,7 @@ describe('client', () => {
           },
           method: 'POST',
           duplex: 'half',
+          signal: abortController.signal,
         },
       );
       expect(fetchMock).toHaveBeenNthCalledWith(
@@ -224,6 +232,7 @@ describe('client', () => {
           },
           method: 'POST',
           duplex: 'half',
+          signal: abortController.signal,
         },
       );
       expect(fetchMock).toHaveBeenNthCalledWith(
@@ -243,6 +252,7 @@ describe('client', () => {
             'x-mpu-upload-id': 'uploadId',
           },
           method: 'POST',
+          signal: abortController.signal,
         },
       );
     });
@@ -282,9 +292,12 @@ describe('client', () => {
       const pathname = 'foo.txt';
       const token = 'vercel_blob_client_fake_token_for_test';
 
+      const abortController = new AbortController();
+
       const uploader = await createMultipartUploader(pathname, {
         access: 'public',
         token,
+        abortSignal: abortController.signal,
       });
       expect(uploader.uploadId).toEqual('uploadId');
       expect(uploader.key).toEqual('key');
@@ -321,6 +334,7 @@ describe('client', () => {
             'x-mpu-action': 'create',
           },
           method: 'POST',
+          signal: abortController.signal,
         },
       );
       expect(fetchMock).toHaveBeenNthCalledWith(
@@ -338,6 +352,7 @@ describe('client', () => {
           },
           method: 'POST',
           duplex: 'half',
+          signal: abortController.signal,
         },
       );
       expect(fetchMock).toHaveBeenNthCalledWith(
@@ -355,6 +370,7 @@ describe('client', () => {
           },
           method: 'POST',
           duplex: 'half',
+          signal: abortController.signal,
         },
       );
       expect(fetchMock).toHaveBeenNthCalledWith(
@@ -374,6 +390,7 @@ describe('client', () => {
             'x-mpu-upload-id': 'uploadId',
           },
           method: 'POST',
+          signal: abortController.signal,
         },
       );
     });

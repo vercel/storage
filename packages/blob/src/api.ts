@@ -190,6 +190,8 @@ export async function requestApi<TResponse>(
   const apiResponse = await retry(
     async (bail) => {
       let res: Response;
+
+      // try/catch here to treat certain errors as not-retryable
       try {
         res = await fetch(getApiUrl(pathname), {
           ...init,
@@ -201,11 +203,13 @@ export async function requestApi<TResponse>(
           },
         });
       } catch (error) {
+        // if the request was aborted, don't retry
         if (error instanceof DOMException && error.name === 'AbortError') {
           bail(new BlobRequestAbortedError());
           return;
         }
 
+        // retry for any other erros thrown by fetch
         throw error;
       }
 

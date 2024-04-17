@@ -10,11 +10,17 @@ Adds `abortSignal` option to all methods. This allows users to cancel requests u
 Here's how to use it:
 
 ```ts
-// don't await here
-const promise = vercelBlob.put('canceled.txt', 'test', {
+const abortController = new AbortController();
+
+vercelBlob.put('canceled.txt', 'test', {
   access: 'public',
   abortSignal: abortController.signal,
+}).then(blob => {
+  console.log('Blob created:', blob);
 });
 
-abortController.abort();
+setTimeout(function() {
+  // Abort the upload
+  abortController.abort();
+}, 100);
 ```

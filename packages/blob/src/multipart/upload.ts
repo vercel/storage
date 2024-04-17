@@ -56,7 +56,7 @@ export async function uploadPart({
   pathname,
   headers,
   options,
-  abortController = new AbortController(),
+  internalAbortController = new AbortController(),
   part,
 }: {
   uploadId: string;
@@ -64,13 +64,13 @@ export async function uploadPart({
   pathname: string;
   headers: Record<string, string>;
   options: BlobCommandOptions;
-  abortController?: AbortController;
+  internalAbortController?: AbortController;
   part: PartInput;
 }): Promise<UploadPartApiResponse> {
   const responsePromise = requestApi<UploadPartApiResponse>(
     `/mpu/${pathname}`,
     {
-      signal: abortController.signal,
+      signal: internalAbortController.signal,
       method: 'POST',
       headers: {
         ...headers,
@@ -90,7 +90,7 @@ export async function uploadPart({
   );
 
   function handleAbort(): void {
-    abortController.abort();
+    internalAbortController.abort();
   }
 
   if (options.abortSignal?.aborted) {
@@ -274,7 +274,7 @@ export function uploadAllParts({
           pathname,
           headers,
           options,
-          abortController: internalAbortController,
+          internalAbortController,
           part,
         });
 

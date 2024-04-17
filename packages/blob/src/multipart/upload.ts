@@ -12,7 +12,6 @@ export interface CommonMultipartUploadOptions {
   uploadId: string;
   key: string;
   partNumber: number;
-  abortController?: AbortController;
 }
 
 export type UploadPartCommandOptions = CommonMultipartUploadOptions &
@@ -42,7 +41,6 @@ export function createUploadPartMethod<
       part: { blob: body, partNumber: options.partNumber },
       headers,
       options,
-      abortController: options.abortController,
     });
 
     return {
@@ -52,13 +50,13 @@ export function createUploadPartMethod<
   };
 }
 
-export function uploadPart({
+export async function uploadPart({
   uploadId,
   key,
   pathname,
   headers,
   options,
-  abortController,
+  internalAbortController = new AbortController(),
   part,
 }: {
   uploadId: string;
@@ -66,13 +64,13 @@ export function uploadPart({
   pathname: string;
   headers: Record<string, string>;
   options: BlobCommandOptions;
-  abortController?: AbortController;
+  internalAbortController?: AbortController;
   part: PartInput;
 }): Promise<UploadPartApiResponse> {
-  return requestApi<UploadPartApiResponse>(
+  const responsePromise = requestApi<UploadPartApiResponse>(
     `/mpu/${pathname}`,
     {
-      signal: abortController?.signal,
+      signal: internalAbortController.signal,
       method: 'POST',
       headers: {
         ...headers,
@@ -90,6 +88,24 @@ export function uploadPart({
     },
     options,
   );
+
+  function handleAbort(): void {
+    internalAbortController.abort();
+  }
+
+  if (options.abortSignal?.aborted) {
+    // abort if the signal is already aborted
+    handleAbort();
+  } else {
+    // we connect the internal abort controller to the external abortSignal to allow the user to cancel the upload
+    options.abortSignal?.addEventListener('abort', handleAbort);
+  }
+
+  const response = await responsePromise;
+
+  options.abortSignal?.removeEventListener('abort', handleAbort);
+
+  return response;
 }
 
 // Most browsers will cap requests at 6 concurrent uploads per domain (Vercel Blob API domain)
@@ -258,7 +274,7 @@ export function uploadAllParts({
           pathname,
           headers,
           options,
-          abortController: internalAbortController,
+          internalAbortController,
           part,
         });
 
@@ -303,6 +319,7 @@ export function uploadAllParts({
           read().catch(cancel);
         }
       } catch (error) {
+        // cancel if fetch throws an error
         cancel(error);
       }
     }

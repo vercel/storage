@@ -68,6 +68,7 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
         // currently only supported in Node.js, we may have to feature detect this
         // note: this doesn't send a content-length to the server
         duplex: 'half',
+        signal: options.abortSignal,
       },
       options,
     );

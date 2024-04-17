@@ -55,6 +55,12 @@ export class BlobServiceRateLimited extends BlobError {
   }
 }
 
+export class BlobRequestAbortedError extends BlobError {
+  constructor() {
+    super('The request was aborted.');
+  }
+}
+
 type BlobApiErrorCodes =
   | 'store_suspended'
   | 'forbidden'
@@ -183,15 +189,29 @@ export async function requestApi<TResponse>(
 
   const apiResponse = await retry(
     async (bail) => {
-      const res = await fetch(getApiUrl(pathname), {
-        ...init,
-        headers: {
-          'x-api-version': apiVersion,
-          authorization: `Bearer ${token}`,
+      let res: Response;
 
-          ...init.headers,
-        },
-      });
+      // try/catch here to treat certain errors as not-retryable
+      try {
+        res = await fetch(getApiUrl(pathname), {
+          ...init,
+          headers: {
+            'x-api-version': apiVersion,
+            authorization: `Bearer ${token}`,
+
+            ...init.headers,
+          },
+        });
+      } catch (error) {
+        // if the request was aborted, don't retry
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          bail(new BlobRequestAbortedError());
+          return;
+        }
+
+        // retry for any other erros thrown by fetch
+        throw error;
+      }
 
       if (res.ok) {
         return res;

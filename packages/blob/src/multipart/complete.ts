@@ -72,6 +72,7 @@ export async function completeMultipartUpload({
           'x-mpu-key': encodeURI(key),
         },
         body: JSON.stringify(parts),
+        signal: options.abortSignal,
       },
       options,
     );

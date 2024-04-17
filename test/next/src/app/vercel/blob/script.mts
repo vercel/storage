@@ -37,16 +37,21 @@ async function run(): Promise<void> {
     createFolder(),
     manualMultipartUpload(),
     manualMultipartUploader(),
+    cancelPut(),
   ]);
 
   // multipart uploads are frequently not immediately available so we have to wait a bit
   await new Promise((resolve) => setTimeout(resolve, 5000));
 
-  await Promise.all(
-    urls.map(async (url) => {
-      const blobDetails = await vercelBlob.head(url);
-      console.log(blobDetails, url);
-    }),
+  const filteredUrls = await Promise.all(
+    urls
+      .filter((url): url is string => Boolean(url))
+      .map(async (url) => {
+        const blobDetails = await vercelBlob.head(url);
+        console.log(blobDetails, url);
+
+        return blobDetails.url;
+      }),
   );
 
   // list all blobs
@@ -65,7 +70,7 @@ async function run(): Promise<void> {
 
   console.log(count, 'blobs in this store');
 
-  await Promise.all(urls.map((url) => vercelBlob.del(url)));
+  await Promise.all(filteredUrls.map((url) => vercelBlob.del(url)));
 }
 
 async function textFileExample(): Promise<string> {
@@ -371,15 +376,15 @@ async function manualMultipartUploader() {
   const start = Date.now();
 
   const pathname = 'big-text.txt';
-  const fullPath = `public/${pathname}`;
+  const localPath = `public/${pathname}`;
 
   const uploader = await vercelBlob.createMultipartUploader('big-file-2.txt', {
     access: 'public',
   });
 
-  const part1 = await uploader.uploadPart(1, createReadStream(fullPath));
+  const part1 = await uploader.uploadPart(1, createReadStream(localPath));
 
-  const part2 = await uploader.uploadPart(2, createReadStream(fullPath));
+  const part2 = await uploader.uploadPart(2, createReadStream(localPath));
 
   const blob = await uploader.complete([part1, part2]);
 
@@ -396,29 +401,26 @@ async function manualMultipartUpload() {
   const start = Date.now();
 
   const pathname = 'big-text.txt';
-  const fullPath = `public/${pathname}`;
+  const localPath = `public/${pathname}`;
 
-  const { key, uploadId } = await vercelBlob.createMultipartUpload(
-    'big-file.txt',
-    {
-      access: 'public',
-    },
-  );
+  const { key, uploadId } = await vercelBlob.createMultipartUpload(pathname, {
+    access: 'public',
+  });
 
   const part1 = await vercelBlob.uploadPart(
-    fullPath,
-    createReadStream(fullPath),
+    pathname,
+    createReadStream(localPath),
     { access: 'public', key, uploadId, partNumber: 1 },
   );
 
   const part2 = await vercelBlob.uploadPart(
-    fullPath,
-    createReadStream(fullPath),
+    pathname,
+    createReadStream(localPath),
     { access: 'public', key, uploadId, partNumber: 2 },
   );
 
   const blob = await vercelBlob.completeMultipartUpload(
-    fullPath,
+    pathname,
     [part1, part2],
     { access: 'public', key, uploadId },
   );
@@ -426,4 +428,23 @@ async function manualMultipartUpload() {
   console.log('manual multipart put:', blob, `(${Date.now() - start}ms)`);
 
   return blob.url;
+}
+
+async function cancelPut() {
+  const start = Date.now();
+
+  const abortController = new AbortController();
+
+  try {
+    const promise = vercelBlob.put('canceled.txt', 'test', {
+      access: 'public',
+      abortSignal: abortController.signal,
+    });
+
+    abortController.abort();
+
+    await promise;
+  } catch {
+    console.log('canceled put:', `(${Date.now() - start}ms)`);
+  }
 }

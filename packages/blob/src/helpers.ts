@@ -7,6 +7,10 @@ export interface BlobCommandOptions {
    * @defaultvalue process.env.BLOB_READ_WRITE_TOKEN
    */
   token?: string;
+  /**
+   * `AbortSignal` to cancel the running request. See https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal
+   */
+  abortSignal?: AbortSignal;
 }
 
 // shared interface for put, copy and multipartUpload

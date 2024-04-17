@@ -32,7 +32,10 @@ export async function head(
   const response = await requestApi<HeadBlobApiResponse>(
     `?${searchParams.toString()}`,
     // HEAD can't have body as a response, so we use GET
-    { method: 'GET' },
+    {
+      method: 'GET',
+      signal: options?.abortSignal,
+    },
     options,
   );
 

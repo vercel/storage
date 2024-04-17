@@ -18,6 +18,7 @@ export async function del(
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ urls: Array.isArray(url) ? url : [url] }),
+      signal: options?.abortSignal,
     },
     options,
   );

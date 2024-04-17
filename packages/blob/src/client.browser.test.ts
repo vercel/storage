@@ -190,8 +190,10 @@ describe('client', () => {
             'x-mpu-action': 'create',
           },
           method: 'POST',
+          signal: undefined,
         },
       );
+      const internalAbortSignal = new AbortController().signal;
       expect(fetchMock).toHaveBeenNthCalledWith(
         2,
         'https://blob.vercel-storage.com/mpu/foo.txt',
@@ -207,6 +209,7 @@ describe('client', () => {
           },
           method: 'POST',
           duplex: 'half',
+          signal: internalAbortSignal,
         },
       );
       expect(fetchMock).toHaveBeenNthCalledWith(
@@ -224,6 +227,7 @@ describe('client', () => {
           },
           method: 'POST',
           duplex: 'half',
+          signal: internalAbortSignal,
         },
       );
       expect(fetchMock).toHaveBeenNthCalledWith(
@@ -243,6 +247,7 @@ describe('client', () => {
             'x-mpu-upload-id': 'uploadId',
           },
           method: 'POST',
+          signal: undefined,
         },
       );
     });
@@ -321,8 +326,10 @@ describe('client', () => {
             'x-mpu-action': 'create',
           },
           method: 'POST',
+          signal: undefined,
         },
       );
+      const internalAbortSignal = new AbortController().signal;
       expect(fetchMock).toHaveBeenNthCalledWith(
         2,
         'https://blob.vercel-storage.com/mpu/foo.txt',
@@ -338,6 +345,7 @@ describe('client', () => {
           },
           method: 'POST',
           duplex: 'half',
+          signal: internalAbortSignal,
         },
       );
       expect(fetchMock).toHaveBeenNthCalledWith(
@@ -355,6 +363,7 @@ describe('client', () => {
           },
           method: 'POST',
           duplex: 'half',
+          signal: internalAbortSignal,
         },
       );
       expect(fetchMock).toHaveBeenNthCalledWith(
@@ -374,6 +383,7 @@ describe('client', () => {
             'x-mpu-upload-id': 'uploadId',
           },
           method: 'POST',
+          signal: undefined,
         },
       );
     });

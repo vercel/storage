@@ -27,6 +27,10 @@ export interface ClientCommonCreateBlobOptions {
    * Defines the content type of the blob. By default, this value is inferred from the pathname. Sent as the 'content-type' header when downloading a blob.
    */
   contentType?: string;
+  /**
+   * `AbortSignal` to cancel the running request. See https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal
+   */
+  abortSignal?: AbortSignal;
 }
 
 // shared interface for put and multipartUpload
@@ -410,6 +414,7 @@ async function retrieveClientToken(options: {
   handleUploadUrl: string;
   clientPayload: string | null;
   multipart: boolean;
+  abortSignal?: AbortSignal;
 }): Promise<string> {
   const { handleUploadUrl, pathname } = options;
   const url = isAbsoluteUrl(handleUploadUrl)
@@ -432,6 +437,7 @@ async function retrieveClientToken(options: {
     headers: {
       'content-type': 'application/json',
     },
+    signal: options.abortSignal,
   });
 
   if (!res.ok) {

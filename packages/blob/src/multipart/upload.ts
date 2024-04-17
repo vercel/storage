@@ -319,6 +319,7 @@ export function uploadAllParts({
           read().catch(cancel);
         }
       } catch (error) {
+        // cancel if fetch throws an error
         cancel(error);
       }
     }

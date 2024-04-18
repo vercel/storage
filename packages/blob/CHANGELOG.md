@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.23.1
+
+### Patch Changes
+
+- 1cad24c: fix(blob): export all user facing errors
+
 ## 0.23.0
 
 ### Minor Changes

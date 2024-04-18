@@ -444,7 +444,9 @@ async function cancelPut() {
     abortController.abort();
 
     await promise;
-  } catch {
-    console.log('canceled put:', `(${Date.now() - start}ms)`);
+  } catch (error) {
+    if (error instanceof vercelBlob.BlobRequestAbortedError) {
+      console.log('canceled put:', `(${Date.now() - start}ms)`);
+    }
   }
 }

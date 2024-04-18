@@ -1,5 +1,13 @@
 # vercel-storage-integration-test-suite
 
+## 0.2.11
+
+### Patch Changes
+
+- 1cad24c: fix(blob): export all user facing errors
+- Updated dependencies [1cad24c]
+  - @vercel/blob@0.23.1
+
 ## 0.2.10
 
 ### Patch Changes

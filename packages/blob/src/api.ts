@@ -186,6 +186,7 @@ export async function requestApi<TResponse>(
 ): Promise<TResponse> {
   const apiVersion = getApiVersion();
   const token = getTokenFromOptionsOrEnv(commandOptions);
+  const extraHeaders = getProxyThroughAlternativeApiHeaderFromEnv();
 
   const apiResponse = await retry(
     async (bail) => {
@@ -198,7 +199,7 @@ export async function requestApi<TResponse>(
           headers: {
             'x-api-version': apiVersion,
             authorization: `Bearer ${token}`,
-
+            ...extraHeaders,
             ...init.headers,
           },
         });
@@ -240,4 +241,28 @@ export async function requestApi<TResponse>(
   }
 
   return (await apiResponse.json()) as TResponse;
+}
+
+function getProxyThroughAlternativeApiHeaderFromEnv(): {
+  'x-proxy-through-alternative-api'?: string;
+} {
+  const extraHeaders: Record<string, string> = {};
+
+  try {
+    if ('VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API' in process.env) {
+      extraHeaders['x-proxy-through-alternative-api'] =
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- we know it's here from the if
+        process.env.VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API!;
+    } else if (
+      'NEXT_PUBLIC_VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API' in process.env
+    ) {
+      extraHeaders['x-proxy-through-alternative-api'] =
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- we know it's here from the if
+        process.env.NEXT_PUBLIC_VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API!;
+    }
+  } catch {
+    // noop
+  }
+
+  return extraHeaders;
 }

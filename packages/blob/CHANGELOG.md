@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.23.2
+
+### Patch Changes
+
+- e63f125: chore(blob): Allow using the alternative API. No new feature, no bugfix here.
+
 ## 0.23.1
 
 ### Patch Changes

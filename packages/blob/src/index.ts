@@ -19,6 +19,8 @@ export {
   BlobStoreSuspendedError,
   BlobUnknownError,
   BlobServiceNotAvailable,
+  BlobRequestAbortedError,
+  BlobServiceRateLimited,
 } from './api';
 
 // vercelBlob.put()

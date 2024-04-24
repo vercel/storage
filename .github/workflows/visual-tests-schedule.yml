@@ -53,6 +53,7 @@ jobs:
         run: pnpm integration-test
         env:
           PLAYWRIGHT_TEST_BASE_URL: ${{inputs.PLAYWRIGHT_TEST_BASE_URL || 'https://storage-rho.vercel.app' }}
+          HOME: /root
       - name: Datadog report Fail
         uses: masci/datadog@v1
         if: failure()

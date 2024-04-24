@@ -51,6 +51,7 @@ jobs:
         run: pnpm integration-test
         env:
           BLOB_UPLOAD_SECRET: ${{ secrets.BLOB_UPLOAD_SECRET }}
+          HOME: /root
 
       - name: Run Blob Playwright tests in development mode using the alternative api
         run: pnpm integration-test -- @vercel/blob

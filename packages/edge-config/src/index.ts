@@ -136,48 +136,55 @@ function createGetInMemoryEdgeConfig(
   let latestRequest: Promise<EmbeddedEdgeConfig | null> | null = null;
 
   return trace(
-    async () => {
-      if (!shouldUseDevelopmentCache) return null;
+    () => {
+      if (!shouldUseDevelopmentCache) return Promise.resolve(null);
 
-      latestRequest ??= fetchWithCachedResponse(
-        `${connection.baseUrl}/items?version=${connection.version}`,
-        {
-          headers: new Headers(headers),
-          cache: 'no-store',
-        },
-      ).then(async (res) => {
-        const digest = res.headers.get('x-edge-config-digest');
-        let body: EdgeConfigValue | undefined;
+      if (!latestRequest) {
+        latestRequest = fetchWithCachedResponse(
+          `${connection.baseUrl}/items?version=${connection.version}`,
+          {
+            headers: new Headers(headers),
+            cache: 'no-store',
+          },
+        ).then(async (res) => {
+          const digest = res.headers.get('x-edge-config-digest');
+          let body: EdgeConfigValue | undefined;
 
-        // We ignore all errors here and just proceed.
-        if (!res.ok) {
-          await consumeResponseBody(res);
-          body = res.cachedResponseBody as EdgeConfigValue | undefined;
-          if (!body) return null;
-        } else {
-          body = (await res.json()) as EdgeConfigItems;
-        }
+          // We ignore all errors here and just proceed.
+          if (!res.ok) {
+            await consumeResponseBody(res);
+            body = res.cachedResponseBody as EdgeConfigValue | undefined;
+            if (!body) return null;
+          } else {
+            body = (await res.json()) as EdgeConfigItems;
+          }
 
-        return { digest, items: body } as EmbeddedEdgeConfig;
-      });
-
-      // Ensures that the last request will overwrite the `embeddedEdgeConfigPromise`
-      // and clean up the `lastRequest` cache to make sure the next call
-      // will trigger a new request.
-      void latestRequest
-        .then((resolved) => {
-          embeddedEdgeConfigPromise = Promise.resolve(resolved);
-        })
-        .finally(() => {
-          latestRequest = null;
+          return { digest, items: body } as EmbeddedEdgeConfig;
         });
 
-      embeddedEdgeConfigPromise ??= latestRequest;
+        // Once the request is resolved, we set the proper config to the promise
+        // such that the next call will return the resolved value.
+        latestRequest.then(
+          (resolved) => {
+            embeddedEdgeConfigPromise = Promise.resolve(resolved);
+            latestRequest = null;
+          },
+          // Attach a `.catch` handler to this promise so that if it does throw,
+          // we don't get an unhandled promise rejection event. We unset the
+          // `latestRequest` so that the next call will make a new request.
+          () => {
+            embeddedEdgeConfigPromise = null;
+            latestRequest = null;
+          },
+        );
+      }
 
-      // Ensure we don't keep a rejected promise in memory
-      embeddedEdgeConfigPromise.catch(() => {
-        embeddedEdgeConfigPromise = null;
-      });
+      if (!embeddedEdgeConfigPromise) {
+        // If the `embeddedEdgeConfigPromise` is `null`, it means that there's
+        // no previous request, so we'll set the `latestRequest` to the current
+        // request.
+        embeddedEdgeConfigPromise = latestRequest;
+      }
 
       return embeddedEdgeConfigPromise;
     },

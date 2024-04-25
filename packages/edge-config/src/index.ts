@@ -162,7 +162,7 @@ function createGetInMemoryEdgeConfig(
           return { digest, items: body } as EmbeddedEdgeConfig;
         });
 
-        // Once the request is resolved, we se the proper config to the promise
+        // Once the request is resolved, we set the proper config to the promise
         // such that the next call will return the resolved value.
         latestRequest.then(
           (resolved) => {

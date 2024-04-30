@@ -27,7 +27,7 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
   return async function put<TPath extends string>(
     pathname: TPath,
     bodyOrOptions: TPath extends `${string}/` ? TOptions : PutBody,
-    optionsInput?: TPath extends `${string}/` ? never : TOptions,
+    ...optionsInput: TPath extends `${string}/` ? [] : [TOptions]
   ): Promise<PutBlobResult> {
     const isFolderCreation = pathname.endsWith('/');
 
@@ -36,7 +36,7 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
       throw new BlobError('body is required');
     }
 
-    // runtime check for non TS users that provide all three args
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- runtime check for non TS users that provide all three args
     if (bodyOrOptions && optionsInput && isFolderCreation) {
       throw new BlobError('body is not allowed for creating empty folders');
     }
@@ -47,7 +47,9 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
     const options = await createPutOptions({
       pathname,
       // when no body is required (for folder creations) options are the second argument
-      options: isFolderCreation ? (bodyOrOptions as TOptions) : optionsInput,
+      options: isFolderCreation
+        ? (bodyOrOptions as TOptions)
+        : (optionsInput as unknown as TOptions),
       extraChecks,
       getToken,
     });

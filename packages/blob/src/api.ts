@@ -221,7 +221,11 @@ export async function requestApi<TResponse>(
       const { code, error } = await getBlobError(res);
 
       // only retry for certain errors
-      if (code === 'unknown_error' || code === 'service_unavailable') {
+      if (
+        code === 'unknown_error' ||
+        code === 'service_unavailable' ||
+        code === 'internal_server_error'
+      ) {
         throw error;
       }
 

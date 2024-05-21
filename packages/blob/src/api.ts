@@ -189,7 +189,7 @@ export async function requestApi<TResponse>(
   const extraHeaders = getProxyThroughAlternativeApiHeaderFromEnv();
 
   const [, , , storeId = ''] = token.split('_');
-  const requestId = `${storeId}${pathname}:${Date.now()}:${Math.random().toString(16).slice(2)}`;
+  const requestId = `${storeId}:${Date.now()}:${Math.random().toString(16).slice(2)}`;
   let retryCount = 0;
 
   const apiResponse = await retry(

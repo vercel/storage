@@ -63,6 +63,8 @@ describe('api', () => {
           body: '{"foo":"bar"}',
           headers: {
             authorization: 'Bearer 123',
+            'x-api-blob-request-attempt': '0',
+            'x-api-blob-request-id': ':1715951788049:b3a681154d83b',
             'x-api-version': '7',
           },
           method: 'POST',

@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 1.1.1
+
+### Patch Changes
+
+- 585a753: Resolved bug where an unhandled promise rejection event may have been triggered during development
+
 ## 1.1.0
 
 ### Minor Changes

@@ -188,6 +188,10 @@ export async function requestApi<TResponse>(
   const token = getTokenFromOptionsOrEnv(commandOptions);
   const extraHeaders = getProxyThroughAlternativeApiHeaderFromEnv();
 
+  const [, , , storeId = ''] = token.split('_');
+  const requestId = `${storeId}:${Date.now()}:${Math.random().toString(16).slice(2)}`;
+  let retryCount = 0;
+
   const apiResponse = await retry(
     async (bail) => {
       let res: Response;
@@ -197,6 +201,8 @@ export async function requestApi<TResponse>(
         res = await fetch(getApiUrl(pathname), {
           ...init,
           headers: {
+            'x-api-blob-request-id': requestId,
+            'x-api-blob-request-attempt': String(retryCount),
             'x-api-version': apiVersion,
             authorization: `Bearer ${token}`,
             ...extraHeaders,
@@ -236,6 +242,7 @@ export async function requestApi<TResponse>(
       retries: getRetries(),
       onRetry: (error) => {
         debug(`retrying API request to ${pathname}`, error.message);
+        retryCount = retryCount + 1;
       },
     },
   );

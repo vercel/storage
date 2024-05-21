@@ -1,5 +1,12 @@
 # @vercel/blob
 
+## 0.23.3
+
+### Patch Changes
+
+- c0bdd40: fix(blob): also retry internal_server_error
+- c5d10d7: chore(blob): add observability headers
+
 ## 0.23.2
 
 ### Patch Changes

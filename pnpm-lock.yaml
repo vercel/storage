@@ -109,8 +109,8 @@ importers:
         specifier: workspace:*
         version: link:../edge-config-fs
       ts-essentials:
-        specifier: 9.4.1
-        version: 9.4.1(typescript@5.3.3)
+        specifier: 9.4.2
+        version: 9.4.2(typescript@5.3.3)
     devDependencies:
       '@changesets/cli':
         specifier: 2.27.1
@@ -7757,8 +7757,8 @@ packages:
     dependencies:
       typescript: 5.3.3
 
-  /ts-essentials@9.4.1(typescript@5.3.3):
-    resolution: {integrity: sha512-oke0rI2EN9pzHsesdmrOrnqv1eQODmJpd/noJjwj2ZPC3Z4N2wbjrOEqnsEgmvlO2+4fBb0a794DCna2elEVIQ==}
+  /ts-essentials@9.4.2(typescript@5.3.3):
+    resolution: {integrity: sha512-mB/cDhOvD7pg3YCLk2rOtejHjjdSi9in/IBYE13S+8WA5FBSraYf4V/ws55uvs0IvQ/l0wBOlXy5yBNZ9Bl8ZQ==}
     peerDependencies:
       typescript: '>=4.1.0'
     peerDependenciesMeta:

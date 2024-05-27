@@ -42,7 +42,7 @@
   },
   "dependencies": {
     "@vercel/edge-config-fs": "workspace:*",
-    "ts-essentials": "9.4.1"
+    "ts-essentials": "9.4.2"
   },
   "devDependencies": {
     "@changesets/cli": "2.27.1",

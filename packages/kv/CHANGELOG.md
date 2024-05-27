@@ -4,11 +4,12 @@
 
 ### Major Changes
 
-- d02e08a: We're making this a major release for safety but we believe
-  most applications can upgrade from 1.0.1 to 2 without any changes.
+- d02e08a: Enable auto pipelining by default.
+  We're making this a major release for safety, but we believe
+  most applications can upgrade from 1.x to 2.x without any changes.
   Auto pipelining should work by default and improve performance.
 
-  BREAKING CHANGE: Auto pipelining is on by default now, see
+  _BREAKING_ CHANGE: Auto pipelining is on by default now. See
   https://upstash.com/docs/oss/sdks/ts/redis/pipelining/auto-pipeline. This
   brings performance benefits to any code making multiple redis commands
   simultaneously.

@@ -81,6 +81,7 @@ export function createClient(config: RedisConfigNodejs): VercelKV {
     // The Next.js team recommends no value or `default` for fetch requests's `cache` option
     // upstash/redis defaults to `no-store`, so we enforce `default`
     cache: 'default',
+    enableAutoPipelining: true,
     ...config,
   });
 }

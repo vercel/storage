@@ -1,5 +1,34 @@
 # @vercel/kv
 
+## 2.0.0
+
+### Major Changes
+
+- d02e08a: Enable auto pipelining by default.
+  We're making this a major release for safety, but we believe
+  most applications can upgrade from 1.x to 2.x without any changes.
+  Auto pipelining should work by default and improve performance.
+
+  _BREAKING_ CHANGE: Auto pipelining is on by default now. See
+  https://upstash.com/docs/oss/sdks/ts/redis/pipelining/auto-pipeline. This
+  brings performance benefits to any code making multiple redis commands
+  simultaneously.
+
+  If you detect bugs because of this, please open them at
+  https://github.com/vercel/storage/issues.
+
+  You can disable this new behavior with:
+
+  ```js
+  import { createClient } from '@vercel/kv';
+
+  const kv = createClient({
+    url: ..,
+    token: ..,
+    enableAutoPipelining: false
+  });
+  ```
+
 ## 1.0.1
 
 ### Patch Changes

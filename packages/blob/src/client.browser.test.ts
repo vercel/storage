@@ -8,6 +8,8 @@ import {
 } from './client';
 
 describe('client', () => {
+  let requestId = '';
+
   beforeEach(() => {
     process.env.BLOB_READ_WRITE_TOKEN =
       'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
@@ -18,6 +20,13 @@ describe('client', () => {
     jest.restoreAllMocks();
 
     jest.clearAllMocks();
+
+    jest.spyOn(global.Math, 'random').mockReturnValue(Math.random());
+    requestId = Math.random().toString(16).slice(2);
+  });
+
+  afterEach(() => {
+    jest.spyOn(global.Math, 'random').mockRestore();
   });
 
   describe('upload()', () => {
@@ -31,7 +40,7 @@ describe('client', () => {
             json: () =>
               Promise.resolve({
                 type: 'blob.generate-client-token',
-                clientToken: 'fake-token-for-test',
+                clientToken: 'vercel_blob_client_fake_123',
               }),
           })
           .mockResolvedValueOnce({
@@ -80,7 +89,9 @@ describe('client', () => {
           body: 'Test file data',
           duplex: 'half',
           headers: {
-            authorization: 'Bearer fake-token-for-test',
+            authorization: 'Bearer vercel_blob_client_fake_123',
+            'x-api-blob-request-attempt': '0',
+            'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
             'x-api-version': '7',
           },
           method: 'PUT',
@@ -96,6 +107,14 @@ describe('client', () => {
 
       jest.resetAllMocks();
       jest.restoreAllMocks();
+
+      // freeze Math.random
+      jest.spyOn(global.Math, 'random').mockReturnValue(Math.random());
+      requestId = Math.random().toString(16).slice(2);
+    });
+
+    afterEach(() => {
+      jest.spyOn(global.Math, 'random').mockRestore();
     });
 
     it('should upload a file using the manual functions', async () => {
@@ -186,6 +205,8 @@ describe('client', () => {
         {
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
+            'x-api-blob-request-attempt': '0',
+            'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
             'x-api-version': '7',
             'x-mpu-action': 'create',
           },
@@ -201,6 +222,8 @@ describe('client', () => {
           body: 'data1',
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
+            'x-api-blob-request-attempt': '0',
+            'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
             'x-api-version': '7',
             'x-mpu-action': 'upload',
             'x-mpu-key': 'key',
@@ -219,6 +242,8 @@ describe('client', () => {
           body: 'data2',
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
+            'x-api-blob-request-attempt': '0',
+            'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
             'x-api-version': '7',
             'x-mpu-action': 'upload',
             'x-mpu-key': 'key',
@@ -241,6 +266,8 @@ describe('client', () => {
           headers: {
             'content-type': 'application/json',
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
+            'x-api-blob-request-attempt': '0',
+            'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
             'x-api-version': '7',
             'x-mpu-action': 'complete',
             'x-mpu-key': 'key',
@@ -322,6 +349,8 @@ describe('client', () => {
         {
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
+            'x-api-blob-request-attempt': '0',
+            'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
             'x-api-version': '7',
             'x-mpu-action': 'create',
           },
@@ -337,6 +366,8 @@ describe('client', () => {
           body: 'data1',
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
+            'x-api-blob-request-attempt': '0',
+            'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
             'x-api-version': '7',
             'x-mpu-action': 'upload',
             'x-mpu-key': 'key',
@@ -355,6 +386,8 @@ describe('client', () => {
           body: 'data2',
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
+            'x-api-blob-request-attempt': '0',
+            'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
             'x-api-version': '7',
             'x-mpu-action': 'upload',
             'x-mpu-key': 'key',
@@ -377,6 +410,8 @@ describe('client', () => {
           headers: {
             'content-type': 'application/json',
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
+            'x-api-blob-request-attempt': '0',
+            'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
             'x-api-version': '7',
             'x-mpu-action': 'complete',
             'x-mpu-key': 'key',

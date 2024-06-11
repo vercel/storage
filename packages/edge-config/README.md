@@ -132,6 +132,25 @@ setTracerProvider(trace);
 
 More verbose traces can be enabled by setting the `EDGE_CONFIG_TRACE_VERBOSE` environment variable to `true`.
 
+## Fetch cache
+
+By default the Edge Config SDK will fetch with `no-store`, which triggers dynamic mode in Next.js ([docs](https://nextjs.org/docs/app/api-reference/functions/fetch#optionscache)).
+
+To use Edge Config with static pages, pass the `force-cache` option:
+
+```js
+import { createClient } from '@vercel/edge-config';
+
+const edgeConfigClient = createClient(process.env.EDGE_CONFIG, {
+  cache: 'force-cache',
+});
+
+// then use the client as usual
+edgeConfigClient.get('someKey');
+```
+
+**Note** This opts out of dynamic behavior, so the page might display stale values.
+
 ## Caught a Bug?
 
 1. [Fork](https://help.github.com/articles/fork-a-repo/) this repository to your own GitHub account and then [clone](https://help.github.com/articles/cloning-a-repository/) it to your local device

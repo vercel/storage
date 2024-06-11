@@ -123,6 +123,7 @@ function createGetInMemoryEdgeConfig(
   shouldUseDevelopmentCache: boolean,
   connection: Connection,
   headers: Record<string, string>,
+  fetchCache: EdgeConfigClientOptions['cache'],
 ): () => Promise<EmbeddedEdgeConfig | null> {
   // Functions as cache to keep track of the Edge Config.
   let embeddedEdgeConfigPromise: Promise<EmbeddedEdgeConfig | null> | null =
@@ -143,7 +144,7 @@ function createGetInMemoryEdgeConfig(
           `${connection.baseUrl}/items?version=${connection.version}`,
           {
             headers: new Headers(headers),
-            cache: 'no-store',
+            cache: fetchCache,
           },
         ).then(async (res) => {
           const digest = res.headers.get('x-edge-config-digest');
@@ -251,6 +252,13 @@ interface EdgeConfigClientOptions {
    * This cache is not used in preview or production deployments as superior optimisations are applied there.
    */
   disableDevelopmentCache?: boolean;
+
+  /**
+   * Sets a `cache` option on the `fetch` call made by Edge Config.
+   *
+   * Unlike Next.js, this defaults to `no-store`, as you most likely want to use Edge Config dynamically.
+   */
+  cache?: 'no-store' | 'force-cache';
 }
 
 /**
@@ -266,7 +274,10 @@ interface EdgeConfigClientOptions {
 export const createClient = trace(
   function createClient(
     connectionString: string | undefined,
-    options: EdgeConfigClientOptions = { staleIfError: 604800 /* one week */ },
+    options: EdgeConfigClientOptions = {
+      staleIfError: 604800 /* one week */,
+      cache: 'no-store',
+    },
   ): EdgeConfigClient {
     if (!connectionString)
       throw new Error('@vercel/edge-config: No connection string provided');
@@ -295,6 +306,8 @@ export const createClient = trace(
     if (typeof options.staleIfError === 'number' && options.staleIfError > 0)
       headers['cache-control'] = `stale-if-error=${options.staleIfError}`;
 
+    const fetchCache = options.cache || 'no-store';
+
     /**
      * While in development we use SWR-like behavior for the api client to
      * reduce latency.
@@ -308,6 +321,7 @@ export const createClient = trace(
       shouldUseDevelopmentCache,
       connection,
       headers,
+      fetchCache,
     );
 
     const api: Omit<EdgeConfigClient, 'connection'> = {
@@ -334,7 +348,7 @@ export const createClient = trace(
             `${baseUrl}/item/${key}?version=${version}`,
             {
               headers: new Headers(headers),
-              cache: 'no-store',
+              cache: fetchCache,
             },
           ).then<T | undefined, undefined>(async (res) => {
             if (res.ok) return res.json();
@@ -372,7 +386,7 @@ export const createClient = trace(
           return fetch(`${baseUrl}/item/${key}?version=${version}`, {
             method: 'HEAD',
             headers: new Headers(headers),
-            cache: 'no-store',
+            cache: fetchCache,
           }).then((res) => {
             if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
             if (res.status === 404) {
@@ -424,7 +438,7 @@ export const createClient = trace(
             }`,
             {
               headers: new Headers(headers),
-              cache: 'no-store',
+              cache: fetchCache,
             },
           ).then<T>(async (res) => {
             if (res.ok) return res.json();
@@ -456,7 +470,7 @@ export const createClient = trace(
             `${baseUrl}/digest?version=${version}`,
             {
               headers: new Headers(headers),
-              cache: 'no-store',
+              cache: fetchCache,
             },
           ).then(async (res) => {
             if (res.ok) return res.json() as Promise<string>;

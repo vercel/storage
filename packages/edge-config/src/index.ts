@@ -1,5 +1,4 @@
 import { readFile } from '@vercel/edge-config-fs';
-import type { DeepReadonly, DeepWritable } from 'ts-essentials';
 import { name as sdkName, version as sdkVersion } from '../package.json';
 import {
   assertIsKey,
@@ -91,13 +90,13 @@ const getFileSystemEdgeConfig = trace(
 const getPrivateEdgeConfig = trace(
   async function getPrivateEdgeConfig(
     connection: Connection,
-  ): Promise<DeepReadonly<EmbeddedEdgeConfig> | null> {
+  ): Promise<EmbeddedEdgeConfig | null> {
     const privateEdgeConfig = Reflect.get(
       globalThis,
       privateEdgeConfigSymbol,
     ) as
       | {
-          get: (id: string) => Promise<DeepReadonly<EmbeddedEdgeConfig> | null>;
+          get: (id: string) => Promise<EmbeddedEdgeConfig | null>;
         }
       | undefined;
 
@@ -199,7 +198,7 @@ function createGetInMemoryEdgeConfig(
  */
 async function getLocalEdgeConfig(
   connection: Connection,
-): Promise<DeepReadonly<EmbeddedEdgeConfig> | null> {
+): Promise<EmbeddedEdgeConfig | null> {
   const edgeConfig =
     (await getPrivateEdgeConfig(connection)) ||
     (await getFileSystemEdgeConfig(connection));
@@ -315,7 +314,7 @@ export const createClient = trace(
       get: trace(
         async function get<T = EdgeConfigValue>(
           key: string,
-        ): Promise<DeepReadonly<T> | undefined> {
+        ): Promise<T | undefined> {
           const localEdgeConfig =
             (await getInMemoryEdgeConfig()) ||
             (await getLocalEdgeConfig(connection));
@@ -327,9 +326,7 @@ export const createClient = trace(
             // our original value, and so the reference changes.
             //
             // This makes it consistent with the real API.
-            return Promise.resolve(
-              localEdgeConfig.items[key] as DeepReadonly<T>,
-            );
+            return Promise.resolve(localEdgeConfig.items[key] as T);
           }
 
           assertIsKey(key);
@@ -339,7 +336,7 @@ export const createClient = trace(
               headers: new Headers(headers),
               cache: 'no-store',
             },
-          ).then<DeepReadonly<T> | undefined, undefined>(async (res) => {
+          ).then<T | undefined, undefined>(async (res) => {
             if (res.ok) return res.json();
             await consumeResponseBody(res);
 
@@ -353,7 +350,7 @@ export const createClient = trace(
               throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
             }
             if (res.cachedResponseBody !== undefined)
-              return res.cachedResponseBody as DeepReadonly<T>;
+              return res.cachedResponseBody as T;
             throw new UnexpectedNetworkError(res);
           });
         },
@@ -395,20 +392,18 @@ export const createClient = trace(
       getAll: trace(
         async function getAll<T = EdgeConfigItems>(
           keys?: (keyof T)[],
-        ): Promise<DeepReadonly<T>> {
+        ): Promise<T> {
           const localEdgeConfig =
             (await getInMemoryEdgeConfig()) ||
             (await getLocalEdgeConfig(connection));
 
           if (localEdgeConfig) {
             if (keys === undefined) {
-              return Promise.resolve(localEdgeConfig.items as DeepReadonly<T>);
+              return Promise.resolve(localEdgeConfig.items as T);
             }
 
             assertIsKeys(keys);
-            return Promise.resolve(
-              pick(localEdgeConfig.items, keys) as DeepReadonly<T>,
-            );
+            return Promise.resolve(pick(localEdgeConfig.items, keys) as T);
           }
 
           if (Array.isArray(keys)) assertIsKeys(keys);
@@ -421,7 +416,7 @@ export const createClient = trace(
 
           // empty search keys array was given,
           // so skip the request and return an empty object
-          if (search === '') return Promise.resolve({} as DeepReadonly<T>);
+          if (search === '') return Promise.resolve({} as T);
 
           return fetchWithCachedResponse(
             `${baseUrl}/items?version=${version}${
@@ -431,7 +426,7 @@ export const createClient = trace(
               headers: new Headers(headers),
               cache: 'no-store',
             },
-          ).then<DeepReadonly<T>>(async (res) => {
+          ).then<T>(async (res) => {
             if (res.ok) return res.json();
             await consumeResponseBody(res);
 
@@ -556,10 +551,8 @@ export const digest: EdgeConfigClient['digest'] = (...args) => {
 /**
  * Safely clones a read-only Edge Config object and makes it mutable.
  */
-export function clone<T = EdgeConfigValue>(
-  edgeConfigValue: T,
-): DeepWritable<T> {
+export function clone<T = EdgeConfigValue>(edgeConfigValue: T): T {
   // Use JSON.parse and JSON.stringify instead of anything else due to
   // the value possibly being a Proxy object.
-  return JSON.parse(JSON.stringify(edgeConfigValue)) as DeepWritable<T>;
+  return JSON.parse(JSON.stringify(edgeConfigValue)) as T;
 }

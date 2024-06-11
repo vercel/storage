@@ -41,8 +41,7 @@
     "testEnvironment": "node"
   },
   "dependencies": {
-    "@vercel/edge-config-fs": "workspace:*",
-    "ts-essentials": "9.4.1"
+    "@vercel/edge-config-fs": "workspace:*"
   },
   "devDependencies": {
     "@changesets/cli": "2.27.1",

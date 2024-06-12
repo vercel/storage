@@ -1,5 +1,15 @@
 # @vercel/edge-config
 
+## 1.2.0
+
+### Minor Changes
+
+- 6a592b5: allow setting fetch cache behaviour
+
+### Patch Changes
+
+- 6a592b5: remove DeepReadOnly type
+
 ## 1.1.1
 
 ### Patch Changes

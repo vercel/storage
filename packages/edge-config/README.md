@@ -132,15 +132,36 @@ setTracerProvider(trace);
 
 More verbose traces can be enabled by setting the `EDGE_CONFIG_TRACE_VERBOSE` environment variable to `true`.
 
-## Caught a Bug?
+## Fetch cache
 
-1. [Fork](https://help.github.com/articles/fork-a-repo/) this repository to your own GitHub account and then [clone](https://help.github.com/articles/cloning-a-repository/) it to your local device
-2. Link the package to the global module directory: `npm link`
-3. Within the module you want to test your local development instance of `@vercel/edge-config`, just link it to the dependencies: `npm link @vercel/edge-config`. Instead of the default one from npm, Node.js will now use your clone of `@vercel/edge-config`!
+By default the Edge Config SDK will fetch with `no-store`, which triggers dynamic mode in Next.js ([docs](https://nextjs.org/docs/app/api-reference/functions/fetch#optionscache)).
 
-As always, you can run the tests using: `npm test`
+To use Edge Config with static pages, pass the `force-cache` option:
 
-## A note for Vite users
+```js
+import { createClient } from '@vercel/edge-config';
+
+const edgeConfigClient = createClient(process.env.EDGE_CONFIG, {
+  cache: 'force-cache',
+});
+
+// then use the client as usual
+edgeConfigClient.get('someKey');
+```
+
+**Note** This opts out of dynamic behavior, so the page might display stale values.
+
+## Notes
+
+### Do not mutate return values
+
+Cloning objects in JavaScript can be slow. That's why the Edge Config SDK uses an optimization which can lead to multiple calls reading the same key all receiving a reference to the same value.
+
+For this reason the value read from Edge Config should never be mutated, otherwise they could affect other parts of the code base reading the same key, or a later request reading the same key.
+
+If you need to modify, see the `clone` function described [here](#do-not-mutate-return-values).
+
+### Usage with Vite
 
 `@vercel/edge-config` reads database credentials from the environment variables on `process.env`. In general, `process.env` is automatically populated from your `.env` file during development, which is created when you run `vc env pull`. However, Vite does not expose the `.env` variables on `process.env.`
 
@@ -180,3 +201,11 @@ import { createClient } from '@vercel/edge-config';
 + const edgeConfig = createClient(EDGE_CONFIG);
 await edgeConfig.get('someKey');
 ```
+
+## Caught a Bug?
+
+1. [Fork](https://help.github.com/articles/fork-a-repo/) this repository to your own GitHub account and then [clone](https://help.github.com/articles/cloning-a-repository/) it to your local device
+2. Link the package to the global module directory: `npm link`
+3. Within the module you want to test your local development instance of `@vercel/edge-config`, just link it to the dependencies: `npm link @vercel/edge-config`. Instead of the default one from npm, Node.js will now use your clone of `@vercel/edge-config`!
+
+As always, you can run the tests using: `npm test`

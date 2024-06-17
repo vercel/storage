@@ -576,6 +576,18 @@ describe('blob client', () => {
       expect(headers['x-cache-control-max-age']).toEqual('60');
     });
 
+    // Some folks are trying to upload plain objects which cannot work, example: https://github.com/vercel/storage/issues/637
+    it('throws when trying to upload a plain JS object', async () => {
+      await expect(() =>
+        // @ts-expect-error: Runtime check fo DX
+        put('foo.txt', { file: 'value' }, { access: 'public' }),
+      ).rejects.toThrow(
+        new Error(
+          "Vercel Blob: Body must be a string, buffer or stream. You sent a plain JavaScript object, double check what you're trying to upload.",
+        ),
+      );
+    });
+
     const table: [string, (signal: AbortSignal) => Promise<unknown>][] = [
       [
         'put',

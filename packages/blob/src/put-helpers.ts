@@ -4,7 +4,7 @@ import type { ClientCommonCreateBlobOptions } from './client';
 import type { CommonCreateBlobOptions } from './helpers';
 import { BlobError } from './helpers';
 
-const putOptionHeaderMap = {
+export const putOptionHeaderMap = {
   cacheControlMaxAge: 'x-cache-control-max-age',
   addRandomSuffix: 'x-add-random-suffix',
   contentType: 'x-content-type',

@@ -93,3 +93,5 @@ export const completeMultipartUpload =
   });
 
 export type { Part, PartInput } from './multipart/helpers';
+
+export { createFolder } from './create-folder';

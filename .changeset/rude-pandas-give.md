@@ -1,5 +1,5 @@
 ---
-"@vercel/postgres": major
+"@vercel/postgres": minor
 ---
 
 Upgrade underlying @neondatabase/serverless to 0.9.3.

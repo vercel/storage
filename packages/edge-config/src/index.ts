@@ -192,7 +192,7 @@ function createGetInMemoryEdgeConfig(
 /**
  *
  */
-async function getLocalEdgeConfig(
+async function _getLocalEdgeConfig(
   connection: Connection,
 ): Promise<EmbeddedEdgeConfig | null> {
   const edgeConfig =
@@ -324,20 +324,6 @@ export const createClient = trace(
         async function get<T = EdgeConfigValue>(
           key: string,
         ): Promise<T | undefined> {
-          const localEdgeConfig =
-            (await getInMemoryEdgeConfig()) ||
-            (await getLocalEdgeConfig(connection));
-
-          if (localEdgeConfig) {
-            assertIsKey(key);
-
-            // We need to return a clone of the value so users can't modify
-            // our original value, and so the reference changes.
-            //
-            // This makes it consistent with the real API.
-            return Promise.resolve(localEdgeConfig.items[key] as T);
-          }
-
           assertIsKey(key);
           return fetchWithCachedResponse(
             `${baseUrl}/item/${key}?version=${version}`,
@@ -365,15 +351,6 @@ export const createClient = trace(
       ),
       has: trace(
         async function has(key): Promise<boolean> {
-          const localEdgeConfig =
-            (await getInMemoryEdgeConfig()) ||
-            (await getLocalEdgeConfig(connection));
-
-          if (localEdgeConfig) {
-            assertIsKey(key);
-            return Promise.resolve(hasOwnProperty(localEdgeConfig.items, key));
-          }
-
           assertIsKey(key);
           // this is a HEAD request anyhow, no need for fetchWithCachedResponse
           return fetch(`${baseUrl}/item/${key}?version=${version}`, {
@@ -400,19 +377,6 @@ export const createClient = trace(
         async function getAll<T = EdgeConfigItems>(
           keys?: (keyof T)[],
         ): Promise<T> {
-          const localEdgeConfig =
-            (await getInMemoryEdgeConfig()) ||
-            (await getLocalEdgeConfig(connection));
-
-          if (localEdgeConfig) {
-            if (keys === undefined) {
-              return Promise.resolve(localEdgeConfig.items as T);
-            }
-
-            assertIsKeys(keys);
-            return Promise.resolve(pick(localEdgeConfig.items, keys) as T);
-          }
-
           if (Array.isArray(keys)) assertIsKeys(keys);
 
           const search = Array.isArray(keys)
@@ -449,14 +413,6 @@ export const createClient = trace(
       ),
       digest: trace(
         async function digest(): Promise<string> {
-          const localEdgeConfig =
-            (await getInMemoryEdgeConfig()) ||
-            (await getLocalEdgeConfig(connection));
-
-          if (localEdgeConfig) {
-            return Promise.resolve(localEdgeConfig.digest);
-          }
-
           return fetchWithCachedResponse(
             `${baseUrl}/digest?version=${version}`,
             {

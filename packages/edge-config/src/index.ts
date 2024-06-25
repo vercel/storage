@@ -16,8 +16,10 @@ import type {
   EdgeConfigValue,
   EmbeddedEdgeConfig,
 } from './types';
-import { fetchWithCachedResponse } from './utils/fetch-with-cached-response';
+// import { fetchWithCachedResponse } from './utils/fetch-with-cached-response';
 import { trace } from './utils/tracing';
+
+const fetchWithCachedResponse = fetch;
 
 export { setTracerProvider } from './utils/tracing';
 
@@ -148,16 +150,9 @@ function createGetInMemoryEdgeConfig(
           },
         ).then(async (res) => {
           const digest = res.headers.get('x-edge-config-digest');
-          let body: EdgeConfigValue | undefined;
 
           // We ignore all errors here and just proceed.
-          if (!res.ok) {
-            await consumeResponseBody(res);
-            body = res.cachedResponseBody as EdgeConfigValue | undefined;
-            if (!body) return null;
-          } else {
-            body = (await res.json()) as EdgeConfigItems;
-          }
+          const body = (await res.json()) as EdgeConfigItems;
 
           return { digest, items: body } as EmbeddedEdgeConfig;
         });
@@ -363,8 +358,6 @@ export const createClient = trace(
               // the edge config itself does not exist
               throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
             }
-            if (res.cachedResponseBody !== undefined)
-              return res.cachedResponseBody as T;
             throw new UnexpectedNetworkError(res);
           });
         },
@@ -449,8 +442,6 @@ export const createClient = trace(
             // it means the edge config itself did not exist
             if (res.status === 404)
               throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-            if (res.cachedResponseBody !== undefined)
-              return res.cachedResponseBody as T;
             throw new UnexpectedNetworkError(res);
           });
         },
@@ -476,8 +467,6 @@ export const createClient = trace(
             if (res.ok) return res.json() as Promise<string>;
             await consumeResponseBody(res);
 
-            if (res.cachedResponseBody !== undefined)
-              return res.cachedResponseBody as string;
             throw new UnexpectedNetworkError(res);
           });
         },

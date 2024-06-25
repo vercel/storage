@@ -5,9 +5,7 @@ import {
   assertIsKeys,
   ERRORS,
   UnexpectedNetworkError,
-  hasOwnProperty,
   parseConnectionString,
-  pick,
 } from './utils';
 import type {
   Connection,
@@ -312,7 +310,7 @@ export const createClient = trace(
       process.env.NODE_ENV === 'development' &&
       process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
 
-    const getInMemoryEdgeConfig = createGetInMemoryEdgeConfig(
+    const _getInMemoryEdgeConfig = createGetInMemoryEdgeConfig(
       shouldUseDevelopmentCache,
       connection,
       headers,
@@ -320,35 +318,32 @@ export const createClient = trace(
     );
 
     const api: Omit<EdgeConfigClient, 'connection'> = {
-      get: trace(
-        async function get<T = EdgeConfigValue>(
-          key: string,
-        ): Promise<T | undefined> {
-          assertIsKey(key);
-          return fetchWithCachedResponse(
-            `${baseUrl}/item/${key}?version=${version}`,
-            {
-              headers: new Headers(headers),
-              cache: fetchCache,
-            },
-          ).then<T | undefined, undefined>(async (res) => {
-            if (res.ok) return res.json();
-            await consumeResponseBody(res);
+      get: async function get<T = EdgeConfigValue>(
+        key: string,
+      ): Promise<T | undefined> {
+        assertIsKey(key);
+        return fetchWithCachedResponse(
+          `${baseUrl}/item/${key}?version=${version}`,
+          {
+            headers: new Headers(headers),
+            cache: fetchCache,
+          },
+        ).then<T | undefined, undefined>(async (res) => {
+          if (res.ok) return res.json();
+          await consumeResponseBody(res);
 
-            if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
-            if (res.status === 404) {
-              // if the x-edge-config-digest header is present, it means
-              // the edge config exists, but the item does not
-              if (res.headers.has('x-edge-config-digest')) return undefined;
-              // if the x-edge-config-digest header is not present, it means
-              // the edge config itself does not exist
-              throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-            }
-            throw new UnexpectedNetworkError(res);
-          });
-        },
-        { name: 'get', isVerboseTrace: false, attributes: { edgeConfigId } },
-      ),
+          if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
+          if (res.status === 404) {
+            // if the x-edge-config-digest header is present, it means
+            // the edge config exists, but the item does not
+            if (res.headers.has('x-edge-config-digest')) return undefined;
+            // if the x-edge-config-digest header is not present, it means
+            // the edge config itself does not exist
+            throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
+          }
+          throw new UnexpectedNetworkError(res);
+        });
+      },
       has: trace(
         async function has(key): Promise<boolean> {
           assertIsKey(key);

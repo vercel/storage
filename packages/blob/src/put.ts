@@ -45,6 +45,12 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
     // avoid using the options as body
     const body = isFolderCreation ? undefined : bodyOrOptions;
 
+    if (body !== undefined && isPlainObject(body)) {
+      throw new BlobError(
+        "Body must be a string, buffer or stream. You sent a plain JavaScript object, double check what you're trying to upload.",
+      );
+    }
+
     const options = await createPutOptions({
       pathname,
       // when no body is required (for folder creations) options are the second argument
@@ -54,12 +60,6 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
     });
 
     const headers = createPutHeaders(allowedOptions, options);
-
-    if (body !== undefined && isPlainObject(body)) {
-      throw new BlobError(
-        "Body must be a string, buffer or stream. You sent a plain JavaScript object, double check what you're trying to upload.",
-      );
-    }
 
     if (options.multipart === true && body) {
       return uncontrolledMultipartUpload(pathname, body, headers, options);

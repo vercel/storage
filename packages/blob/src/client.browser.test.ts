@@ -5,6 +5,7 @@ import {
   uploadPart,
   upload,
   createMultipartUploader,
+  put,
 } from './client';
 
 describe('client', () => {
@@ -420,6 +421,98 @@ describe('client', () => {
           method: 'POST',
           signal: undefined,
         },
+      );
+    });
+
+    it('should reject incorrect body in uploader.uploadPart()', async () => {
+      // Mock the createMultipartUploader to return a minimal uploader object
+      jest.spyOn(undici, 'fetch').mockImplementation(
+        jest.fn().mockResolvedValueOnce({
+          status: 200,
+          ok: true,
+          json: () => Promise.resolve({ key: 'key', uploadId: 'uploadId' }),
+        }),
+      );
+
+      const uploader = await createMultipartUploader('foo.txt', {
+        access: 'public',
+        token: 'vercel_blob_client_fake_token_for_test',
+      });
+
+      await expect(() =>
+        // @ts-expect-error: Runtime check for DX
+        uploader.uploadPart(1, { file: 'value' }),
+      ).rejects.toThrow(
+        new Error(
+          "Vercel Blob: Body must be a string, buffer or stream. You sent a plain JavaScript object, double check what you're trying to upload.",
+        ),
+      );
+    });
+  });
+
+  describe('rejects when body is incorrect', () => {
+    type TestCase = [string, () => Promise<unknown>];
+
+    const testCases: TestCase[] = [
+      [
+        'put()',
+        () =>
+          put(
+            'foo.txt',
+            // @ts-expect-error: Runtime check for DX
+            { file: 'value' },
+            { access: 'public' },
+          ),
+      ],
+      [
+        'multipart put()',
+        () =>
+          put(
+            'foo.txt',
+            // @ts-expect-error: Runtime check for DX
+            { file: 'value' },
+            {
+              access: 'public',
+              multipart: true,
+            },
+          ),
+      ],
+      [
+        'upload()',
+        () =>
+          upload(
+            'foo.txt',
+            // @ts-expect-error: Runtime check for DX
+            { file: 'value' },
+            {
+              access: 'public',
+              handleUploadUrl: '/api/upload',
+            },
+          ),
+      ],
+      [
+        'uploadPart()',
+        () =>
+          uploadPart(
+            'foo.txt',
+            // @ts-expect-error: Runtime check for DX
+            { file: 'value' },
+            {
+              access: 'public',
+              key: 'foo.txt',
+              uploadId: '1',
+              partNumber: 1,
+              token: 'vercel_blob_client_fake_123',
+            },
+          ),
+      ],
+    ];
+
+    it.each(testCases)('on %s', async (_, operation) => {
+      await expect(operation).rejects.toThrow(
+        new Error(
+          "Vercel Blob: Body must be a string, buffer or stream. You sent a plain JavaScript object, double check what you're trying to upload.",
+        ),
       );
     });
   });

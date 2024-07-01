@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.23.4
+
+### Patch Changes
+
+- 30401f4: fix(blob): Throw when trying to upload a plain JS object
+
 ## 0.23.3
 
 ### Patch Changes

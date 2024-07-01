@@ -1,8 +1,13 @@
 import bytes from 'bytes';
 import type { BodyInit } from 'undici';
+import { isPlainObject } from 'is-plain-object';
 import { BlobServiceNotAvailable, requestApi } from '../api';
 import { debug } from '../debug';
-import type { CommonCreateBlobOptions, BlobCommandOptions } from '../helpers';
+import {
+  type CommonCreateBlobOptions,
+  type BlobCommandOptions,
+  BlobError,
+} from '../helpers';
 import { createPutHeaders, createPutOptions } from '../put-helpers';
 import type { PutBody, CreatePutMethodOptions } from '../put-helpers';
 import type { Part, PartInput } from './helpers';
@@ -33,6 +38,12 @@ export function createUploadPartMethod<
     });
 
     const headers = createPutHeaders(allowedOptions, options);
+
+    if (isPlainObject(body)) {
+      throw new BlobError(
+        "Body must be a string, buffer or stream. You sent a plain JavaScript object, double check what you're trying to upload.",
+      );
+    }
 
     const result = await uploadPart({
       uploadId: options.uploadId,

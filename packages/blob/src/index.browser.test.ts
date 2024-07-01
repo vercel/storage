@@ -1,5 +1,7 @@
 import { put } from './index';
 
+// This files ensures some of the Node.js methods can also be called when imported in a browser
+
 const BLOB_STORE_BASE_URL = 'https://storeId.public.blob.vercel-storage.com';
 
 // Can't use the usual undici mocking utilities because they don't work with jsdom environment

@@ -57,7 +57,7 @@
     "eslint": "8.56.0",
     "eslint-config-custom": "workspace:*",
     "jest": "29.7.0",
-    "kysely": "0.27.2",
+    "kysely": "0.27.3",
     "ts-jest": "29.1.2",
     "tsconfig": "workspace:*",
     "tsup": "8.0.2",

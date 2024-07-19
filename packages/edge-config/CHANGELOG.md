@@ -1,5 +1,15 @@
 # @vercel/edge-config
 
+## 1.2.1
+
+### Patch Changes
+
+- 3057a36: gracefully handle when an empty string is supplied as the key
+
+  - `get("")` will return `undefined`
+  - `has("")` will return `false`
+  - `getAll(["a", ""])` will ignore the empty string
+
 ## 1.2.0
 
 ### Minor Changes

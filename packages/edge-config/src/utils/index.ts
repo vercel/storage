@@ -38,6 +38,10 @@ export function assertIsKey(key: unknown): asserts key is string {
   }
 }
 
+export function isEmptyKey(key: string): boolean {
+  return key.trim() === '';
+}
+
 export function assertIsKeys(keys: unknown): asserts keys is string[] {
   if (!Array.isArray(keys) || keys.some((key) => typeof key !== 'string')) {
     throw new Error(

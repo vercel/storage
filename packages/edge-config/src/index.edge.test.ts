@@ -220,6 +220,21 @@ describe('default Edge Config', () => {
       });
     });
 
+    describe('when called with an empty string key', () => {
+      it('should return the selected items', async () => {
+        await expect(getAll([''])).resolves.toEqual({});
+        expect(fetchMock).toHaveBeenCalledTimes(0);
+      });
+    });
+
+    describe('when called with an empty string key mix', () => {
+      it('should return the selected items', async () => {
+        fetchMock.mockResponse(JSON.stringify({ foo: 'foo1' }));
+        await expect(getAll(['foo', ''])).resolves.toEqual({ foo: 'foo1' });
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+      });
+    });
+
     describe('when the edge config does not exist', () => {
       it('should throw', async () => {
         fetchMock.mockResponse(

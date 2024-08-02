@@ -1,7 +1,8 @@
 {
   "name": "@vercel/blob-local",
-  "version": "0.0.0",
-  "description": "The Vercel Blob JavaScript API client",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Server that emulates the Vercel Blob API for local development",
   "homepage": "https://vercel.com/storage/blob",
   "repository": {
     "type": "git",
@@ -10,8 +11,11 @@
   },
   "license": "MIT",
   "scripts": {
-    "build": "docker build --tag vercel-blob-local:latest .",
-    "dev": "wgo run main.go",
-    "publish": "exit 1"
+    "dev": "ENV=dev wgo run main.go",
+    "docker:build": "docker build -t zeit/vercel-blob-local .",
+    "docker:run": "docker run -d -p 3001:3001 --name vercel-blob-local zeit/vercel-blob-local",
+    "docker:start": "docker start vercel-blob-local",
+    "docker:stop": "docker stop vercel-blob-local",
+    "start": "ENV=dev go run main.go"
   }
 }

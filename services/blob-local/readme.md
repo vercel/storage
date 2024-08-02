@@ -11,24 +11,15 @@ NEXT_PUBLIC_VERCEL_BLOB_API_URL=http://localhost:3001/api
 VERCEL_BLOB_API_URL=http://localhost:3001/api
 ```
 
-### Using a binary
-
-Download the latest release from the [releases page](https://github.com/vercel/blob-local/releases), extract the archive and run the binary.
-
 ### Using Docker
 
-Clone the repository:
-
-```bash
-git clone git@github.com:vercel/blob-local.git
-cd blob-local
-```
+Build and run the container:
 
 Build and run the container:
 
 ```bash
-docker build --tag vercel-blob-local:latest .
-docker run -d -p 3001:3001 --name vercel-blob-local vercel-blob-local:latest
+pnpm --filter @vercel/blob-local docker:build
+pnpm --filter @vercel/blob-local docker:run
 ```
 
 After this you can start and stop the `vercel-blob-local` container like this:
@@ -38,19 +29,21 @@ docker start vercel-blob-local
 docker stop vercel-blob-local
 ```
 
-## Development
-
-Clone the repository:
+or using the pnpm scripts:
 
 ```bash
-git clone git@github.com:vercel/blob-local.git
-cd blob-local
+pnpm --filter @vercel/blob-local docker:start
+pnpm --filter @vercel/blob-local docker:stop
 ```
+
+## Development
+
+For development you need to install [Go](https://go.dev/doc/install) and [WGO](https://github.com/bokwoon95/wgo).
 
 Start the server:
 
 ```bash
-ENV=dev go run main.go
+pnpm --filter @vercel/blob-local dev
 ```
 
 If you want a watcher that restarts the server on file changes you can use something like [wgo](https://github.com/bokwoon95/wgo)

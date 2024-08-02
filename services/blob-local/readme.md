@@ -13,7 +13,24 @@ VERCEL_BLOB_API_URL=http://localhost:3001/api
 
 ### Using Docker
 
-Build and run the container:
+You need to have [Docker](https://www.docker.com/) installed on your machine.
+
+```bash
+docker run -d -p 3001:3001 --name vercel-blob-local zeit/vercel-blob-local
+```
+
+After this you can start and stop the `vercel-blob-local` container like this:
+
+```bash
+docker start vercel-blob-local
+docker stop vercel-blob-local
+```
+
+## Development
+
+### With Docker
+
+You need to have [Docker](https://www.docker.com/) installed on your machine.
 
 Build and run the container:
 
@@ -36,9 +53,9 @@ pnpm --filter @vercel/blob-local docker:start
 pnpm --filter @vercel/blob-local docker:stop
 ```
 
-## Development
+### With Go
 
-For development you need to install [Go](https://go.dev/doc/install) and [WGO](https://github.com/bokwoon95/wgo).
+You need to install [Go](https://go.dev/doc/install) and [WGO](https://github.com/bokwoon95/wgo).
 
 Start the server:
 

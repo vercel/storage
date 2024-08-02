@@ -7,8 +7,12 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": [],
+  "ignore": ["vercel-storage-integration-test-suite","eslint-config-custom","tsconfig"],
   "snapshot": {
     "useCalculatedVersion": true
+  },
+  "privatePackages": {
+    "version": true,
+    "tag": true
   }
 }

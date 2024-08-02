@@ -10,8 +10,12 @@
   },
   "license": "MIT",
   "scripts": {
-    "build": "docker build --tag vercel-blob-local:latest .",
-    "dev": "wgo run main.go",
-    "publish": "exit 1"
+    "build": "pnpm docker:build",
+    "dev": "ENV=dev wgo run main.go",
+    "docker:build": "docker build --tag vercel-blob-local:latest .",
+    "docker:run": "docker run -d -p 3001:3001 --name vercel-blob-local vercel-blob-local:latest",
+    "docker:start": "docker start vercel-blob-local",
+    "docker:stop": "docker stop vercel-blob-local",
+    "start": "ENV=dev go run main.go"
   }
 }

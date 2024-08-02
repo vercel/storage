@@ -322,6 +322,8 @@ importers:
         specifier: 5.3.3
         version: 5.3.3
 
+  services/blob-local: {}
+
   test/next:
     dependencies:
       '@tailwindcss/forms':

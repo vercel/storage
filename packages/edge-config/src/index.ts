@@ -125,7 +125,9 @@ function createGetInMemoryEdgeConfig(
   connection: Connection,
   headers: Record<string, string>,
   fetchCache: EdgeConfigClientOptions['cache'],
-): () => Promise<EmbeddedEdgeConfig | null> {
+): (
+  localOptions?: EdgeConfigFunctionsOptions,
+) => Promise<EmbeddedEdgeConfig | null> {
   // Functions as cache to keep track of the Edge Config.
   let embeddedEdgeConfigPromise: Promise<EmbeddedEdgeConfig | null> | null =
     null;
@@ -137,8 +139,9 @@ function createGetInMemoryEdgeConfig(
   let latestRequest: Promise<EmbeddedEdgeConfig | null> | null = null;
 
   return trace(
-    () => {
-      if (!shouldUseDevelopmentCache) return Promise.resolve(null);
+    (localOptions) => {
+      if (localOptions?.consistentRead || !shouldUseDevelopmentCache)
+        return Promise.resolve(null);
 
       if (!latestRequest) {
         latestRequest = fetchWithCachedResponse(
@@ -198,11 +201,18 @@ function createGetInMemoryEdgeConfig(
 /**
  *
  */
+function addConsistentReadHeader(headers: Headers) {
+  headers.set('x-edge-config-min-updated-at', `${Number.MAX_SAFE_INTEGER}`);
+}
+
+/**
+ *
+ */
 async function getLocalEdgeConfig(
   connection: Connection,
-  options: EdgeConfigClientOptions,
+  options?: EdgeConfigFunctionsOptions,
 ): Promise<EmbeddedEdgeConfig | null> {
-  if (options.consistentRead) return null;
+  if (options?.consistentRead) return null;
 
   const edgeConfig =
     (await getPrivateEdgeConfig(connection)) ||
@@ -263,7 +273,9 @@ interface EdgeConfigClientOptions {
    * Unlike Next.js, this defaults to `no-store`, as you most likely want to use Edge Config dynamically.
    */
   cache?: 'no-store' | 'force-cache';
+}
 
+interface EdgeConfigFunctionsOptions {
   /**
    * Enabling `consistentRead` will bypass all caches and hit the origin
    * directly. This will make sure to fetch the most recent version of
@@ -317,9 +329,6 @@ export const createClient = trace(
     if (typeof options.staleIfError === 'number' && options.staleIfError > 0)
       headers['cache-control'] = `stale-if-error=${options.staleIfError}`;
 
-    if (options.consistentRead === true)
-      headers['x-edge-config-min-updated-at'] = `${Number.MAX_SAFE_INTEGER}`;
-
     const fetchCache = options.cache || 'no-store';
 
     /**
@@ -342,10 +351,11 @@ export const createClient = trace(
       get: trace(
         async function get<T = EdgeConfigValue>(
           key: string,
+          localOptions?: EdgeConfigFunctionsOptions,
         ): Promise<T | undefined> {
           const localEdgeConfig =
-            (await getInMemoryEdgeConfig()) ||
-            (await getLocalEdgeConfig(connection, options));
+            (await getInMemoryEdgeConfig(localOptions)) ||
+            (await getLocalEdgeConfig(connection, localOptions));
 
           assertIsKey(key);
           if (isEmptyKey(key)) return undefined;
@@ -358,10 +368,14 @@ export const createClient = trace(
             return Promise.resolve(localEdgeConfig.items[key] as T);
           }
 
+          const localHeaders = new Headers(headers);
+          if (localOptions?.consistentRead)
+            addConsistentReadHeader(localHeaders);
+
           return fetchWithCachedResponse(
             `${baseUrl}/item/${key}?version=${version}`,
             {
-              headers: new Headers(headers),
+              headers: localHeaders,
               cache: fetchCache,
             },
           ).then<T | undefined, undefined>(async (res) => {
@@ -385,10 +399,13 @@ export const createClient = trace(
         { name: 'get', isVerboseTrace: false, attributes: { edgeConfigId } },
       ),
       has: trace(
-        async function has(key): Promise<boolean> {
+        async function has(
+          key,
+          localOptions?: EdgeConfigFunctionsOptions,
+        ): Promise<boolean> {
           const localEdgeConfig =
-            (await getInMemoryEdgeConfig()) ||
-            (await getLocalEdgeConfig(connection, options));
+            (await getInMemoryEdgeConfig(localOptions)) ||
+            (await getLocalEdgeConfig(connection, localOptions));
 
           assertIsKey(key);
           if (isEmptyKey(key)) return false;
@@ -397,10 +414,14 @@ export const createClient = trace(
             return Promise.resolve(hasOwnProperty(localEdgeConfig.items, key));
           }
 
+          const localHeaders = new Headers(headers);
+          if (localOptions?.consistentRead)
+            addConsistentReadHeader(localHeaders);
+
           // this is a HEAD request anyhow, no need for fetchWithCachedResponse
           return fetch(`${baseUrl}/item/${key}?version=${version}`, {
             method: 'HEAD',
-            headers: new Headers(headers),
+            headers: localHeaders,
             cache: fetchCache,
           }).then((res) => {
             if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
@@ -421,10 +442,11 @@ export const createClient = trace(
       getAll: trace(
         async function getAll<T = EdgeConfigItems>(
           keys?: (keyof T)[],
+          localOptions?: EdgeConfigFunctionsOptions,
         ): Promise<T> {
           const localEdgeConfig =
-            (await getInMemoryEdgeConfig()) ||
-            (await getLocalEdgeConfig(connection, options));
+            (await getInMemoryEdgeConfig(localOptions)) ||
+            (await getLocalEdgeConfig(connection, localOptions));
 
           if (localEdgeConfig) {
             if (keys === undefined) {
@@ -449,12 +471,16 @@ export const createClient = trace(
           // so skip the request and return an empty object
           if (search === '') return Promise.resolve({} as T);
 
+          const localHeaders = new Headers(headers);
+          if (localOptions?.consistentRead)
+            addConsistentReadHeader(localHeaders);
+
           return fetchWithCachedResponse(
             `${baseUrl}/items?version=${version}${
               search === null ? '' : `&${search}`
             }`,
             {
-              headers: new Headers(headers),
+              headers: localHeaders,
               cache: fetchCache,
             },
           ).then<T>(async (res) => {
@@ -474,19 +500,25 @@ export const createClient = trace(
         { name: 'getAll', isVerboseTrace: false, attributes: { edgeConfigId } },
       ),
       digest: trace(
-        async function digest(): Promise<string> {
+        async function digest(
+          localOptions?: EdgeConfigFunctionsOptions,
+        ): Promise<string> {
           const localEdgeConfig =
-            (await getInMemoryEdgeConfig()) ||
-            (await getLocalEdgeConfig(connection, options));
+            (await getInMemoryEdgeConfig(localOptions)) ||
+            (await getLocalEdgeConfig(connection, localOptions));
 
           if (localEdgeConfig) {
             return Promise.resolve(localEdgeConfig.digest);
           }
 
+          const localHeaders = new Headers(headers);
+          if (localOptions?.consistentRead)
+            addConsistentReadHeader(localHeaders);
+
           return fetchWithCachedResponse(
             `${baseUrl}/digest?version=${version}`,
             {
-              headers: new Headers(headers),
+              headers: localHeaders,
               cache: fetchCache,
             },
           ).then(async (res) => {

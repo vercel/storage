@@ -200,7 +200,10 @@ function createGetInMemoryEdgeConfig(
  */
 async function getLocalEdgeConfig(
   connection: Connection,
+  options: EdgeConfigClientOptions,
 ): Promise<EmbeddedEdgeConfig | null> {
+  if (options.consistentRead) return null;
+
   const edgeConfig =
     (await getPrivateEdgeConfig(connection)) ||
     (await getFileSystemEdgeConfig(connection));
@@ -260,6 +263,13 @@ interface EdgeConfigClientOptions {
    * Unlike Next.js, this defaults to `no-store`, as you most likely want to use Edge Config dynamically.
    */
   cache?: 'no-store' | 'force-cache';
+
+  /**
+   * Enabling `consistentRead` will bypass all caches and hit the origin
+   * directly. This will make sure to fetch the most recent version of
+   * an Edge Config with the downside of an increased latency.
+   */
+  consistentRead?: boolean;
 }
 
 /**
@@ -307,6 +317,9 @@ export const createClient = trace(
     if (typeof options.staleIfError === 'number' && options.staleIfError > 0)
       headers['cache-control'] = `stale-if-error=${options.staleIfError}`;
 
+    if (options.consistentRead === true)
+      headers['x-edge-config-min-updated-at'] = `${Number.MAX_SAFE_INTEGER}`;
+
     const fetchCache = options.cache || 'no-store';
 
     /**
@@ -332,7 +345,7 @@ export const createClient = trace(
         ): Promise<T | undefined> {
           const localEdgeConfig =
             (await getInMemoryEdgeConfig()) ||
-            (await getLocalEdgeConfig(connection));
+            (await getLocalEdgeConfig(connection, options));
 
           assertIsKey(key);
           if (isEmptyKey(key)) return undefined;
@@ -375,7 +388,7 @@ export const createClient = trace(
         async function has(key): Promise<boolean> {
           const localEdgeConfig =
             (await getInMemoryEdgeConfig()) ||
-            (await getLocalEdgeConfig(connection));
+            (await getLocalEdgeConfig(connection, options));
 
           assertIsKey(key);
           if (isEmptyKey(key)) return false;
@@ -411,7 +424,7 @@ export const createClient = trace(
         ): Promise<T> {
           const localEdgeConfig =
             (await getInMemoryEdgeConfig()) ||
-            (await getLocalEdgeConfig(connection));
+            (await getLocalEdgeConfig(connection, options));
 
           if (localEdgeConfig) {
             if (keys === undefined) {
@@ -464,7 +477,7 @@ export const createClient = trace(
         async function digest(): Promise<string> {
           const localEdgeConfig =
             (await getInMemoryEdgeConfig()) ||
-            (await getLocalEdgeConfig(connection));
+            (await getLocalEdgeConfig(connection, options));
 
           if (localEdgeConfig) {
             return Promise.resolve(localEdgeConfig.digest);

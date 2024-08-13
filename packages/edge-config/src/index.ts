@@ -201,7 +201,7 @@ function createGetInMemoryEdgeConfig(
 /**
  *
  */
-function addConsistentReadHeader(headers: Headers) {
+function addConsistentReadHeader(headers: Headers): void {
   headers.set('x-edge-config-min-updated-at', `${Number.MAX_SAFE_INTEGER}`);
 }
 

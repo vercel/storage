@@ -199,14 +199,16 @@ function createGetInMemoryEdgeConfig(
 }
 
 /**
- *
+ * Uses `MAX_SAFE_INTEGER` as minimum updated at timestamp to force
+ * a request to the origin.
  */
 function addConsistentReadHeader(headers: Headers): void {
   headers.set('x-edge-config-min-updated-at', `${Number.MAX_SAFE_INTEGER}`);
 }
 
 /**
- *
+ * Reads the Edge Config from a local provider, if available,
+ * to avoid Network requests.
  */
 async function getLocalEdgeConfig(
   connection: Connection,
@@ -281,7 +283,9 @@ interface EdgeConfigFunctionsOptions {
    * directly. This will make sure to fetch the most recent version of
    * an Edge Config with the downside of an increased latency.
    *
-   * We do not recommend enabling this option, unless you are reading Edge Config specifically for generating a page using ISR and you need to ensure you generate with the latest content.
+   * We do **not** recommend enabling this option, unless you are reading
+   * Edge Config specifically for generating a page using ISR and you
+   * need to ensure you generate with the latest content.
    */
   consistentRead?: boolean;
 }

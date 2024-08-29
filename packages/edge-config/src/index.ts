@@ -3,6 +3,7 @@ import { name as sdkName, version as sdkVersion } from '../package.json';
 import {
   assertIsKey,
   assertIsKeys,
+  isEmptyKey,
   ERRORS,
   UnexpectedNetworkError,
   hasOwnProperty,
@@ -333,9 +334,10 @@ export const createClient = trace(
             (await getInMemoryEdgeConfig()) ||
             (await getLocalEdgeConfig(connection));
 
-          if (localEdgeConfig) {
-            assertIsKey(key);
+          assertIsKey(key);
+          if (isEmptyKey(key)) return undefined;
 
+          if (localEdgeConfig) {
             // We need to return a clone of the value so users can't modify
             // our original value, and so the reference changes.
             //
@@ -343,7 +345,6 @@ export const createClient = trace(
             return Promise.resolve(localEdgeConfig.items[key] as T);
           }
 
-          assertIsKey(key);
           return fetchWithCachedResponse(
             `${baseUrl}/item/${key}?version=${version}`,
             {
@@ -376,12 +377,13 @@ export const createClient = trace(
             (await getInMemoryEdgeConfig()) ||
             (await getLocalEdgeConfig(connection));
 
+          assertIsKey(key);
+          if (isEmptyKey(key)) return false;
+
           if (localEdgeConfig) {
-            assertIsKey(key);
             return Promise.resolve(hasOwnProperty(localEdgeConfig.items, key));
           }
 
-          assertIsKey(key);
           // this is a HEAD request anyhow, no need for fetchWithCachedResponse
           return fetch(`${baseUrl}/item/${key}?version=${version}`, {
             method: 'HEAD',
@@ -424,7 +426,9 @@ export const createClient = trace(
 
           const search = Array.isArray(keys)
             ? new URLSearchParams(
-                keys.map((key) => ['key', key] as [string, string]),
+                keys
+                  .filter((key) => typeof key === 'string' && !isEmptyKey(key))
+                  .map((key) => ['key', key] as [string, string]),
               ).toString()
             : null;
 

@@ -1,10 +1,11 @@
-import type { CommonCreateBlobOptions } from '../helpers';
+import { isPlainObject } from 'is-plain-object';
+import { BlobError, type CommonCreateBlobOptions } from '../helpers';
 import type { CreatePutMethodOptions, PutBody } from '../put-helpers';
 import { createPutHeaders, createPutOptions } from '../put-helpers';
 import { completeMultipartUpload } from './complete';
 import { createMultipartUpload } from './create';
 import type { Part } from './helpers';
-import { uploadPart } from './upload';
+import { uploadPart as rawUploadPart } from './upload';
 
 export function createCreateMultipartUploaderMethod<
   TOptions extends CommonCreateBlobOptions,
@@ -30,7 +31,13 @@ export function createCreateMultipartUploaderMethod<
       uploadId: createMultipartUploadResponse.uploadId,
 
       async uploadPart(partNumber: number, body: PutBody) {
-        const result = await uploadPart({
+        if (isPlainObject(body)) {
+          throw new BlobError(
+            "Body must be a string, buffer or stream. You sent a plain JavaScript object, double check what you're trying to upload.",
+          );
+        }
+
+        const result = await rawUploadPart({
           uploadId: createMultipartUploadResponse.uploadId,
           key: createMultipartUploadResponse.key,
           pathname,

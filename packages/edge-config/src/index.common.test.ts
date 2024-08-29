@@ -124,6 +124,12 @@ describe('when running without lambda layer or via edge function', () => {
         );
       });
     });
+    describe('attempting to read an empty key', () => {
+      it('should return undefined', async () => {
+        await expect(edgeConfig.get('')).resolves.toBe(undefined);
+        expect(fetchMock).toHaveBeenCalledTimes(0);
+      });
+    });
   });
 
   describe('has(key)', () => {
@@ -147,6 +153,12 @@ describe('when running without lambda layer or via edge function', () => {
             cache: 'no-store',
           },
         );
+      });
+    });
+    describe('attempting to read an empty key', () => {
+      it('should return false', async () => {
+        await expect(edgeConfig.has('')).resolves.toBe(false);
+        expect(fetchMock).toHaveBeenCalledTimes(0);
       });
     });
   });

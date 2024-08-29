@@ -1,6 +1,6 @@
 {
   "name": "@vercel/edge-config",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Ultra-low latency data at the edge",
   "homepage": "https://vercel.com",
   "repository": {
@@ -44,20 +44,20 @@
     "@vercel/edge-config-fs": "workspace:*"
   },
   "devDependencies": {
-    "@changesets/cli": "2.27.1",
+    "@changesets/cli": "2.27.7",
     "@edge-runtime/jest-environment": "2.3.10",
     "@edge-runtime/types": "2.2.9",
     "@types/jest": "29.5.12",
-    "@types/node": "20.11.19",
+    "@types/node": "20.14.15",
     "eslint": "8.56.0",
     "eslint-config-custom": "workspace:*",
     "jest": "29.7.0",
     "jest-fetch-mock": "3.0.3",
     "node-domexception": "2.0.1",
-    "prettier": "3.2.5",
-    "ts-jest": "29.1.2",
+    "prettier": "3.3.2",
+    "ts-jest": "29.1.5",
     "tsconfig": "workspace:*",
-    "tsup": "8.0.2",
+    "tsup": "8.1.0",
     "typescript": "5.3.3"
   },
   "peerDependencies": {

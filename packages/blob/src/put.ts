@@ -1,4 +1,5 @@
 import type { BodyInit } from 'undici';
+import { isPlainObject } from 'is-plain-object';
 import { requestApi } from './api';
 import type { CommonCreateBlobOptions } from './helpers';
 import { BlobError } from './helpers';
@@ -43,6 +44,12 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
 
     // avoid using the options as body
     const body = isFolderCreation ? undefined : bodyOrOptions;
+
+    if (body !== undefined && isPlainObject(body)) {
+      throw new BlobError(
+        "Body must be a string, buffer or stream. You sent a plain JavaScript object, double check what you're trying to upload.",
+      );
+    }
 
     const options = await createPutOptions({
       pathname,

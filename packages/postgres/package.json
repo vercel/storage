@@ -45,7 +45,6 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.9.3",
-    "bufferutil": "^4.0.8",
     "ws": "^8.17.1"
   },
   "devDependencies": {

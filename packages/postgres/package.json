@@ -46,7 +46,6 @@
   "dependencies": {
     "@neondatabase/serverless": "^0.9.3",
     "bufferutil": "^4.0.8",
-    "utf-8-validate": "^6.0.4",
     "ws": "^8.17.1"
   },
   "devDependencies": {
@@ -66,6 +65,6 @@
     "typescript": "5.3.3"
   },
   "engines": {
-    "node": ">=14.6"
+    "node": ">=18.14"
   }
 }

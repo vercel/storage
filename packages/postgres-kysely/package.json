@@ -67,7 +67,7 @@
     "kysely": "^0.24.2 || ^0.25.0 || ^0.26.0 || ^0.27.0"
   },
   "engines": {
-    "node": ">=14.6"
+    "node": ">=18.14"
   },
   "publishConfig": {
     "access": "public"

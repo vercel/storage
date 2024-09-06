@@ -270,7 +270,7 @@ importers:
   packages/postgres-kysely:
     dependencies:
       '@vercel/postgres':
-        specifier: workspace:0.9.0
+        specifier: workspace:0.10.0
         version: link:../postgres
     devDependencies:
       '@changesets/cli':

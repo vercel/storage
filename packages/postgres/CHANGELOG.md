@@ -1,5 +1,11 @@
 # @vercel/postgres
 
+## 0.10.0
+
+### Minor Changes
+
+- a2a4757: Removes utf-8-validate dependency and sets minimum Node.js version to 18.14
+
 ## 0.9.0
 
 ### Minor Changes

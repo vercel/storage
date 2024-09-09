@@ -220,12 +220,9 @@ importers:
       bufferutil:
         specifier: ^4.0.8
         version: 4.0.8
-      utf-8-validate:
-        specifier: ^6.0.4
-        version: 6.0.4
       ws:
         specifier: ^8.17.1
-        version: 8.17.1(bufferutil@4.0.8)(utf-8-validate@6.0.4)
+        version: 8.17.1(bufferutil@4.0.8)
     devDependencies:
       '@changesets/cli':
         specifier: 2.27.7
@@ -273,7 +270,7 @@ importers:
   packages/postgres-kysely:
     dependencies:
       '@vercel/postgres':
-        specifier: workspace:0.9.0
+        specifier: workspace:0.10.0
         version: link:../postgres
     devDependencies:
       '@changesets/cli':
@@ -563,7 +560,7 @@ packages:
       '@babel/traverse': 7.24.7
       '@babel/types': 7.24.7
       convert-source-map: 2.0.0
-      debug: 4.3.5
+      debug: 4.3.6
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.1
@@ -1020,7 +1017,7 @@ packages:
       '@babel/helper-split-export-declaration': 7.24.7
       '@babel/parser': 7.24.7
       '@babel/types': 7.24.7
-      debug: 4.3.5
+      debug: 4.3.6
       globals: 11.12.0
     transitivePeerDependencies:
       - supports-color
@@ -5813,7 +5810,7 @@ packages:
       whatwg-encoding: 2.0.0
       whatwg-mimetype: 3.0.0
       whatwg-url: 11.0.0
-      ws: 8.17.1(bufferutil@4.0.8)(utf-8-validate@6.0.4)
+      ws: 8.17.1(bufferutil@4.0.8)
       xml-name-validator: 4.0.0
     transitivePeerDependencies:
       - bufferutil
@@ -8075,13 +8072,6 @@ packages:
       react: 18.2.0
     dev: false
 
-  /utf-8-validate@6.0.4:
-    resolution: {integrity: sha512-xu9GQDeFp+eZ6LnCywXN/zBancWvOpUMzgjLPSjy4BRHSmTelvn2E0DG0o1sTiw5hkCKBHo8rwSKncfRfv2EEQ==}
-    engines: {node: '>=6.14.2'}
-    requiresBuild: true
-    dependencies:
-      node-gyp-build: 4.8.1
-
   /util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
     dev: false
@@ -8288,7 +8278,7 @@ packages:
       imurmurhash: 0.1.4
       signal-exit: 3.0.7
 
-  /ws@8.17.1(bufferutil@4.0.8)(utf-8-validate@6.0.4):
+  /ws@8.17.1(bufferutil@4.0.8):
     resolution: {integrity: sha512-6XQFvXTkbfUOZOKKILFG1PDK2NDQs4azKQl26T0YS5CxqWLgXajbPZ+h4gZekJyRqFU8pvnbAbbs/3TgRPy+GQ==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
@@ -8301,7 +8291,6 @@ packages:
         optional: true
     dependencies:
       bufferutil: 4.0.8
-      utf-8-validate: 6.0.4
 
   /xml-name-validator@4.0.0:
     resolution: {integrity: sha512-ICP2e+jsHvAj2E2lIHxa5tjXRlKDJo4IdvPvCXbXQGdzSfmSpNVyIKMvoZHjDY9DP0zV17iI85o90vRFXNccRw==}

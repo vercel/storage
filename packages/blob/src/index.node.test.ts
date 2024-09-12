@@ -576,6 +576,23 @@ describe('blob client', () => {
       expect(headers['x-cache-control-max-age']).toEqual('60');
     });
 
+    it('throws when filepath is too long', async () => {
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'PUT',
+        })
+        .reply(200, mockedFileMetaPut);
+
+      await expect(
+        put('a'.repeat(951), 'Test Body', {
+          access: 'public',
+        }),
+      ).rejects.toThrow(
+        new Error('Vercel Blob: pathname is too long, maximum length is 950'),
+      );
+    });
+
     const table: [string, (signal: AbortSignal) => Promise<unknown>][] = [
       [
         'put',

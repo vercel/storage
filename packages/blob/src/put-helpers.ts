@@ -68,7 +68,7 @@ export function createPutHeaders<TOptions extends CommonPutCommandOptions>(
   return headers;
 }
 
-// maximum path length is:
+// maximum pathname length is:
 // 1024 (provider limit) - 26 chars (vercel  internal suffixes) - 31 chars (blob `-randomId` suffix) = 967
 // we round it to 950 to make it more human friendly, and we apply the limit whatever the value of
 // addRandomSuffix is, to make it consistent

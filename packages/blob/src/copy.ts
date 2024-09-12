@@ -1,4 +1,4 @@
-import { requestApi } from './api';
+import { MAXIMUM_PATHNAME_LENGTH, requestApi } from './api';
 import type { CommonCreateBlobOptions } from './helpers';
 import { BlobError } from './helpers';
 
@@ -33,6 +33,12 @@ export async function copy(
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX.
   if (options.access !== 'public') {
     throw new BlobError('access must be "public"');
+  }
+
+  if (toPathname.length > MAXIMUM_PATHNAME_LENGTH) {
+    throw new BlobError(
+      `pathname is too long, maximum length is ${MAXIMUM_PATHNAME_LENGTH}`,
+    );
   }
 
   const headers: Record<string, string> = {};

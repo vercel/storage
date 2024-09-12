@@ -3,6 +3,7 @@ import type { Readable } from 'stream';
 import type { ClientCommonCreateBlobOptions } from './client';
 import type { CommonCreateBlobOptions } from './helpers';
 import { BlobError } from './helpers';
+import { MAXIMUM_PATHNAME_LENGTH } from './api';
 
 const putOptionHeaderMap = {
   cacheControlMaxAge: 'x-cache-control-max-age',
@@ -67,12 +68,6 @@ export function createPutHeaders<TOptions extends CommonPutCommandOptions>(
 
   return headers;
 }
-
-// maximum pathname length is:
-// 1024 (provider limit) - 26 chars (vercel  internal suffixes) - 31 chars (blob `-randomId` suffix) = 967
-// we round it to 950 to make it more human friendly, and we apply the limit whatever the value of
-// addRandomSuffix is, to make it consistent
-const MAXIMUM_PATHNAME_LENGTH = 950;
 
 export async function createPutOptions<
   TOptions extends CommonPutCommandOptions,

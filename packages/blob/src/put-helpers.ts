@@ -3,6 +3,7 @@ import type { Readable } from 'stream';
 import type { ClientCommonCreateBlobOptions } from './client';
 import type { CommonCreateBlobOptions } from './helpers';
 import { BlobError } from './helpers';
+import { MAXIMUM_PATHNAME_LENGTH } from './api';
 
 const putOptionHeaderMap = {
   cacheControlMaxAge: 'x-cache-control-max-age',
@@ -83,6 +84,12 @@ export async function createPutOptions<
 }): Promise<TOptions> {
   if (!pathname) {
     throw new BlobError('pathname is required');
+  }
+
+  if (pathname.length > MAXIMUM_PATHNAME_LENGTH) {
+    throw new BlobError(
+      `pathname is too long, maximum length is ${MAXIMUM_PATHNAME_LENGTH}`,
+    );
   }
 
   if (!options) {

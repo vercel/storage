@@ -576,6 +576,16 @@ describe('blob client', () => {
       expect(headers['x-cache-control-max-age']).toEqual('60');
     });
 
+    it('throws when filepath is too long', async () => {
+      await expect(
+        put('a'.repeat(951), 'Test Body', {
+          access: 'public',
+        }),
+      ).rejects.toThrow(
+        new Error('Vercel Blob: pathname is too long, maximum length is 950'),
+      );
+    });
+
     const table: [string, (signal: AbortSignal) => Promise<unknown>][] = [
       [
         'put',
@@ -698,6 +708,18 @@ describe('blob client', () => {
         new Error(
           "Vercel Blob: Body must be a string, buffer or stream. You sent a plain JavaScript object, double check what you're trying to upload.",
         ),
+      );
+    });
+  });
+
+  describe('copy', () => {
+    it('throws when filepath is too long', async () => {
+      await expect(
+        copy('source', 'a'.repeat(951), {
+          access: 'public',
+        }),
+      ).rejects.toThrow(
+        new Error('Vercel Blob: pathname is too long, maximum length is 950'),
       );
     });
   });

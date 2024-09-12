@@ -72,7 +72,7 @@ export function createPutHeaders<TOptions extends CommonPutCommandOptions>(
 // 1024 (provider limit) - 26 chars (vercel  internal suffixes) - 31 chars (blob `-randomId` suffix) = 967
 // we round it to 950 to make it more human friendly, and we apply the limit whatever the value of
 // addRandomSuffix is, to make it consistent
-const MAXIMUM_PATH_LENGTH = 950;
+const MAXIMUM_PATHNAME_LENGTH = 950;
 
 export async function createPutOptions<
   TOptions extends CommonPutCommandOptions,
@@ -91,9 +91,9 @@ export async function createPutOptions<
     throw new BlobError('pathname is required');
   }
 
-  if (pathname.length > MAXIMUM_PATH_LENGTH) {
+  if (pathname.length > MAXIMUM_PATHNAME_LENGTH) {
     throw new BlobError(
-      `pathname is too long, maximum length is ${MAXIMUM_PATH_LENGTH}`,
+      `pathname is too long, maximum length is ${MAXIMUM_PATHNAME_LENGTH}`,
     );
   }
 

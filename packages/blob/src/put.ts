@@ -25,27 +25,16 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
   getToken,
   extraChecks,
 }: CreatePutMethodOptions<TOptions>) {
-  return async function put<TPath extends string>(
-    pathname: TPath,
-    bodyOrOptions: TPath extends `${string}/` ? TOptions : PutBody,
-    optionsInput?: TPath extends `${string}/` ? never : TOptions,
+  return async function put(
+    pathname: string,
+    body: PutBody,
+    optionsInput: TOptions,
   ): Promise<PutBlobResult> {
-    const isFolderCreation = pathname.endsWith('/');
-
-    // prevent empty bodies for files
-    if (!bodyOrOptions && !isFolderCreation) {
+    if (!body) {
       throw new BlobError('body is required');
     }
 
-    // runtime check for non TS users that provide all three args
-    if (bodyOrOptions && optionsInput && isFolderCreation) {
-      throw new BlobError('body is not allowed for creating empty folders');
-    }
-
-    // avoid using the options as body
-    const body = isFolderCreation ? undefined : bodyOrOptions;
-
-    if (body !== undefined && isPlainObject(body)) {
+    if (isPlainObject(body)) {
       throw new BlobError(
         "Body must be a string, buffer or stream. You sent a plain JavaScript object, double check what you're trying to upload.",
       );
@@ -54,14 +43,14 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
     const options = await createPutOptions({
       pathname,
       // when no body is required (for folder creations) options are the second argument
-      options: isFolderCreation ? (bodyOrOptions as TOptions) : optionsInput,
+      options: optionsInput,
       extraChecks,
       getToken,
     });
 
     const headers = createPutHeaders(allowedOptions, options);
 
-    if (options.multipart === true && body) {
+    if (options.multipart === true) {
       return uncontrolledMultipartUpload(pathname, body, headers, options);
     }
 

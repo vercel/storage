@@ -16,7 +16,7 @@ export interface BlobCommandOptions {
 // shared interface for put, copy and multipartUpload
 export interface CommonCreateBlobOptions extends BlobCommandOptions {
   /**
-   * Whether the blob should be publicly accessible. Support for private blobs is planned.
+   * Whether the blob should be publicly accessible.
    */
   access: 'public';
   /**

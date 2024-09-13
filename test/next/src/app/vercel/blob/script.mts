@@ -18,26 +18,26 @@ console.log();
 
 async function run(): Promise<void> {
   const urls = await Promise.all([
-    // textFileExample(),
-    // textFileNoRandomSuffixExample(),
-    // textFileExampleWithCacheControlMaxAge(),
-    // imageExample(),
-    // videoExample(),
-    // webpageExample(),
-    // incomingMessageExample(),
-    // axiosExample(),
-    // gotExample(),
-    // fetchExample(),
-    // noExtensionExample(),
-    // weirdCharactersExample(),
-    // copyTextFile(),
-    // listFolders(),
-    // multipartNodeJsFileStream(),
-    // fetchExampleMultipart(),
+    textFileExample(),
+    textFileNoRandomSuffixExample(),
+    textFileExampleWithCacheControlMaxAge(),
+    imageExample(),
+    videoExample(),
+    webpageExample(),
+    incomingMessageExample(),
+    axiosExample(),
+    gotExample(),
+    fetchExample(),
+    noExtensionExample(),
+    weirdCharactersExample(),
+    copyTextFile(),
+    listFolders(),
+    multipartNodeJsFileStream(),
+    fetchExampleMultipart(),
     createFolder(),
-    // manualMultipartUpload(),
-    // manualMultipartUploader(),
-    // cancelPut(),
+    manualMultipartUpload(),
+    manualMultipartUploader(),
+    cancelPut(),
   ]);
 
   // multipart uploads are frequently not immediately available so we have to wait a bit
@@ -70,7 +70,7 @@ async function run(): Promise<void> {
 
   console.log(count, 'blobs in this store');
 
-  // await Promise.all(filteredUrls.map((url) => vercelBlob.del(url)));
+  await Promise.all(filteredUrls.map((url) => vercelBlob.del(url)));
 }
 
 async function textFileExample(): Promise<string> {

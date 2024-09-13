@@ -32,11 +32,11 @@ export type { PutCommandOptions };
  * Uploads a blob into your store from your server.
  * Detailed documentation can be found here: https://vercel.com/docs/storage/vercel-blob/using-blob-sdk#upload-a-blob
  *
- * If you want to upload from the browser directly, check out the documentation for client uploads: https://vercel.com/docs/storage/vercel-blob/using-blob-sdk#client-uploads
+ * If you want to upload from the browser directly, check out the documentation forAclient uploads: https://vercel.com/docs/storage/vercel-blob/using-blob-sdk#client-uploads
  *
- * @param pathname - The pathname to upload the blob to. For file upload this includes the filename. Pathnames that end with a slash are treated as folder creations.
- * @param bodyOrOptions - Either the contents of your blob or the options object. For file uploads this has to be a supported fetch body type https://developer.mozilla.org/en-US/docs/Web/API/fetch#body. For folder creations this is the options object since no body is required.
- * @param options - Additional options like `token` or `contentType` for file uploads. For folder creations this argument can be ommited.
+ * @param pathname - The pathname to upload the blob to, including the extension. This will influence the url of your blob like https://$storeId.public.blob.vercel-storage.com/$pathname.
+ * @param body - The content of your blob, can be a: string, File, Blob, Buffer or Stream. We support everything fetch supports: https://developer.mozilla.org/en-US/docs/Web/API/RequestInit#body.
+ * @param options - Additional options like `token` or `contentType`.
  */
 export const put = createPutMethod<PutCommandOptions>({
   allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
@@ -93,3 +93,5 @@ export const completeMultipartUpload =
   });
 
 export type { Part, PartInput } from './multipart/helpers';
+
+export { createFolder } from './create-folder';

@@ -20,7 +20,7 @@ import { createCreateMultipartUploaderMethod } from './multipart/create-uploader
 // This types omits all options that are encoded in the client token.
 export interface ClientCommonCreateBlobOptions {
   /**
-   * Whether the blob should be publicly accessible. Support for private blobs is planned.
+   * Whether the blob should be publicly accessible.
    */
   access: 'public';
   /**
@@ -515,3 +515,5 @@ export interface GenerateClientTokenOptions extends BlobCommandOptions {
   addRandomSuffix?: boolean;
   cacheControlMaxAge?: number;
 }
+
+export { createFolder } from './create-folder';

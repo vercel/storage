@@ -5,7 +5,7 @@ import type { CommonCreateBlobOptions } from './helpers';
 import { BlobError } from './helpers';
 import { MAXIMUM_PATHNAME_LENGTH } from './api';
 
-const putOptionHeaderMap = {
+export const putOptionHeaderMap = {
   cacheControlMaxAge: 'x-cache-control-max-age',
   addRandomSuffix: 'x-add-random-suffix',
   contentType: 'x-content-type',

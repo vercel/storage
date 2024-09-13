@@ -42,7 +42,6 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
 
     const options = await createPutOptions({
       pathname,
-      // when no body is required (for folder creations) options are the second argument
       options: optionsInput,
       extraChecks,
       getToken,

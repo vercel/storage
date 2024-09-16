@@ -384,8 +384,8 @@ export async function handleUpload({
       const signatureHeader = 'x-vercel-signature';
       const signature = (
         'credentials' in request
-          ? request.headers.get(signatureHeader) ?? ''
-          : request.headers[signatureHeader] ?? ''
+          ? (request.headers.get(signatureHeader) ?? '')
+          : (request.headers[signatureHeader] ?? '')
       ) as string;
 
       if (!signature) {

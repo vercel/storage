@@ -29,18 +29,18 @@
   },
   "prettier": "@vercel/style-guide/prettier",
   "devDependencies": {
-    "@changesets/cli": "2.27.7",
+    "@changesets/cli": "2.27.8",
     "@vercel/style-guide": "5.2.0",
     "eslint": "8.56.0",
     "eslint-config-custom": "workspace:*",
-    "husky": "9.0.11",
+    "husky": "9.1.6",
     "jest": "29.7.0",
-    "lint-staged": "15.2.9",
-    "prettier": "3.3.2",
-    "publint": "0.2.8",
-    "ts-jest": "29.1.5",
+    "lint-staged": "15.2.10",
+    "prettier": "3.3.3",
+    "publint": "0.2.10",
+    "ts-jest": "29.2.5",
     "turbo": "1.12.4",
-    "typescript": "5.3.3"
+    "typescript": "5.6.2"
   },
   "packageManager": "pnpm@8.15.3",
   "engines": {

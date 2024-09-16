@@ -1,5 +1,15 @@
 # @vercel/blob
 
+## 0.24.0
+
+### Minor Changes
+
+- 8098803: Add createFolder method. Warning, if you were using the standard put() method to created fodlers, this will now fail and you must move to createFolder() instead.
+
+### Patch Changes
+
+- 8d7e8b9: Limit pathname length to 950 to respect internal limitations and provide better early DX.
+
 ## 0.23.4
 
 ### Patch Changes

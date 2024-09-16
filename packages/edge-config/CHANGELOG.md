@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 1.3.0
+
+### Minor Changes
+
+- aaec8c5: Support new connection string format
+
 ## 1.2.1
 
 ### Patch Changes

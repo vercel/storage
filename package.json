@@ -12,7 +12,7 @@
     "build": "turbo build",
     "integration-test": "turbo integration-test",
     "lint": "turbo lint -- --max-warnings=0",
-    "prepare": "husky install",
+    "prepare": "husky",
     "prettier-check": "prettier --check .",
     "prettier-fix": "prettier --write .",
     "publint": "turbo publint",

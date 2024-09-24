@@ -100,8 +100,8 @@ importers:
         specifier: workspace:*
         version: link:../../tooling/tsconfig
       tsup:
-        specifier: 8.2.4
-        version: 8.2.4(typescript@5.6.2)
+        specifier: 8.3.0
+        version: 8.3.0(typescript@5.6.2)
 
   packages/edge-config:
     dependencies:
@@ -152,8 +152,8 @@ importers:
         specifier: workspace:*
         version: link:../../tooling/tsconfig
       tsup:
-        specifier: 8.2.4
-        version: 8.2.4(typescript@5.6.2)
+        specifier: 8.3.0
+        version: 8.3.0(typescript@5.6.2)
       typescript:
         specifier: 5.6.2
         version: 5.6.2
@@ -206,8 +206,8 @@ importers:
         specifier: workspace:*
         version: link:../../tooling/tsconfig
       tsup:
-        specifier: 8.2.4
-        version: 8.2.4(typescript@5.6.2)
+        specifier: 8.3.0
+        version: 8.3.0(typescript@5.6.2)
       typescript:
         specifier: 5.6.2
         version: 5.6.2
@@ -261,8 +261,8 @@ importers:
         specifier: workspace:*
         version: link:../../tooling/tsconfig
       tsup:
-        specifier: 8.2.4
-        version: 8.2.4(typescript@5.6.2)
+        specifier: 8.3.0
+        version: 8.3.0(typescript@5.6.2)
       typescript:
         specifier: 5.6.2
         version: 5.6.2
@@ -313,8 +313,8 @@ importers:
         specifier: workspace:*
         version: link:../../tooling/tsconfig
       tsup:
-        specifier: 8.2.4
-        version: 8.2.4(typescript@5.6.2)
+        specifier: 8.3.0
+        version: 8.3.0(typescript@5.6.2)
       typescript:
         specifier: 5.6.2
         version: 5.6.2
@@ -4511,6 +4511,17 @@ packages:
     dependencies:
       bser: 2.1.1
 
+  /fdir@6.3.0(picomatch@4.0.2):
+    resolution: {integrity: sha512-QOnuT+BOtivR77wYvCWHfGt9s4Pz1VIMbD463vegT5MLqNXy8rYFT/lPVEqf/bhYeT6qmqrNHhsX+rWwe3rOCQ==}
+    peerDependencies:
+      picomatch: ^3 || ^4
+    peerDependenciesMeta:
+      picomatch:
+        optional: true
+    dependencies:
+      picomatch: 4.0.2
+    dev: true
+
   /file-entry-cache@6.0.1:
     resolution: {integrity: sha512-7Gps/XWymbLk2QLYK4NzpMOrYjMhdIxXuIvy2QBsLE6ljuodKvdkWs/cpyJJ3CVIVpH0Oi1Hvg1ovbMzLdFBBg==}
     engines: {node: ^10.12.0 || >=12.0.0}
@@ -6659,6 +6670,11 @@ packages:
     resolution: {integrity: sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA==}
     engines: {node: '>=8.6'}
 
+  /picomatch@4.0.2:
+    resolution: {integrity: sha512-M7BAV6Rlcy5u+m6oPhAPFgJTzAioX/6B0DxyvDlo9l8+T3nLKbrczg2WLUyzd45L8RqfUMyGPzekbMvX2Ldkwg==}
+    engines: {node: '>=12'}
+    dev: true
+
   /pidtree@0.6.0:
     resolution: {integrity: sha512-eG2dWTVw5bzqGRztnHExczNxt5VGsE6OwTeCG3fdUf9KBsZzO3R5OIIIzWR+iZA0NtZ+RDVdaoE2dK1cn6jH4g==}
     engines: {node: '>=0.10'}
@@ -7680,6 +7696,14 @@ packages:
     dependencies:
       any-promise: 1.3.0
 
+  /tinyglobby@0.2.6:
+    resolution: {integrity: sha512-NbBoFBpqfcgd1tCiO8Lkfdk+xrA7mlLR9zgvZcZWQQwU63XAfUePyd6wZBaU93Hqw347lHnwFzttAkemHzzz4g==}
+    engines: {node: '>=12.0.0'}
+    dependencies:
+      fdir: 6.3.0(picomatch@4.0.2)
+      picomatch: 4.0.2
+    dev: true
+
   /tmp@0.0.33:
     resolution: {integrity: sha512-jRCJlojKnZ3addtTOjdIqoRuPEKBvNXcGYqzO6zWZX8KfKEpnGY5jfggJQ3EjKuu8D4bJRr0y+cYJFmYbImXGw==}
     engines: {node: '>=0.6.0'}
@@ -7884,8 +7908,8 @@ packages:
   /tslib@2.6.2:
     resolution: {integrity: sha512-AEYxH93jGFPn/a2iVAwW87VuUIkR1FVUKB77NwMF7nBTDkDrrT/Hpt/IrCJ0QXhW27jTBDcf5ZY7w6RiqTMw2Q==}
 
-  /tsup@8.2.4(typescript@5.6.2):
-    resolution: {integrity: sha512-akpCPePnBnC/CXgRrcy72ZSntgIEUa1jN0oJbbvpALWKNOz1B7aM+UVDWGRGIO/T/PZugAESWDJUAb5FD48o8Q==}
+  /tsup@8.3.0(typescript@5.6.2):
+    resolution: {integrity: sha512-ALscEeyS03IomcuNdFdc0YWGVIkwH1Ws7nfTbAPuoILvEV2hpGQAY72LIOjglGo4ShWpZfpBqP/jpQVCzqYQag==}
     engines: {node: '>=18'}
     hasBin: true
     peerDependencies:
@@ -7910,7 +7934,6 @@ packages:
       debug: 4.3.7
       esbuild: 0.23.1
       execa: 5.1.1
-      globby: 11.1.0
       joycon: 3.1.1
       picocolors: 1.1.0
       postcss-load-config: 6.0.1
@@ -7918,6 +7941,7 @@ packages:
       rollup: 4.21.3
       source-map: 0.8.0-beta.0
       sucrase: 3.35.0
+      tinyglobby: 0.2.6
       tree-kill: 1.2.2
       typescript: 5.6.2
     transitivePeerDependencies:

@@ -79,7 +79,7 @@
     "jest-environment-jsdom": "29.7.0",
     "ts-jest": "29.2.5",
     "tsconfig": "workspace:*",
-    "tsup": "8.2.4"
+    "tsup": "8.3.0"
   },
   "engines": {
     "node": ">=16.14"

@@ -63,3 +63,21 @@ export function getDownloadUrl(blobUrl: string): string {
 
   return url.toString();
 }
+
+// Extracted from https://github.com/sindresorhus/is-plain-obj/blob/main/index.js
+// It's just nearly impossible to use ESM modules with our current setup
+export function isPlainObject(value: unknown): boolean {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- ok
+  const prototype = Object.getPrototypeOf(value);
+  return (
+    (prototype === null ||
+      prototype === Object.prototype ||
+      Object.getPrototypeOf(prototype) === null) &&
+    !(Symbol.toStringTag in value) &&
+    !(Symbol.iterator in value)
+  );
+}

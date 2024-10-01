@@ -1,8 +1,7 @@
 import type { BodyInit } from 'undici';
-import { isPlainObject } from 'is-plain-object';
 import { requestApi } from './api';
 import type { CommonCreateBlobOptions } from './helpers';
-import { BlobError } from './helpers';
+import { BlobError, isPlainObject } from './helpers';
 import { uncontrolledMultipartUpload } from './multipart/uncontrolled';
 import type {
   CreatePutMethodOptions,

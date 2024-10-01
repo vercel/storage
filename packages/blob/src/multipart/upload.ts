@@ -1,12 +1,12 @@
 import bytes from 'bytes';
 import type { BodyInit } from 'undici';
-import { isPlainObject } from 'is-plain-object';
 import { BlobServiceNotAvailable, requestApi } from '../api';
 import { debug } from '../debug';
 import {
   type CommonCreateBlobOptions,
   type BlobCommandOptions,
   BlobError,
+  isPlainObject,
 } from '../helpers';
 import { createPutHeaders, createPutOptions } from '../put-helpers';
 import type { PutBody, CreatePutMethodOptions } from '../put-helpers';

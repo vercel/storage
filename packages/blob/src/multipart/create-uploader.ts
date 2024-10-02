@@ -1,5 +1,8 @@
-import { isPlainObject } from 'is-plain-object';
-import { BlobError, type CommonCreateBlobOptions } from '../helpers';
+import {
+  BlobError,
+  isPlainObject,
+  type CommonCreateBlobOptions,
+} from '../helpers';
 import type { CreatePutMethodOptions, PutBody } from '../put-helpers';
 import { createPutHeaders, createPutOptions } from '../put-helpers';
 import { completeMultipartUpload } from './complete';

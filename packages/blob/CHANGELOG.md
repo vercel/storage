@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.25.0
+
+### Minor Changes
+
+- 61b5939: BREAKING CHANGE, we're no more accepting non-encoded versions of ?, # and // in pathnames. If you want to use such characters in your pathnames then you will need to encode them.
+
 ## 0.24.1
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @vercel/blob
 
+## 0.24.1
+
+### Patch Changes
+
+- 37d84ef: Throw specific error (BlobContentTypeNotAllowed) when file type doesn't match
+- da87e89: Fix bad detection of Request being a plain object
+
 ## 0.24.0
 
 ### Minor Changes

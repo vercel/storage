@@ -17,6 +17,12 @@ export class BlobAccessError extends BlobError {
   }
 }
 
+export class BlobContentTypeNotAllowed extends BlobError {
+  constructor(message: string) {
+    super(`Content type mismatch, ${message}`);
+  }
+}
+
 export class BlobStoreNotFoundError extends BlobError {
   constructor() {
     super('This store does not exist.');
@@ -76,7 +82,8 @@ type BlobApiErrorCodes =
   | 'store_not_found'
   | 'not_allowed'
   | 'service_unavailable'
-  | 'rate_limited';
+  | 'rate_limited'
+  | 'content_type_not_allowed';
 
 export interface BlobApiError {
   error?: { code?: BlobApiErrorCodes; message?: string };
@@ -152,6 +159,13 @@ async function getBlobError(
     code = 'unknown_error';
   }
 
+  // Now that we have multiple API clients out in the wild handling errors, we can't just send a different
+  // error code for this type of error. We need to add a new field in the API response to handle this correctly,
+  // but for now, we can just check the message.
+  if (message?.includes('contentType') && message.includes('is not allowed')) {
+    code = 'content_type_not_allowed';
+  }
+
   let error: BlobError;
   switch (code) {
     case 'store_suspended':
@@ -159,6 +173,10 @@ async function getBlobError(
       break;
     case 'forbidden':
       error = new BlobAccessError();
+      break;
+    case 'content_type_not_allowed':
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TS, be smarter
+      error = new BlobContentTypeNotAllowed(message!);
       break;
     case 'not_found':
       error = new BlobNotFoundError();

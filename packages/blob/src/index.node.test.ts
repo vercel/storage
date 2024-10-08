@@ -586,6 +586,42 @@ describe('blob client', () => {
       );
     });
 
+    it('throws when pathname contains #', async () => {
+      await expect(
+        put('foo#bar.txt', 'Test Body', {
+          access: 'public',
+        }),
+      ).rejects.toThrow(
+        new Error(
+          'Vercel Blob: pathname cannot contain "#", please encode it if needed',
+        ),
+      );
+    });
+
+    it('throws when pathname contains ?', async () => {
+      await expect(
+        put('foo?bar.txt', 'Test Body', {
+          access: 'public',
+        }),
+      ).rejects.toThrow(
+        new Error(
+          'Vercel Blob: pathname cannot contain "?", please encode it if needed',
+        ),
+      );
+    });
+
+    it('throws when pathname contains //', async () => {
+      await expect(
+        put('foo//bar.txt', 'Test Body', {
+          access: 'public',
+        }),
+      ).rejects.toThrow(
+        new Error(
+          'Vercel Blob: pathname cannot contain "//", please encode it if needed',
+        ),
+      );
+    });
+
     const table: [string, (signal: AbortSignal) => Promise<unknown>][] = [
       [
         'put',

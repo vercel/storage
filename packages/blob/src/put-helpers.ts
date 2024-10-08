@@ -2,7 +2,7 @@
 import type { Readable } from 'stream';
 import type { ClientCommonCreateBlobOptions } from './client';
 import type { CommonCreateBlobOptions } from './helpers';
-import { BlobError } from './helpers';
+import { BlobError, disallowedPathnameCharacters } from './helpers';
 import { MAXIMUM_PATHNAME_LENGTH } from './api';
 
 export const putOptionHeaderMap = {
@@ -90,6 +90,14 @@ export async function createPutOptions<
     throw new BlobError(
       `pathname is too long, maximum length is ${MAXIMUM_PATHNAME_LENGTH}`,
     );
+  }
+
+  for (const invalidCharacter of disallowedPathnameCharacters) {
+    if (pathname.includes(invalidCharacter)) {
+      throw new BlobError(
+        `pathname cannot contain "${invalidCharacter}", please encode it if needed`,
+      );
+    }
   }
 
   if (!options) {

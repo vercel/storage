@@ -81,3 +81,5 @@ export function isPlainObject(value: unknown): boolean {
     !(Symbol.iterator in value)
   );
 }
+
+export const disallowedPathnameCharacters = ['#', '?', '//'];

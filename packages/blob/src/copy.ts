@@ -1,6 +1,6 @@
 import { MAXIMUM_PATHNAME_LENGTH, requestApi } from './api';
 import type { CommonCreateBlobOptions } from './helpers';
-import { BlobError } from './helpers';
+import { BlobError, disallowedPathnameCharacters } from './helpers';
 
 export type CopyCommandOptions = CommonCreateBlobOptions;
 
@@ -39,6 +39,14 @@ export async function copy(
     throw new BlobError(
       `pathname is too long, maximum length is ${MAXIMUM_PATHNAME_LENGTH}`,
     );
+  }
+
+  for (const invalidCharacter of disallowedPathnameCharacters) {
+    if (toPathname.includes(invalidCharacter)) {
+      throw new BlobError(
+        `pathname cannot contain "${invalidCharacter}", please encode it if needed`,
+      );
+    }
   }
 
   const headers: Record<string, string> = {};

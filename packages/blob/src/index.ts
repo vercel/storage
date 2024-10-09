@@ -5,7 +5,7 @@ import type { UploadPartCommandOptions } from './multipart/upload';
 import { createUploadPartMethod } from './multipart/upload';
 import type { CompleteMultipartUploadCommandOptions } from './multipart/complete';
 import { createCompleteMultipartUploadMethod } from './multipart/complete';
-import type { CommonCreateBlobOptions } from './helpers';
+import { BlobError, type CommonCreateBlobOptions } from './helpers';
 import { createCreateMultipartUploaderMethod } from './multipart/create-uploader';
 
 // expose generic BlobError and download url util
@@ -40,6 +40,13 @@ export type { PutCommandOptions };
  */
 export const put = createPutMethod<PutCommandOptions>({
   allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
+  extraChecks() {
+    if (typeof window !== 'undefined') {
+      throw new BlobError(
+        'The put method must be called in a server environment. If you want to upload a file from the browser, use the upload method or the put from @vercel/blob/client instead.',
+      );
+    }
+  },
 });
 
 //  vercelBlob.del()

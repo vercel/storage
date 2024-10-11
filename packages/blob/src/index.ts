@@ -24,6 +24,7 @@ export {
   BlobContentTypeNotAllowedError,
   BlobPathnameMismatchError,
   BlobClientTokenExpiredError,
+  BlobFileTooLargeError,
 } from './api';
 
 // vercelBlob.put()

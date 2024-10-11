@@ -37,6 +37,12 @@ export class BlobClientTokenExpiredError extends BlobError {
   }
 }
 
+export class BlobFileTooLargeError extends BlobError {
+  constructor(message: string) {
+    super(`File is too large, ${message}.`);
+  }
+}
+
 export class BlobStoreNotFoundError extends BlobError {
   constructor() {
     super('This store does not exist.');
@@ -99,7 +105,8 @@ type BlobApiErrorCodes =
   | 'rate_limited'
   | 'content_type_not_allowed'
   | 'client_token_pathname_mismatch'
-  | 'client_token_expired';
+  | 'client_token_expired'
+  | 'file_too_large';
 
 export interface BlobApiError {
   error?: { code?: BlobApiErrorCodes; message?: string };
@@ -193,6 +200,10 @@ async function getBlobError(
     code = 'client_token_expired';
   }
 
+  if (message?.includes('the file length cannot be greater than')) {
+    code = 'file_too_large';
+  }
+
   let error: BlobError;
   switch (code) {
     case 'store_suspended':
@@ -211,6 +222,10 @@ async function getBlobError(
       break;
     case 'client_token_expired':
       error = new BlobClientTokenExpiredError();
+      break;
+    case 'file_too_large':
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TS, be smarter
+      error = new BlobFileTooLargeError(message!);
       break;
     case 'not_found':
       error = new BlobNotFoundError();

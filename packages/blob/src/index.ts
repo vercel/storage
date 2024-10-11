@@ -23,6 +23,7 @@ export {
   BlobServiceRateLimited,
   BlobContentTypeNotAllowedError,
   BlobPathnameMismatchError,
+  BlobClientTokenExpiredError,
 } from './api';
 
 // vercelBlob.put()

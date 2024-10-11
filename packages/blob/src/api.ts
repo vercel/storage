@@ -19,7 +19,7 @@ export class BlobAccessError extends BlobError {
 
 export class BlobContentTypeNotAllowedError extends BlobError {
   constructor(message: string) {
-    super(`Content type mismatch, ${message}`);
+    super(`Content type mismatch, ${message}.`);
   }
 }
 
@@ -28,6 +28,12 @@ export class BlobPathnameMismatchError extends BlobError {
     super(
       `Pathname mismatch, ${message}. Check the pathname used in upload() or put() matches the one from the client token.`,
     );
+  }
+}
+
+export class BlobClientTokenExpiredError extends BlobError {
+  constructor() {
+    super('Client token has expired.');
   }
 }
 
@@ -92,7 +98,8 @@ type BlobApiErrorCodes =
   | 'service_unavailable'
   | 'rate_limited'
   | 'content_type_not_allowed'
-  | 'client_token_pathname_mismatch';
+  | 'client_token_pathname_mismatch'
+  | 'client_token_expired';
 
 export interface BlobApiError {
   error?: { code?: BlobApiErrorCodes; message?: string };
@@ -182,6 +189,10 @@ async function getBlobError(
     code = 'client_token_pathname_mismatch';
   }
 
+  if (message === 'Token expired') {
+    code = 'client_token_expired';
+  }
+
   let error: BlobError;
   switch (code) {
     case 'store_suspended':
@@ -197,6 +208,9 @@ async function getBlobError(
     case 'client_token_pathname_mismatch':
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TS, be smarter
       error = new BlobPathnameMismatchError(message!);
+      break;
+    case 'client_token_expired':
+      error = new BlobClientTokenExpiredError();
       break;
     case 'not_found':
       error = new BlobNotFoundError();

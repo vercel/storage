@@ -79,10 +79,13 @@ async function run(): Promise<void> {
 async function textFileExample(): Promise<string> {
   const start = Date.now();
   const token = await vercelBlobClient.generateClientTokenFromReadWriteToken({
-    pathname: 'folderé/test.txt',
+    pathname: 'YES',
+    validUntil: Date.now() + 1000,
   });
 
-  const blob = await vercelBlob.put('folderé/tesst.txt', 'Hello, world!', {
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+
+  const blob = await vercelBlob.put('YES', 'Hello, world!', {
     access: 'public',
     token,
   });

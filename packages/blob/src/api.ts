@@ -17,9 +17,17 @@ export class BlobAccessError extends BlobError {
   }
 }
 
-export class BlobContentTypeNotAllowed extends BlobError {
+export class BlobContentTypeNotAllowedError extends BlobError {
   constructor(message: string) {
     super(`Content type mismatch, ${message}`);
+  }
+}
+
+export class BlobPathnameMismatchError extends BlobError {
+  constructor(message: string) {
+    super(
+      `Pathname mismatch, ${message}. Check the pathname used in upload() or put() matches the one from the client token.`,
+    );
   }
 }
 
@@ -83,7 +91,8 @@ type BlobApiErrorCodes =
   | 'not_allowed'
   | 'service_unavailable'
   | 'rate_limited'
-  | 'content_type_not_allowed';
+  | 'content_type_not_allowed'
+  | 'client_token_pathname_mismatch';
 
 export interface BlobApiError {
   error?: { code?: BlobApiErrorCodes; message?: string };
@@ -166,6 +175,13 @@ async function getBlobError(
     code = 'content_type_not_allowed';
   }
 
+  if (
+    message?.includes('"pathname"') &&
+    message.includes('does not match the token payload')
+  ) {
+    code = 'client_token_pathname_mismatch';
+  }
+
   let error: BlobError;
   switch (code) {
     case 'store_suspended':
@@ -176,7 +192,11 @@ async function getBlobError(
       break;
     case 'content_type_not_allowed':
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TS, be smarter
-      error = new BlobContentTypeNotAllowed(message!);
+      error = new BlobContentTypeNotAllowedError(message!);
+      break;
+    case 'client_token_pathname_mismatch':
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TS, be smarter
+      error = new BlobPathnameMismatchError(message!);
       break;
     case 'not_found':
       error = new BlobNotFoundError();

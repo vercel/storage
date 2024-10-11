@@ -21,7 +21,8 @@ export {
   BlobServiceNotAvailable,
   BlobRequestAbortedError,
   BlobServiceRateLimited,
-  BlobContentTypeNotAllowed as BlobContentTypeNotAllowedError,
+  BlobContentTypeNotAllowedError,
+  BlobPathnameMismatchError,
 } from './api';
 
 // vercelBlob.put()

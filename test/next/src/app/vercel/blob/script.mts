@@ -10,6 +10,7 @@ import { fetch } from 'undici';
 import axios from 'axios';
 import got from 'got';
 import * as vercelBlob from '@vercel/blob';
+import * as vercelBlobClient from '@vercel/blob/client';
 
 console.log('=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*');
 console.log('VERCEL BLOB SCRIPT DEMO');
@@ -19,26 +20,28 @@ console.log();
 async function run(): Promise<void> {
   const urls = await Promise.all([
     textFileExample(),
-    textFileNoRandomSuffixExample(),
-    textFileExampleWithCacheControlMaxAge(),
-    imageExample(),
-    videoExample(),
-    webpageExample(),
-    incomingMessageExample(),
-    axiosExample(),
-    gotExample(),
-    fetchExample(),
-    noExtensionExample(),
-    weirdCharactersExample(),
-    copyTextFile(),
-    listFolders(),
-    multipartNodeJsFileStream(),
-    fetchExampleMultipart(),
-    createFolder(),
-    manualMultipartUpload(),
-    manualMultipartUploader(),
-    cancelPut(),
+    // textFileNoRandomSuffixExample(),
+    // textFileExampleWithCacheControlMaxAge(),
+    // imageExample(),
+    // videoExample(),
+    // webpageExample(),
+    // incomingMessageExample(),
+    // axiosExample(),
+    // gotExample(),
+    // fetchExample(),
+    // noExtensionExample(),
+    // weirdCharactersExample(),
+    // copyTextFile(),
+    // listFolders(),
+    // multipartNodeJsFileStream(),
+    // fetchExampleMultipart(),
+    // createFolder(),
+    // manualMultipartUpload(),
+    // manualMultipartUploader(),
+    // cancelPut(),
   ]);
+
+  process.exit(1);
 
   // multipart uploads are frequently not immediately available so we have to wait a bit
   await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -75,8 +78,13 @@ async function run(): Promise<void> {
 
 async function textFileExample(): Promise<string> {
   const start = Date.now();
-  const blob = await vercelBlob.put('folderé/test.txt', 'Hello, world!', {
+  const token = await vercelBlobClient.generateClientTokenFromReadWriteToken({
+    pathname: 'folderé/test.txt',
+  });
+
+  const blob = await vercelBlob.put('folderé/tesst.txt', 'Hello, world!', {
     access: 'public',
+    token,
   });
   console.log('Text file example:', blob.url, `(${Date.now() - start}ms)`);
   return blob.url;

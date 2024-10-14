@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.25.1
+
+### Patch Changes
+
+- d58f9de: fix(blob): provide custom errors for expired client tokens and pathname mismatch
+
 ## 0.25.0
 
 ### Minor Changes

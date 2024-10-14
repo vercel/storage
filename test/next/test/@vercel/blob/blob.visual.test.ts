@@ -12,7 +12,9 @@ test.describe('@vercel/blob', () => {
       const response = await page.goto(
         `vercel/pages/blob/image?prefix=${prefix}`,
       );
-      await expect(page).toHaveScreenshot('blob-image.png');
+      await expect(page.locator('#test-screenshot')).toHaveScreenshot(
+        'blob-image.png',
+      );
       expect(response?.status()).toBe(200);
     });
   });

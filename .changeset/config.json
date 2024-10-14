@@ -10,5 +10,9 @@
   "ignore": [],
   "snapshot": {
     "useCalculatedVersion": true
+  },
+  "privatePackages": {
+    "version": true,
+    "tag": true
   }
 }

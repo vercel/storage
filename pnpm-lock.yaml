@@ -219,7 +219,7 @@ importers:
         version: 4.0.8
       ws:
         specifier: ^8.17.1
-        version: 8.17.1(bufferutil@4.0.8)
+        version: 8.18.0(bufferutil@4.0.8)
     devDependencies:
       '@changesets/cli':
         specifier: 2.27.9
@@ -5840,7 +5840,7 @@ packages:
       whatwg-encoding: 2.0.0
       whatwg-mimetype: 3.0.0
       whatwg-url: 11.0.0
-      ws: 8.17.1(bufferutil@4.0.8)
+      ws: 8.18.0(bufferutil@4.0.8)
       xml-name-validator: 4.0.0
     transitivePeerDependencies:
       - bufferutil
@@ -8396,8 +8396,8 @@ packages:
       imurmurhash: 0.1.4
       signal-exit: 3.0.7
 
-  /ws@8.17.1(bufferutil@4.0.8):
-    resolution: {integrity: sha512-6XQFvXTkbfUOZOKKILFG1PDK2NDQs4azKQl26T0YS5CxqWLgXajbPZ+h4gZekJyRqFU8pvnbAbbs/3TgRPy+GQ==}
+  /ws@8.18.0(bufferutil@4.0.8):
+    resolution: {integrity: sha512-8VbfWfHLbbwu3+N6OKsOMpBdT4kXPDDB9cJk2bJ6mh9ucxdlnNvH1e+roYkKmN9Nxw2yjz7VzeO9oOz2zJ04Pw==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1

@@ -6,7 +6,7 @@ import {
   BlobStoreNotFoundError,
   BlobStoreSuspendedError,
   BlobUnknownError,
-  BlobContentTypeNotAllowed,
+  BlobContentTypeNotAllowedError,
   requestApi,
 } from './api';
 import { BlobError } from './helpers';
@@ -107,7 +107,7 @@ describe('api', () => {
       [
         400,
         'forbidden',
-        BlobContentTypeNotAllowed,
+        BlobContentTypeNotAllowedError,
         '"contentType" text/plain is not allowed',
       ],
       [500, 'not_found', BlobNotFoundError],

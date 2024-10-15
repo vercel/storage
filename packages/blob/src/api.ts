@@ -1,9 +1,19 @@
-import type { RequestInit, Response } from 'undici';
+import type { BodyInit, RequestInit, Response } from 'undici';
 import { fetch } from 'undici';
 import retry from 'async-retry';
 import { debug } from './debug';
-import type { BlobCommandOptions } from './helpers';
-import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
+import type { BlobCommandOptions, WithUploadProgress } from './helpers';
+import {
+  BlobError,
+  computeBodyLength,
+  createChunkTransformStream,
+  getApiUrl,
+  getTokenFromOptionsOrEnv,
+  isStream,
+  supportsRequestStreams,
+} from './helpers';
+import { toReadableStream } from './multipart/helpers';
+import type { PutBody } from './put-helpers';
 
 // maximum pathname length is:
 // 1024 (provider limit) - 26 chars (vercel  internal suffixes) - 31 chars (blob `-randomId` suffix) = 967
@@ -132,20 +142,6 @@ function getApiVersion(): string {
   return `${versionOverride ?? BLOB_API_VERSION}`;
 }
 
-function getApiUrl(pathname = ''): string {
-  let baseUrl = null;
-  try {
-    // wrapping this code in a try/catch as this function is used in the browser and Vite doesn't define the process.env.
-    // As this varaible is NOT used in production, it will always default to production endpoint
-    baseUrl =
-      process.env.VERCEL_BLOB_API_URL ||
-      process.env.NEXT_PUBLIC_VERCEL_BLOB_API_URL;
-  } catch {
-    // noop
-  }
-  return `${baseUrl || 'https://blob.vercel-storage.com'}${pathname}`;
-}
-
 function getRetries(): number {
   try {
     const retries = process.env.VERCEL_BLOB_RETRIES || '10';
@@ -175,7 +171,6 @@ async function getBlobError(
 
   try {
     const data = (await response.json()) as BlobApiError;
-
     code = data.error?.code ?? 'unknown_error';
     message = data.error?.message;
   } catch {
@@ -252,10 +247,12 @@ async function getBlobError(
   return { code, error };
 }
 
+const CHUNK_SIZE = 64 * 1024;
+
 export async function requestApi<TResponse>(
   pathname: string,
   init: RequestInit,
-  commandOptions: BlobCommandOptions | undefined,
+  commandOptions: (BlobCommandOptions & WithUploadProgress) | undefined,
 ): Promise<TResponse> {
   const apiVersion = getApiVersion();
   const token = getTokenFromOptionsOrEnv(commandOptions);
@@ -268,20 +265,96 @@ export async function requestApi<TResponse>(
   const apiResponse = await retry(
     async (bail) => {
       let res: Response;
+      let bodyLength: number | undefined;
+      let body: BodyInit | undefined;
+
+      if (
+        init.body &&
+        // 1. For upload progress we always need to know the total size of the body
+        // 2. In development we need the header for put() to work correctly when passing a stream
+        (commandOptions?.onUploadProgress || shouldUseXContentLength())
+      ) {
+        bodyLength = computeBodyLength(init.body);
+      }
+
+      if (init.body) {
+        if (commandOptions?.onUploadProgress) {
+          if (supportsRequestStreams) {
+            // We transform the body to a stream here instead of at the call site
+            // So that on retries we can reuse the original body, otherwise we would not be able to reuse it
+            const stream = await toReadableStream(init.body as PutBody);
+
+            let loaded = 0;
+
+            const chunkTransformStream = createChunkTransformStream(
+              CHUNK_SIZE,
+              (newLoaded: number) => {
+                loaded += newLoaded;
+                const total = bodyLength ?? loaded;
+                const percentage = Number(((loaded / total) * 100).toFixed(2));
+
+                // Leave percentage 100 to end of request
+                if (percentage === 100) {
+                  return;
+                }
+
+                commandOptions.onUploadProgress?.({
+                  loaded,
+                  // When passing a stream to put(), we have no way to know the total size of the body.
+                  // Instead of defining total as total?: number we decided to set the total to the currently
+                  // loaded number. This is not inaccurate and way more practical for DX.
+                  // Passing down a stream to put() is very rare
+                  total,
+                  percentage,
+                });
+              },
+            );
+
+            body = stream.pipeThrough(chunkTransformStream);
+          } else {
+            body = init.body;
+          }
+        } else {
+          body = init.body;
+        }
+      }
+
+      // Only set duplex option when supported and dealing with a stream body
+      const duplex =
+        supportsRequestStreams && body && isStream(body as PutBody)
+          ? 'half'
+          : undefined;
 
       // try/catch here to treat certain errors as not-retryable
       try {
         res = await fetch(getApiUrl(pathname), {
           ...init,
+          ...(init.body ? { body } : {}),
+          ...(duplex ? { duplex } : {}),
           headers: {
             'x-api-blob-request-id': requestId,
             'x-api-blob-request-attempt': String(retryCount),
             'x-api-version': apiVersion,
+            ...(bodyLength ? { 'x-content-length': String(bodyLength) } : {}),
             authorization: `Bearer ${token}`,
             ...extraHeaders,
             ...init.headers,
           },
         });
+
+        // Calling onUploadProgress here has two benefits:
+        // 1. It ensures 100% is only reached at the end of the request. While otherwise you can reach 100%
+        // before the request is fully done, as we only really measure what gets sent over the wire, not what
+        // has been processed by the server.
+        // 2. It makes the uploadProgress "work" even for browsers not supporting request streams like Safari.
+        // And in the case of multipart uploads it actually provides a simple progress indication (per part)
+        if (commandOptions?.onUploadProgress) {
+          commandOptions.onUploadProgress({
+            loaded: bodyLength ?? 0,
+            total: bodyLength ?? 0,
+            percentage: 100,
+          });
+        }
       } catch (error) {
         // if the request was aborted, don't retry
         if (error instanceof DOMException && error.name === 'AbortError') {
@@ -349,4 +422,12 @@ function getProxyThroughAlternativeApiHeaderFromEnv(): {
   }
 
   return extraHeaders;
+}
+
+function shouldUseXContentLength(): boolean {
+  try {
+    return process.env.VERCEL_BLOB_USE_X_CONTENT_LENGTH === '1';
+  } catch {
+    return false;
+  }
 }

@@ -73,7 +73,7 @@ export { copy } from './copy';
 // vercelBlob. createMultipartUpload()
 // vercelBlob. uploadPart()
 // vercelBlob. completeMultipartUpload()
-// vercelBlob. createMultipartUploaded()
+// vercelBlob. createMultipartUploader()
 
 export const createMultipartUpload =
   createCreateMultipartUploadMethod<CommonCreateBlobOptions>({

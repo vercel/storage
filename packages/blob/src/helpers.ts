@@ -1,6 +1,10 @@
 // common util interface for blob raw commands, not meant to be used directly
 // this is why it's not exported from index/client
 
+import type { Readable } from 'node:stream';
+import { isNodeJsReadableStream } from './multipart/helpers';
+import type { PutBody } from './put-helpers';
+
 export interface BlobCommandOptions {
   /**
    * Define your blob API token.
@@ -34,6 +38,26 @@ export interface CommonCreateBlobOptions extends BlobCommandOptions {
    * @defaultvalue 365 * 24 * 60 * 60 (1 Year)
    */
   cacheControlMaxAge?: number;
+}
+
+interface UploadProgressEvent {
+  loaded: number;
+  total: number;
+  percentage: number;
+}
+
+export type OnUploadProgressCallback = (
+  progressEvent: UploadProgressEvent,
+) => void;
+
+export interface WithUploadProgress {
+  /**
+   * Callback to track the upload progress. You will receive an object with the following properties:
+   * - `loaded`: The number of bytes uploaded
+   * - `total`: The total number of bytes to upload
+   * - `percentage`: The percentage of the upload that has been completed
+   */
+  onUploadProgress?: OnUploadProgressCallback;
 }
 
 export function getTokenFromOptionsOrEnv(options?: BlobCommandOptions): string {
@@ -83,3 +107,108 @@ export function isPlainObject(value: unknown): boolean {
 }
 
 export const disallowedPathnameCharacters = ['#', '?', '//'];
+
+// Chrome: implemented https://developer.chrome.com/docs/capabilities/web-apis/fetch-streaming-requests
+// Microsoft Edge: implemented (Chromium)
+// Firefox: not implemented, BOO!! https://bugzilla.mozilla.org/show_bug.cgi?id=1469359
+// Safari: not implemented, BOO!! https://github.com/WebKit/standards-positions/issues/24
+export const supportsRequestStreams = (() => {
+  let duplexAccessed = false;
+
+  const hasContentType = new Request(getApiUrl(), {
+    body: new ReadableStream(),
+    method: 'POST',
+    // @ts-expect-error -- duplex option exists
+    get duplex() {
+      duplexAccessed = true;
+      return 'half';
+    },
+  }).headers.has('Content-Type');
+
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- duplexAccessed may be true here
+  return duplexAccessed && !hasContentType;
+})();
+
+export function getApiUrl(pathname = ''): string {
+  let baseUrl = null;
+  try {
+    // wrapping this code in a try/catch as this function is used in the browser and Vite doesn't define the process.env.
+    // As this varaible is NOT used in production, it will always default to production endpoint
+    baseUrl =
+      process.env.VERCEL_BLOB_API_URL ||
+      process.env.NEXT_PUBLIC_VERCEL_BLOB_API_URL;
+  } catch {
+    // noop
+  }
+  return `${baseUrl || 'https://blob.vercel-storage.com'}${pathname}`;
+}
+
+const TEXT_ENCODER =
+  typeof TextEncoder === 'function' ? new TextEncoder() : null;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- We want to feature detect
+export function computeBodyLength(body: any): number {
+  /* eslint-disable @typescript-eslint/no-unsafe-member-access -- We want to feature detect */
+
+  if (typeof body === 'string') {
+    if (TEXT_ENCODER) {
+      return TEXT_ENCODER.encode(body).byteLength;
+    }
+
+    // React Native doesn't have TextEncoder
+    return new Blob([body]).size;
+  } else if (typeof body.byteLength === 'number') {
+    // handles Uint8Array, ArrayBuffer, Buffer, and ArrayBufferView
+    return body.byteLength as number;
+  } else if (typeof body.size === 'number') {
+    // handles Blob and File
+    return body.size as number;
+  }
+
+  return 0;
+}
+
+export const createChunkTransformStream = (
+  chunkSize: number,
+  onProgress?: (bytes: number) => void,
+): TransformStream<ArrayBuffer | Uint8Array> => {
+  let buffer = new Uint8Array(0);
+
+  return new TransformStream<ArrayBuffer, Uint8Array>({
+    transform(chunk, controller) {
+      // Combine the new chunk with any leftover data
+      const newBuffer = new Uint8Array(buffer.length + chunk.byteLength);
+      newBuffer.set(buffer);
+      newBuffer.set(new Uint8Array(chunk), buffer.length);
+      buffer = newBuffer;
+
+      // Output complete chunks
+      while (buffer.length >= chunkSize) {
+        const newChunk = buffer.slice(0, chunkSize);
+        controller.enqueue(newChunk);
+        onProgress && onProgress(newChunk.byteLength);
+        buffer = buffer.slice(chunkSize);
+      }
+    },
+
+    flush(controller) {
+      // Send any remaining data
+      if (buffer.length > 0) {
+        controller.enqueue(buffer);
+        onProgress && onProgress(buffer.byteLength);
+      }
+    },
+  });
+};
+
+export function isStream(value: PutBody): value is ReadableStream | Readable {
+  if (value instanceof ReadableStream) {
+    return true;
+  }
+
+  if (isNodeJsReadableStream(value)) {
+    return true;
+  }
+
+  return false;
+}

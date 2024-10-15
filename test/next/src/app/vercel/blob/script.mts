@@ -3,13 +3,16 @@
 // Run from the current directory, with:
 // npx tsx -r dotenv/config script.mts dotenv_config_path=.env.local
 
-import { createReadStream } from 'node:fs';
+import { createReadStream, readFile, readFileSync } from 'node:fs';
 import type { IncomingMessage } from 'node:http';
 import https from 'node:https';
 import { fetch } from 'undici';
 import axios from 'axios';
 import got from 'got';
 import * as vercelBlob from '@vercel/blob';
+import * as vercelBlobClient from '@vercel/blob/client';
+
+import { Readable } from 'node:stream';
 
 console.log('=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*');
 console.log('VERCEL BLOB SCRIPT DEMO');
@@ -18,27 +21,31 @@ console.log();
 
 async function run(): Promise<void> {
   const urls = await Promise.all([
-    textFileExample(),
-    textFileNoRandomSuffixExample(),
-    textFileExampleWithCacheControlMaxAge(),
-    imageExample(),
-    videoExample(),
-    webpageExample(),
-    incomingMessageExample(),
-    axiosExample(),
-    gotExample(),
-    fetchExample(),
-    noExtensionExample(),
-    weirdCharactersExample(),
-    copyTextFile(),
-    listFolders(),
-    multipartNodeJsFileStream(),
-    fetchExampleMultipart(),
-    createFolder(),
-    manualMultipartUpload(),
-    manualMultipartUploader(),
-    cancelPut(),
+    // textFileExample(),
+    // textFileNoRandomSuffixExample(),
+    // textFileExampleWithCacheControlMaxAge(),
+    // imageExample(),
+    // imageBufferExample(),
+    // videoExample(),
+    // webpageExample(),
+    // incomingMessageExample(),
+    // axiosExample(),
+    // gotExample(),
+    // fetchExample(),
+    // noExtensionExample(),
+    // weirdCharactersExample(),
+    // copyTextFile(),
+    // listFolders(),
+    // multipartNodeJsFileStream(),
+    bigVideoAsBuffer(),
+    // fetchExampleMultipart(),
+    // createFolder(),
+    // manualMultipartUpload(),
+    // manualMultipartUploader(),
+    // cancelPut(),
   ]);
+
+  process.exit(1);
 
   // multipart uploads are frequently not immediately available so we have to wait a bit
   await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -75,7 +82,7 @@ async function run(): Promise<void> {
 
 async function textFileExample(): Promise<string> {
   const start = Date.now();
-  const blob = await vercelBlob.put('folderé/test.txt', 'Hello, world!', {
+  const blob = await vercelBlob.put('folderé/test.txt', 'Hello, world!é', {
     access: 'public',
   });
   console.log('Text file example:', blob.url, `(${Date.now() - start}ms)`);
@@ -110,13 +117,27 @@ async function imageExample(): Promise<string> {
   const start = Date.now();
   const pathname = 'zeit.png';
   const fullPath = `public/${pathname}`;
-  const stream = createReadStream(fullPath);
+  const stream = readFileSync(fullPath);
 
-  stream.once('error', (error) => {
-    throw error;
-  });
+  // stream.once('error', (error) => {
+  //   throw error;
+  // });
 
   const blob = await vercelBlob.put(pathname, stream, {
+    access: 'public',
+  });
+
+  console.log('Image example:', blob.url, `(${Date.now() - start}ms)`);
+  return blob.url;
+}
+
+async function imageBufferExample(): Promise<string> {
+  const start = Date.now();
+  const pathname = 'zeit.png';
+  const fullPath = `public/${pathname}`;
+  const file = readFileSync(fullPath);
+
+  const blob = await vercelBlob.put(pathname, file, {
     access: 'public',
   });
 
@@ -324,14 +345,37 @@ async function multipartNodeJsFileStream() {
 
   const start = Date.now();
 
-  // testing with an accent
-  const blob = await vercelBlob.put(`éllo/${pathname}`, stream, {
+  const blob = await vercelBlob.put(pathname, stream, {
     access: 'public',
     multipart: true,
   });
 
   console.log(
     'Node.js multipart file stream example:',
+    blob.url,
+    `(${Date.now() - start}ms)`,
+  );
+
+  return blob.url;
+}
+
+async function bigVideoAsBuffer() {
+  const pathname = 'big-video.mp4';
+  const fullPath = `public/${pathname}`;
+  const buffer = readFileSync(fullPath);
+
+  const start = Date.now();
+
+  const blob = await vercelBlob.put(pathname, buffer, {
+    access: 'public',
+    // multipart: true,
+    onUploadProgress(event) {
+      console.log('progress:', event.loaded, event.total, event.percentage);
+    },
+  });
+
+  console.log(
+    'Node.js big video buffer example:',
     blob.url,
     `(${Date.now() - start}ms)`,
   );

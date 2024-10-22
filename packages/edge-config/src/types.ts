@@ -38,7 +38,10 @@ export interface EdgeConfigClient {
    * @param key - the key to read
    * @returns the value stored under the given key, or undefined
    */
-  get: <T = EdgeConfigValue>(key: string) => Promise<T | undefined>;
+  get: <T = EdgeConfigValue>(
+    key: string,
+    options?: EdgeConfigFunctionsOptions,
+  ) => Promise<T | undefined>;
   /**
    * Reads multiple or all values.
    *
@@ -47,14 +50,17 @@ export interface EdgeConfigClient {
    * @param keys - the keys to read
    * @returns Returns all entries when called with no arguments or only entries matching the given keys otherwise.
    */
-  getAll: <T = EdgeConfigItems>(keys?: (keyof T)[]) => Promise<T>;
+  getAll: <T = EdgeConfigItems>(
+    keys?: (keyof T)[],
+    options?: EdgeConfigFunctionsOptions,
+  ) => Promise<T>;
   /**
    * Check if a given key exists in the Edge Config.
    *
    * @param key - the key to check
    * @returns true if the given key exists in the Edge Config.
    */
-  has: (key: string) => Promise<boolean>;
+  has: (key: string, options?: EdgeConfigFunctionsOptions) => Promise<boolean>;
   /**
    * Get the digest of the Edge Config.
    *
@@ -62,7 +68,7 @@ export interface EdgeConfigClient {
    *
    * @returns The digest of the Edge Config.
    */
-  digest: () => Promise<string>;
+  digest: (options?: EdgeConfigFunctionsOptions) => Promise<string>;
 }
 
 export type EdgeConfigItems = Record<string, EdgeConfigValue>;
@@ -73,3 +79,16 @@ export type EdgeConfigValue =
   | null
   | { [x: string]: EdgeConfigValue }
   | EdgeConfigValue[];
+
+export interface EdgeConfigFunctionsOptions {
+  /**
+   * Enabling `consistentRead` will bypass all caches and hit the origin
+   * directly. This will make sure to fetch the most recent version of
+   * an Edge Config with the downside of an increased latency.
+   *
+   * We do **not** recommend enabling this option, unless you are reading
+   * Edge Config specifically for generating a page using ISR and you
+   * need to ensure you generate with the latest content.
+   */
+  consistentRead?: boolean;
+}

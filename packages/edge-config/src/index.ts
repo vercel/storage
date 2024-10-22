@@ -16,6 +16,7 @@ import type {
   EdgeConfigItems,
   EdgeConfigValue,
   EmbeddedEdgeConfig,
+  EdgeConfigFunctionsOptions,
 } from './types';
 import { fetchWithCachedResponse } from './utils/fetch-with-cached-response';
 import { trace } from './utils/tracing';
@@ -275,19 +276,6 @@ interface EdgeConfigClientOptions {
    * Unlike Next.js, this defaults to `no-store`, as you most likely want to use Edge Config dynamically.
    */
   cache?: 'no-store' | 'force-cache';
-}
-
-interface EdgeConfigFunctionsOptions {
-  /**
-   * Enabling `consistentRead` will bypass all caches and hit the origin
-   * directly. This will make sure to fetch the most recent version of
-   * an Edge Config with the downside of an increased latency.
-   *
-   * We do **not** recommend enabling this option, unless you are reading
-   * Edge Config specifically for generating a page using ISR and you
-   * need to ensure you generate with the latest content.
-   */
-  consistentRead?: boolean;
 }
 
 /**

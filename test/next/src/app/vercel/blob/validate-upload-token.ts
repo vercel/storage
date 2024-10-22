@@ -6,8 +6,8 @@ export function validateUploadToken(
   if (process.env.NODE_ENV === 'development') return true;
   const cookie =
     'credentials' in request
-      ? request.headers.get('cookie') ?? ''
-      : request.headers.cookie ?? '';
+      ? (request.headers.get('cookie') ?? '')
+      : (request.headers.cookie ?? '');
 
   return Boolean(
     cookie &&

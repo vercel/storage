@@ -76,6 +76,38 @@ describe('parseConnectionString', () => {
       version: '1',
     });
   });
+
+  it('should return a valid connection for an `edgd-config:` connection string', () => {
+    expect(
+      pkg.parseConnectionString(
+        'edge-config:id=ecfg_cljia81u2q1gappdgptj881dwwtc&token=00000000-0000-0000-0000-000000000000',
+      ),
+    ).toEqual({
+      baseUrl:
+        'https://edge-config.vercel.com/ecfg_cljia81u2q1gappdgptj881dwwtc',
+      id: 'ecfg_cljia81u2q1gappdgptj881dwwtc',
+      token: '00000000-0000-0000-0000-000000000000',
+      type: 'vercel',
+      version: '1',
+    });
+  });
+
+  it('should return null for an invalid `edge-config:` connection string', () => {
+    expect(pkg.parseConnectionString('edge-config:token=abd&id=')).toEqual(
+      null,
+    );
+    expect(
+      pkg.parseConnectionString(
+        'edge-config:ecfg_cljia81u2q1gappdgptj881dwwtc',
+      ),
+    ).toEqual(null);
+    expect(
+      pkg.parseConnectionString(
+        'edge-config:id=ecfg_cljia81u2q1gappdgptj881dwwtc',
+      ),
+    ).toEqual(null);
+    expect(pkg.parseConnectionString('edge-config:invalid')).toEqual(null);
+  });
 });
 
 describe('when running without lambda layer or via edge function', () => {

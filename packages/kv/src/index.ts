@@ -10,7 +10,7 @@ export class VercelKV extends Redis {
    * Same as `scan` but returns an AsyncIterator to allow iteration via `for await`.
    */
   async *scanIterator(options?: ScanCommandOptions): AsyncIterable<string> {
-    let cursor = 0;
+    let cursor = '0';
     let keys: string[];
     do {
       // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
@@ -18,7 +18,7 @@ export class VercelKV extends Redis {
       for (const key of keys) {
         yield key;
       }
-    } while (cursor !== 0);
+    } while (cursor !== '0');
   }
 
   /**
@@ -28,7 +28,7 @@ export class VercelKV extends Redis {
     key: string,
     options?: ScanCommandOptions,
   ): AsyncIterable<string | number> {
-    let cursor = 0;
+    let cursor = '0';
     let items: (number | string)[];
     do {
       // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
@@ -36,7 +36,7 @@ export class VercelKV extends Redis {
       for (const item of items) {
         yield item;
       }
-    } while (cursor !== 0);
+    } while (cursor !== '0');
   }
 
   /**
@@ -46,7 +46,7 @@ export class VercelKV extends Redis {
     key: string,
     options?: ScanCommandOptions,
   ): AsyncIterable<string | number> {
-    let cursor = 0;
+    let cursor = '0';
     let items: (number | string)[];
     do {
       // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
@@ -54,7 +54,7 @@ export class VercelKV extends Redis {
       for (const item of items) {
         yield item;
       }
-    } while (cursor !== 0);
+    } while (cursor !== '0');
   }
 
   /**
@@ -64,7 +64,7 @@ export class VercelKV extends Redis {
     key: string,
     options?: ScanCommandOptions,
   ): AsyncIterable<string | number> {
-    let cursor = 0;
+    let cursor = '0';
     let items: (number | string)[];
     do {
       // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
@@ -72,7 +72,7 @@ export class VercelKV extends Redis {
       for (const item of items) {
         yield item;
       }
-    } while (cursor !== 0);
+    } while (cursor !== '0');
   }
 }
 

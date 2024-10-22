@@ -1,5 +1,11 @@
 # @vercel/kv
 
+## 3.0.0
+
+### Major Changes
+
+- 14bc82e: BREAKING: Updates @upstash/redis to v1.34.0 which contains a small breaking change in the public API. The cursor field in scan commands is now returned as `string` instead of `number`.
+
 ## 2.0.0
 
 ### Major Changes

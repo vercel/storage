@@ -5,9 +5,41 @@ import { debug } from './debug';
 import type { BlobCommandOptions } from './helpers';
 import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
 
+// maximum pathname length is:
+// 1024 (provider limit) - 26 chars (vercel  internal suffixes) - 31 chars (blob `-randomId` suffix) = 967
+// we round it to 950 to make it more human friendly, and we apply the limit whatever the value of
+// addRandomSuffix is, to make it consistent
+export const MAXIMUM_PATHNAME_LENGTH = 950;
+
 export class BlobAccessError extends BlobError {
   constructor() {
     super('Access denied, please provide a valid token for this resource.');
+  }
+}
+
+export class BlobContentTypeNotAllowedError extends BlobError {
+  constructor(message: string) {
+    super(`Content type mismatch, ${message}.`);
+  }
+}
+
+export class BlobPathnameMismatchError extends BlobError {
+  constructor(message: string) {
+    super(
+      `Pathname mismatch, ${message}. Check the pathname used in upload() or put() matches the one from the client token.`,
+    );
+  }
+}
+
+export class BlobClientTokenExpiredError extends BlobError {
+  constructor() {
+    super('Client token has expired.');
+  }
+}
+
+export class BlobFileTooLargeError extends BlobError {
+  constructor(message: string) {
+    super(`File is too large, ${message}.`);
   }
 }
 
@@ -70,7 +102,11 @@ type BlobApiErrorCodes =
   | 'store_not_found'
   | 'not_allowed'
   | 'service_unavailable'
-  | 'rate_limited';
+  | 'rate_limited'
+  | 'content_type_not_allowed'
+  | 'client_token_pathname_mismatch'
+  | 'client_token_expired'
+  | 'file_too_large';
 
 export interface BlobApiError {
   error?: { code?: BlobApiErrorCodes; message?: string };
@@ -146,6 +182,28 @@ async function getBlobError(
     code = 'unknown_error';
   }
 
+  // Now that we have multiple API clients out in the wild handling errors, we can't just send a different
+  // error code for this type of error. We need to add a new field in the API response to handle this correctly,
+  // but for now, we can just check the message.
+  if (message?.includes('contentType') && message.includes('is not allowed')) {
+    code = 'content_type_not_allowed';
+  }
+
+  if (
+    message?.includes('"pathname"') &&
+    message.includes('does not match the token payload')
+  ) {
+    code = 'client_token_pathname_mismatch';
+  }
+
+  if (message === 'Token expired') {
+    code = 'client_token_expired';
+  }
+
+  if (message?.includes('the file length cannot be greater than')) {
+    code = 'file_too_large';
+  }
+
   let error: BlobError;
   switch (code) {
     case 'store_suspended':
@@ -153,6 +211,21 @@ async function getBlobError(
       break;
     case 'forbidden':
       error = new BlobAccessError();
+      break;
+    case 'content_type_not_allowed':
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TS, be smarter
+      error = new BlobContentTypeNotAllowedError(message!);
+      break;
+    case 'client_token_pathname_mismatch':
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TS, be smarter
+      error = new BlobPathnameMismatchError(message!);
+      break;
+    case 'client_token_expired':
+      error = new BlobClientTokenExpiredError();
+      break;
+    case 'file_too_large':
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TS, be smarter
+      error = new BlobFileTooLargeError(message!);
       break;
     case 'not_found':
       error = new BlobNotFoundError();

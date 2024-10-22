@@ -1,5 +1,34 @@
 # @vercel/blob
 
+## 0.25.1
+
+### Patch Changes
+
+- d58f9de: fix(blob): provide custom errors for expired client tokens and pathname mismatch
+
+## 0.25.0
+
+### Minor Changes
+
+- 61b5939: BREAKING CHANGE, we're no more accepting non-encoded versions of ?, # and // in pathnames. If you want to use such characters in your pathnames then you will need to encode them.
+
+## 0.24.1
+
+### Patch Changes
+
+- 37d84ef: Throw specific error (BlobContentTypeNotAllowed) when file type doesn't match
+- da87e89: Fix bad detection of Request being a plain object
+
+## 0.24.0
+
+### Minor Changes
+
+- 8098803: Add createFolder method. Warning, if you were using the standard put() method to created fodlers, this will now fail and you must move to createFolder() instead.
+
+### Patch Changes
+
+- 8d7e8b9: Limit pathname length to 950 to respect internal limitations and provide better early DX.
+
 ## 0.23.4
 
 ### Patch Changes

@@ -6,6 +6,7 @@ import {
   BlobStoreNotFoundError,
   BlobStoreSuspendedError,
   BlobUnknownError,
+  BlobContentTypeNotAllowedError,
   requestApi,
 } from './api';
 import { BlobError } from './helpers';
@@ -64,7 +65,7 @@ describe('api', () => {
           headers: {
             authorization: 'Bearer 123',
             'x-api-blob-request-attempt': '0',
-            'x-api-blob-request-id': ':1715951788049:b3a681154d83b',
+            'x-api-blob-request-id': expect.any(String) as string,
             'x-api-version': '7',
           },
           method: 'POST',
@@ -103,18 +104,25 @@ describe('api', () => {
     it.each([
       [300, 'store_suspended', BlobStoreSuspendedError],
       [400, 'forbidden', BlobAccessError],
+      [
+        400,
+        'forbidden',
+        BlobContentTypeNotAllowedError,
+        '"contentType" text/plain is not allowed',
+      ],
       [500, 'not_found', BlobNotFoundError],
       [600, 'bad_request', BlobError],
       [700, 'store_not_found', BlobStoreNotFoundError],
       [800, 'not_allowed', BlobUnknownError],
+      [800, 'not_allowed', BlobUnknownError],
     ])(
       `should not retry '%s %s' response error response`,
-      async (status, code, error) => {
+      async (status, code, error, message = '') => {
         const fetchMock = jest.spyOn(undici, 'fetch').mockImplementation(
           jest.fn().mockResolvedValue({
             status,
             ok: false,
-            json: () => Promise.resolve({ error: { code } }),
+            json: () => Promise.resolve({ error: { code, message } }),
           }),
         );
 

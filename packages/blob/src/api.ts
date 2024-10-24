@@ -278,42 +278,38 @@ export async function requestApi<TResponse>(
       }
 
       if (init.body) {
-        if (commandOptions?.onUploadProgress) {
-          if (supportsRequestStreams) {
-            // We transform the body to a stream here instead of at the call site
-            // So that on retries we can reuse the original body, otherwise we would not be able to reuse it
-            const stream = await toReadableStream(init.body as PutBody);
+        if (commandOptions?.onUploadProgress && supportsRequestStreams) {
+          // We transform the body to a stream here instead of at the call site
+          // So that on retries we can reuse the original body, otherwise we would not be able to reuse it
+          const stream = await toReadableStream(init.body as PutBody);
 
-            let loaded = 0;
+          let loaded = 0;
 
-            const chunkTransformStream = createChunkTransformStream(
-              CHUNK_SIZE,
-              (newLoaded: number) => {
-                loaded += newLoaded;
-                const total = bodyLength ?? loaded;
-                const percentage = Number(((loaded / total) * 100).toFixed(2));
+          const chunkTransformStream = createChunkTransformStream(
+            CHUNK_SIZE,
+            (newLoaded: number) => {
+              loaded += newLoaded;
+              const total = bodyLength ?? loaded;
+              const percentage = Number(((loaded / total) * 100).toFixed(2));
 
-                // Leave percentage 100 to end of request
-                if (percentage === 100) {
-                  return;
-                }
+              // Leave percentage 100 to end of request
+              if (percentage === 100) {
+                return;
+              }
 
-                commandOptions.onUploadProgress?.({
-                  loaded,
-                  // When passing a stream to put(), we have no way to know the total size of the body.
-                  // Instead of defining total as total?: number we decided to set the total to the currently
-                  // loaded number. This is not inaccurate and way more practical for DX.
-                  // Passing down a stream to put() is very rare
-                  total,
-                  percentage,
-                });
-              },
-            );
+              commandOptions.onUploadProgress?.({
+                loaded,
+                // When passing a stream to put(), we have no way to know the total size of the body.
+                // Instead of defining total as total?: number we decided to set the total to the currently
+                // loaded number. This is not inaccurate and way more practical for DX.
+                // Passing down a stream to put() is very rare
+                total,
+                percentage,
+              });
+            },
+          );
 
-            body = stream.pipeThrough(chunkTransformStream);
-          } else {
-            body = init.body;
-          }
+          body = stream.pipeThrough(chunkTransformStream);
         } else {
           body = init.body;
         }

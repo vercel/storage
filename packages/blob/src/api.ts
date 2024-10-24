@@ -282,6 +282,7 @@ export async function requestApi<TResponse>(
           // We transform the body to a stream here instead of at the call site
           // So that on retries we can reuse the original body, otherwise we would not be able to reuse it
           const stream = await toReadableStream(init.body as PutBody);
+          const onUploadProgress = commandOptions.onUploadProgress;
 
           let loaded = 0;
 
@@ -297,7 +298,7 @@ export async function requestApi<TResponse>(
                 return;
               }
 
-              commandOptions.onUploadProgress?.({
+              onUploadProgress({
                 loaded,
                 // When passing a stream to put(), we have no way to know the total size of the body.
                 // Instead of defining total as total?: number we decided to set the total to the currently

@@ -32,7 +32,6 @@ export default function AppClientUpload(): JSX.Element {
 
             setBlob(blobResult);
           } catch (error: unknown) {
-            // eslint-disable-next-line no-console -- Fine for tests
             console.log('error', error);
           }
         }}

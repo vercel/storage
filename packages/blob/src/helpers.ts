@@ -2,6 +2,7 @@
 // this is why it's not exported from index/client
 
 import type { Readable } from 'node:stream';
+import type { BodyInit } from 'undici';
 import { isNodeJsReadableStream } from './multipart/helpers';
 import type { PutBody } from './put-helpers';
 
@@ -146,7 +147,11 @@ export function getApiUrl(pathname = ''): string {
 const TEXT_ENCODER =
   typeof TextEncoder === 'function' ? new TextEncoder() : null;
 
-export function computeBodyLength(body: PutBody): number {
+export function computeBodyLength(body: BodyInit): number {
+  if (!body) {
+    return 0;
+  }
+
   if (typeof body === 'string') {
     if (TEXT_ENCODER) {
       return TEXT_ENCODER.encode(body).byteLength;

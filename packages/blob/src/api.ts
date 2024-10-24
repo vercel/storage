@@ -325,6 +325,14 @@ export async function requestApi<TResponse>(
           ? 'half'
           : undefined;
 
+      if (commandOptions?.onUploadProgress) {
+        commandOptions.onUploadProgress({
+          loaded: 0,
+          total: bodyLength ?? 0,
+          percentage: 0,
+        });
+      }
+
       // try/catch here to treat certain errors as not-retryable
       try {
         res = await fetch(getApiUrl(pathname), {

@@ -396,6 +396,35 @@ describe('blob client', () => {
       contentDisposition: mockedFileMeta.contentDisposition,
     };
 
+    it('has an onUploadProgress option', async () => {
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'PUT',
+        })
+        .reply(200, () => {
+          return mockedFileMetaPut;
+        });
+
+      const onUploadProgress = jest.fn();
+
+      await expect(
+        put('progress.txt', 'Test Body', {
+          access: 'public',
+          onUploadProgress,
+        }),
+      ).resolves.toMatchInlineSnapshot(`
+        {
+          "contentDisposition": "attachment; filename="foo.txt"",
+          "contentType": "text/plain",
+          "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo-id.txt?download=1",
+          "pathname": "foo.txt",
+          "url": "https://storeId.public.blob.vercel-storage.com/foo-id.txt",
+        }
+      `);
+      expect(onUploadProgress).toHaveBeenCalledTimes(1);
+    });
+
     it('should upload a file with a custom token', async () => {
       let path: string | null = null;
       let headers: Record<string, string> = {};

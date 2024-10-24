@@ -5,7 +5,7 @@ import type { IncomingMessage } from 'node:http';
 // the `undici` module will be replaced with https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
 // for browser contexts. See ./undici-browser.js and ./package.json
 import { fetch } from 'undici';
-import type { BlobCommandOptions } from './helpers';
+import type { BlobCommandOptions, WithUploadProgress } from './helpers';
 import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
 import { createPutMethod } from './put';
 import type { PutBlobResult } from './put-helpers';
@@ -42,7 +42,9 @@ export interface ClientTokenOptions {
 }
 
 // shared interface for put and upload
-interface ClientCommonPutOptions extends ClientCommonCreateBlobOptions {
+interface ClientCommonPutOptions
+  extends ClientCommonCreateBlobOptions,
+    WithUploadProgress {
   /**
    * Whether to use multipart upload. Use this when uploading large files. It will split the file into multiple parts, upload them in parallel and retry failed parts.
    */
@@ -89,7 +91,7 @@ export const put = createPutMethod<ClientPutCommandOptions>({
 // vercelBlob. createMultipartUpload()
 // vercelBlob. uploadPart()
 // vercelBlob. completeMultipartUpload()
-// vercelBlob. createMultipartUploaded()
+// vercelBlob. createMultipartUploader()
 
 export type ClientCreateMultipartUploadCommandOptions =
   ClientCommonCreateBlobOptions & ClientTokenOptions;
@@ -110,7 +112,8 @@ export const createMultipartUploader =
 
 type ClientMultipartUploadCommandOptions = ClientCommonCreateBlobOptions &
   ClientTokenOptions &
-  CommonMultipartUploadOptions;
+  CommonMultipartUploadOptions &
+  WithUploadProgress;
 
 export const uploadPart =
   createUploadPartMethod<ClientMultipartUploadCommandOptions>({

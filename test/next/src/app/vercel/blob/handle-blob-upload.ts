@@ -46,7 +46,6 @@ export async function handleUploadHandler(
       },
       // eslint-disable-next-line @typescript-eslint/require-await -- [@vercel/style-guide@5 migration]
       onUploadCompleted: async ({ blob, tokenPayload }) => {
-        // eslint-disable-next-line no-console -- [@vercel/style-guide@5 migration]
         console.log('Upload completed', blob, tokenPayload);
         try {
           //   await db.update({ avatar: blob.url, userId: tokenPayload.userId });

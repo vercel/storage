@@ -118,7 +118,7 @@ export const supportsRequestStreams = (() => {
   const hasContentType = new Request(getApiUrl(), {
     body: new ReadableStream(),
     method: 'POST',
-    // @ts-expect-error -- duplex option exists
+    // @ts-expect-error -- TypeScript doesn't yet have duplex but it's in the spec: https://github.com/microsoft/TypeScript-DOM-lib-generator/pull/1729
     get duplex() {
       duplexAccessed = true;
       return 'half';
@@ -146,10 +146,7 @@ export function getApiUrl(pathname = ''): string {
 const TEXT_ENCODER =
   typeof TextEncoder === 'function' ? new TextEncoder() : null;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- We want to feature detect
-export function computeBodyLength(body: any): number {
-  /* eslint-disable @typescript-eslint/no-unsafe-member-access -- We want to feature detect */
-
+export function computeBodyLength(body: PutBody): number {
   if (typeof body === 'string') {
     if (TEXT_ENCODER) {
       return TEXT_ENCODER.encode(body).byteLength;
@@ -157,12 +154,12 @@ export function computeBodyLength(body: any): number {
 
     // React Native doesn't have TextEncoder
     return new Blob([body]).size;
-  } else if (typeof body.byteLength === 'number') {
+  } else if ('byteLength' in body && typeof body.byteLength === 'number') {
     // handles Uint8Array, ArrayBuffer, Buffer, and ArrayBufferView
-    return body.byteLength as number;
-  } else if (typeof body.size === 'number') {
+    return body.byteLength;
+  } else if ('size' in body && typeof body.size === 'number') {
     // handles Blob and File
-    return body.size as number;
+    return body.size;
   }
 
   return 0;

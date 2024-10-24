@@ -14,6 +14,7 @@ import {
 } from './helpers';
 import { toReadableStream } from './multipart/helpers';
 import type { PutBody } from './put-helpers';
+import { blobFetch } from './fetch';
 
 // maximum pathname length is:
 // 1024 (provider limit) - 26 chars (vercel  internal suffixes) - 31 chars (blob `-randomId` suffix) = 967
@@ -247,8 +248,6 @@ async function getBlobError(
   return { code, error };
 }
 
-const CHUNK_SIZE = 64 * 1024;
-
 export async function requestApi<TResponse>(
   pathname: string,
   init: RequestInit,
@@ -266,7 +265,6 @@ export async function requestApi<TResponse>(
     async (bail) => {
       let res: Response;
       let bodyLength: number | undefined;
-      let body: BodyInit | undefined;
 
       if (
         init.body &&
@@ -276,51 +274,6 @@ export async function requestApi<TResponse>(
       ) {
         bodyLength = computeBodyLength(init.body);
       }
-
-      if (init.body) {
-        if (commandOptions?.onUploadProgress && supportsRequestStreams) {
-          // We transform the body to a stream here instead of at the call site
-          // So that on retries we can reuse the original body, otherwise we would not be able to reuse it
-          const stream = await toReadableStream(init.body as PutBody);
-          const onUploadProgress = commandOptions.onUploadProgress;
-
-          let loaded = 0;
-
-          const chunkTransformStream = createChunkTransformStream(
-            CHUNK_SIZE,
-            (newLoaded: number) => {
-              loaded += newLoaded;
-              const total = bodyLength ?? loaded;
-              const percentage = Number(((loaded / total) * 100).toFixed(2));
-
-              // Leave percentage 100 to end of request
-              if (percentage === 100) {
-                return;
-              }
-
-              onUploadProgress({
-                loaded,
-                // When passing a stream to put(), we have no way to know the total size of the body.
-                // Instead of defining total as total?: number we decided to set the total to the currently
-                // loaded number. This is not inaccurate and way more practical for DX.
-                // Passing down a stream to put() is very rare
-                total,
-                percentage,
-              });
-            },
-          );
-
-          body = stream.pipeThrough(chunkTransformStream);
-        } else {
-          body = init.body;
-        }
-      }
-
-      // Only set duplex option when supported and dealing with a stream body
-      const duplex =
-        supportsRequestStreams && body && isStream(body as PutBody)
-          ? 'half'
-          : undefined;
 
       if (commandOptions?.onUploadProgress) {
         commandOptions.onUploadProgress({
@@ -332,19 +285,21 @@ export async function requestApi<TResponse>(
 
       // try/catch here to treat certain errors as not-retryable
       try {
-        res = await fetch(getApiUrl(pathname), {
-          ...init,
-          ...(init.body ? { body } : {}),
-          ...(duplex ? { duplex } : {}),
-          headers: {
-            'x-api-blob-request-id': requestId,
-            'x-api-blob-request-attempt': String(retryCount),
-            'x-api-version': apiVersion,
-            ...(bodyLength ? { 'x-content-length': String(bodyLength) } : {}),
-            authorization: `Bearer ${token}`,
-            ...extraHeaders,
-            ...init.headers,
+        res = await blobFetch({
+          input: getApiUrl(pathname),
+          init: {
+            ...init,
+            headers: {
+              'x-api-blob-request-id': requestId,
+              'x-api-blob-request-attempt': String(retryCount),
+              'x-api-version': apiVersion,
+              ...(bodyLength ? { 'x-content-length': String(bodyLength) } : {}),
+              authorization: `Bearer ${token}`,
+              ...extraHeaders,
+              ...init.headers,
+            },
           },
+          onUploadProgress: commandOptions?.onUploadProgress,
         });
 
         // Calling onUploadProgress here has two benefits:

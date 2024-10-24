@@ -2,7 +2,7 @@
 // this is why it's not exported from index/client
 
 import type { Readable } from 'node:stream';
-import type { BodyInit } from 'undici';
+import type { BodyInit, RequestInfo, RequestInit, Response } from 'undici';
 import { isNodeJsReadableStream } from './multipart/helpers';
 import type { PutBody } from './put-helpers';
 
@@ -50,6 +50,16 @@ interface UploadProgressEvent {
 export type OnUploadProgressCallback = (
   progressEvent: UploadProgressEvent,
 ) => void;
+
+export type BlobRequest = ({
+  input,
+  init,
+  onUploadProgress,
+}: {
+  input: RequestInfo;
+  init: RequestInit;
+  onUploadProgress?: OnUploadProgressCallback;
+}) => Promise<Response>;
 
 export interface WithUploadProgress {
   /**

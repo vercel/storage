@@ -154,10 +154,14 @@ export function computeBodyLength(body: PutBody): number {
 
     // React Native doesn't have TextEncoder
     return new Blob([body]).size;
-  } else if ('byteLength' in body && typeof body.byteLength === 'number') {
+  }
+
+  if ('byteLength' in body && typeof body.byteLength === 'number') {
     // handles Uint8Array, ArrayBuffer, Buffer, and ArrayBufferView
     return body.byteLength;
-  } else if ('size' in body && typeof body.size === 'number') {
+  }
+
+  if ('size' in body && typeof body.size === 'number') {
     // handles Blob and File
     return body.size;
   }

@@ -183,7 +183,7 @@ export const createChunkTransformStream = (
       while (buffer.length >= chunkSize) {
         const newChunk = buffer.slice(0, chunkSize);
         controller.enqueue(newChunk);
-        onProgress && onProgress(newChunk.byteLength);
+        onProgress?.(newChunk.byteLength);
         buffer = buffer.slice(chunkSize);
       }
     },

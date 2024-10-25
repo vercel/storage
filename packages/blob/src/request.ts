@@ -1,29 +1,30 @@
-import type { RequestInit } from 'undici';
+import type { Response } from 'undici';
 import { blobFetch, hasFetch, hasFetchWithUploadProgress } from './fetch';
 import { hasXhr, blobXhr } from './xhr';
-import type { OnUploadProgressCallback } from './helpers';
+import type { BlobRequest } from './helpers';
 
-export function request(
-  init: RequestInit,
-  onUploadProgress?: OnUploadProgressCallback,
-): Promise<Response> {
+export const blobRequest: BlobRequest = async ({
+  input,
+  init,
+  onUploadProgress,
+}): Promise<Response> => {
   if (onUploadProgress) {
     if (hasFetchWithUploadProgress) {
-      return blobFetch({ init, onUploadProgress });
+      return blobFetch({ input, init, onUploadProgress });
     }
 
     if (hasXhr) {
-      return blobXhr({ init, onUploadProgress });
+      return blobXhr({ input, init, onUploadProgress });
     }
   }
 
   if (hasFetch) {
-    return blobFetch({ init });
+    return blobFetch({ input, init });
   }
 
   if (hasXhr) {
-    return blobXhr({ init });
+    return blobXhr({ input, init });
   }
 
   throw new Error('No request implementation available');
-}
+};

@@ -1,4 +1,3 @@
-import type { BodyInit } from 'undici';
 import throttle from 'throttleit';
 import { requestApi } from './api';
 import type { CommonCreateBlobOptions, WithUploadProgress } from './helpers';
@@ -63,7 +62,7 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
       `/${pathname}`,
       {
         method: 'PUT',
-        body: body as BodyInit,
+        body,
         headers,
         signal: options.abortSignal,
       },

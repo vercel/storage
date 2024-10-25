@@ -1,5 +1,4 @@
 import bytes from 'bytes';
-import type { BodyInit } from 'undici';
 import throttle from 'throttleit';
 import { BlobServiceNotAvailable, requestApi } from '../api';
 import { debug } from '../debug';
@@ -92,7 +91,7 @@ export async function uploadPart({
         'x-mpu-part-number': part.partNumber.toString(),
       },
       // weird things between undici types and native fetch types
-      body: part.blob as BodyInit,
+      body: part.blob,
     },
     options,
   );
@@ -191,7 +190,7 @@ export function uploadAllParts({
 
         // we call the user's onUploadProgress callback
         options.onUploadProgress?.({ loaded, total, percentage });
-      }, 100);
+      }, 150);
     }
 
     read().catch(cancel);

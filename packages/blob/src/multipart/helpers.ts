@@ -45,7 +45,7 @@ export async function toReadableStream(
   // to the original data instead of loading data in memory gradually.
   // Here's an explanation on this subject: https://stackoverflow.com/a/24834417
   if (value instanceof Blob) {
-    return value.stream();
+    return value.stream() as ReadableStream<Uint8Array>;
   }
 
   if (isNodeJsReadableStream(value)) {
@@ -62,7 +62,7 @@ export async function toReadableStream(
     streamValue = value;
   } else {
     // value is a string, we need to convert it to a Uint8Array to get create a stream from it
-    streamValue = stringToUint8Array(value);
+    streamValue = stringToUint8Array(value as string);
   }
 
   // This line ensures that even when we get a buffer of 70MB, we'll create a stream out of it so we can have
@@ -97,6 +97,6 @@ function stringToUint8Array(s: string): Uint8Array {
   return enc.encode(s);
 }
 
-function isNodeJsBuffer(input: Buffer | string): input is Buffer {
-  return isBuffer(input);
+function isNodeJsBuffer(value: PutBody): value is Buffer {
+  return isBuffer(value);
 }

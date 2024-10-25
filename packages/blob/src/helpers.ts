@@ -2,7 +2,7 @@
 // this is why it's not exported from index/client
 
 import type { Readable } from 'node:stream';
-import type { BodyInit, RequestInfo, RequestInit, Response } from 'undici';
+import type { RequestInit, Response } from 'undici';
 import { isNodeJsReadableStream } from './multipart/helpers';
 import type { PutBody } from './put-helpers';
 
@@ -51,14 +51,20 @@ export type OnUploadProgressCallback = (
   progressEvent: UploadProgressEvent,
 ) => void;
 
+export type InternalOnUploadProgressCallback = (progressEvent: {
+  loaded: number;
+}) => void;
+
+export type BlobRequestInit = Omit<RequestInit, 'body'> & { body?: PutBody };
+
 export type BlobRequest = ({
   input,
   init,
   onUploadProgress,
 }: {
-  input: RequestInfo;
-  init: RequestInit;
-  onUploadProgress?: OnUploadProgressCallback;
+  input: string | URL;
+  init: BlobRequestInit;
+  onUploadProgress?: InternalOnUploadProgressCallback;
 }) => Promise<Response>;
 
 export interface WithUploadProgress {
@@ -157,7 +163,7 @@ export function getApiUrl(pathname = ''): string {
 const TEXT_ENCODER =
   typeof TextEncoder === 'function' ? new TextEncoder() : null;
 
-export function computeBodyLength(body: BodyInit): number {
+export function computeBodyLength(body: PutBody): number {
   if (!body) {
     return 0;
   }
@@ -217,8 +223,12 @@ export const createChunkTransformStream = (
   });
 };
 
+export function isReadableStream(value: PutBody): value is ReadableStream {
+  return value instanceof ReadableStream;
+}
+
 export function isStream(value: PutBody): value is ReadableStream | Readable {
-  if (value instanceof ReadableStream) {
+  if (isReadableStream(value)) {
     return true;
   }
 

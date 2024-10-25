@@ -1,20 +1,20 @@
-import type { BodyInit, RequestInit, Response } from 'undici';
-import { fetch } from 'undici';
+import type { Response } from 'undici';
 import retry from 'async-retry';
 import { debug } from './debug';
-import type { BlobCommandOptions, WithUploadProgress } from './helpers';
+import type {
+  BlobCommandOptions,
+  BlobRequestInit,
+  WithUploadProgress,
+} from './helpers';
 import {
   BlobError,
   computeBodyLength,
-  createChunkTransformStream,
   getApiUrl,
   getTokenFromOptionsOrEnv,
-  isStream,
-  supportsRequestStreams,
 } from './helpers';
-import { toReadableStream } from './multipart/helpers';
-import type { PutBody } from './put-helpers';
+import { blobXhr } from './xhr';
 import { blobFetch } from './fetch';
+import { blobRequest } from './request';
 
 // maximum pathname length is:
 // 1024 (provider limit) - 26 chars (vercel  internal suffixes) - 31 chars (blob `-randomId` suffix) = 967
@@ -250,7 +250,7 @@ async function getBlobError(
 
 export async function requestApi<TResponse>(
   pathname: string,
-  init: RequestInit,
+  init: BlobRequestInit,
   commandOptions: (BlobCommandOptions & WithUploadProgress) | undefined,
 ): Promise<TResponse> {
   const apiVersion = getApiVersion();
@@ -283,9 +283,11 @@ export async function requestApi<TResponse>(
         });
       }
 
+      let loaded = 0;
+
       // try/catch here to treat certain errors as not-retryable
       try {
-        res = await blobFetch({
+        res = await blobRequest({
           input: getApiUrl(pathname),
           init: {
             ...init,
@@ -299,14 +301,33 @@ export async function requestApi<TResponse>(
               ...init.headers,
             },
           },
-          onUploadProgress: commandOptions?.onUploadProgress,
+          onUploadProgress: ({ loaded: newLoaded }) => {
+            loaded += newLoaded;
+            const total = bodyLength || loaded;
+            const percentage = Number(((loaded / total) * 100).toFixed(2));
+
+            // Leave percentage 100 for the end of request
+            if (percentage === 100) {
+              return;
+            }
+
+            commandOptions?.onUploadProgress?.({
+              loaded,
+              // When passing a stream to put(), we have no way to know the total size of the body.
+              // Instead of defining total as total?: number we decided to set the total to the currently
+              // loaded number. This is not inaccurate and way more practical for DX.
+              // Passing down a stream to put() is very rare
+              total,
+              percentage,
+            });
+          },
         });
 
         // Calling onUploadProgress here has two benefits:
         // 1. It ensures 100% is only reached at the end of the request. While otherwise you can reach 100%
         // before the request is fully done, as we only really measure what gets sent over the wire, not what
         // has been processed by the server.
-        // 2. It makes the uploadProgress "work" even for browsers not supporting request streams like Safari.
+        // 2. It makes the uploadProgress "work" even in rare cases where fetch/xhr onprogress is not working
         // And in the case of multipart uploads it actually provides a simple progress indication (per part)
         if (commandOptions?.onUploadProgress) {
           commandOptions.onUploadProgress({

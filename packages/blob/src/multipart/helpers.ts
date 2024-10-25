@@ -45,7 +45,7 @@ export async function toReadableStream(
   // to the original data instead of loading data in memory gradually.
   // Here's an explanation on this subject: https://stackoverflow.com/a/24834417
   if (value instanceof Blob) {
-    return value.stream() as ReadableStream<Uint8Array>;
+    return value.stream();
   }
 
   if (isNodeJsReadableStream(value)) {

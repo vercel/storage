@@ -29,7 +29,8 @@ export default function AppClientUpload(): JSX.Element {
           try {
             const blobResult = await upload(file.name, file, {
               access: 'public',
-              multipart: searchParams?.get('multipart') === '1',
+              // @ts-expect-error -- ESLint and TS are not friends?
+              multipart: searchParams.get('multipart') === '1',
               handleUploadUrl: `/vercel/blob/api/app/handle-blob-upload/serverless`,
               onUploadProgress(progressEvent) {
                 setProgressEvents((prev) => [

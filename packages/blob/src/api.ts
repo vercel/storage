@@ -258,28 +258,29 @@ export async function requestApi<TResponse>(
   const [, , , storeId = ''] = token.split('_');
   const requestId = `${storeId}:${Date.now()}:${Math.random().toString(16).slice(2)}`;
   let retryCount = 0;
+  let bodyLength: number | undefined;
+  if (
+    init.body &&
+    // 1. For upload progress we always need to know the total size of the body
+    // 2. In development we need the header for put() to work correctly when passing a stream
+    (commandOptions?.onUploadProgress || shouldUseXContentLength())
+  ) {
+    bodyLength = computeBodyLength(init.body);
+  }
+
+  if (commandOptions?.onUploadProgress) {
+    // We run it asynchronously so failures in user code don't affect the request
+    // Unsure this is the best idea, if you think this is a problem, open an issue
+    commandOptions.onUploadProgress({
+      loaded: 0,
+      total: bodyLength ?? 0,
+      percentage: 0,
+    });
+  }
 
   const apiResponse = await retry(
     async (bail) => {
       let res: Response;
-      let bodyLength: number | undefined;
-
-      if (
-        init.body &&
-        // 1. For upload progress we always need to know the total size of the body
-        // 2. In development we need the header for put() to work correctly when passing a stream
-        (commandOptions?.onUploadProgress || shouldUseXContentLength())
-      ) {
-        bodyLength = computeBodyLength(init.body);
-      }
-
-      if (commandOptions?.onUploadProgress) {
-        commandOptions.onUploadProgress({
-          loaded: 0,
-          total: bodyLength ?? 0,
-          percentage: 0,
-        });
-      }
 
       // try/catch here to treat certain errors as not-retryable
       try {
@@ -299,7 +300,7 @@ export async function requestApi<TResponse>(
           },
           onUploadProgress: commandOptions?.onUploadProgress
             ? (loaded) => {
-                const total = bodyLength || loaded;
+                const total = bodyLength ?? loaded;
                 const percentage = Number(((loaded / total) * 100).toFixed(2));
 
                 // Leave percentage 100 for the end of request
@@ -319,24 +320,16 @@ export async function requestApi<TResponse>(
               }
             : undefined,
         });
-
-        // Calling onUploadProgress here has two benefits:
-        // 1. It ensures 100% is only reached at the end of the request. While otherwise you can reach 100%
-        // before the request is fully done, as we only really measure what gets sent over the wire, not what
-        // has been processed by the server.
-        // 2. It makes the uploadProgress "work" even in rare cases where fetch/xhr onprogress is not working
-        // And in the case of multipart uploads it actually provides a simple progress indication (per part)
-        if (commandOptions?.onUploadProgress) {
-          commandOptions.onUploadProgress({
-            loaded: bodyLength ?? 0,
-            total: bodyLength ?? 0,
-            percentage: 100,
-          });
-        }
       } catch (error) {
         // if the request was aborted, don't retry
         if (error instanceof DOMException && error.name === 'AbortError') {
           bail(new BlobRequestAbortedError());
+          return;
+        }
+
+        // In case of pure runtime/coding errors then we don't retry
+        if (error instanceof TypeError) {
+          bail(error);
           return;
         }
 
@@ -373,6 +366,20 @@ export async function requestApi<TResponse>(
 
   if (!apiResponse) {
     throw new BlobUnknownError();
+  }
+
+  // Calling onUploadProgress here has two benefits:
+  // 1. It ensures 100% is only reached at the end of the request. While otherwise you can reach 100%
+  // before the request is fully done, as we only really measure what gets sent over the wire, not what
+  // has been processed by the server.
+  // 2. It makes the uploadProgress "work" even in rare cases where fetch/xhr onprogress is not working
+  // And in the case of multipart uploads it actually provides a simple progress indication (per part)
+  if (commandOptions?.onUploadProgress) {
+    commandOptions.onUploadProgress({
+      loaded: bodyLength ?? 0,
+      total: bodyLength ?? 0,
+      percentage: 100,
+    });
   }
 
   return (await apiResponse.json()) as TResponse;

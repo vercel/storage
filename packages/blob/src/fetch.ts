@@ -8,6 +8,7 @@ import {
 } from './helpers';
 import { toReadableStream } from './multipart/helpers';
 import type { PutBody } from './put-helpers';
+import { debug } from './debug';
 
 export const hasFetch =
   typeof fetch === 'function' &&
@@ -23,6 +24,7 @@ export const blobFetch: BlobRequest = async ({
   init,
   onUploadProgress,
 }) => {
+  debug('using fetch');
   let body: BodyInit | undefined;
 
   if (init.body) {

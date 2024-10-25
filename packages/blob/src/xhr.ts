@@ -3,6 +3,7 @@ import type {
   Response as UndiciResponse,
 } from 'undici';
 import { isReadableStream, type BlobRequest } from './helpers';
+import { debug } from './debug';
 
 export const hasXhr = typeof XMLHttpRequest !== 'undefined';
 
@@ -11,7 +12,7 @@ export const blobXhr: BlobRequest = async ({
   init,
   onUploadProgress,
 }) => {
-  console.log('xhr');
+  debug('using xhr');
   let body: XMLHttpRequestBodyInit | null = null;
 
   // xhr.send only support XMLHttpRequestBodyInit types, excluding ReadableStream (web)

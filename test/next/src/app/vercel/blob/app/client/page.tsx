@@ -66,6 +66,7 @@ export default function AppClientUpload(): JSX.Element {
           </h2>
           <ul className="list-disc pl-5">
             {progressEvents.map((event, index) => (
+              // eslint-disable-next-line react/no-array-index-key -- it's FINE
               <li data-testid="progress-event-item" key={index}>
                 {event}
               </li>

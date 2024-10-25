@@ -9,7 +9,8 @@ export default function AppClientUpload(): JSX.Element {
   const inputFileRef = useRef<HTMLInputElement>(null);
   const [blob, setBlob] = useState<PutBlobResult | null>(null);
   const [progressEvents, setProgressEvents] = useState<string[]>([]);
-  const searchParams = useSearchParams();
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- OK
+  const searchParams = useSearchParams()!;
 
   return (
     <>
@@ -29,7 +30,6 @@ export default function AppClientUpload(): JSX.Element {
           try {
             const blobResult = await upload(file.name, file, {
               access: 'public',
-              // @ts-expect-error -- ESLint and TS are not friends?
               multipart: searchParams.get('multipart') === '1',
               handleUploadUrl: `/vercel/blob/api/app/handle-blob-upload/serverless`,
               onUploadProgress(progressEvent) {

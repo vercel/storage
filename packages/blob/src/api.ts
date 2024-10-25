@@ -12,8 +12,6 @@ import {
   getApiUrl,
   getTokenFromOptionsOrEnv,
 } from './helpers';
-import { blobXhr } from './xhr';
-import { blobFetch } from './fetch';
 import { blobRequest } from './request';
 
 // maximum pathname length is:
@@ -285,8 +283,6 @@ export async function requestApi<TResponse>(
 
       // try/catch here to treat certain errors as not-retryable
       try {
-        let bytesLoaded = 0;
-
         res = await blobRequest({
           input: getApiUrl(pathname),
           init: {
@@ -301,10 +297,9 @@ export async function requestApi<TResponse>(
               ...init.headers,
             },
           },
-          onUploadProgress: ({ loaded }) => {
-            bytesLoaded += loaded;
-            const total = bodyLength || bytesLoaded;
-            const percentage = Number(((bytesLoaded / total) * 100).toFixed(2));
+          onUploadProgress: (loaded) => {
+            const total = bodyLength || loaded;
+            const percentage = Number(((loaded / total) * 100).toFixed(2));
 
             // Leave percentage 100 for the end of request
             if (percentage === 100) {
@@ -312,7 +307,7 @@ export async function requestApi<TResponse>(
             }
 
             commandOptions?.onUploadProgress?.({
-              loaded: bytesLoaded,
+              loaded,
               // When passing a stream to put(), we have no way to know the total size of the body.
               // Instead of defining total as total?: number we decided to set the total to the currently
               // loaded number. This is not inaccurate and way more practical for DX.

@@ -51,9 +51,7 @@ export type OnUploadProgressCallback = (
   progressEvent: UploadProgressEvent,
 ) => void;
 
-export type InternalOnUploadProgressCallback = (progressEvent: {
-  loaded: number;
-}) => void;
+export type InternalOnUploadProgressCallback = (loaded: number) => void;
 
 export type BlobRequestInit = Omit<RequestInit, 'body'> & { body?: PutBody };
 

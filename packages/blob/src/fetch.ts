@@ -37,15 +37,13 @@ export const blobFetch: BlobRequest = async ({
         CHUNK_SIZE,
         (newLoaded: number) => {
           loaded += newLoaded;
-          onUploadProgress({
-            loaded,
-          });
+          onUploadProgress(loaded);
         },
       );
 
       body = stream.pipeThrough(chunkTransformStream);
     } else {
-      body = init.body;
+      body = init.body as BodyInit;
     }
   }
 
@@ -55,9 +53,13 @@ export const blobFetch: BlobRequest = async ({
       ? 'half'
       : undefined;
 
-  return fetch(input, {
-    ...init,
-    ...(init.body ? { body } : {}),
-    duplex,
-  });
+  return fetch(
+    input,
+    // @ts-expect-error -- Blob and Nodejs Blob are triggering type errors, fine with it
+    {
+      ...init,
+      ...(init.body ? { body } : {}),
+      duplex,
+    },
+  );
 };

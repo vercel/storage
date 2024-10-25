@@ -2,7 +2,7 @@
 import type { Readable } from 'stream';
 // We use the undici types to ensure TS doesn't complain about native types (like ReadableStream) vs
 // undici types fetch expects (like Blob is from node:buffer..)
-import type { Blob as NodejsBlob } from 'node:buffer';
+// import type { Blob } from 'node:buffer';
 import type { File } from 'undici';
 import type { ClientCommonCreateBlobOptions } from './client';
 import type { CommonCreateBlobOptions } from './helpers';
@@ -29,7 +29,6 @@ export type PutBody =
   | string
   | Readable // Node.js streams
   | Buffer // Node.js buffers
-  | NodejsBlob // For some reason NodejsBlob types are different than Blob types
   | Blob
   | ArrayBuffer
   | ReadableStream // Streams API (= Web streams in Node.js)

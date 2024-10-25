@@ -81,9 +81,13 @@ async function run(): Promise<void> {
 
 async function textFileExample(): Promise<string> {
   const start = Date.now();
-  const blob = await vercelBlob.put('folderé/test.txt', 'Hello, world!é', {
-    access: 'public',
-  });
+  const blob = await vercelBlob.put(
+    'folderé/test.txt',
+    new Blob(['Hello, world!é']),
+    {
+      access: 'public',
+    },
+  );
   console.log('Text file example:', blob.url, `(${Date.now() - start}ms)`);
   return blob.url;
 }

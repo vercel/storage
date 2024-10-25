@@ -11,6 +11,7 @@ export const blobXhr: BlobRequest = async ({
   init,
   onUploadProgress,
 }) => {
+  console.log('xhr');
   let body: XMLHttpRequestBodyInit | null = null;
 
   // xhr.send only support XMLHttpRequestBodyInit types, excluding ReadableStream (web)
@@ -42,9 +43,7 @@ export const blobXhr: BlobRequest = async ({
     if (onUploadProgress) {
       xhr.upload.addEventListener('progress', (event) => {
         if (event.lengthComputable) {
-          onUploadProgress({
-            loaded: event.loaded,
-          });
+          onUploadProgress(event.loaded);
         }
       });
     }

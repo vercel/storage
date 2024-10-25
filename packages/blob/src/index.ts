@@ -9,7 +9,12 @@ import type { CommonCreateBlobOptions } from './helpers';
 import { createCreateMultipartUploaderMethod } from './multipart/create-uploader';
 
 // expose generic BlobError and download url util
-export { BlobError, getDownloadUrl } from './helpers';
+export {
+  BlobError,
+  getDownloadUrl,
+  type OnUploadProgressCallback,
+  type UploadProgressEvent,
+} from './helpers';
 
 // expose api BlobErrors
 export {

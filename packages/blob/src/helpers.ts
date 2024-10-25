@@ -41,7 +41,7 @@ export interface CommonCreateBlobOptions extends BlobCommandOptions {
   cacheControlMaxAge?: number;
 }
 
-interface UploadProgressEvent {
+export interface UploadProgressEvent {
   loaded: number;
   total: number;
   percentage: number;

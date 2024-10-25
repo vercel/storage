@@ -83,6 +83,9 @@ async function textFileExample(): Promise<string> {
   const start = Date.now();
   const blob = await vercelBlob.put('folderé/test.txt', 'Hello, world!é', {
     access: 'public',
+    onUploadProgress(progressEvent) {
+      console.log(progressEvent.percentage);
+    },
   });
   console.log('Text file example:', blob.url, `(${Date.now() - start}ms)`);
   return blob.url;

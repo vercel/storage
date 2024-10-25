@@ -217,7 +217,7 @@ export const createChunkTransformStream = (
       // Send any remaining data
       if (buffer.length > 0) {
         controller.enqueue(buffer);
-        onProgress?.(newChunk.byteLength);
+        onProgress?.(buffer.byteLength);
       }
     },
   });

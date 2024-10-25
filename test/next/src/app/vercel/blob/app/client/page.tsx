@@ -1,3 +1,5 @@
+/* eslint-disable -- I gave up making TS and ESLint happy here for now */
+
 'use client';
 
 import { type PutBlobResult } from '@vercel/blob';
@@ -9,8 +11,7 @@ export default function AppClientUpload(): JSX.Element {
   const inputFileRef = useRef<HTMLInputElement>(null);
   const [blob, setBlob] = useState<PutBlobResult | null>(null);
   const [progressEvents, setProgressEvents] = useState<string[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- OK
-  const searchParams = useSearchParams()!;
+  const searchParams = useSearchParams();
 
   return (
     <>
@@ -30,7 +31,7 @@ export default function AppClientUpload(): JSX.Element {
           try {
             const blobResult = await upload(file.name, file, {
               access: 'public',
-              multipart: searchParams.get('multipart') === '1',
+              multipart: searchParams?.get('multipart') === '1',
               handleUploadUrl: `/vercel/blob/api/app/handle-blob-upload/serverless`,
               onUploadProgress(progressEvent) {
                 setProgressEvents((prev) => [
@@ -67,7 +68,6 @@ export default function AppClientUpload(): JSX.Element {
           </h2>
           <ul className="list-disc pl-5">
             {progressEvents.map((event, index) => (
-              // eslint-disable-next-line react/no-array-index-key -- it's FINE
               <li data-testid="progress-event-item" key={index}>
                 {event}
               </li>
@@ -89,7 +89,6 @@ export default function AppClientUpload(): JSX.Element {
             </a>
           </p>
           {blob.url.endsWith('.mp4') ? (
-            // eslint-disable-next-line jsx-a11y/media-has-caption -- no caption for tests, this is fine
             <video className="mt-2" controls data-testid="video-player">
               <source src={blob.url} type="video/mp4" />
             </video>

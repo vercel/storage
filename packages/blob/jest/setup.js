@@ -7,6 +7,6 @@ const { ReadableStream } = require('node:stream/web');
 
 Object.assign(global, { TextDecoder, TextEncoder, ReadableStream });
 
-const { Request } = require('undici');
+const { Request, Response } = require('undici');
 
-Object.assign(global, { Request });
+Object.assign(global, { Request, Response });

@@ -297,25 +297,27 @@ export async function requestApi<TResponse>(
               ...init.headers,
             },
           },
-          onUploadProgress: (loaded) => {
-            const total = bodyLength || loaded;
-            const percentage = Number(((loaded / total) * 100).toFixed(2));
+          onUploadProgress: commandOptions?.onUploadProgress
+            ? (loaded) => {
+                const total = bodyLength || loaded;
+                const percentage = Number(((loaded / total) * 100).toFixed(2));
 
-            // Leave percentage 100 for the end of request
-            if (percentage === 100) {
-              return;
-            }
+                // Leave percentage 100 for the end of request
+                if (percentage === 100) {
+                  return;
+                }
 
-            commandOptions?.onUploadProgress?.({
-              loaded,
-              // When passing a stream to put(), we have no way to know the total size of the body.
-              // Instead of defining total as total?: number we decided to set the total to the currently
-              // loaded number. This is not inaccurate and way more practical for DX.
-              // Passing down a stream to put() is very rare
-              total,
-              percentage,
-            });
-          },
+                commandOptions.onUploadProgress?.({
+                  loaded,
+                  // When passing a stream to put(), we have no way to know the total size of the body.
+                  // Instead of defining total as total?: number we decided to set the total to the currently
+                  // loaded number. This is not inaccurate and way more practical for DX.
+                  // Passing down a stream to put() is very rare
+                  total,
+                  percentage,
+                });
+              }
+            : undefined,
         });
 
         // Calling onUploadProgress here has two benefits:

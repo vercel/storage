@@ -24,7 +24,7 @@ export default function AppClientUpload(): JSX.Element {
             const blobResult = await upload(file.name, file, {
               access: 'public',
               handleUploadUrl: `/vercel/blob/api/app/handle-blob-upload/edge`,
-              // multipart: true,
+              multipart: true,
               onUploadProgress(progressEvent) {
                 console.log('upload progress', progressEvent);
               },

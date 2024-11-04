@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 1.4.0
+
+### Minor Changes
+
+- d7ef349: Add the `consistentRead` option to allow reading from the origin. Note that it's not recommended to use this property without good reason due to the extrem performance cost.
+
 ## 1.3.0
 
 ### Minor Changes

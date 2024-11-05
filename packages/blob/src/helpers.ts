@@ -3,6 +3,7 @@
 
 import type { Readable } from 'node:stream';
 import type { RequestInit, Response } from 'undici';
+import { isNodeProcess } from 'is-node-process';
 import { isNodeJsReadableStream } from './multipart/helpers';
 import type { PutBody } from './put-helpers';
 
@@ -127,22 +128,26 @@ export const disallowedPathnameCharacters = ['#', '?', '//'];
 // Microsoft Edge: implemented (Chromium)
 // Firefox: not implemented, BOO!! https://bugzilla.mozilla.org/show_bug.cgi?id=1469359
 // Safari: not implemented, BOO!! https://github.com/WebKit/standards-positions/issues/24
-export const supportsRequestStreams = (() => {
-  let duplexAccessed = false;
+export const supportsRequestStreams =
+  // The next line is mostly for Node.js 16 to avoid trying to do new Request() as it's not supported
+  // We support Node.js 16 only for internal Vercel needs
+  isNodeProcess() ||
+  (() => {
+    let duplexAccessed = false;
 
-  const hasContentType = new Request(getApiUrl(), {
-    body: new ReadableStream(),
-    method: 'POST',
-    // @ts-expect-error -- TypeScript doesn't yet have duplex but it's in the spec: https://github.com/microsoft/TypeScript-DOM-lib-generator/pull/1729
-    get duplex() {
-      duplexAccessed = true;
-      return 'half';
-    },
-  }).headers.has('Content-Type');
+    const hasContentType = new Request(getApiUrl(), {
+      body: new ReadableStream(),
+      method: 'POST',
+      // @ts-expect-error -- TypeScript doesn't yet have duplex but it's in the spec: https://github.com/microsoft/TypeScript-DOM-lib-generator/pull/1729
+      get duplex() {
+        duplexAccessed = true;
+        return 'half';
+      },
+    }).headers.has('Content-Type');
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- duplexAccessed may be true here
-  return duplexAccessed && !hasContentType;
-})();
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- duplexAccessed may be true here
+    return duplexAccessed && !hasContentType;
+  })();
 
 export function getApiUrl(pathname = ''): string {
   let baseUrl = null;

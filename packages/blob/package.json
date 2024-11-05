@@ -63,6 +63,7 @@
     "async-retry": "^1.3.3",
     "bytes": "^3.1.2",
     "is-buffer": "^2.0.5",
+    "is-node-process": "^1.2.0",
     "throttleit": "^2.1.0",
     "undici": "^6.20.1"
   },

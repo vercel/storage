@@ -373,7 +373,10 @@ export async function requestApi<TResponse>(
     {
       retries: getRetries(),
       onRetry: (error) => {
-        debug(`retrying API request to ${pathname}`, error.message);
+        if (error instanceof Error) {
+          debug(`retrying API request to ${pathname}`, error.message);
+        }
+
         retryCount = retryCount + 1;
       },
     },

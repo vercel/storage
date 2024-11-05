@@ -336,11 +336,13 @@ export async function requestApi<TResponse>(
           return;
         }
 
+        // We specifically target network errors because fetch network errors are regular TypeErrors
+        // We want to retry for network errors, but not for other TypeErrors
         if (isNetworkError(error)) {
           throw error;
         }
 
-        // In case of pure runtime/coding errors then we don't retry
+        // If we messed up the request part, don't even retry
         if (error instanceof TypeError) {
           bail(error);
           return;

@@ -184,9 +184,10 @@ export function uploadAllParts({
           0,
         );
         const total = totalToLoad || loaded;
-        const percentage = Number(
-          ((loaded / totalToLoad || loaded) * 100).toFixed(2),
-        );
+        const percentage =
+          totalToLoad > 0
+            ? Number(((loaded / totalToLoad || loaded) * 100).toFixed(2))
+            : 0;
 
         // we call the user's onUploadProgress callback
         options.onUploadProgress?.({ loaded, total, percentage });

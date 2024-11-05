@@ -258,12 +258,16 @@ export async function requestApi<TResponse>(
   const [, , , storeId = ''] = token.split('_');
   const requestId = `${storeId}:${Date.now()}:${Math.random().toString(16).slice(2)}`;
   let retryCount = 0;
-  let bodyLength: number | undefined;
+  let bodyLength = 0;
+  let totalLoaded = 0;
+  const sendBodyLength =
+    commandOptions?.onUploadProgress || shouldUseXContentLength();
+
   if (
     init.body &&
     // 1. For upload progress we always need to know the total size of the body
     // 2. In development we need the header for put() to work correctly when passing a stream
-    (commandOptions?.onUploadProgress || shouldUseXContentLength())
+    sendBodyLength
   ) {
     bodyLength = computeBodyLength(init.body);
   }
@@ -273,7 +277,7 @@ export async function requestApi<TResponse>(
     // Unsure this is the best idea, if you think this is a problem, open an issue
     commandOptions.onUploadProgress({
       loaded: 0,
-      total: bodyLength ?? 0,
+      total: bodyLength,
       percentage: 0,
     });
   }
@@ -292,7 +296,9 @@ export async function requestApi<TResponse>(
               'x-api-blob-request-id': requestId,
               'x-api-blob-request-attempt': String(retryCount),
               'x-api-version': apiVersion,
-              ...(bodyLength ? { 'x-content-length': String(bodyLength) } : {}),
+              ...(sendBodyLength
+                ? { 'x-content-length': String(bodyLength) }
+                : {}),
               authorization: `Bearer ${token}`,
               ...extraHeaders,
               ...init.headers,
@@ -300,11 +306,15 @@ export async function requestApi<TResponse>(
           },
           onUploadProgress: commandOptions?.onUploadProgress
             ? (loaded) => {
-                const total = bodyLength ?? loaded;
-                const percentage = Number(((loaded / total) * 100).toFixed(2));
+                const total = bodyLength !== 0 ? bodyLength : loaded;
+                totalLoaded = loaded;
+                const percentage =
+                  bodyLength > 0
+                    ? Number(((loaded / total) * 100).toFixed(2))
+                    : 0;
 
                 // Leave percentage 100 for the end of request
-                if (percentage === 100) {
+                if (percentage === 100 && bodyLength > 0) {
                   return;
                 }
 
@@ -376,8 +386,8 @@ export async function requestApi<TResponse>(
   // And in the case of multipart uploads it actually provides a simple progress indication (per part)
   if (commandOptions?.onUploadProgress) {
     commandOptions.onUploadProgress({
-      loaded: bodyLength ?? 0,
-      total: bodyLength ?? 0,
+      loaded: totalLoaded,
+      total: totalLoaded,
       percentage: 100,
     });
   }

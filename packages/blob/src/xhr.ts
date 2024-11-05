@@ -1,7 +1,4 @@
-import type {
-  Headers as UndiciHeaders,
-  Response as UndiciResponse,
-} from 'undici';
+import type { Response as UndiciResponse } from 'undici';
 import { isReadableStream, type BlobRequest } from './helpers';
 import { debug } from './debug';
 
@@ -75,7 +72,7 @@ export const blobXhr: BlobRequest = async ({
         status: xhr.status,
         statusText: xhr.statusText,
         headers,
-      }) as UndiciResponse;
+      }) as unknown as UndiciResponse;
 
       resolve(response);
     };
@@ -97,7 +94,7 @@ export const blobXhr: BlobRequest = async ({
 
     // Set headers
     if (init.headers) {
-      const headers = new Headers(init.headers as UndiciHeaders);
+      const headers = new Headers(init.headers as HeadersInit);
       headers.forEach((value, key) => {
         xhr.setRequestHeader(key, value);
       });

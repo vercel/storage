@@ -1,5 +1,6 @@
 import type { Response } from 'undici';
 import retry from 'async-retry';
+import isNetworkError from 'is-network-error';
 import { debug } from './debug';
 import type {
   BlobCommandOptions,
@@ -273,8 +274,6 @@ export async function requestApi<TResponse>(
   }
 
   if (commandOptions?.onUploadProgress) {
-    // We run it asynchronously so failures in user code don't affect the request
-    // Unsure this is the best idea, if you think this is a problem, open an issue
     commandOptions.onUploadProgress({
       loaded: 0,
       total: bodyLength,
@@ -335,6 +334,10 @@ export async function requestApi<TResponse>(
         if (error instanceof DOMException && error.name === 'AbortError') {
           bail(new BlobRequestAbortedError());
           return;
+        }
+
+        if (isNetworkError(error)) {
+          throw error;
         }
 
         // In case of pure runtime/coding errors then we don't retry

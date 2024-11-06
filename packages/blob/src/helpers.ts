@@ -147,6 +147,7 @@ export const supportsRequestStreams = (() => {
     },
   }).headers.has('Content-Type');
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- could be false
   return duplexAccessed && !hasContentType;
 })();
 

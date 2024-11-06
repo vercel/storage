@@ -14,6 +14,7 @@ import {
   getTokenFromOptionsOrEnv,
 } from './helpers';
 import { blobRequest } from './request';
+import { DOMException } from './dom-exception';
 
 // maximum pathname length is:
 // 1024 (provider limit) - 26 chars (vercel  internal suffixes) - 31 chars (blob `-randomId` suffix) = 967
@@ -331,7 +332,7 @@ export async function requestApi<TResponse>(
         });
       } catch (error) {
         // if the request was aborted, don't retry
-        if (error instanceof Error && error.name === 'AbortError') {
+        if (error instanceof DOMException && error.name === 'AbortError') {
           bail(new BlobRequestAbortedError());
           return;
         }
@@ -409,16 +410,19 @@ function getProxyThroughAlternativeApiHeaderFromEnv(): {
   const extraHeaders: Record<string, string> = {};
 
   try {
-    if ('VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API' in process.env) {
-      extraHeaders['x-proxy-through-alternative-api'] =
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- we know it's here from the if
-        process.env.VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API!;
-    } else if (
-      'NEXT_PUBLIC_VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API' in process.env
+    if (
+      'VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API' in process.env &&
+      process.env.VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API !== undefined
     ) {
       extraHeaders['x-proxy-through-alternative-api'] =
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- we know it's here from the if
-        process.env.NEXT_PUBLIC_VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API!;
+        process.env.VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API;
+    } else if (
+      'NEXT_PUBLIC_VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API' in process.env &&
+      process.env.NEXT_PUBLIC_VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API !==
+        undefined
+    ) {
+      extraHeaders['x-proxy-through-alternative-api'] =
+        process.env.NEXT_PUBLIC_VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API;
     }
   } catch {
     // noop

@@ -10,10 +10,7 @@ import { toReadableStream } from './multipart/helpers';
 import type { PutBody } from './put-helpers';
 import { debug } from './debug';
 
-export const hasFetch =
-  typeof fetch === 'function' &&
-  typeof Request === 'function' &&
-  typeof Response === 'function';
+export const hasFetch = typeof fetch === 'function';
 
 export const hasFetchWithUploadProgress = hasFetch && supportsRequestStreams;
 

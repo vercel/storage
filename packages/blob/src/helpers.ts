@@ -128,26 +128,27 @@ export const disallowedPathnameCharacters = ['#', '?', '//'];
 // Microsoft Edge: implemented (Chromium)
 // Firefox: not implemented, BOO!! https://bugzilla.mozilla.org/show_bug.cgi?id=1469359
 // Safari: not implemented, BOO!! https://github.com/WebKit/standards-positions/issues/24
-export const supportsRequestStreams =
+export const supportsRequestStreams = (() => {
   // The next line is mostly for Node.js 16 to avoid trying to do new Request() as it's not supported
-  // We support Node.js 16 only for internal Vercel needs
-  isNodeProcess() ||
-  (() => {
-    let duplexAccessed = false;
+  // TODO: Can be removed when Node.js 16 is no more required internally
+  if (isNodeProcess()) {
+    return true;
+  }
 
-    const hasContentType = new Request(getApiUrl(), {
-      body: new ReadableStream(),
-      method: 'POST',
-      // @ts-expect-error -- TypeScript doesn't yet have duplex but it's in the spec: https://github.com/microsoft/TypeScript-DOM-lib-generator/pull/1729
-      get duplex() {
-        duplexAccessed = true;
-        return 'half';
-      },
-    }).headers.has('Content-Type');
+  let duplexAccessed = false;
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- duplexAccessed may be true here
-    return duplexAccessed && !hasContentType;
-  })();
+  const hasContentType = new Request(getApiUrl(), {
+    body: new ReadableStream(),
+    method: 'POST',
+    // @ts-expect-error -- TypeScript doesn't yet have duplex but it's in the spec: https://github.com/microsoft/TypeScript-DOM-lib-generator/pull/1729
+    get duplex() {
+      duplexAccessed = true;
+      return 'half';
+    },
+  }).headers.has('Content-Type');
+
+  return duplexAccessed && !hasContentType;
+})();
 
 export function getApiUrl(pathname = ''): string {
   let baseUrl = null;
@@ -231,7 +232,11 @@ export const createChunkTransformStream = (
 };
 
 export function isReadableStream(value: PutBody): value is ReadableStream {
-  return value instanceof ReadableStream;
+  return (
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Not present in Node.js 16
+    globalThis.ReadableStream && // TODO: Can be removed once Node.js 16 is no more required internally
+    value instanceof ReadableStream
+  );
 }
 
 export function isStream(value: PutBody): value is ReadableStream | Readable {

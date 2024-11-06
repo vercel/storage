@@ -65,8 +65,8 @@ export async function createMultipartUpload(
       (error.message === 'Failed to fetch' || error.message === 'fetch failed')
     ) {
       throw new BlobServiceNotAvailable();
-    } else {
-      throw error;
     }
+
+    throw error;
   }
 }

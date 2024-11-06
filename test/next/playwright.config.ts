@@ -70,6 +70,12 @@ const config: PlaywrightTestConfig = {
             ...devices['Desktop Safari'],
           },
         },
+        {
+          name: 'Desktop Edge',
+          use: {
+            ...devices['Desktop Edge'],
+          },
+        },
       ],
 };
 

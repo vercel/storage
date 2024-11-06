@@ -9,7 +9,12 @@ import type { CommonCreateBlobOptions } from './helpers';
 import { createCreateMultipartUploaderMethod } from './multipart/create-uploader';
 
 // expose generic BlobError and download url util
-export { BlobError, getDownloadUrl } from './helpers';
+export {
+  BlobError,
+  getDownloadUrl,
+  type OnUploadProgressCallback,
+  type UploadProgressEvent,
+} from './helpers';
 
 // expose api BlobErrors
 export {
@@ -39,7 +44,7 @@ export type { PutCommandOptions };
  * If you want to upload from the browser directly, check out the documentation forAclient uploads: https://vercel.com/docs/storage/vercel-blob/using-blob-sdk#client-uploads
  *
  * @param pathname - The pathname to upload the blob to, including the extension. This will influence the url of your blob like https://$storeId.public.blob.vercel-storage.com/$pathname.
- * @param body - The content of your blob, can be a: string, File, Blob, Buffer or Stream. We support everything fetch supports: https://developer.mozilla.org/en-US/docs/Web/API/RequestInit#body.
+ * @param body - The content of your blob, can be a: string, File, Blob, Buffer or Stream. We support almost everything fetch supports: https://developer.mozilla.org/en-US/docs/Web/API/RequestInit#body.
  * @param options - Additional options like `token` or `contentType`.
  */
 export const put = createPutMethod<PutCommandOptions>({
@@ -73,7 +78,7 @@ export { copy } from './copy';
 // vercelBlob. createMultipartUpload()
 // vercelBlob. uploadPart()
 // vercelBlob. completeMultipartUpload()
-// vercelBlob. createMultipartUploaded()
+// vercelBlob. createMultipartUploader()
 
 export const createMultipartUpload =
   createCreateMultipartUploadMethod<CommonCreateBlobOptions>({

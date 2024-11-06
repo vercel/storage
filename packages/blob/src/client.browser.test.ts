@@ -88,7 +88,6 @@ describe('client', () => {
         'https://blob.vercel-storage.com/foo.txt',
         {
           body: 'Test file data',
-          duplex: 'half',
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_123',
             'x-api-blob-request-attempt': '0',
@@ -232,7 +231,6 @@ describe('client', () => {
             'x-mpu-part-number': '1',
           },
           method: 'POST',
-          duplex: 'half',
           signal: internalAbortSignal,
         },
       );
@@ -252,7 +250,6 @@ describe('client', () => {
             'x-mpu-part-number': '2',
           },
           method: 'POST',
-          duplex: 'half',
           signal: internalAbortSignal,
         },
       );
@@ -376,7 +373,6 @@ describe('client', () => {
             'x-mpu-part-number': '1',
           },
           method: 'POST',
-          duplex: 'half',
           signal: internalAbortSignal,
         },
       );
@@ -396,7 +392,6 @@ describe('client', () => {
             'x-mpu-part-number': '2',
           },
           method: 'POST',
-          duplex: 'half',
           signal: internalAbortSignal,
         },
       );

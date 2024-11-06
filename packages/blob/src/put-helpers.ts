@@ -1,5 +1,9 @@
 // eslint-disable-next-line unicorn/prefer-node-protocol -- node:stream does not resolve correctly in browser and edge
 import type { Readable } from 'stream';
+// We use the undici types to ensure TS doesn't complain about native types (like ReadableStream) vs
+// undici types fetch expects (like Blob is from node:buffer..)
+// import type { Blob } from 'node:buffer';
+import type { File } from 'undici';
 import type { ClientCommonCreateBlobOptions } from './client';
 import type { CommonCreateBlobOptions } from './helpers';
 import { BlobError, disallowedPathnameCharacters } from './helpers';

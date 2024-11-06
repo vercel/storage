@@ -3,7 +3,7 @@
 // Run from the current directory, with:
 // npx tsx -r dotenv/config script.mts dotenv_config_path=.env.local
 
-import { createReadStream } from 'node:fs';
+import { createReadStream, readFile, readFileSync } from 'node:fs';
 import type { IncomingMessage } from 'node:http';
 import https from 'node:https';
 import { fetch } from 'undici';
@@ -22,22 +22,28 @@ async function run(): Promise<void> {
     textFileNoRandomSuffixExample(),
     textFileExampleWithCacheControlMaxAge(),
     imageExample(),
-    videoExample(),
+    imageBufferExample(),
     webpageExample(),
-    incomingMessageExample(),
-    axiosExample(),
-    gotExample(),
-    fetchExample(),
     noExtensionExample(),
     weirdCharactersExample(),
     copyTextFile(),
     listFolders(),
     multipartNodeJsFileStream(),
-    fetchExampleMultipart(),
+    bigVideoAsBuffer(),
     createFolder(),
     manualMultipartUpload(),
     manualMultipartUploader(),
     cancelPut(),
+
+    // The following stream examples will fail when targeting the local api-blob because the server doesn't buffer
+    // the request body, so we have no idea of the size of the file we need to put in S3
+    // When the api-blob is served by Vercel, then we're buffering the body by default
+    videoStreamExample(),
+    incomingMessageExample(),
+    axiosExample(),
+    gotExample(),
+    fetchExample(),
+    fetchExampleMultipart(),
   ]);
 
   // multipart uploads are frequently not immediately available so we have to wait a bit
@@ -75,8 +81,11 @@ async function run(): Promise<void> {
 
 async function textFileExample(): Promise<string> {
   const start = Date.now();
-  const blob = await vercelBlob.put('folderé/test.txt', 'Hello, world!', {
+  const blob = await vercelBlob.put('folderé/test.txt', 'Hello, world!é', {
     access: 'public',
+    onUploadProgress(progressEvent) {
+      console.log(progressEvent.percentage);
+    },
   });
   console.log('Text file example:', blob.url, `(${Date.now() - start}ms)`);
   return blob.url;
@@ -110,11 +119,11 @@ async function imageExample(): Promise<string> {
   const start = Date.now();
   const pathname = 'zeit.png';
   const fullPath = `public/${pathname}`;
-  const stream = createReadStream(fullPath);
+  const stream = readFileSync(fullPath);
 
-  stream.once('error', (error) => {
-    throw error;
-  });
+  // stream.once('error', (error) => {
+  //   throw error;
+  // });
 
   const blob = await vercelBlob.put(pathname, stream, {
     access: 'public',
@@ -124,22 +133,42 @@ async function imageExample(): Promise<string> {
   return blob.url;
 }
 
-async function videoExample(): Promise<string> {
+async function imageBufferExample(): Promise<string> {
   const start = Date.now();
-  const pathname = 'small-video.mp4';
+  const pathname = 'zeit.png';
   const fullPath = `public/${pathname}`;
-  const stream = createReadStream(fullPath);
+  const file = readFileSync(fullPath);
 
-  stream.once('error', (error) => {
-    throw error;
-  });
-
-  const blob = await vercelBlob.put(pathname, createReadStream(fullPath), {
+  const blob = await vercelBlob.put(pathname, file, {
     access: 'public',
   });
 
-  console.log('Video example:', blob.url, `(${Date.now() - start}ms)`);
+  console.log('Image example:', blob.url, `(${Date.now() - start}ms)`);
   return blob.url;
+}
+
+// ⚠️ it will fail locally as it would require buffering the request
+async function videoStreamExample(): Promise<string> {
+  try {
+    const start = Date.now();
+    const pathname = 'small-video.mp4';
+    const fullPath = `public/${pathname}`;
+    const stream = createReadStream(fullPath);
+
+    stream.once('error', (error) => {
+      throw error;
+    });
+
+    const blob = await vercelBlob.put(pathname, createReadStream(fullPath), {
+      access: 'public',
+    });
+
+    console.log('Video example:', blob.url, `(${Date.now() - start}ms)`);
+    return blob.url;
+  } catch (error) {
+    console.error('videoExample', error);
+    return '';
+  }
 }
 
 async function webpageExample(): Promise<string> {
@@ -157,82 +186,106 @@ async function webpageExample(): Promise<string> {
 }
 
 // this example streams the response from a remote server to the blob store
+// ⚠️ it will fail locally as it would require buffering the request
 async function incomingMessageExample(): Promise<string> {
-  const start = Date.now();
+  try {
+    const start = Date.now();
 
-  const incomingMessage: IncomingMessage = await new Promise((resolve) => {
-    https.get(
-      'https://example-files.online-convert.com/video/mp4/example.mp4',
-      resolve,
+    const incomingMessage: IncomingMessage = await new Promise((resolve) => {
+      https.get(
+        'https://example-files.online-convert.com/video/mp4/example.mp4',
+        resolve,
+      );
+    });
+
+    const blob = await vercelBlob.put('example.mp4', incomingMessage, {
+      access: 'public',
+    });
+
+    console.log(
+      'incomingMessage example:',
+      blob.url,
+      `(${Date.now() - start}ms)`,
     );
-  });
-
-  const blob = await vercelBlob.put('example.mp4', incomingMessage, {
-    access: 'public',
-  });
-
-  console.log(
-    'incomingMessage example:',
-    blob.url,
-    `(${Date.now() - start}ms)`,
-  );
-  return blob.url;
+    return blob.url;
+  } catch (error) {
+    console.error('incomingMessageExample', error);
+    return '';
+  }
 }
 
+// ⚠️ it will fail locally as it would require buffering the request
 async function axiosExample(): Promise<string> {
-  const start = Date.now();
+  try {
+    const start = Date.now();
 
-  const response = await axios.get(
-    'https://example-files.online-convert.com/video/mp4/example_2s.mp4',
-    {
-      responseType: 'stream',
-    },
-  );
+    const response = await axios.get(
+      'https://example-files.online-convert.com/video/mp4/example_2s.mp4',
+      {
+        responseType: 'stream',
+      },
+    );
 
-  const blob = await vercelBlob.put(
-    'example_2s.mp4',
-    response.data as IncomingMessage,
-    {
-      access: 'public',
-    },
-  );
+    const blob = await vercelBlob.put(
+      'example_2s.mp4',
+      response.data as IncomingMessage,
+      {
+        access: 'public',
+      },
+    );
 
-  console.log('axios example:', blob.url, `(${Date.now() - start}ms)`);
-  return blob.url;
+    console.log('axios example:', blob.url, `(${Date.now() - start}ms)`);
+    return blob.url;
+  } catch (error) {
+    console.error('axiosExample', error);
+    return '';
+  }
 }
 
+// ⚠️ it will fail locally as it would require buffering the request
 async function gotExample(): Promise<string> {
-  const start = Date.now();
+  try {
+    const start = Date.now();
 
-  const request = got.stream(
-    'https://example-files.online-convert.com/video/mp4/example_2s.mp4',
-  );
+    const request = got.stream(
+      'https://example-files.online-convert.com/video/mp4/example_2s.mp4',
+    );
 
-  const blob = await vercelBlob.put('example_2s.mp4', request, {
-    access: 'public',
-  });
+    const blob = await vercelBlob.put('example_2s.mp4', request, {
+      access: 'public',
+    });
 
-  console.log('got example:', blob.url, `(${Date.now() - start}ms)`);
-  return blob.url;
+    console.log('got example:', blob.url, `(${Date.now() - start}ms)`);
+    return blob.url;
+  } catch (error) {
+    console.error('gotExample', error);
+    return '';
+  }
 }
 
+// ⚠️ it will fail locally as it would require buffering the request
 async function fetchExample(): Promise<string> {
-  const start = Date.now();
+  try {
+    const start = Date.now();
 
-  const response = await fetch(
-    'https://example-files.online-convert.com/video/mp4/example_2s.mp4',
-  );
+    const response = await fetch(
+      'https://example-files.online-convert.com/video/mp4/example_2s.mp4',
+    );
 
-  const blob = await vercelBlob.put(
-    'example_2s.mp4',
-    response.body as ReadableStream,
-    {
-      access: 'public',
-    },
-  );
+    const blob = await vercelBlob.put(
+      'example_2s.mp4',
+      response.body as ReadableStream,
+      {
+        access: 'public',
+      },
+    );
 
-  console.log('fetch example:', blob.url, `(${Date.now() - start}ms)`);
-  return blob.url;
+    console.log('fetch example:', blob.url, `(${Date.now() - start}ms)`);
+    return blob.url;
+  } catch (error) {
+    console.error('fetchExample', error);
+    return '';
+  }
 }
 
 run().catch((err) => {
@@ -324,14 +377,36 @@ async function multipartNodeJsFileStream() {
 
   const start = Date.now();
 
-  // testing with an accent
-  const blob = await vercelBlob.put(`éllo/${pathname}`, stream, {
+  const blob = await vercelBlob.put(pathname, stream, {
     access: 'public',
     multipart: true,
   });
 
   console.log(
     'Node.js multipart file stream example:',
+    blob.url,
+    `(${Date.now() - start}ms)`,
+  );
+
+  return blob.url;
+}
+
+async function bigVideoAsBuffer() {
+  const pathname = 'big-video.mp4';
+  const fullPath = `public/${pathname}`;
+  const buffer = readFileSync(fullPath);
+
+  const start = Date.now();
+
+  const blob = await vercelBlob.put(pathname, buffer, {
+    access: 'public',
+    onUploadProgress(progressEvent) {
+      console.log(`upload progress ${progressEvent.percentage}%`);
+    },
+  });
+
+  console.log(
+    'Node.js big video buffer example:',
     blob.url,
     `(${Date.now() - start}ms)`,
   );
@@ -379,9 +454,9 @@ async function manualMultipartUploader() {
     access: 'public',
   });
 
-  const part1 = await uploader.uploadPart(1, createReadStream(localPath));
+  const part1 = await uploader.uploadPart(1, readFileSync(localPath));
 
-  const part2 = await uploader.uploadPart(2, createReadStream(localPath));
+  const part2 = await uploader.uploadPart(2, readFileSync(localPath));
 
   const blob = await uploader.complete([part1, part2]);
 
@@ -404,17 +479,19 @@ async function manualMultipartUpload() {
     access: 'public',
   });
 
-  const part1 = await vercelBlob.uploadPart(
-    pathname,
-    createReadStream(localPath),
-    { access: 'public', key, uploadId, partNumber: 1 },
-  );
+  const part1 = await vercelBlob.uploadPart(pathname, readFileSync(localPath), {
+    access: 'public',
+    key,
+    uploadId,
+    partNumber: 1,
+  });
 
-  const part2 = await vercelBlob.uploadPart(
-    pathname,
-    createReadStream(localPath),
-    { access: 'public', key, uploadId, partNumber: 2 },
-  );
+  const part2 = await vercelBlob.uploadPart(pathname, readFileSync(localPath), {
+    access: 'public',
+    key,
+    uploadId,
+    partNumber: 2,
+  });
 
   const blob = await vercelBlob.completeMultipartUpload(
     pathname,

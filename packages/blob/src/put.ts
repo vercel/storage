@@ -1,6 +1,6 @@
-import type { BodyInit } from 'undici';
+import throttle from 'throttleit';
 import { requestApi } from './api';
-import type { CommonCreateBlobOptions } from './helpers';
+import type { CommonCreateBlobOptions, WithUploadProgress } from './helpers';
 import { BlobError, isPlainObject } from './helpers';
 import { uncontrolledMultipartUpload } from './multipart/uncontrolled';
 import type {
@@ -11,7 +11,9 @@ import type {
 } from './put-helpers';
 import { createPutOptions, createPutHeaders } from './put-helpers';
 
-export interface PutCommandOptions extends CommonCreateBlobOptions {
+export interface PutCommandOptions
+  extends CommonCreateBlobOptions,
+    WithUploadProgress {
   /**
    * Whether to use multipart upload. Use this when uploading large files. It will split the file into multiple parts, upload them in parallel and retry failed parts.
    * @defaultvalue false
@@ -52,19 +54,22 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
       return uncontrolledMultipartUpload(pathname, body, headers, options);
     }
 
+    const onUploadProgress = options.onUploadProgress
+      ? throttle(options.onUploadProgress, 100)
+      : undefined;
+
     const response = await requestApi<PutBlobApiResponse>(
       `/${pathname}`,
       {
         method: 'PUT',
-        body: body as BodyInit,
+        body,
         headers,
-        // required in order to stream some body types to Cloudflare
-        // currently only supported in Node.js, we may have to feature detect this
-        // note: this doesn't send a content-length to the server
-        duplex: 'half',
         signal: options.abortSignal,
       },
-      options,
+      {
+        ...options,
+        onUploadProgress,
+      },
     );
 
     return {

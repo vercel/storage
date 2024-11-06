@@ -331,7 +331,7 @@ export async function requestApi<TResponse>(
         });
       } catch (error) {
         // if the request was aborted, don't retry
-        if (error instanceof DOMException && error.name === 'AbortError') {
+        if (error instanceof Error && error.name === 'AbortError') {
           bail(new BlobRequestAbortedError());
           return;
         }

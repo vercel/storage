@@ -1,7 +1,7 @@
 import fetchMock from 'jest-fetch-mock';
 import { version as pkgVersion } from '../package.json';
 import { cache } from './utils/fetch-with-cached-response';
-import { get, has, digest, getAll } from './index';
+import { get, has, digest, getAll, createClient } from './index';
 
 const sdkVersion = typeof pkgVersion === 'string' ? pkgVersion : '';
 const baseUrl = 'https://edge-config.vercel.com/ecfg-1';
@@ -217,6 +217,21 @@ describe('default Edge Config', () => {
             cache: 'no-store',
           },
         );
+      });
+    });
+
+    describe('when called with an empty string key', () => {
+      it('should return the selected items', async () => {
+        await expect(getAll([''])).resolves.toEqual({});
+        expect(fetchMock).toHaveBeenCalledTimes(0);
+      });
+    });
+
+    describe('when called with an empty string key mix', () => {
+      it('should return the selected items', async () => {
+        fetchMock.mockResponse(JSON.stringify({ foo: 'foo1' }));
+        await expect(getAll(['foo', ''])).resolves.toEqual({ foo: 'foo1' });
+        expect(fetchMock).toHaveBeenCalledTimes(1);
       });
     });
 
@@ -464,6 +479,35 @@ describe('default Edge Config', () => {
           }),
           cache: 'no-store',
         });
+      });
+    });
+  });
+});
+
+describe('createClient', () => {
+  beforeEach(() => {
+    fetchMock.resetMocks();
+    cache.clear();
+  });
+
+  describe('when the request succeeds', () => {
+    it('should respect the fetch cache option', async () => {
+      fetchMock.mockResponse(JSON.stringify('awe1'));
+
+      const edgeConfig = createClient(process.env.EDGE_CONFIG, {
+        cache: 'force-cache',
+      });
+
+      await expect(edgeConfig.get('foo')).resolves.toEqual('awe1');
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo?version=1`, {
+        headers: new Headers({
+          Authorization: 'Bearer token-1',
+          'x-edge-config-vercel-env': 'test',
+          'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+        }),
+        cache: 'force-cache',
       });
     });
   });

@@ -1,5 +1,23 @@
 # @vercel/postgres-kysely
 
+## 0.10.0
+
+### Minor Changes
+
+- a2a4757: Removes utf-8-validate dependency and sets minimum Node.js version to 18.14
+
+### Patch Changes
+
+- Updated dependencies [a2a4757]
+  - @vercel/postgres@0.10.0
+
+## 0.9.0
+
+### Patch Changes
+
+- Updated dependencies [30fe8d0]
+  - @vercel/postgres@0.9.0
+
 ## 0.8.0
 
 ### Patch Changes

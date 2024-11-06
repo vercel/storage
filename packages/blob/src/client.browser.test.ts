@@ -5,9 +5,12 @@ import {
   uploadPart,
   upload,
   createMultipartUploader,
+  put,
 } from './client';
 
 describe('client', () => {
+  let requestId = '';
+
   beforeEach(() => {
     process.env.BLOB_READ_WRITE_TOKEN =
       'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
@@ -18,6 +21,13 @@ describe('client', () => {
     jest.restoreAllMocks();
 
     jest.clearAllMocks();
+
+    jest.spyOn(global.Math, 'random').mockReturnValue(Math.random());
+    requestId = Math.random().toString(16).slice(2);
+  });
+
+  afterEach(() => {
+    jest.spyOn(global.Math, 'random').mockRestore();
   });
 
   describe('upload()', () => {
@@ -31,7 +41,7 @@ describe('client', () => {
             json: () =>
               Promise.resolve({
                 type: 'blob.generate-client-token',
-                clientToken: 'fake-token-for-test',
+                clientToken: 'vercel_blob_client_fake_123',
               }),
           })
           .mockResolvedValueOnce({
@@ -80,7 +90,9 @@ describe('client', () => {
           body: 'Test file data',
           duplex: 'half',
           headers: {
-            authorization: 'Bearer fake-token-for-test',
+            authorization: 'Bearer vercel_blob_client_fake_123',
+            'x-api-blob-request-attempt': '0',
+            'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
             'x-api-version': '7',
           },
           method: 'PUT',
@@ -96,6 +108,14 @@ describe('client', () => {
 
       jest.resetAllMocks();
       jest.restoreAllMocks();
+
+      // freeze Math.random
+      jest.spyOn(global.Math, 'random').mockReturnValue(Math.random());
+      requestId = Math.random().toString(16).slice(2);
+    });
+
+    afterEach(() => {
+      jest.spyOn(global.Math, 'random').mockRestore();
     });
 
     it('should upload a file using the manual functions', async () => {
@@ -186,6 +206,8 @@ describe('client', () => {
         {
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
+            'x-api-blob-request-attempt': '0',
+            'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
             'x-api-version': '7',
             'x-mpu-action': 'create',
           },
@@ -201,6 +223,8 @@ describe('client', () => {
           body: 'data1',
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
+            'x-api-blob-request-attempt': '0',
+            'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
             'x-api-version': '7',
             'x-mpu-action': 'upload',
             'x-mpu-key': 'key',
@@ -219,6 +243,8 @@ describe('client', () => {
           body: 'data2',
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
+            'x-api-blob-request-attempt': '0',
+            'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
             'x-api-version': '7',
             'x-mpu-action': 'upload',
             'x-mpu-key': 'key',
@@ -241,6 +267,8 @@ describe('client', () => {
           headers: {
             'content-type': 'application/json',
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
+            'x-api-blob-request-attempt': '0',
+            'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
             'x-api-version': '7',
             'x-mpu-action': 'complete',
             'x-mpu-key': 'key',
@@ -322,6 +350,8 @@ describe('client', () => {
         {
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
+            'x-api-blob-request-attempt': '0',
+            'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
             'x-api-version': '7',
             'x-mpu-action': 'create',
           },
@@ -337,6 +367,8 @@ describe('client', () => {
           body: 'data1',
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
+            'x-api-blob-request-attempt': '0',
+            'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
             'x-api-version': '7',
             'x-mpu-action': 'upload',
             'x-mpu-key': 'key',
@@ -355,6 +387,8 @@ describe('client', () => {
           body: 'data2',
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
+            'x-api-blob-request-attempt': '0',
+            'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
             'x-api-version': '7',
             'x-mpu-action': 'upload',
             'x-mpu-key': 'key',
@@ -377,6 +411,8 @@ describe('client', () => {
           headers: {
             'content-type': 'application/json',
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
+            'x-api-blob-request-attempt': '0',
+            'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
             'x-api-version': '7',
             'x-mpu-action': 'complete',
             'x-mpu-key': 'key',
@@ -385,6 +421,98 @@ describe('client', () => {
           method: 'POST',
           signal: undefined,
         },
+      );
+    });
+
+    it('should reject incorrect body in uploader.uploadPart()', async () => {
+      // Mock the createMultipartUploader to return a minimal uploader object
+      jest.spyOn(undici, 'fetch').mockImplementation(
+        jest.fn().mockResolvedValueOnce({
+          status: 200,
+          ok: true,
+          json: () => Promise.resolve({ key: 'key', uploadId: 'uploadId' }),
+        }),
+      );
+
+      const uploader = await createMultipartUploader('foo.txt', {
+        access: 'public',
+        token: 'vercel_blob_client_fake_token_for_test',
+      });
+
+      await expect(() =>
+        // @ts-expect-error: Runtime check for DX
+        uploader.uploadPart(1, { file: 'value' }),
+      ).rejects.toThrow(
+        new Error(
+          "Vercel Blob: Body must be a string, buffer or stream. You sent a plain JavaScript object, double check what you're trying to upload.",
+        ),
+      );
+    });
+  });
+
+  describe('rejects when body is incorrect', () => {
+    type TestCase = [string, () => Promise<unknown>];
+
+    const testCases: TestCase[] = [
+      [
+        'put()',
+        () =>
+          put(
+            'foo.txt',
+            // @ts-expect-error: Runtime check for DX
+            { file: 'value' },
+            { access: 'public' },
+          ),
+      ],
+      [
+        'multipart put()',
+        () =>
+          put(
+            'foo.txt',
+            // @ts-expect-error: Runtime check for DX
+            { file: 'value' },
+            {
+              access: 'public',
+              multipart: true,
+            },
+          ),
+      ],
+      [
+        'upload()',
+        () =>
+          upload(
+            'foo.txt',
+            // @ts-expect-error: Runtime check for DX
+            { file: 'value' },
+            {
+              access: 'public',
+              handleUploadUrl: '/api/upload',
+            },
+          ),
+      ],
+      [
+        'uploadPart()',
+        () =>
+          uploadPart(
+            'foo.txt',
+            // @ts-expect-error: Runtime check for DX
+            { file: 'value' },
+            {
+              access: 'public',
+              key: 'foo.txt',
+              uploadId: '1',
+              partNumber: 1,
+              token: 'vercel_blob_client_fake_123',
+            },
+          ),
+      ],
+    ];
+
+    it.each(testCases)('on %s', async (_, operation) => {
+      await expect(operation).rejects.toThrow(
+        new Error(
+          "Vercel Blob: Body must be a string, buffer or stream. You sent a plain JavaScript object, double check what you're trying to upload.",
+        ),
       );
     });
   });

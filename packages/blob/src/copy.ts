@@ -1,6 +1,6 @@
-import { requestApi } from './api';
+import { MAXIMUM_PATHNAME_LENGTH, requestApi } from './api';
 import type { CommonCreateBlobOptions } from './helpers';
-import { BlobError } from './helpers';
+import { BlobError, disallowedPathnameCharacters } from './helpers';
 
 export type CopyCommandOptions = CommonCreateBlobOptions;
 
@@ -33,6 +33,20 @@ export async function copy(
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX.
   if (options.access !== 'public') {
     throw new BlobError('access must be "public"');
+  }
+
+  if (toPathname.length > MAXIMUM_PATHNAME_LENGTH) {
+    throw new BlobError(
+      `pathname is too long, maximum length is ${MAXIMUM_PATHNAME_LENGTH}`,
+    );
+  }
+
+  for (const invalidCharacter of disallowedPathnameCharacters) {
+    if (toPathname.includes(invalidCharacter)) {
+      throw new BlobError(
+        `pathname cannot contain "${invalidCharacter}", please encode it if needed`,
+      );
+    }
   }
 
   const headers: Record<string, string> = {};

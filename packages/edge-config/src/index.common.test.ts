@@ -76,6 +76,38 @@ describe('parseConnectionString', () => {
       version: '1',
     });
   });
+
+  it('should return a valid connection for an `edgd-config:` connection string', () => {
+    expect(
+      pkg.parseConnectionString(
+        'edge-config:id=ecfg_cljia81u2q1gappdgptj881dwwtc&token=00000000-0000-0000-0000-000000000000',
+      ),
+    ).toEqual({
+      baseUrl:
+        'https://edge-config.vercel.com/ecfg_cljia81u2q1gappdgptj881dwwtc',
+      id: 'ecfg_cljia81u2q1gappdgptj881dwwtc',
+      token: '00000000-0000-0000-0000-000000000000',
+      type: 'vercel',
+      version: '1',
+    });
+  });
+
+  it('should return null for an invalid `edge-config:` connection string', () => {
+    expect(pkg.parseConnectionString('edge-config:token=abd&id=')).toEqual(
+      null,
+    );
+    expect(
+      pkg.parseConnectionString(
+        'edge-config:ecfg_cljia81u2q1gappdgptj881dwwtc',
+      ),
+    ).toEqual(null);
+    expect(
+      pkg.parseConnectionString(
+        'edge-config:id=ecfg_cljia81u2q1gappdgptj881dwwtc',
+      ),
+    ).toEqual(null);
+    expect(pkg.parseConnectionString('edge-config:invalid')).toEqual(null);
+  });
 });
 
 describe('when running without lambda layer or via edge function', () => {
@@ -124,6 +156,12 @@ describe('when running without lambda layer or via edge function', () => {
         );
       });
     });
+    describe('attempting to read an empty key', () => {
+      it('should return undefined', async () => {
+        await expect(edgeConfig.get('')).resolves.toBe(undefined);
+        expect(fetchMock).toHaveBeenCalledTimes(0);
+      });
+    });
   });
 
   describe('has(key)', () => {
@@ -147,6 +185,12 @@ describe('when running without lambda layer or via edge function', () => {
             cache: 'no-store',
           },
         );
+      });
+    });
+    describe('attempting to read an empty key', () => {
+      it('should return false', async () => {
+        await expect(edgeConfig.has('')).resolves.toBe(false);
+        expect(fetchMock).toHaveBeenCalledTimes(0);
       });
     });
   });

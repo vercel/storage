@@ -1,6 +1,6 @@
 import defaultKv, { kv, VercelKV, createClient } from '.';
 
-let scanReturnValues: [number, string[]][] = [[0, []]];
+let scanReturnValues: [string, string[]][] = [['0', []]];
 jest.mock('@upstash/redis', () => ({
   Redis: jest.fn(() => ({
     get: jest.fn().mockResolvedValue('bar'),
@@ -14,7 +14,7 @@ jest.mock('@upstash/redis', () => ({
 
 describe('@vercel/kv', () => {
   beforeEach(() => {
-    scanReturnValues = [[0, []]];
+    scanReturnValues = [['0', []]];
     jest.clearAllMocks();
   });
 
@@ -78,9 +78,9 @@ describe('@vercel/kv', () => {
 
     it('supports iteration', async () => {
       scanReturnValues = [
-        [2, ['1', '2']],
-        [4, ['3', '4']],
-        [0, []],
+        ['2', ['1', '2']],
+        ['4', ['3', '4']],
+        ['0', []],
       ];
       const client = createClient({ url: 'foobar', token: 'foobar' });
       const returnedKeys: string[] = [];

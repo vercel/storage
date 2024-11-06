@@ -237,6 +237,21 @@ describe('default Edge Config', () => {
       });
     });
 
+    describe('when called with an empty string key', () => {
+      it('should return the selected items', async () => {
+        await expect(getAll([''])).resolves.toEqual({});
+        expect(fetchMock).toHaveBeenCalledTimes(0);
+      });
+    });
+
+    describe('when called with an empty string key mix', () => {
+      it('should return the selected items', async () => {
+        fetchMock.mockResponse(JSON.stringify({ foo: 'foo1' }));
+        await expect(getAll(['foo', ''])).resolves.toEqual({ foo: 'foo1' });
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+      });
+    });
+
     describe('when the edge config does not exist', () => {
       it('should throw', async () => {
         fetchMock.mockResponse(
@@ -569,6 +584,37 @@ describe('createClient', () => {
           'utf-8',
         );
       });
+    });
+  });
+
+  describe('fetch cache', () => {
+    it('should respect the fetch cache option', async () => {
+      fetchMock.mockResponse(JSON.stringify('bar2'));
+      const edgeConfig = createClient(process.env.EDGE_CONFIG, {
+        cache: 'force-cache',
+      });
+      await expect(edgeConfig.get('foo')).resolves.toEqual('bar2');
+
+      // returns undefined as file does not exist
+      expect(readFile).toHaveBeenCalledTimes(1);
+      expect(readFile).toHaveBeenCalledWith(
+        '/opt/edge-config/ecfg-1.json',
+        'utf-8',
+      );
+
+      // ensure fetch was called with the right options
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://edge-config.vercel.com/ecfg-1/item/foo?version=1',
+        {
+          cache: 'force-cache',
+          headers: new Headers({
+            Authorization: 'Bearer token-1',
+            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'x-edge-config-vercel-env': 'test',
+          }),
+        },
+      );
     });
   });
 });

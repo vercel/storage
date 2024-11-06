@@ -1,6 +1,6 @@
 {
   "name": "@vercel/blob",
-  "version": "0.23.2",
+  "version": "0.25.1",
   "description": "The Vercel Blob JavaScript API client",
   "homepage": "https://vercel.com/storage/blob",
   "repository": {
@@ -75,15 +75,15 @@
     "@edge-runtime/types": "2.2.9",
     "@types/async-retry": "1.4.8",
     "@types/bytes": "3.1.4",
-    "@types/jest": "29.5.12",
-    "@types/node": "20.11.19",
+    "@types/jest": "29.5.13",
+    "@types/node": "22.7.3",
     "eslint": "8.56.0",
     "eslint-config-custom": "workspace:*",
     "jest": "29.7.0",
     "jest-environment-jsdom": "29.7.0",
-    "ts-jest": "29.1.2",
+    "ts-jest": "29.2.5",
     "tsconfig": "workspace:*",
-    "tsup": "8.0.2"
+    "tsup": "8.3.0"
   },
   "engines": {
     "node": ">=16.14"

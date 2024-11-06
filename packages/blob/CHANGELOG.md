@@ -1,5 +1,30 @@
 # @vercel/blob
 
+## 0.26.0
+
+### Minor Changes
+
+- c3afec3: Add onUploadProgress feature to put/upload
+
+  You can now track the upload progress in Node.js and all major browsers when
+  using put/upload in multipart, non-multipart and client upload modes. Basically
+  anywhere in our API you can upload a file, then you can follow the upload
+  progress.
+
+  Here's a basic usage example:
+
+  ```
+  const blob = await put('big-file.pdf', file, {
+    access: 'public',
+    onUploadProgress(event) {
+      console.log(event.loaded, event.total, event.percentage);
+    }
+  });
+  ```
+
+  Fixes #543
+  Fixes #642
+
 ## 0.25.1
 
 ### Patch Changes

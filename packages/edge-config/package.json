@@ -47,8 +47,8 @@
     "@changesets/cli": "2.27.9",
     "@edge-runtime/jest-environment": "2.3.10",
     "@edge-runtime/types": "2.2.9",
-    "@types/jest": "29.5.13",
-    "@types/node": "22.7.3",
+    "@types/jest": "29.5.14",
+    "@types/node": "22.9.0",
     "eslint": "8.56.0",
     "eslint-config-custom": "workspace:*",
     "jest": "29.7.0",
@@ -57,8 +57,8 @@
     "prettier": "3.3.3",
     "ts-jest": "29.2.5",
     "tsconfig": "workspace:*",
-    "tsup": "8.3.0",
-    "typescript": "5.6.2"
+    "tsup": "8.3.5",
+    "typescript": "5.6.3"
   },
   "peerDependencies": {
     "@opentelemetry/api": "^1.7.0"

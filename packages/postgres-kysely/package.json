@@ -50,7 +50,7 @@
     "@changesets/cli": "2.27.9",
     "@edge-runtime/jest-environment": "2.3.10",
     "@edge-runtime/types": "2.2.9",
-    "@neondatabase/serverless": "0.10.2",
+    "@neondatabase/serverless": "0.10.4",
     "@types/jest": "29.5.14",
     "@types/node": "22.9.0",
     "@types/ws": "8.5.13",

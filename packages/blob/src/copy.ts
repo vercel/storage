@@ -8,7 +8,7 @@ export interface CopyBlobResult {
   url: string;
   downloadUrl: string;
   pathname: string;
-  contentType?: string;
+  contentType: string;
   contentDisposition: string;
 }
 

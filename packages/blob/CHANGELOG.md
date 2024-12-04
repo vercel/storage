@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.27.0
+
+### Minor Changes
+
+- 7872e61: contentType default is now 'application/octet-stream' instead of `undefined`
+
 ## 0.26.0
 
 ### Minor Changes

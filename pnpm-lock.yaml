@@ -76,8 +76,8 @@ importers:
         specifier: 1.4.9
         version: 1.4.9
       '@types/bytes':
-        specifier: 3.1.4
-        version: 3.1.4
+        specifier: 3.1.5
+        version: 3.1.5
       '@types/jest':
         specifier: 29.5.14
         version: 29.5.14
@@ -1380,8 +1380,8 @@ packages:
   '@types/babel__traverse@7.18.5':
     resolution: {integrity: sha512-enCvTL8m/EHS/zIvJno9nE+ndYPh1/oNFzRYRmtUqJICG2VnCSBzMLW5VN2KCQU91f23tsNKR8v7VJJQMatl7Q==}
 
-  '@types/bytes@3.1.4':
-    resolution: {integrity: sha512-A0uYgOj3zNc4hNjHc5lYUfJQ/HVyBXiUMKdXd7ysclaE6k9oJdavQzODHuwjpUu2/boCP8afjQYi8z/GtvNCWA==}
+  '@types/bytes@3.1.5':
+    resolution: {integrity: sha512-VgZkrJckypj85YxEsEavcMmmSOIzkUHqWmM4CCyia5dc54YwsXzJ5uT4fYxBQNEXx+oF1krlhgCbvfubXqZYsQ==}
 
   '@types/estree@1.0.6':
     resolution: {integrity: sha512-AYnb1nQyY49te+VRAVgmzfcgjYS91mY5P0TKUDCLEM+gNnA+3T6rWITXRLYCpahpqSQbN5cE+gHpnPyXjHWxcw==}
@@ -5985,7 +5985,7 @@ snapshots:
     dependencies:
       '@babel/types': 7.23.9
 
-  '@types/bytes@3.1.4': {}
+  '@types/bytes@3.1.5': {}
 
   '@types/estree@1.0.6': {}
 

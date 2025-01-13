@@ -12,6 +12,7 @@ module.exports = {
   },
   rules: {
     'no-console': 'off',
+    '@typescript-eslint/no-non-null-assertion': 'off',
   },
   overrides: [
     {

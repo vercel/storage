@@ -39,7 +39,7 @@
     "undici": "6.20.1"
   },
   "devDependencies": {
-    "@playwright/test": "1.48.2",
+    "@playwright/test": "1.49.1",
     "@types/json-stable-stringify": "1.1.0",
     "json-stable-stringify": "1.1.1"
   }

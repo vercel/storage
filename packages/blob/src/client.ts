@@ -412,6 +412,9 @@ async function retrieveClientToken(options: {
     ? handleUploadUrl
     : toAbsoluteUrl(handleUploadUrl);
 
+  console.log('location.href', location.href);
+  console.log('url', url);
+
   const event: GenerateClientTokenEvent = {
     type: EventTypes.generateClientToken,
     payload: {

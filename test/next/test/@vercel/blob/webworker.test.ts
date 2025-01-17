@@ -9,7 +9,7 @@ test('web worker upload', async ({ browser }) => {
   await browserContext.addCookies([
     {
       name: 'clientUpload',
-      value: process.env.BLOB_UPLOAD_SECRET ?? '',
+      value: process.env.BLOB_UPLOAD_SECRET ?? 'YOYOYOYO',
       path: '/',
       domain: (process.env.PLAYWRIGHT_TEST_BASE_URL ?? 'localhost').replace(
         'https://',

@@ -43,6 +43,10 @@ export default function Home(): JSX.Element {
           Client Upload → <a href="/vercel/blob/app/client">/app/client</a>
         </li>
         <li>
+          Client Upload in a Web Worker →{' '}
+          <a href="/vercel/blob/app/client-webworker">/app/client-webworker</a>
+        </li>
+        <li>
           Client Upload (multipart) →{' '}
           <a href="/vercel/blob/app/client-multipart">/app/client-multipart</a>
         </li>

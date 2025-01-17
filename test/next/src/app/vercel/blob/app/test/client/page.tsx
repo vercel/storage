@@ -9,7 +9,7 @@ export default function AppBodyClient(props: {
     callback: string;
     multipart: string;
   }>;
-}): JSX.Element {
+}): React.JSX.Element {
   const searchParams = use(props.searchParams);
   const { filename, callback, multipart } = searchParams;
   const [content, setContent] = useState<string>('');

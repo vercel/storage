@@ -4,7 +4,7 @@ import { type PutBlobResult } from '@vercel/blob';
 import { upload } from '@vercel/blob/client';
 import { useRef, useState } from 'react';
 
-export default function AppClientUpload(): JSX.Element {
+export default function AppClientUpload(): React.JSX.Element {
   const inputFileRef = useRef<HTMLInputElement>(null);
   const [blob, setBlob] = useState<PutBlobResult | null>(null);
   return (

@@ -2,7 +2,7 @@
 
 import { FormDataUpload } from '../../../form-data-upload';
 
-export default function AppFormDataEdge(): JSX.Element {
+export default function AppFormDataEdge(): React.JSX.Element {
   return (
     <>
       <h1 className="text-xl mb-4">

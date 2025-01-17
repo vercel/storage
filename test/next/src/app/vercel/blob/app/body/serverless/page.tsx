@@ -2,7 +2,7 @@
 
 import { FormBodyUpload } from '../../../form-body-upload';
 
-export default function AppFormDataServerless(): JSX.Element {
+export default function AppFormDataServerless(): React.JSX.Element {
   return (
     <>
       <h1 className="text-xl mb-4">

@@ -4,7 +4,7 @@ export default function Layout({
   children,
 }: {
   children: React.ReactNode;
-}): JSX.Element {
+}): React.JSX.Element {
   return (
     <div className="p-10">
       <div className="flex gap-2 mb-4">

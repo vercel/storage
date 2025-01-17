@@ -4,7 +4,7 @@ export default function Layout({
   children,
 }: {
   children: React.ReactNode;
-}): JSX.Element {
+}): React.JSX.Element {
   return (
     <div>
       <a href="/">← Home</a>

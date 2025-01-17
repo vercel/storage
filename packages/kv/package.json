@@ -60,7 +60,7 @@
     "ts-jest": "29.2.5",
     "tsconfig": "workspace:*",
     "tsup": "8.3.5",
-    "typescript": "5.6.3"
+    "typescript": "5.7.3"
   },
   "engines": {
     "node": ">=14.6"

@@ -3,7 +3,7 @@ import type { TestRunnerProps } from '@/lib/test/postgres';
 import { EdgeConfigTestRunner } from '@/lib/test/edge-config';
 import { ProjectDashboardLayout } from '@/lib/test/project-dashboard-layout';
 
-export default function Page(): JSX.Element {
+export default function Page(): React.JSX.Element {
   const tests: TestRunnerProps[] = [
     {
       apiOrPage: 'page',

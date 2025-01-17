@@ -19,7 +19,9 @@ export const getServerSideProps: GetServerSideProps = async (req) => {
   };
 };
 
-export default function Blob(props: vercelBlob.PutBlobResult): JSX.Element {
+export default function Blob(
+  props: vercelBlob.PutBlobResult,
+): React.JSX.Element {
   return (
     <div>
       <h1 className="text-xl mb-4">Render an upload image on the browser</h1>

@@ -7,7 +7,7 @@ import { upload } from '@vercel/blob/client';
 import { useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-export default function AppClientUpload(): JSX.Element {
+export default function AppClientUpload(): React.JSX.Element {
   const inputFileRef = useRef<HTMLInputElement>(null);
   const [blob, setBlob] = useState<PutBlobResult | null>(null);
   const [progressEvents, setProgressEvents] = useState<string[]>([]);

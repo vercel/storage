@@ -4,7 +4,7 @@ import type * as vercelBlob from '@vercel/blob';
 import { useCallback, useEffect, useState } from 'react';
 import { API_ROOT } from '../../api/app/constants';
 
-export default function AppList(): JSX.Element {
+export default function AppList(): React.JSX.Element {
   const [result, setResult] = useState<vercelBlob.ListBlobResult>();
   const [searchPrefix, setSearchPrefix] = useState('');
   const [urlsToRemove, setUrlsToRemove] = useState<string[]>([]);

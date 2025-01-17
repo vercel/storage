@@ -19,7 +19,7 @@ export async function PostgresTestRunner({
   connectionType,
   directory,
   environment,
-}: TestRunnerProps): Promise<JSX.Element> {
+}: TestRunnerProps): Promise<React.JSX.Element> {
   const { status, url, message } = await runTest({
     apiOrPage,
     connectionType,

@@ -4,7 +4,7 @@ export function ProjectDashboardLayout({
   children,
 }: {
   children: React.ReactNode;
-}): JSX.Element {
+}): React.JSX.Element {
   return (
     <div
       style={{

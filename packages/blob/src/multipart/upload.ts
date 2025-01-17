@@ -1,8 +1,7 @@
-import bytes from 'bytes';
 import throttle from 'throttleit';
 import { BlobServiceNotAvailable, requestApi } from '../api';
 import { debug } from '../debug';
-import { BlobError, isPlainObject } from '../helpers';
+import { BlobError, isPlainObject, bytes } from '../helpers';
 import type {
   WithUploadProgress,
   CommonCreateBlobOptions,

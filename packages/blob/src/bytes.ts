@@ -10,7 +10,7 @@
 type ByteUnit = 'b' | 'kb' | 'mb' | 'gb' | 'tb' | 'pb';
 
 type ByteUnitMap = {
-  readonly [K in ByteUnit]: number;
+  readonly [_K in ByteUnit]: number;
 };
 
 // eslint-disable-next-line prefer-named-capture-group -- fine

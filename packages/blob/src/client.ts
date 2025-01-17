@@ -55,12 +55,6 @@ function createPutExtraChecks<
   TOptions extends ClientTokenOptions & ClientCommonCreateBlobOptions,
 >(methodName: string) {
   return function extraChecks(options: TOptions) {
-    // if (typeof window === 'undefined') {
-    //   throw new BlobError(
-    //     `${methodName} must be called from a client environment`,
-    //   );
-    // }
-
     if (!options.token.startsWith('vercel_blob_client_')) {
       throw new BlobError(`${methodName} must be called with a client token`);
     }
@@ -163,12 +157,6 @@ export type UploadOptions = ClientCommonPutOptions & CommonUploadOptions;
 export const upload = createPutMethod<UploadOptions>({
   allowedOptions: ['contentType'],
   extraChecks(options) {
-    // if (typeof window === 'undefined') {
-    //   throw new BlobError(
-    //     'client/`upload` must be called from a client environment',
-    //   );
-    // }
-
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX.
     if (options.handleUploadUrl === undefined) {
       throw new BlobError(

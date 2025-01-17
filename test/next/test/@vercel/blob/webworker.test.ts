@@ -20,8 +20,9 @@ test('web worker upload', async ({ browser }) => {
 
   const page = await browserContext.newPage();
 
-  const fileName = `${prefix}-webworker-test`;
-  const fileContent = 'created from a webworker';
+  const random = Math.floor(Math.random() * 10000) + 1;
+  const fileName = `${prefix}-webworker-test${random}`;
+  const fileContent = `created from a webworker${random}`;
 
   // Load the page with the specified search params
   await page.goto(

@@ -5,7 +5,7 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 export default function Index() {
-  const workerRef = useRef<Worker>();
+  const workerRef = useRef<Worker | null>(null);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const searchParams = useSearchParams();
 

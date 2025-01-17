@@ -11,7 +11,7 @@ export async function PostgresTestRunner({
   apiOrPage,
   directory,
   environment,
-}: TestRunnerProps): Promise<JSX.Element> {
+}: TestRunnerProps): Promise<React.JSX.Element> {
   let message = '';
   let status = 'Failed';
   const url = getUrl({

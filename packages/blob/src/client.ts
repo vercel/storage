@@ -249,7 +249,7 @@ async function verifyCallbackSignature({
   return verified;
 }
 
-function hexToArrayByte(input: string): ArrayBuffer {
+function hexToArrayByte(input: string): Buffer {
   if (input.length % 2 !== 0) {
     throw new RangeError('Expected string to be an even number of characters');
   }

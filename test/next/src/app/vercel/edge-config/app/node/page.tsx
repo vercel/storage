@@ -2,7 +2,7 @@ import { get } from '@vercel/edge-config';
 
 export const runtime = 'nodejs';
 
-export default async function Page(): Promise<JSX.Element> {
+export default async function Page(): Promise<React.JSX.Element> {
   const value = await get('keyForTest');
 
   if (value !== 'valueForTest')

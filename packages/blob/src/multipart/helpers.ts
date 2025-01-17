@@ -35,7 +35,7 @@ const supportsNewBlobFromArrayBuffer = new Promise<boolean>((resolve) => {
 
 export async function toReadableStream(
   value: PutBody,
-): Promise<ReadableStream<ArrayBuffer>> {
+): Promise<ReadableStream<ArrayBuffer | Uint8Array>> {
   // Already a ReadableStream, nothing to do
   if (value instanceof ReadableStream) {
     return value as ReadableStream<ArrayBuffer>;
@@ -72,7 +72,7 @@ export async function toReadableStream(
   }
 
   // from https://github.com/sindresorhus/to-readable-stream/blob/main/index.js
-  return new ReadableStream<ArrayBuffer>({
+  return new ReadableStream<ArrayBuffer | Uint8Array>({
     start(controller) {
       controller.enqueue(streamValue);
       controller.close();

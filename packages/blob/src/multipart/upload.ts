@@ -1,4 +1,4 @@
-import bytes from 'bytes';
+import * as bytes from 'bytes';
 import throttle from 'throttleit';
 import { BlobServiceNotAvailable, requestApi } from '../api';
 import { debug } from '../debug';

@@ -4,7 +4,22 @@ import { test, expect } from '@playwright/test';
 const prefix =
   process.env.GITHUB_PR_NUMBER || crypto.randomBytes(10).toString('hex');
 
-test('web worker upload', async ({ page }) => {
+test('web worker upload', async ({ browser }) => {
+  const browserContext = await browser.newContext();
+  await browserContext.addCookies([
+    {
+      name: 'clientUpload',
+      value: process.env.BLOB_UPLOAD_SECRET ?? '',
+      path: '/',
+      domain: (process.env.PLAYWRIGHT_TEST_BASE_URL ?? 'localhost').replace(
+        'https://',
+        '',
+      ),
+    },
+  ]);
+
+  const page = await browserContext.newPage();
+
   const fileName = `${prefix}-webworker-test`;
   const fileContent = 'created from a webworker';
 

@@ -2,11 +2,10 @@ import * as vercelBlob from '@vercel/blob';
 
 export const runtime = 'edge';
 
-export default async function AppBodyEdge({
-  searchParams,
-}: {
-  searchParams: { filename: string };
+export default async function AppBodyEdge(props: {
+  searchParams: Promise<{ filename: string }>;
 }): Promise<JSX.Element> {
+  const searchParams = await props.searchParams;
   const filename = searchParams.filename;
   const blob = await vercelBlob.put(filename, `Hello from ${filename}`, {
     access: 'public',

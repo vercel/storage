@@ -1,10 +1,9 @@
 import * as vercelBlob from '@vercel/blob';
 
-export default async function AppBodyServerless({
-  searchParams,
-}: {
-  searchParams: { filename: string };
+export default async function AppBodyServerless(props: {
+  searchParams: Promise<{ filename: string }>;
 }): Promise<JSX.Element> {
+  const searchParams = await props.searchParams;
   const filename = searchParams.filename;
   const blob = await vercelBlob.put(filename, `Hello from ${filename}`, {
     access: 'public',

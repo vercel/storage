@@ -1,10 +1,15 @@
 // eslint-disable-next-line unicorn/prefer-node-protocol -- node:stream does not resolve correctly in browser and edge
 import type { Readable } from 'stream';
+// We use the undici types to ensure TS doesn't complain about native types (like ReadableStream) vs
+// undici types fetch expects (like Blob is from node:buffer..)
+// import type { Blob } from 'node:buffer';
+import type { File } from 'undici';
 import type { ClientCommonCreateBlobOptions } from './client';
 import type { CommonCreateBlobOptions } from './helpers';
-import { BlobError } from './helpers';
+import { BlobError, disallowedPathnameCharacters } from './helpers';
+import { MAXIMUM_PATHNAME_LENGTH } from './api';
 
-const putOptionHeaderMap = {
+export const putOptionHeaderMap = {
   cacheControlMaxAge: 'x-cache-control-max-age',
   addRandomSuffix: 'x-add-random-suffix',
   contentType: 'x-content-type',
@@ -14,7 +19,7 @@ export interface PutBlobResult {
   url: string;
   downloadUrl: string;
   pathname: string;
-  contentType?: string;
+  contentType: string;
   contentDisposition: string;
 }
 
@@ -83,6 +88,20 @@ export async function createPutOptions<
 }): Promise<TOptions> {
   if (!pathname) {
     throw new BlobError('pathname is required');
+  }
+
+  if (pathname.length > MAXIMUM_PATHNAME_LENGTH) {
+    throw new BlobError(
+      `pathname is too long, maximum length is ${MAXIMUM_PATHNAME_LENGTH}`,
+    );
+  }
+
+  for (const invalidCharacter of disallowedPathnameCharacters) {
+    if (pathname.includes(invalidCharacter)) {
+      throw new BlobError(
+        `pathname cannot contain "${invalidCharacter}", please encode it if needed`,
+      );
+    }
   }
 
   if (!options) {

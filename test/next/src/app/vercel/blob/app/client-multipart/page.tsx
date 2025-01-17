@@ -4,7 +4,7 @@ import { type PutBlobResult } from '@vercel/blob';
 import { upload } from '@vercel/blob/client';
 import { useRef, useState } from 'react';
 
-export default function AppClientUpload(): JSX.Element {
+export default function AppClientUpload(): React.JSX.Element {
   const inputFileRef = useRef<HTMLInputElement>(null);
   const [blob, setBlob] = useState<PutBlobResult | null>(null);
   return (
@@ -25,11 +25,13 @@ export default function AppClientUpload(): JSX.Element {
               access: 'public',
               handleUploadUrl: `/vercel/blob/api/app/handle-blob-upload/edge`,
               multipart: true,
+              onUploadProgress(progressEvent) {
+                console.log('upload progress', progressEvent);
+              },
             });
 
             setBlob(blobResult);
           } catch (error: unknown) {
-            // eslint-disable-next-line no-console -- Fine for tests
             console.log('error', error);
           }
         }}

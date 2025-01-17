@@ -1,5 +1,89 @@
 # vercel-storage-integration-test-suite
 
+## 0.3.1
+
+### Patch Changes
+
+- Updated dependencies [7872e61]
+  - @vercel/blob@0.27.0
+
+## 0.3.0
+
+### Minor Changes
+
+- c3afec3: Add onUploadProgress feature to put/upload
+
+  You can now track the upload progress in Node.js and all major browsers when
+  using put/upload in multipart, non-multipart and client upload modes. Basically
+  anywhere in our API you can upload a file, then you can follow the upload
+  progress.
+
+  Here's a basic usage example:
+
+  ```
+  const blob = await put('big-file.pdf', file, {
+    access: 'public',
+    onUploadProgress(event) {
+      console.log(event.loaded, event.total, event.percentage);
+    }
+  });
+  ```
+
+  Fixes #543
+  Fixes #642
+
+### Patch Changes
+
+- Updated dependencies [c3afec3]
+  - @vercel/blob@0.26.0
+
+## 0.2.23
+
+### Patch Changes
+
+- Updated dependencies [d7ef349]
+  - @vercel/edge-config@1.4.0
+
+## 0.2.22
+
+### Patch Changes
+
+- Updated dependencies [d58f9de]
+  - @vercel/blob@0.25.1
+
+## 0.2.21
+
+### Patch Changes
+
+- Updated dependencies [61b5939]
+  - @vercel/blob@0.25.0
+
+## 0.2.20
+
+### Patch Changes
+
+- Updated dependencies [37d84ef]
+- Updated dependencies [da87e89]
+  - @vercel/blob@0.24.1
+
+## 0.2.19
+
+### Patch Changes
+
+- Updated dependencies [8098803]
+- Updated dependencies [aaec8c5]
+- Updated dependencies [8d7e8b9]
+  - @vercel/blob@0.24.0
+  - @vercel/edge-config@1.3.0
+
+## 0.2.18
+
+### Patch Changes
+
+- Updated dependencies [a2a4757]
+  - @vercel/postgres-kysely@0.10.0
+  - @vercel/postgres@0.10.0
+
 ## 0.2.17
 
 ### Patch Changes

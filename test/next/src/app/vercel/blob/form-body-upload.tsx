@@ -3,7 +3,11 @@
 import type { PutBlobResult } from '@vercel/blob';
 import { useRef, useState } from 'react';
 
-export function FormBodyUpload({ action }: { action: string }): JSX.Element {
+export function FormBodyUpload({
+  action,
+}: {
+  action: string;
+}): React.JSX.Element {
   const inputFileRef = useRef<HTMLInputElement>(null);
   const [blob, setBlob] = useState<PutBlobResult | null>(null);
 

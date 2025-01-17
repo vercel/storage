@@ -1,5 +1,65 @@
 # @vercel/blob
 
+## 0.27.0
+
+### Minor Changes
+
+- 7872e61: contentType default is now 'application/octet-stream' instead of `undefined`
+
+## 0.26.0
+
+### Minor Changes
+
+- c3afec3: Add onUploadProgress feature to put/upload
+
+  You can now track the upload progress in Node.js and all major browsers when
+  using put/upload in multipart, non-multipart and client upload modes. Basically
+  anywhere in our API you can upload a file, then you can follow the upload
+  progress.
+
+  Here's a basic usage example:
+
+  ```
+  const blob = await put('big-file.pdf', file, {
+    access: 'public',
+    onUploadProgress(event) {
+      console.log(event.loaded, event.total, event.percentage);
+    }
+  });
+  ```
+
+  Fixes #543
+  Fixes #642
+
+## 0.25.1
+
+### Patch Changes
+
+- d58f9de: fix(blob): provide custom errors for expired client tokens and pathname mismatch
+
+## 0.25.0
+
+### Minor Changes
+
+- 61b5939: BREAKING CHANGE, we're no more accepting non-encoded versions of ?, # and // in pathnames. If you want to use such characters in your pathnames then you will need to encode them.
+
+## 0.24.1
+
+### Patch Changes
+
+- 37d84ef: Throw specific error (BlobContentTypeNotAllowed) when file type doesn't match
+- da87e89: Fix bad detection of Request being a plain object
+
+## 0.24.0
+
+### Minor Changes
+
+- 8098803: Add createFolder method. Warning, if you were using the standard put() method to created fodlers, this will now fail and you must move to createFolder() instead.
+
+### Patch Changes
+
+- 8d7e8b9: Limit pathname length to 950 to respect internal limitations and provide better early DX.
+
 ## 0.23.4
 
 ### Patch Changes

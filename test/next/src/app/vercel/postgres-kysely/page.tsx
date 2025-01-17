@@ -3,7 +3,7 @@ import type { TestRunnerProps } from '@/lib/test/postgres-kysely';
 import { PostgresTestRunner } from '@/lib/test/postgres-kysely';
 import { ProjectDashboardLayout } from '@/lib/test/project-dashboard-layout';
 
-export default function Page(): JSX.Element {
+export default function Page(): React.JSX.Element {
   const tests: TestRunnerProps[] = [
     {
       apiOrPage: 'api',

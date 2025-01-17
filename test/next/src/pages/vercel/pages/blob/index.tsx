@@ -18,7 +18,7 @@ export const getServerSideProps: GetServerSideProps = async (req) => {
 
 export default function Blob(
   props: vercelBlob.PutBlobResult & { content: string },
-): JSX.Element {
+): React.JSX.Element {
   return (
     <div>
       <h1 className="text-xl mb-4">blob</h1>

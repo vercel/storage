@@ -1,13 +1,56 @@
-import type { RequestInit, Response } from 'undici';
-import { fetch } from 'undici';
+import type { Response } from 'undici';
 import retry from 'async-retry';
+import isNetworkError from './is-network-error';
 import { debug } from './debug';
-import type { BlobCommandOptions } from './helpers';
-import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
+import type {
+  BlobCommandOptions,
+  BlobRequestInit,
+  WithUploadProgress,
+} from './helpers';
+import {
+  BlobError,
+  computeBodyLength,
+  getApiUrl,
+  getTokenFromOptionsOrEnv,
+} from './helpers';
+import { blobRequest } from './request';
+import { DOMException } from './dom-exception';
+
+// maximum pathname length is:
+// 1024 (provider limit) - 26 chars (vercel  internal suffixes) - 31 chars (blob `-randomId` suffix) = 967
+// we round it to 950 to make it more human friendly, and we apply the limit whatever the value of
+// addRandomSuffix is, to make it consistent
+export const MAXIMUM_PATHNAME_LENGTH = 950;
 
 export class BlobAccessError extends BlobError {
   constructor() {
     super('Access denied, please provide a valid token for this resource.');
+  }
+}
+
+export class BlobContentTypeNotAllowedError extends BlobError {
+  constructor(message: string) {
+    super(`Content type mismatch, ${message}.`);
+  }
+}
+
+export class BlobPathnameMismatchError extends BlobError {
+  constructor(message: string) {
+    super(
+      `Pathname mismatch, ${message}. Check the pathname used in upload() or put() matches the one from the client token.`,
+    );
+  }
+}
+
+export class BlobClientTokenExpiredError extends BlobError {
+  constructor() {
+    super('Client token has expired.');
+  }
+}
+
+export class BlobFileTooLargeError extends BlobError {
+  constructor(message: string) {
+    super(`File is too large, ${message}.`);
   }
 }
 
@@ -70,7 +113,11 @@ type BlobApiErrorCodes =
   | 'store_not_found'
   | 'not_allowed'
   | 'service_unavailable'
-  | 'rate_limited';
+  | 'rate_limited'
+  | 'content_type_not_allowed'
+  | 'client_token_pathname_mismatch'
+  | 'client_token_expired'
+  | 'file_too_large';
 
 export interface BlobApiError {
   error?: { code?: BlobApiErrorCodes; message?: string };
@@ -79,7 +126,7 @@ export interface BlobApiError {
 // This version is used to ensure that the client and server are compatible
 // The server (Vercel Blob API) uses this information to change its behavior like the
 // response format
-const BLOB_API_VERSION = 7;
+const BLOB_API_VERSION = 8;
 
 function getApiVersion(): string {
   let versionOverride = null;
@@ -94,20 +141,6 @@ function getApiVersion(): string {
   }
 
   return `${versionOverride ?? BLOB_API_VERSION}`;
-}
-
-function getApiUrl(pathname = ''): string {
-  let baseUrl = null;
-  try {
-    // wrapping this code in a try/catch as this function is used in the browser and Vite doesn't define the process.env.
-    // As this varaible is NOT used in production, it will always default to production endpoint
-    baseUrl =
-      process.env.VERCEL_BLOB_API_URL ||
-      process.env.NEXT_PUBLIC_VERCEL_BLOB_API_URL;
-  } catch {
-    // noop
-  }
-  return `${baseUrl || 'https://blob.vercel-storage.com'}${pathname}`;
 }
 
 function getRetries(): number {
@@ -139,11 +172,32 @@ async function getBlobError(
 
   try {
     const data = (await response.json()) as BlobApiError;
-
     code = data.error?.code ?? 'unknown_error';
     message = data.error?.message;
   } catch {
     code = 'unknown_error';
+  }
+
+  // Now that we have multiple API clients out in the wild handling errors, we can't just send a different
+  // error code for this type of error. We need to add a new field in the API response to handle this correctly,
+  // but for now, we can just check the message.
+  if (message?.includes('contentType') && message.includes('is not allowed')) {
+    code = 'content_type_not_allowed';
+  }
+
+  if (
+    message?.includes('"pathname"') &&
+    message.includes('does not match the token payload')
+  ) {
+    code = 'client_token_pathname_mismatch';
+  }
+
+  if (message === 'Token expired') {
+    code = 'client_token_expired';
+  }
+
+  if (message?.includes('the file length cannot be greater than')) {
+    code = 'file_too_large';
   }
 
   let error: BlobError;
@@ -153,6 +207,21 @@ async function getBlobError(
       break;
     case 'forbidden':
       error = new BlobAccessError();
+      break;
+    case 'content_type_not_allowed':
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TS, be smarter
+      error = new BlobContentTypeNotAllowedError(message!);
+      break;
+    case 'client_token_pathname_mismatch':
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TS, be smarter
+      error = new BlobPathnameMismatchError(message!);
+      break;
+    case 'client_token_expired':
+      error = new BlobClientTokenExpiredError();
+      break;
+    case 'file_too_large':
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TS, be smarter
+      error = new BlobFileTooLargeError(message!);
       break;
     case 'not_found':
       error = new BlobNotFoundError();
@@ -181,8 +250,8 @@ async function getBlobError(
 
 export async function requestApi<TResponse>(
   pathname: string,
-  init: RequestInit,
-  commandOptions: BlobCommandOptions | undefined,
+  init: BlobRequestInit,
+  commandOptions: (BlobCommandOptions & WithUploadProgress) | undefined,
 ): Promise<TResponse> {
   const apiVersion = getApiVersion();
   const token = getTokenFromOptionsOrEnv(commandOptions);
@@ -191,6 +260,27 @@ export async function requestApi<TResponse>(
   const [, , , storeId = ''] = token.split('_');
   const requestId = `${storeId}:${Date.now()}:${Math.random().toString(16).slice(2)}`;
   let retryCount = 0;
+  let bodyLength = 0;
+  let totalLoaded = 0;
+  const sendBodyLength =
+    commandOptions?.onUploadProgress || shouldUseXContentLength();
+
+  if (
+    init.body &&
+    // 1. For upload progress we always need to know the total size of the body
+    // 2. In development we need the header for put() to work correctly when passing a stream
+    sendBodyLength
+  ) {
+    bodyLength = computeBodyLength(init.body);
+  }
+
+  if (commandOptions?.onUploadProgress) {
+    commandOptions.onUploadProgress({
+      loaded: 0,
+      total: bodyLength,
+      percentage: 0,
+    });
+  }
 
   const apiResponse = await retry(
     async (bail) => {
@@ -198,21 +288,64 @@ export async function requestApi<TResponse>(
 
       // try/catch here to treat certain errors as not-retryable
       try {
-        res = await fetch(getApiUrl(pathname), {
-          ...init,
-          headers: {
-            'x-api-blob-request-id': requestId,
-            'x-api-blob-request-attempt': String(retryCount),
-            'x-api-version': apiVersion,
-            authorization: `Bearer ${token}`,
-            ...extraHeaders,
-            ...init.headers,
+        res = await blobRequest({
+          input: getApiUrl(pathname),
+          init: {
+            ...init,
+            headers: {
+              'x-api-blob-request-id': requestId,
+              'x-api-blob-request-attempt': String(retryCount),
+              'x-api-version': apiVersion,
+              ...(sendBodyLength
+                ? { 'x-content-length': String(bodyLength) }
+                : {}),
+              authorization: `Bearer ${token}`,
+              ...extraHeaders,
+              ...init.headers,
+            },
           },
+          onUploadProgress: commandOptions?.onUploadProgress
+            ? (loaded) => {
+                const total = bodyLength !== 0 ? bodyLength : loaded;
+                totalLoaded = loaded;
+                const percentage =
+                  bodyLength > 0
+                    ? Number(((loaded / total) * 100).toFixed(2))
+                    : 0;
+
+                // Leave percentage 100 for the end of request
+                if (percentage === 100 && bodyLength > 0) {
+                  return;
+                }
+
+                commandOptions.onUploadProgress?.({
+                  loaded,
+                  // When passing a stream to put(), we have no way to know the total size of the body.
+                  // Instead of defining total as total?: number we decided to set the total to the currently
+                  // loaded number. This is not inaccurate and way more practical for DX.
+                  // Passing down a stream to put() is very rare
+                  total,
+                  percentage,
+                });
+              }
+            : undefined,
         });
       } catch (error) {
         // if the request was aborted, don't retry
         if (error instanceof DOMException && error.name === 'AbortError') {
           bail(new BlobRequestAbortedError());
+          return;
+        }
+
+        // We specifically target network errors because fetch network errors are regular TypeErrors
+        // We want to retry for network errors, but not for other TypeErrors
+        if (isNetworkError(error)) {
+          throw error;
+        }
+
+        // If we messed up the request part, don't even retry
+        if (error instanceof TypeError) {
+          bail(error);
           return;
         }
 
@@ -241,7 +374,10 @@ export async function requestApi<TResponse>(
     {
       retries: getRetries(),
       onRetry: (error) => {
-        debug(`retrying API request to ${pathname}`, error.message);
+        if (error instanceof Error) {
+          debug(`retrying API request to ${pathname}`, error.message);
+        }
+
         retryCount = retryCount + 1;
       },
     },
@@ -249,6 +385,20 @@ export async function requestApi<TResponse>(
 
   if (!apiResponse) {
     throw new BlobUnknownError();
+  }
+
+  // Calling onUploadProgress here has two benefits:
+  // 1. It ensures 100% is only reached at the end of the request. While otherwise you can reach 100%
+  // before the request is fully done, as we only really measure what gets sent over the wire, not what
+  // has been processed by the server.
+  // 2. It makes the uploadProgress "work" even in rare cases where fetch/xhr onprogress is not working
+  // And in the case of multipart uploads it actually provides a simple progress indication (per part)
+  if (commandOptions?.onUploadProgress) {
+    commandOptions.onUploadProgress({
+      loaded: totalLoaded,
+      total: totalLoaded,
+      percentage: 100,
+    });
   }
 
   return (await apiResponse.json()) as TResponse;
@@ -260,20 +410,31 @@ function getProxyThroughAlternativeApiHeaderFromEnv(): {
   const extraHeaders: Record<string, string> = {};
 
   try {
-    if ('VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API' in process.env) {
-      extraHeaders['x-proxy-through-alternative-api'] =
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- we know it's here from the if
-        process.env.VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API!;
-    } else if (
-      'NEXT_PUBLIC_VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API' in process.env
+    if (
+      'VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API' in process.env &&
+      process.env.VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API !== undefined
     ) {
       extraHeaders['x-proxy-through-alternative-api'] =
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- we know it's here from the if
-        process.env.NEXT_PUBLIC_VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API!;
+        process.env.VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API;
+    } else if (
+      'NEXT_PUBLIC_VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API' in process.env &&
+      process.env.NEXT_PUBLIC_VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API !==
+        undefined
+    ) {
+      extraHeaders['x-proxy-through-alternative-api'] =
+        process.env.NEXT_PUBLIC_VERCEL_BLOB_PROXY_THROUGH_ALTERNATIVE_API;
     }
   } catch {
     // noop
   }
 
   return extraHeaders;
+}
+
+function shouldUseXContentLength(): boolean {
+  try {
+    return process.env.VERCEL_BLOB_USE_X_CONTENT_LENGTH === '1';
+  } catch {
+    return false;
+  }
 }

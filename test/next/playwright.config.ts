@@ -19,7 +19,7 @@ const webServer = {
 // Reference: https://playwright.dev/docs/test-configuration
 const config: PlaywrightTestConfig = {
   // Timeout per test
-  timeout: 10 * 1000,
+  timeout: 30 * 1000,
   // Test directory
   testDir: path.join(__dirname, 'test'),
   testMatch: process.env.PLAYWRIGHT_TEST_MATCH,
@@ -68,6 +68,12 @@ const config: PlaywrightTestConfig = {
           name: 'Desktop Safari',
           use: {
             ...devices['Desktop Safari'],
+          },
+        },
+        {
+          name: 'Desktop Edge',
+          use: {
+            ...devices['Desktop Edge'],
           },
         },
       ],

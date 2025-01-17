@@ -396,6 +396,35 @@ describe('blob client', () => {
       contentDisposition: mockedFileMeta.contentDisposition,
     };
 
+    it('has an onUploadProgress option', async () => {
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'PUT',
+        })
+        .reply(200, () => {
+          return mockedFileMetaPut;
+        });
+
+      const onUploadProgress = jest.fn();
+
+      await expect(
+        put('progress.txt', 'Test Body', {
+          access: 'public',
+          onUploadProgress,
+        }),
+      ).resolves.toMatchInlineSnapshot(`
+        {
+          "contentDisposition": "attachment; filename="foo.txt"",
+          "contentType": "text/plain",
+          "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo-id.txt?download=1",
+          "pathname": "foo.txt",
+          "url": "https://storeId.public.blob.vercel-storage.com/foo-id.txt",
+        }
+      `);
+      expect(onUploadProgress).toHaveBeenCalledTimes(1);
+    });
+
     it('should upload a file with a custom token', async () => {
       let path: string | null = null;
       let headers: Record<string, string> = {};
@@ -576,6 +605,52 @@ describe('blob client', () => {
       expect(headers['x-cache-control-max-age']).toEqual('60');
     });
 
+    it('throws when filepath is too long', async () => {
+      await expect(
+        put('a'.repeat(951), 'Test Body', {
+          access: 'public',
+        }),
+      ).rejects.toThrow(
+        new Error('Vercel Blob: pathname is too long, maximum length is 950'),
+      );
+    });
+
+    it('throws when pathname contains #', async () => {
+      await expect(
+        put('foo#bar.txt', 'Test Body', {
+          access: 'public',
+        }),
+      ).rejects.toThrow(
+        new Error(
+          'Vercel Blob: pathname cannot contain "#", please encode it if needed',
+        ),
+      );
+    });
+
+    it('throws when pathname contains ?', async () => {
+      await expect(
+        put('foo?bar.txt', 'Test Body', {
+          access: 'public',
+        }),
+      ).rejects.toThrow(
+        new Error(
+          'Vercel Blob: pathname cannot contain "?", please encode it if needed',
+        ),
+      );
+    });
+
+    it('throws when pathname contains //', async () => {
+      await expect(
+        put('foo//bar.txt', 'Test Body', {
+          access: 'public',
+        }),
+      ).rejects.toThrow(
+        new Error(
+          'Vercel Blob: pathname cannot contain "//", please encode it if needed',
+        ),
+      );
+    });
+
     const table: [string, (signal: AbortSignal) => Promise<unknown>][] = [
       [
         'put',
@@ -698,6 +773,18 @@ describe('blob client', () => {
         new Error(
           "Vercel Blob: Body must be a string, buffer or stream. You sent a plain JavaScript object, double check what you're trying to upload.",
         ),
+      );
+    });
+  });
+
+  describe('copy', () => {
+    it('throws when filepath is too long', async () => {
+      await expect(
+        copy('source', 'a'.repeat(951), {
+          access: 'public',
+        }),
+      ).rejects.toThrow(
+        new Error('Vercel Blob: pathname is too long, maximum length is 950'),
       );
     });
   });

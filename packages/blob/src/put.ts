@@ -1,8 +1,7 @@
-import type { BodyInit } from 'undici';
-import { isPlainObject } from 'is-plain-object';
+import throttle from 'throttleit';
 import { requestApi } from './api';
-import type { CommonCreateBlobOptions } from './helpers';
-import { BlobError } from './helpers';
+import type { CommonCreateBlobOptions, WithUploadProgress } from './helpers';
+import { BlobError, isPlainObject } from './helpers';
 import { uncontrolledMultipartUpload } from './multipart/uncontrolled';
 import type {
   CreatePutMethodOptions,
@@ -12,7 +11,9 @@ import type {
 } from './put-helpers';
 import { createPutOptions, createPutHeaders } from './put-helpers';
 
-export interface PutCommandOptions extends CommonCreateBlobOptions {
+export interface PutCommandOptions
+  extends CommonCreateBlobOptions,
+    WithUploadProgress {
   /**
    * Whether to use multipart upload. Use this when uploading large files. It will split the file into multiple parts, upload them in parallel and retry failed parts.
    * @defaultvalue false
@@ -25,27 +26,16 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
   getToken,
   extraChecks,
 }: CreatePutMethodOptions<TOptions>) {
-  return async function put<TPath extends string>(
-    pathname: TPath,
-    bodyOrOptions: TPath extends `${string}/` ? TOptions : PutBody,
-    optionsInput?: TPath extends `${string}/` ? never : TOptions,
+  return async function put(
+    pathname: string,
+    body: PutBody,
+    optionsInput: TOptions,
   ): Promise<PutBlobResult> {
-    const isFolderCreation = pathname.endsWith('/');
-
-    // prevent empty bodies for files
-    if (!bodyOrOptions && !isFolderCreation) {
+    if (!body) {
       throw new BlobError('body is required');
     }
 
-    // runtime check for non TS users that provide all three args
-    if (bodyOrOptions && optionsInput && isFolderCreation) {
-      throw new BlobError('body is not allowed for creating empty folders');
-    }
-
-    // avoid using the options as body
-    const body = isFolderCreation ? undefined : bodyOrOptions;
-
-    if (body !== undefined && isPlainObject(body)) {
+    if (isPlainObject(body)) {
       throw new BlobError(
         "Body must be a string, buffer or stream. You sent a plain JavaScript object, double check what you're trying to upload.",
       );
@@ -53,31 +43,33 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
 
     const options = await createPutOptions({
       pathname,
-      // when no body is required (for folder creations) options are the second argument
-      options: isFolderCreation ? (bodyOrOptions as TOptions) : optionsInput,
+      options: optionsInput,
       extraChecks,
       getToken,
     });
 
     const headers = createPutHeaders(allowedOptions, options);
 
-    if (options.multipart === true && body) {
+    if (options.multipart === true) {
       return uncontrolledMultipartUpload(pathname, body, headers, options);
     }
+
+    const onUploadProgress = options.onUploadProgress
+      ? throttle(options.onUploadProgress, 100)
+      : undefined;
 
     const response = await requestApi<PutBlobApiResponse>(
       `/${pathname}`,
       {
         method: 'PUT',
-        body: body as BodyInit,
+        body,
         headers,
-        // required in order to stream some body types to Cloudflare
-        // currently only supported in Node.js, we may have to feature detect this
-        // note: this doesn't send a content-length to the server
-        duplex: 'half',
         signal: options.abortSignal,
       },
-      options,
+      {
+        ...options,
+        onUploadProgress,
+      },
     );
 
     return {

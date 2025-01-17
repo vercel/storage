@@ -1,4 +1,4 @@
-export default function Home(): JSX.Element {
+export default function Home(): React.JSX.Element {
   return (
     <main>
       <h1 className="text-xl mb-4">
@@ -41,6 +41,10 @@ export default function Home(): JSX.Element {
         </li>
         <li>
           Client Upload → <a href="/vercel/blob/app/client">/app/client</a>
+        </li>
+        <li>
+          Client Upload in a Web Worker →{' '}
+          <a href="/vercel/blob/app/client-webworker">/app/client-webworker</a>
         </li>
         <li>
           Client Upload (multipart) →{' '}

@@ -10,6 +10,10 @@ module.exports = {
     project: ['./tsconfig.json'],
     tsconfigRootDir: __dirname,
   },
+  rules: {
+    'no-console': 'off',
+    '@typescript-eslint/no-non-null-assertion': 'off',
+  },
   overrides: [
     {
       files: [

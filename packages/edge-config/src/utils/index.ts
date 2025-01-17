@@ -73,7 +73,7 @@ export const clone = trace(
  * Internal Edge Config Connection Strings look like this:
  * https://edge-config.vercel.com/<edgeConfigId>?token=<token>
  */
-function parseVercelConnectionString(text: string): Connection | null {
+function parseVercelConnectionStringFromUrl(text: string): Connection | null {
   try {
     const url = new URL(text);
     if (url.host !== 'edge-config.vercel.com') return null;
@@ -96,6 +96,34 @@ function parseVercelConnectionString(text: string): Connection | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Parses a connection string with the following format:
+ * `edge-config:id=ecfg_abcd&token=xxx`
+ */
+function parseConnectionFromQueryParams(text: string): Connection | null {
+  try {
+    if (!text.startsWith('edge-config:')) return null;
+    const params = new URLSearchParams(text.slice(12));
+
+    const id = params.get('id');
+    const token = params.get('token');
+
+    if (!id || !token) return null;
+
+    return {
+      type: 'vercel',
+      baseUrl: `https://edge-config.vercel.com/${id}`,
+      id,
+      version: '1',
+      token,
+    };
+  } catch {
+    // no-op
+  }
+
+  return null;
 }
 
 /**
@@ -123,7 +151,7 @@ function parseVercelConnectionString(text: string): Connection | null {
  * - https://example.com/?id=<edgeConfigId>&token=<token>
  * - https://example.com/<edgeConfigId>?token=<token>
  */
-function parseExternalConnectionString(
+function parseExternalConnectionStringFromUrl(
   connectionString: string,
 ): Connection | null {
   try {
@@ -159,8 +187,9 @@ function parseExternalConnectionString(
 /**
  * Parse the edgeConfigId and token from an Edge Config Connection String.
  *
- * Edge Config Connection Strings usually look like this:
- * https://edge-config.vercel.com/<edgeConfigId>?token=<token>
+ * Edge Config Connection Strings usually look like one of the following:
+ *  - https://edge-config.vercel.com/<edgeConfigId>?token=<token>
+ *  - edge-config:id=<edgeConfigId>&token=<token>
  *
  * @param text - A potential Edge Config Connection String
  * @returns The connection parsed from the given Connection String or null.
@@ -168,7 +197,9 @@ function parseExternalConnectionString(
 export function parseConnectionString(
   connectionString: string,
 ): Connection | null {
-  const connection = parseVercelConnectionString(connectionString);
-  if (connection) return connection;
-  return parseExternalConnectionString(connectionString);
+  return (
+    parseConnectionFromQueryParams(connectionString) ||
+    parseVercelConnectionStringFromUrl(connectionString) ||
+    parseExternalConnectionStringFromUrl(connectionString)
+  );
 }

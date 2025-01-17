@@ -1,13 +1,16 @@
 'use client';
 import { type PutBlobResult } from '@vercel/blob';
 import { upload } from '@vercel/blob/client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 
-export default function AppBodyClient({
-  searchParams,
-}: {
-  searchParams: { filename: string; callback: string; multipart: string };
-}): JSX.Element {
+export default function AppBodyClient(props: {
+  searchParams: Promise<{
+    filename: string;
+    callback: string;
+    multipart: string;
+  }>;
+}): React.JSX.Element {
+  const searchParams = use(props.searchParams);
   const { filename, callback, multipart } = searchParams;
   const [content, setContent] = useState<string>('');
   const [blob, setBlob] = useState<PutBlobResult | null>(null);

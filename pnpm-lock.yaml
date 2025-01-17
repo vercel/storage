@@ -50,9 +50,6 @@ importers:
       async-retry:
         specifier: ^1.3.3
         version: 1.3.3
-      bytes:
-        specifier: ^3.1.2
-        version: 3.1.2
       is-buffer:
         specifier: ^2.0.5
         version: 2.0.5
@@ -75,9 +72,6 @@ importers:
       '@types/async-retry':
         specifier: 1.4.9
         version: 1.4.9
-      '@types/bytes':
-        specifier: 3.1.5
-        version: 3.1.5
       '@types/jest':
         specifier: 29.5.14
         version: 29.5.14
@@ -1384,9 +1378,6 @@ packages:
   '@types/babel__traverse@7.18.5':
     resolution: {integrity: sha512-enCvTL8m/EHS/zIvJno9nE+ndYPh1/oNFzRYRmtUqJICG2VnCSBzMLW5VN2KCQU91f23tsNKR8v7VJJQMatl7Q==}
 
-  '@types/bytes@3.1.5':
-    resolution: {integrity: sha512-VgZkrJckypj85YxEsEavcMmmSOIzkUHqWmM4CCyia5dc54YwsXzJ5uT4fYxBQNEXx+oF1krlhgCbvfubXqZYsQ==}
-
   '@types/estree@1.0.6':
     resolution: {integrity: sha512-AYnb1nQyY49te+VRAVgmzfcgjYS91mY5P0TKUDCLEM+gNnA+3T6rWITXRLYCpahpqSQbN5cE+gHpnPyXjHWxcw==}
 
@@ -1835,10 +1826,6 @@ packages:
   busboy@1.6.0:
     resolution: {integrity: sha512-8SFQbg/0hQ9xy3UNTB0YEnsNBbWfhf7RtnzpL7TkBiTBRfrQ9Fxcnz7VJsleJpyp6rVLvXiuORqjlHi5q+PYuA==}
     engines: {node: '>=10.16.0'}
-
-  bytes@3.1.2:
-    resolution: {integrity: sha512-/Nf7TyzTx6S3yRJObOAV7956r8cr2+Oj8AC5dt8wSP3BQAoeX58NoHyCU8P8zGkNXStjTSi6fzO6F0pBdcYbEg==}
-    engines: {node: '>= 0.8'}
 
   cac@6.7.14:
     resolution: {integrity: sha512-b6Ilus+c3RrdDk+JhLKUAQfzzgLEPy6wcXqS7f/xe1EETvsDP6GORG7SFuOs6cID5YkqchW/LXZbX5bc8j7ZcQ==}
@@ -6028,8 +6015,6 @@ snapshots:
     dependencies:
       '@babel/types': 7.23.9
 
-  '@types/bytes@3.1.5': {}
-
   '@types/estree@1.0.6': {}
 
   '@types/graceful-fs@4.1.6':
@@ -6664,8 +6649,6 @@ snapshots:
   busboy@1.6.0:
     dependencies:
       streamsearch: 1.1.0
-
-  bytes@3.1.2: {}
 
   cac@6.7.14: {}
 

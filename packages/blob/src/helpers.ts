@@ -7,6 +7,8 @@ import { isNodeProcess } from 'is-node-process';
 import { isNodeJsReadableStream } from './multipart/helpers';
 import type { PutBody } from './put-helpers';
 
+export { bytes } from './bytes';
+
 export interface BlobCommandOptions {
   /**
    * Define your blob API token.

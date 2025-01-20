@@ -16,6 +16,22 @@
     "POSTGRES_URL_NON_POOLING",
     "POSTGRES_USER"
   ],
+  "globalPassThroughEnv": [
+    "BLOB_READ_WRITE_TOKEN",
+    "BLOB_UPLOAD_SECRET",
+    "EDGE_CONFIG",
+    "KV_REST_API_READ_ONLY_TOKEN",
+    "KV_REST_API_TOKEN",
+    "KV_REST_API_URL",
+    "KV_URL",
+    "POSTGRES_DATABASE",
+    "POSTGRES_HOST",
+    "POSTGRES_PASSWORD",
+    "POSTGRES_PRISMA_URL",
+    "POSTGRES_URL",
+    "POSTGRES_URL_NON_POOLING",
+    "POSTGRES_USER"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

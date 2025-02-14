@@ -85,14 +85,14 @@ describe('client', () => {
       );
       expect(fetchMock).toHaveBeenNthCalledWith(
         2,
-        'https://blob.vercel-storage.com/foo.txt',
+        'https://blob.vercel-storage.com/?pathname=foo.txt',
         {
           body: 'Test file data',
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_123',
             'x-api-blob-request-attempt': '0',
             'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
-            'x-api-version': '8',
+            'x-api-version': '9',
           },
           method: 'PUT',
         },
@@ -201,13 +201,13 @@ describe('client', () => {
 
       expect(fetchMock).toHaveBeenNthCalledWith(
         1,
-        'https://blob.vercel-storage.com/mpu/foo.txt',
+        'https://blob.vercel-storage.com/mpu?pathname=foo.txt',
         {
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
             'x-api-blob-request-attempt': '0',
             'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
-            'x-api-version': '8',
+            'x-api-version': '9',
             'x-mpu-action': 'create',
           },
           method: 'POST',
@@ -217,14 +217,14 @@ describe('client', () => {
       const internalAbortSignal = new AbortController().signal;
       expect(fetchMock).toHaveBeenNthCalledWith(
         2,
-        'https://blob.vercel-storage.com/mpu/foo.txt',
+        'https://blob.vercel-storage.com/mpu?pathname=foo.txt',
         {
           body: 'data1',
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
             'x-api-blob-request-attempt': '0',
             'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
-            'x-api-version': '8',
+            'x-api-version': '9',
             'x-mpu-action': 'upload',
             'x-mpu-key': 'key',
             'x-mpu-upload-id': 'uploadId',
@@ -236,14 +236,14 @@ describe('client', () => {
       );
       expect(fetchMock).toHaveBeenNthCalledWith(
         3,
-        'https://blob.vercel-storage.com/mpu/foo.txt',
+        'https://blob.vercel-storage.com/mpu?pathname=foo.txt',
         {
           body: 'data2',
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
             'x-api-blob-request-attempt': '0',
             'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
-            'x-api-version': '8',
+            'x-api-version': '9',
             'x-mpu-action': 'upload',
             'x-mpu-key': 'key',
             'x-mpu-upload-id': 'uploadId',
@@ -255,7 +255,7 @@ describe('client', () => {
       );
       expect(fetchMock).toHaveBeenNthCalledWith(
         4,
-        'https://blob.vercel-storage.com/mpu/foo.txt',
+        'https://blob.vercel-storage.com/mpu?pathname=foo.txt',
         {
           body: JSON.stringify([
             { etag: 'etag1', partNumber: 1 },
@@ -266,7 +266,7 @@ describe('client', () => {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
             'x-api-blob-request-attempt': '0',
             'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
-            'x-api-version': '8',
+            'x-api-version': '9',
             'x-mpu-action': 'complete',
             'x-mpu-key': 'key',
             'x-mpu-upload-id': 'uploadId',
@@ -343,13 +343,13 @@ describe('client', () => {
 
       expect(fetchMock).toHaveBeenNthCalledWith(
         1,
-        'https://blob.vercel-storage.com/mpu/foo.txt',
+        'https://blob.vercel-storage.com/mpu?pathname=foo.txt',
         {
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
             'x-api-blob-request-attempt': '0',
             'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
-            'x-api-version': '8',
+            'x-api-version': '9',
             'x-mpu-action': 'create',
           },
           method: 'POST',
@@ -359,14 +359,14 @@ describe('client', () => {
       const internalAbortSignal = new AbortController().signal;
       expect(fetchMock).toHaveBeenNthCalledWith(
         2,
-        'https://blob.vercel-storage.com/mpu/foo.txt',
+        'https://blob.vercel-storage.com/mpu?pathname=foo.txt',
         {
           body: 'data1',
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
             'x-api-blob-request-attempt': '0',
             'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
-            'x-api-version': '8',
+            'x-api-version': '9',
             'x-mpu-action': 'upload',
             'x-mpu-key': 'key',
             'x-mpu-upload-id': 'uploadId',
@@ -378,14 +378,14 @@ describe('client', () => {
       );
       expect(fetchMock).toHaveBeenNthCalledWith(
         3,
-        'https://blob.vercel-storage.com/mpu/foo.txt',
+        'https://blob.vercel-storage.com/mpu?pathname=foo.txt',
         {
           body: 'data2',
           headers: {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
             'x-api-blob-request-attempt': '0',
             'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
-            'x-api-version': '8',
+            'x-api-version': '9',
             'x-mpu-action': 'upload',
             'x-mpu-key': 'key',
             'x-mpu-upload-id': 'uploadId',
@@ -397,7 +397,7 @@ describe('client', () => {
       );
       expect(fetchMock).toHaveBeenNthCalledWith(
         4,
-        'https://blob.vercel-storage.com/mpu/foo.txt',
+        'https://blob.vercel-storage.com/mpu?pathname=foo.txt',
         {
           body: JSON.stringify([
             { etag: 'etag1', partNumber: 1 },
@@ -408,7 +408,7 @@ describe('client', () => {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
             'x-api-blob-request-attempt': '0',
             'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
-            'x-api-version': '8',
+            'x-api-version': '9',
             'x-mpu-action': 'complete',
             'x-mpu-key': 'key',
             'x-mpu-upload-id': 'uploadId',

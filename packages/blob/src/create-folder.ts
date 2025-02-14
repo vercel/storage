@@ -18,14 +18,15 @@ export async function createFolder(
   pathname: string,
   options: BlobCommandOptions = {},
 ): Promise<CreateFolderResult> {
-  const path = pathname.endsWith('/') ? pathname : `${pathname}/`;
+  const folderPathname = pathname.endsWith('/') ? pathname : `${pathname}/`;
 
   const headers: Record<string, string> = {};
 
   headers[putOptionHeaderMap.addRandomSuffix] = '0';
 
+  const params = new URLSearchParams({ pathname: folderPathname });
   const response = await requestApi<PutBlobApiResponse>(
-    `/${path}`,
+    `/?${params.toString()}`,
     {
       method: 'PUT',
       headers,

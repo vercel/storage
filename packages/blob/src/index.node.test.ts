@@ -455,7 +455,7 @@ describe('blob client', () => {
           "url": "https://storeId.public.blob.vercel-storage.com/foo-id.txt",
         }
       `);
-      expect(path).toBe('/foo.txt');
+      expect(path).toBe('/?pathname=foo.txt');
       expect(headers.authorization).toEqual('Bearer NEW_TOKEN');
       expect(body).toMatchInlineSnapshot(`"Test Body"`);
     });
@@ -612,30 +612,6 @@ describe('blob client', () => {
         }),
       ).rejects.toThrow(
         new Error('Vercel Blob: pathname is too long, maximum length is 950'),
-      );
-    });
-
-    it('throws when pathname contains #', async () => {
-      await expect(
-        put('foo#bar.txt', 'Test Body', {
-          access: 'public',
-        }),
-      ).rejects.toThrow(
-        new Error(
-          'Vercel Blob: pathname cannot contain "#", please encode it if needed',
-        ),
-      );
-    });
-
-    it('throws when pathname contains ?', async () => {
-      await expect(
-        put('foo?bar.txt', 'Test Body', {
-          access: 'public',
-        }),
-      ).rejects.toThrow(
-        new Error(
-          'Vercel Blob: pathname cannot contain "?", please encode it if needed',
-        ),
       );
     });
 

@@ -33,7 +33,7 @@ async function run(): Promise<void> {
     createFolder(),
     manualMultipartUpload(),
     manualMultipartUploader(),
-    cancelPut(),
+    // cancelPut(),
 
     // The following stream examples will fail when targeting the local api-blob because the server doesn't buffer
     // the request body, so we have no idea of the size of the file we need to put in S3
@@ -46,7 +46,7 @@ async function run(): Promise<void> {
     fetchExampleMultipart(),
   ]);
 
-  // multipart uploads are frequently not immediately available so we have to wait a bit
+  // multipart uploads are sometimes not immediately available so we have to wait a bit
   await new Promise((resolve) => setTimeout(resolve, 5000));
 
   const filteredUrls = await Promise.all(
@@ -81,12 +81,26 @@ async function run(): Promise<void> {
 
 async function textFileExample(): Promise<string> {
   const start = Date.now();
-  const blob = await vercelBlob.put('folderé/test.txt', 'Hello, world!é', {
-    access: 'public',
-    onUploadProgress(progressEvent) {
-      console.log(progressEvent.percentage);
+  const blob = await vercelBlob.put(
+    `some/new-folder/file-with-chars%20!'()@@{}[]-#?file.txt`,
+    'Hello, world!é',
+    {
+      access: 'public',
+      onUploadProgress(progressEvent) {
+        console.log(progressEvent.percentage);
+      },
     },
-  });
+  );
+  const head = await vercelBlob.head(blob.url);
+  console.log(head);
+  const copy = await vercelBlob.copy(
+    blob.url,
+    `some/even-new-folder/file-with-chars%20!'()@@{}[]-#?file.txt`,
+    {
+      access: 'public',
+    },
+  );
+  console.log(copy);
   console.log('Text file example:', blob.url, `(${Date.now() - start}ms)`);
   return blob.url;
 }

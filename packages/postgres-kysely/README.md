@@ -1,4 +1,7 @@
-# @vercel/postgres-kysely
+# @vercel/postgres-kysely (deprecated)
+
+> [!CAUTION]
+> **`@vercel/postgres-kysely` is deprecated and no longer maintained.**
 
 A `@vercel/postgres` wrapper for the [Kysely](https://github.com/kysely-org/kysely) query builder.
 

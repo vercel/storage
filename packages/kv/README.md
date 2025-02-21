@@ -1,5 +1,9 @@
 # @vercel/kv
 
+<!-- prettier-ignore -->
+> [!CAUTION]
+> **`@vercel/kv` has moved to [the `@upstash/redis` package from Upstash](https://github.com/upstash/redis-js).
+
 A client that works with Vercel KV.
 
 ## Install

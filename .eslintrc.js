@@ -6,8 +6,8 @@ module.exports = {
   extends: ['custom'],
   parserOptions: {
     project: [
-      resolve(__dirname, './packages/*/tsconfig.json'),
-      resolve(__dirname, './tooling/*/tsconfig.json'),
+      resolve(__dirname, './packages/**/*/tsconfig.json'),
+      resolve(__dirname, './tooling/**/*/tsconfig.json'),
     ],
   },
 };

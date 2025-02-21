@@ -5,3 +5,4 @@ pnpm-lock.yaml
 .vercel
 .vscode
 .changeset
+__testfixtures__

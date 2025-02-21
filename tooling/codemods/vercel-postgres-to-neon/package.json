@@ -1,0 +1,24 @@
+{
+  "name": "vercel-postgres-to-neon",
+  "type": "module",
+  "files": [
+    "README.md",
+    ".codemodrc.json",
+    "/dist/index.cjs"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest watch"
+  },
+  "devDependencies": {
+    "@codemod.com/codemod-utils": "*",
+    "@edge-runtime/types": "2.2.9",
+    "@types/jest": "29.5.14",
+    "@types/jscodeshift": "^0.11.10",
+    "@types/node": "22.10.7",
+    "jscodeshift": "^0.15.1",
+    "tsconfig": "workspace:*",
+    "typescript": "^5.2.2",
+    "vitest": "^1.0.1"
+  }
+}

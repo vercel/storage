@@ -545,6 +545,31 @@ describe('createClient', () => {
       });
     });
 
+    describe('get(key, { consistentRead: true })', () => {
+      it('should handle multiple concurrent requests correctly', async () => {
+        const edgeConfig = createClient(process.env.EDGE_CONFIG);
+
+        let i = 0;
+        // Create a more realistic response with a proper body stream
+        // @ts-expect-error - aaa
+        fetchMock.mockImplementation(() => {
+          return new Response(JSON.stringify(`bar${i++}`), {
+            headers: { 'content-type': 'application/json' },
+          });
+        });
+
+        // Make multiple concurrent requests
+        const a = edgeConfig.get('foo', { consistentRead: true });
+        const b = edgeConfig.get('foo', { consistentRead: true });
+
+        await a;
+        await b;
+        await expect(a).resolves.toEqual('bar0');
+        await expect(b).resolves.toEqual('bar1');
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+      });
+    });
+
     describe('has(key)', () => {
       describe('when item exists', () => {
         it('should return true', async () => {

@@ -1,5 +1,6 @@
 # @vercel/postgres (deprecated)
 
+<!-- prettier-ignore -->
 > [!CAUTION]
 > **`@vercel/postgres` is deprecated**. Please use [the `@neondatabase/serverless` package from Neon instead](https://github.com/neondatabase/serverless). See the [Vercel Postgres to Neon transition guide](https://neon.tech/docs/guides/vercel-postgres-transition-guide).
 

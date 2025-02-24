@@ -1,5 +1,6 @@
 # @vercel/postgres-kysely (deprecated)
 
+<!-- prettier-ignore -->
 > [!CAUTION]
 > **`@vercel/postgres-kysely` is deprecated and no longer maintained.**
 

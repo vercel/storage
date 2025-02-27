@@ -20,5 +20,5 @@
     "module": "ES2020",
     "types": ["@edge-runtime/types", "@types/node", "jest"]
   },
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "__testfixtures__"]
 }

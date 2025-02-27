@@ -1,5 +1,13 @@
 # @vercel/blob
 
+## 0.27.2
+
+### Patch Changes
+
+- 54ce5f8: Allow all special characters to be used as pathname.
+  You can now use all the characters you want in pathname even the ones that have
+  special meaning in urls like `%!'()@{}[]#` and it will work as expected.
+
 ## 0.27.1
 
 ### Patch Changes

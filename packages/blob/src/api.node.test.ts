@@ -66,7 +66,7 @@ describe('api', () => {
             authorization: 'Bearer 123',
             'x-api-blob-request-attempt': '0',
             'x-api-blob-request-id': expect.any(String) as string,
-            'x-api-version': '8',
+            'x-api-version': '9',
           },
           method: 'POST',
         },

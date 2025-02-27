@@ -58,8 +58,10 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
       ? throttle(options.onUploadProgress, 100)
       : undefined;
 
+    const params = new URLSearchParams({ pathname });
+
     const response = await requestApi<PutBlobApiResponse>(
-      `/${pathname}`,
+      `/?${params.toString()}`,
       {
         method: 'PUT',
         body,

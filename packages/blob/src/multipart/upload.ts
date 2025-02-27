@@ -77,15 +77,17 @@ export async function uploadPart({
   internalAbortController?: AbortController;
   part: PartInput;
 }): Promise<UploadPartApiResponse> {
+  const params = new URLSearchParams({ pathname });
+
   const responsePromise = requestApi<UploadPartApiResponse>(
-    `/mpu/${pathname}`,
+    `/mpu?${params.toString()}`,
     {
       signal: internalAbortController.signal,
       method: 'POST',
       headers: {
         ...headers,
         'x-mpu-action': 'upload',
-        'x-mpu-key': encodeURI(key),
+        'x-mpu-key': encodeURIComponent(key),
         'x-mpu-upload-id': uploadId,
         'x-mpu-part-number': part.partNumber.toString(),
       },

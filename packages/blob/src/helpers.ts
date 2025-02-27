@@ -124,7 +124,7 @@ export function isPlainObject(value: unknown): boolean {
   );
 }
 
-export const disallowedPathnameCharacters = ['#', '?', '//'];
+export const disallowedPathnameCharacters = ['//'];
 
 // Chrome: implemented https://developer.chrome.com/docs/capabilities/web-apis/fetch-streaming-requests
 // Microsoft Edge: implemented (Chromium)
@@ -135,6 +135,13 @@ export const supportsRequestStreams = (() => {
   // TODO: Can be removed when Node.js 16 is no more required internally
   if (isNodeProcess()) {
     return true;
+  }
+
+  const apiUrl = getApiUrl();
+
+  // Localhost generally doesn't work with HTTP 2 so we can stop here
+  if (apiUrl.startsWith('http://localhost')) {
+    return false;
   }
 
   let duplexAccessed = false;
@@ -164,6 +171,7 @@ export function getApiUrl(pathname = ''): string {
   } catch {
     // noop
   }
+
   return `${baseUrl || 'https://blob.vercel-storage.com'}${pathname}`;
 }
 

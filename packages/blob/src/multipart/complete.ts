@@ -57,9 +57,11 @@ export async function completeMultipartUpload({
   headers: Record<string, string>;
   options: BlobCommandOptions;
 }): Promise<PutBlobResult> {
+  const params = new URLSearchParams({ pathname });
+
   try {
     const response = await requestApi<PutBlobApiResponse>(
-      `/mpu/${pathname}`,
+      `/mpu?${params.toString()}`,
       {
         method: 'POST',
         headers: {
@@ -69,7 +71,7 @@ export async function completeMultipartUpload({
           'x-mpu-upload-id': uploadId,
           // key can be any utf8 character so we need to encode it as HTTP headers can only be us-ascii
           // https://www.rfc-editor.org/rfc/rfc7230#swection-3.2.4
-          'x-mpu-key': encodeURI(key),
+          'x-mpu-key': encodeURIComponent(key),
         },
         body: JSON.stringify(parts),
         signal: options.abortSignal,

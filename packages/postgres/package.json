@@ -49,19 +49,19 @@
     "ws": "^8.17.1"
   },
   "devDependencies": {
-    "@changesets/cli": "2.28.1",
+    "@changesets/cli": "2.27.11",
     "@edge-runtime/jest-environment": "2.3.10",
     "@edge-runtime/types": "2.2.9",
     "@types/jest": "29.5.14",
-    "@types/node": "22.13.5",
-    "@types/ws": "8.5.14",
+    "@types/node": "22.10.7",
+    "@types/ws": "8.5.13",
     "eslint": "8.56.0",
     "eslint-config-custom": "workspace:*",
     "jest": "29.7.0",
-    "prettier": "3.5.2",
-    "ts-jest": "29.2.6",
+    "prettier": "3.4.2",
+    "ts-jest": "29.2.5",
     "tsconfig": "workspace:*",
-    "tsup": "8.4.0",
+    "tsup": "8.3.5",
     "typescript": "5.7.3"
   },
   "engines": {

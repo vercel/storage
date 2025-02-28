@@ -28,6 +28,11 @@
     "crypto": "./dist/crypto-browser.js",
     "stream": "./dist/stream-browser.js"
   },
+  "react-native": {
+    "undici": "./dist/undici-browser.js",
+    "crypto": "./dist/crypto-browser.js",
+    "stream": "./dist/stream-browser.js"
+  },
   "typesVersions": {
     "*": {
       "client": [

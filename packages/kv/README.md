@@ -1,4 +1,8 @@
-# @vercel/kv
+# @vercel/kv (deprecated)
+
+<!-- prettier-ignore -->
+> [!CAUTION]
+> **`@vercel/kv` is deprecated**. Please use [the `@upstash/redis` package from Upstash instead](https://github.com/upstash/redis-js).
 
 A client that works with Vercel KV.
 

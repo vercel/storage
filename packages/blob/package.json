@@ -71,14 +71,14 @@
     "@edge-runtime/types": "2.2.9",
     "@types/async-retry": "1.4.9",
     "@types/jest": "29.5.14",
-    "@types/node": "22.10.7",
+    "@types/node": "22.13.5",
     "eslint": "8.56.0",
     "eslint-config-custom": "workspace:*",
     "jest": "29.7.0",
     "jest-environment-jsdom": "29.7.0",
-    "ts-jest": "29.2.5",
+    "ts-jest": "29.2.6",
     "tsconfig": "workspace:*",
-    "tsup": "8.3.5"
+    "tsup": "8.4.0"
   },
   "engines": {
     "node": ">=16.14"

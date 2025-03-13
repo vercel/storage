@@ -18,7 +18,7 @@ interface HeadBlobApiResponse extends Omit<HeadBlobResult, 'uploadedAt'> {
 
 /**
  * Fetches metadata of a blob object.
- * Detailed documentation can be found here: https://vercel.com/docs/storage/vercel-blob/using-blob-sdk#get-blob-metadata
+ * Detailed documentation can be found here: https://vercel.com/docs/vercel-blob/using-blob-sdk#get-blob-metadata
  *
  * @param url - Blob url to lookup.
  * @param options - Additional options for the request.

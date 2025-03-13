@@ -61,7 +61,7 @@ type ListCommandResult<
 
 /**
  * Fetches a paginated list of blob objects from your store.
- * Detailed documentation can be found here: https://vercel.com/docs/storage/vercel-blob/using-blob-sdk#list-blobs
+ * Detailed documentation can be found here: https://vercel.com/docs/vercel-blob/using-blob-sdk#list-blobs
  *
  * @param options - Additional options for the request.
  */

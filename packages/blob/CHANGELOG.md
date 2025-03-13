@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 0.27.3
+
+### Patch Changes
+
+- f88d80b: Fix documentation links in README and types, no functional changes
+
 ## 0.27.2
 
 ### Patch Changes

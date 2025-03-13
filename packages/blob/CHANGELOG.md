@@ -421,7 +421,7 @@
 
 - 8251462: This release introduces BREAKING CHANGES. Mostly, we've separated client and server needs better. While ensuring we only export what we currently think is useful to you.
 
-  We have a completely new documentation about client (browser) uploads: https://vercel.com/docs/storage/vercel-blob/quickstart#client-uploads.
+  We have a completely new documentation about client (browser) uploads: https://vercel.com/docs/vercel-blob/client-upload.
 
   We've moved and renamed client-related utilities, including the ones to generate client tokens, to a separate entry file: `@vercel/blob/client`. Use it this way:
 

@@ -14,7 +14,7 @@ export interface CopyBlobResult {
 
 /**
  * Copies a blob to another location in your store.
- * Detailed documentation can be found here: https://vercel.com/docs/storage/vercel-blob/using-blob-sdk#copy-a-blob
+ * Detailed documentation can be found here: https://vercel.com/docs/vercel-blob/using-blob-sdk#copy-a-blob
  *
  * @param fromUrl - The blob URL to copy. You can only copy blobs that are in the store, that your 'BLOB_READ_WRITE_TOKEN' has access to.
  * @param toPathname - The pathname to copy the blob to. This includes the filename.

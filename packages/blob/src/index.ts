@@ -39,9 +39,9 @@ export type { PutCommandOptions };
 
 /**
  * Uploads a blob into your store from your server.
- * Detailed documentation can be found here: https://vercel.com/docs/storage/vercel-blob/using-blob-sdk#upload-a-blob
+ * Detailed documentation can be found here: https://vercel.com/docs/vercel-blob/using-blob-sdk#upload-a-blob
  *
- * If you want to upload from the browser directly, check out the documentation forAclient uploads: https://vercel.com/docs/storage/vercel-blob/using-blob-sdk#client-uploads
+ * If you want to upload from the browser directly, check out the documentation forAclient uploads: https://vercel.com/docs/vercel-blob/using-blob-sdk#client-uploads
  *
  * @param pathname - The pathname to upload the blob to, including the extension. This will influence the url of your blob like https://$storeId.public.blob.vercel-storage.com/$pathname.
  * @param body - The content of your blob, can be a: string, File, Blob, Buffer or Stream. We support almost everything fetch supports: https://developer.mozilla.org/en-US/docs/Web/API/RequestInit#body.

@@ -146,9 +146,9 @@ export interface CommonUploadOptions {
 export type UploadOptions = ClientCommonPutOptions & CommonUploadOptions;
 /**
  * Uploads a blob into your store from the client.
- * Detailed documentation can be found here: https://vercel.com/docs/storage/vercel-blob/using-blob-sdk#client-uploads
+ * Detailed documentation can be found here: https://vercel.com/docs/vercel-blob/using-blob-sdk#client-uploads
  *
- * If you want to upload from your server instead, check out the documentation for the put operation: https://vercel.com/docs/storage/vercel-blob/using-blob-sdk#upload-a-blob
+ * If you want to upload from your server instead, check out the documentation for the put operation: https://vercel.com/docs/vercel-blob/using-blob-sdk#upload-a-blob
  *
  * @param pathname - The pathname to upload the blob to. This includes the filename.
  * @param body - The contents of your blob. This has to be a supported fetch body type https://developer.mozilla.org/en-US/docs/Web/API/fetch#body.

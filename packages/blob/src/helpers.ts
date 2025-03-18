@@ -29,7 +29,7 @@ export interface CommonCreateBlobOptions extends BlobCommandOptions {
   access: 'public';
   /**
    * Adds a random suffix to the filename.
-   * @defaultvalue true
+   * @defaultvalue false
    */
   addRandomSuffix?: boolean;
   /**

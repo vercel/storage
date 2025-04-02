@@ -1,0 +1,44 @@
+# Ignore sensitive information
+.env
+.env.local
+.env.*.local
+*.secret
+*.key
+*.pem
+
+# Ignore log files
+*.log
+
+# Ignore database files
+*.sqlite
+*.db
+
+# Ignore compiled files and directories
+node_modules/
+dist/
+build/
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Ignore Git files
+.git/
+.gitignore
+
+# Ignore temporary files
+*.tmp
+*.swp
+
+# Ignore sensitive configuration files
+config/secrets.yml
+config/database.yml
+
+# Ignore coverage reports
+coverage/
+*.lcov
+
+# Ignore dependency directories
+vendor/

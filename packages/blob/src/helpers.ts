@@ -33,6 +33,11 @@ export interface CommonCreateBlobOptions extends BlobCommandOptions {
    */
   addRandomSuffix?: boolean;
   /**
+   * Allow overwriting an existing blob. By default this is set to false and will throw an error if the blob already exists.
+   * @defaultvalue false
+   */
+  allowOverwrite?: boolean;
+  /**
    * Defines the content type of the blob. By default, this value is inferred from the pathname. Sent as the 'content-type' header when downloading a blob.
    */
   contentType?: string;

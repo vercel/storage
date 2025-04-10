@@ -48,7 +48,12 @@ export type { PutCommandOptions };
  * @param options - Additional options like `token` or `contentType`.
  */
 export const put = createPutMethod<PutCommandOptions>({
-  allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
+  allowedOptions: [
+    'cacheControlMaxAge',
+    'addRandomSuffix',
+    'allowOverwrite',
+    'contentType',
+  ],
 });
 
 //  vercelBlob.del()
@@ -82,23 +87,43 @@ export { copy } from './copy';
 
 export const createMultipartUpload =
   createCreateMultipartUploadMethod<CommonCreateBlobOptions>({
-    allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
+    allowedOptions: [
+      'cacheControlMaxAge',
+      'addRandomSuffix',
+      'allowOverwrite',
+      'contentType',
+    ],
   });
 
 export const createMultipartUploader =
   createCreateMultipartUploaderMethod<CommonCreateBlobOptions>({
-    allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
+    allowedOptions: [
+      'cacheControlMaxAge',
+      'addRandomSuffix',
+      'allowOverwrite',
+      'contentType',
+    ],
   });
 
 export type { UploadPartCommandOptions };
 export const uploadPart = createUploadPartMethod<UploadPartCommandOptions>({
-  allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
+  allowedOptions: [
+    'cacheControlMaxAge',
+    'addRandomSuffix',
+    'allowOverwrite',
+    'contentType',
+  ],
 });
 
 export type { CompleteMultipartUploadCommandOptions };
 export const completeMultipartUpload =
   createCompleteMultipartUploadMethod<CompleteMultipartUploadCommandOptions>({
-    allowedOptions: ['cacheControlMaxAge', 'addRandomSuffix', 'contentType'],
+    allowedOptions: [
+      'cacheControlMaxAge',
+      'addRandomSuffix',
+      'allowOverwrite',
+      'contentType',
+    ],
   });
 
 export type { Part, PartInput } from './multipart/helpers';

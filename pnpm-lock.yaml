@@ -60,8 +60,8 @@ importers:
         specifier: ^2.1.0
         version: 2.1.0
       undici:
-        specifier: ^5.28.4
-        version: 5.28.4
+        specifier: ^6.0.0
+        version: 6.20.1
     devDependencies:
       '@edge-runtime/jest-environment':
         specifier: 2.3.10
@@ -1137,10 +1137,6 @@ packages:
   '@eslint/js@8.56.0':
     resolution: {integrity: sha512-gMsVel9D7f2HLkBma9VbtzZRehRogVRfbr++f06nL2vnCGCNlzOD+/MUov/F4p8myyAHspEhVobgjpX64q5m6A==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
-
-  '@fastify/busboy@2.1.1':
-    resolution: {integrity: sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==}
-    engines: {node: '>=14'}
 
   '@humanwhocodes/config-array@0.11.14':
     resolution: {integrity: sha512-3T8LkOmg45BV5FICb15QQMsyUSWrQ8AygVfC7ZG32zOalnqrilm018ZVCw0eapXux8FtA33q8PSRSstjee3jSg==}
@@ -5446,10 +5442,6 @@ packages:
   undici-types@6.20.0:
     resolution: {integrity: sha512-Ny6QZ2Nju20vw1SRHe3d9jVu6gJ+4e3+MMpqu7pqE5HT6WsTSlce++GQmK5UXS8mzV8DSYHrQH+Xrf2jVcuKNg==}
 
-  undici@5.28.4:
-    resolution: {integrity: sha512-72RFADWFqKmUb2hmmvNODKL3p9hcB6Gt2DOQMis1SEBaV6a4MH8soBvzg+95CYhCKPFedut2JY9bMfrDl9D23g==}
-    engines: {node: '>=14.0'}
-
   undici@6.20.1:
     resolution: {integrity: sha512-AjQF1QsmqfJys+LXfGTNum+qw4S88CojRInG/6t31W/1fk6G59s92bnAvGz5Cmur+kQv2SURXEvvudLmbrE8QA==}
     engines: {node: '>=18.17'}
@@ -6510,8 +6502,6 @@ snapshots:
       - supports-color
 
   '@eslint/js@8.56.0': {}
-
-  '@fastify/busboy@2.1.1': {}
 
   '@humanwhocodes/config-array@0.11.14':
     dependencies:
@@ -11915,10 +11905,6 @@ snapshots:
       which-boxed-primitive: 1.1.1
 
   undici-types@6.20.0: {}
-
-  undici@5.28.4:
-    dependencies:
-      '@fastify/busboy': 2.1.1
 
   undici@6.20.1: {}
 

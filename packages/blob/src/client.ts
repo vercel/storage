@@ -63,10 +63,12 @@ function createPutExtraChecks<
       // @ts-expect-error -- Runtime check for DX.
       options.addRandomSuffix !== undefined ||
       // @ts-expect-error -- Runtime check for DX.
+      options.allowOverwrite !== undefined ||
+      // @ts-expect-error -- Runtime check for DX.
       options.cacheControlMaxAge !== undefined
     ) {
       throw new BlobError(
-        `${methodName} doesn't allow addRandomSuffix and cacheControlMaxAge. Configure these options at the server side when generating client tokens.`,
+        `${methodName} doesn't allow \`addRandomSuffix\`, \`cacheControlMaxAge\` or \`allowOverwrite\`. Configure these options at the server side when generating client tokens.`,
       );
     }
   };
@@ -168,10 +170,12 @@ export const upload = createPutMethod<UploadOptions>({
       // @ts-expect-error -- Runtime check for DX.
       options.addRandomSuffix !== undefined ||
       // @ts-expect-error -- Runtime check for DX.
+      options.createPutExtraChecks !== undefined ||
+      // @ts-expect-error -- Runtime check for DX.
       options.cacheControlMaxAge !== undefined
     ) {
       throw new BlobError(
-        "client/`upload` doesn't allow addRandomSuffix and cacheControlMaxAge. Configure these options at the server side when generating client tokens.",
+        "client/`upload` doesn't allow `addRandomSuffix`, `cacheControlMaxAge` or `allowOverwrite`. Configure these options at the server side when generating client tokens.",
       );
     }
   },
@@ -319,6 +323,7 @@ export interface HandleUploadOptions {
       | 'maximumSizeInBytes'
       | 'validUntil'
       | 'addRandomSuffix'
+      | 'allowOverwrite'
       | 'cacheControlMaxAge'
     > & { tokenPayload?: string | null }
   >;
@@ -505,6 +510,7 @@ export interface GenerateClientTokenOptions extends BlobCommandOptions {
   allowedContentTypes?: string[];
   validUntil?: number;
   addRandomSuffix?: boolean;
+  allowOverwrite?: boolean;
   cacheControlMaxAge?: number;
 }
 

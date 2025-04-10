@@ -12,6 +12,7 @@ import { MAXIMUM_PATHNAME_LENGTH } from './api';
 export const putOptionHeaderMap = {
   cacheControlMaxAge: 'x-cache-control-max-age',
   addRandomSuffix: 'x-add-random-suffix',
+  allowOverwrite: 'x-allow-overwrite',
   contentType: 'x-content-type',
 };
 
@@ -58,6 +59,15 @@ export function createPutHeaders<TOptions extends CommonPutCommandOptions>(
     options.addRandomSuffix !== undefined
   ) {
     headers[putOptionHeaderMap.addRandomSuffix] = options.addRandomSuffix
+      ? '1'
+      : '0';
+  }
+
+  if (
+    allowedOptions.includes('allowOverwrite') &&
+    options.allowOverwrite !== undefined
+  ) {
+    headers[putOptionHeaderMap.allowOverwrite] = options.allowOverwrite
       ? '1'
       : '0';
   }

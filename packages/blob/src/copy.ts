@@ -55,6 +55,10 @@ export async function copy(
     headers['x-add-random-suffix'] = options.addRandomSuffix ? '1' : '0';
   }
 
+  if (options.allowOverwrite !== undefined) {
+    headers['x-allow-overwrite'] = options.allowOverwrite ? '1' : '0';
+  }
+
   if (options.contentType) {
     headers['x-content-type'] = options.contentType;
   }

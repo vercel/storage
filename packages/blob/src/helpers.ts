@@ -24,7 +24,7 @@ export interface BlobCommandOptions {
 // shared interface for put, copy and multipartUpload
 export interface CommonCreateBlobOptions extends BlobCommandOptions {
   /**
-   * Whether the blob should be publicly accessible.
+   * Whether the blob should be publicly accessible. The only currently allowed value is `public`.
    */
   access: 'public';
   /**
@@ -49,12 +49,29 @@ export interface CommonCreateBlobOptions extends BlobCommandOptions {
   cacheControlMaxAge?: number;
 }
 
+/**
+ * Event object passed to the onUploadProgress callback.
+ */
 export interface UploadProgressEvent {
+  /**
+   * The number of bytes uploaded.
+   */
   loaded: number;
+
+  /**
+   * The total number of bytes to upload.
+   */
   total: number;
+
+  /**
+   * The percentage of the upload that has been completed.
+   */
   percentage: number;
 }
 
+/**
+ * Callback type for tracking upload progress.
+ */
 export type OnUploadProgressCallback = (
   progressEvent: UploadProgressEvent,
 ) => void;
@@ -73,6 +90,9 @@ export type BlobRequest = ({
   onUploadProgress?: InternalOnUploadProgressCallback;
 }) => Promise<Response>;
 
+/**
+ * Interface for including upload progress tracking capabilities.
+ */
 export interface WithUploadProgress {
   /**
    * Callback to track the upload progress. You will receive an object with the following properties:
@@ -103,6 +123,14 @@ export class BlobError extends Error {
   }
 }
 
+/**
+ * Generates a download URL for a blob.
+ * The download URL includes a ?download=1 parameter which causes browsers to download
+ * the file instead of displaying it inline.
+ *
+ * @param blobUrl - The URL of the blob to generate a download URL for
+ * @returns A string containing the download URL with the download parameter appended
+ */
 export function getDownloadUrl(blobUrl: string): string {
   const url = new URL(blobUrl);
 

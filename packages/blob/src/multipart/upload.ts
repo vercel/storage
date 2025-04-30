@@ -11,10 +11,28 @@ import { createPutHeaders, createPutOptions } from '../put-helpers';
 import type { PutBody, CreatePutMethodOptions } from '../put-helpers';
 import type { Part, PartInput } from './helpers';
 
-// shared interface for server and client
+/**
+ * Options for uploading a part in a multipart upload process.
+ * Used with the uploadPart method.
+ */
 export interface CommonMultipartUploadOptions {
+  /**
+   * Unique upload identifier for the multipart upload, received from createMultipartUpload.
+   * This ID is used to associate all uploaded parts with the same multipart upload.
+   */
   uploadId: string;
+
+  /**
+   * Unique key identifying the blob object, received from createMultipartUpload.
+   * This key is used to identify which blob object the parts belong to.
+   */
   key: string;
+
+  /**
+   * A number identifying which part is being uploaded (1-based).
+   * This number is used to order the parts when completing the multipart upload.
+   * Parts must be uploaded with consecutive part numbers starting from 1.
+   */
   partNumber: number;
 }
 

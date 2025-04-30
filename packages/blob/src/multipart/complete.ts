@@ -9,9 +9,21 @@ import type {
 import { createPutHeaders, createPutOptions } from '../put-helpers';
 import type { Part } from './helpers';
 
-// shared interface for server and client
+/**
+ * Options for completing a multipart upload.
+ * Used with the completeMultipartUpload method.
+ */
 export interface CommonCompleteMultipartUploadOptions {
+  /**
+   * Unique upload identifier for the multipart upload, received from createMultipartUpload.
+   * This ID is used to identify which multipart upload is being completed.
+   */
   uploadId: string;
+
+  /**
+   * Unique key identifying the blob object, received from createMultipartUpload.
+   * This key is used to identify which blob object the parts belong to.
+   */
   key: string;
 }
 

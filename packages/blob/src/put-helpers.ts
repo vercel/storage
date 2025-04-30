@@ -16,16 +16,38 @@ export const putOptionHeaderMap = {
   contentType: 'x-content-type',
 };
 
+/**
+ * Result of a successful put or copy operation.
+ */
 export interface PutBlobResult {
+  /**
+   * The URL of the blob.
+   */
   url: string;
+  /**
+   * A URL that will cause browsers to download the file instead of displaying it inline.
+   */
   downloadUrl: string;
+  /**
+   * The pathname of the blob within the store.
+   */
   pathname: string;
+  /**
+   * The content-type of the blob.
+   */
   contentType: string;
+  /**
+   * The content disposition header value.
+   */
   contentDisposition: string;
 }
 
 export type PutBlobApiResponse = PutBlobResult;
 
+/**
+ * Represents the body content for a put operation.
+ * Can be one of several supported types.
+ */
 export type PutBody =
   | string
   | Readable // Node.js streams

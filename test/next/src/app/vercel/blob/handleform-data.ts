@@ -28,6 +28,7 @@ export async function handleFormData(request: Request): Promise<NextResponse> {
   }
   const blob = await vercelBlob.put(file.name, file, {
     access: 'public',
+    addRandomSuffix: true,
   });
 
   return NextResponse.json(blob);

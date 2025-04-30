@@ -21,7 +21,7 @@ export interface BlobCommandOptions {
   abortSignal?: AbortSignal;
 }
 
-// shared interface for put, copy and multipartUpload
+// shared interface for put, copy and multipart upload
 export interface CommonCreateBlobOptions extends BlobCommandOptions {
   /**
    * Whether the blob should be publicly accessible. The only currently allowed value is `public`.

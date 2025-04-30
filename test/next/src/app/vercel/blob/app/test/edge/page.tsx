@@ -9,6 +9,7 @@ export default async function AppBodyEdge(props: {
   const filename = searchParams.filename;
   const blob = await vercelBlob.put(filename, `Hello from ${filename}`, {
     access: 'public',
+    addRandomSuffix: true,
   });
   const content = await fetch(blob.url).then((r) => r.text());
   return (

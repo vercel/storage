@@ -23,6 +23,7 @@ export default async function handleBody(
       // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/require-await -- [@vercel/style-guide@5 migration]
       onBeforeGenerateToken: async (pathname) => {
         return {
+          addRandomSuffix: true,
           maximumSizeInBytes: 10_000_000,
           allowedContentTypes: [
             'image/jpeg',

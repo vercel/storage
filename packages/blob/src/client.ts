@@ -17,7 +17,7 @@ import type { CommonMultipartUploadOptions } from './multipart/upload';
 import { createCreateMultipartUploaderMethod } from './multipart/create-uploader';
 
 /**
- * Interface for put, upload and multipartUpload operations.
+ * Interface for put, upload and multipart upload operations.
  * This type omits all options that are encoded in the client token.
  */
 export interface ClientCommonCreateBlobOptions {
@@ -37,7 +37,7 @@ export interface ClientCommonCreateBlobOptions {
 }
 
 /**
- * Shared interface for put and multipartUpload operations that use client tokens.
+ * Shared interface for put and multipart operations that use client tokens.
  */
 export interface ClientTokenOptions {
   /**

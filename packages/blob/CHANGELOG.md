@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 1.0.1
+
+### Patch Changes
+
+- af5f54b: Add correct documentation to all exported methods
+
 ## 1.0.0
 
 ### Major Changes

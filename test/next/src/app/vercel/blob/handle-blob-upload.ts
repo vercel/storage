@@ -39,6 +39,7 @@ export async function handleUploadHandler(
         }
 
         return {
+          addRandomSuffix: true,
           tokenPayload: JSON.stringify({
             userId: user?.id,
           }),

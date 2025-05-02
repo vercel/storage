@@ -5,6 +5,7 @@ export const getServerSideProps: GetServerSideProps = async (req) => {
   const filename = req.query.filename as string;
   const blob = await vercelBlob.put(filename, `Hello from ${filename}`, {
     access: 'public',
+    addRandomSuffix: true,
   });
   const content = await fetch(blob.url).then((r) => r.text());
 

@@ -15,6 +15,12 @@ The root page provides links to test suites. You can visit these test suites to 
 
 This also deploys to a preview branch for every PR, so you can test your code in production!
 
+## Running integration tests
+
+```sh
+VERCEL_BLOB_API_URL=https://vercel.com/api/blob pnpm integration-test -- '@vercel/blob'
+```
+
 ## Protect File Upload
 
 The File upload can be protected by the `BLOB_UPLOAD_SECRET` environment variable and accessed through the `clientUpload` cookie. In order to set it, define a `BLOB_UPLOAD_SECRET` within the `.env` file and call `document.cookie="clientUpload=[process.env.BLOB_UPLOAD_SECRET]; Path=/;"` inside the browser console.

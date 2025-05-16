@@ -21,35 +21,57 @@ export interface BlobCommandOptions {
   abortSignal?: AbortSignal;
 }
 
-// shared interface for put, copy and multipartUpload
+// shared interface for put, copy and multipart upload
 export interface CommonCreateBlobOptions extends BlobCommandOptions {
   /**
-   * Whether the blob should be publicly accessible.
+   * Whether the blob should be publicly accessible. The only currently allowed value is `public`.
    */
   access: 'public';
   /**
    * Adds a random suffix to the filename.
-   * @defaultvalue true
+   * @defaultvalue false
    */
   addRandomSuffix?: boolean;
+  /**
+   * Allow overwriting an existing blob. By default this is set to false and will throw an error if the blob already exists.
+   * @defaultvalue false
+   */
+  allowOverwrite?: boolean;
   /**
    * Defines the content type of the blob. By default, this value is inferred from the pathname. Sent as the 'content-type' header when downloading a blob.
    */
   contentType?: string;
   /**
-   * Number in seconds to configure the edge and browser cache. The maximum values are 5 minutes for the edge cache and unlimited for the browser cache.
+   * Number in seconds to configure the edge and browser cache. The minimum is 1 minute. There's no maximum but keep in mind that browser and edge caches will do a best effort to respect this value.
    * Detailed documentation can be found here: https://vercel.com/docs/storage/vercel-blob#caching
-   * @defaultvalue 365 * 24 * 60 * 60 (1 Year)
+   * @defaultvalue 30 * 24 * 60 * 60 (1 Month)
    */
   cacheControlMaxAge?: number;
 }
 
+/**
+ * Event object passed to the onUploadProgress callback.
+ */
 export interface UploadProgressEvent {
+  /**
+   * The number of bytes uploaded.
+   */
   loaded: number;
+
+  /**
+   * The total number of bytes to upload.
+   */
   total: number;
+
+  /**
+   * The percentage of the upload that has been completed.
+   */
   percentage: number;
 }
 
+/**
+ * Callback type for tracking upload progress.
+ */
 export type OnUploadProgressCallback = (
   progressEvent: UploadProgressEvent,
 ) => void;
@@ -68,6 +90,9 @@ export type BlobRequest = ({
   onUploadProgress?: InternalOnUploadProgressCallback;
 }) => Promise<Response>;
 
+/**
+ * Interface for including upload progress tracking capabilities.
+ */
 export interface WithUploadProgress {
   /**
    * Callback to track the upload progress. You will receive an object with the following properties:
@@ -98,6 +123,14 @@ export class BlobError extends Error {
   }
 }
 
+/**
+ * Generates a download URL for a blob.
+ * The download URL includes a ?download=1 parameter which causes browsers to download
+ * the file instead of displaying it inline.
+ *
+ * @param blobUrl - The URL of the blob to generate a download URL for
+ * @returns A string containing the download URL with the download parameter appended
+ */
 export function getDownloadUrl(blobUrl: string): string {
   const url = new URL(blobUrl);
 

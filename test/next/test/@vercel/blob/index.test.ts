@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test, expect } from '@playwright/test';
 import type { PutBlobResult } from '@vercel/blob';
+import { getFilenameFromUrl } from '@/lib/utils';
 
 const prefix =
   process.env.GITHUB_PR_NUMBER || crypto.randomBytes(10).toString('hex');
@@ -24,9 +25,11 @@ test.describe('@vercel/blob', () => {
             },
           })
           .then((r) => r.json())) as PutBlobResult;
-        expect(data.contentDisposition).toBe('inline; filename="test.txt"');
+        expect(data.contentDisposition).toBe(
+          `inline; filename="${getFilenameFromUrl(data.url)}"`,
+        );
         expect(data.contentType).toBe('text/plain');
-        expect(data.pathname).toBe(`${prefix}/test.txt`);
+        expect(data.pathname).toBe(`${prefix}/${getFilenameFromUrl(data.url)}`);
         const content = await request.get(data.url).then((r) => r.text());
         expect(content).toBe(`Hello world ${path} ${prefix}`);
       });
@@ -37,7 +40,9 @@ test.describe('@vercel/blob', () => {
     test('serverless', async ({ page }) => {
       await page.goto(`vercel/pages/blob?filename=${prefix}/test-page.txt`);
       const textContent = await page.locator('#blob-path').textContent();
-      expect(textContent).toBe(`${prefix}/test-page.txt`);
+      expect(textContent).toMatch(
+        new RegExp(`^${prefix}/test-page-.{30}\\.txt$`),
+      );
       expect(await page.locator('#blob-content').textContent()).toBe(
         `Hello from ${prefix}/test-page.txt`,
       );
@@ -50,7 +55,9 @@ test.describe('@vercel/blob', () => {
         `vercel/blob/app/test/edge?filename=${prefix}/test-app-edge.txt`,
       );
       const textContent = await page.locator('#blob-path').textContent();
-      expect(textContent).toBe(`${prefix}/test-app-edge.txt`);
+      expect(textContent).toMatch(
+        new RegExp(`^${prefix}/test-app-edge-.{30}\\.txt$`),
+      );
       expect(await page.locator('#blob-content').textContent()).toBe(
         `Hello from ${prefix}/test-app-edge.txt`,
       );
@@ -60,7 +67,9 @@ test.describe('@vercel/blob', () => {
         `vercel/blob/app/test/serverless?filename=${prefix}/test-app-serverless.txt`,
       );
       const textContent = await page.locator('#blob-path').textContent();
-      expect(textContent).toBe(`${prefix}/test-app-serverless.txt`);
+      expect(textContent).toMatch(
+        new RegExp(`^${prefix}/test-app-serverless-.{30}\\.txt$`),
+      );
       expect(await page.locator('#blob-content').textContent()).toBe(
         `Hello from ${prefix}/test-app-serverless.txt`,
       );
@@ -91,7 +100,9 @@ test.describe('@vercel/blob', () => {
           );
 
           const textContent = await page.locator('#blob-path').textContent();
-          expect(textContent).toBe(`${prefix}/test-app-client.txt`);
+          expect(textContent).toMatch(
+            new RegExp(`^${prefix}/test-app-client-.{30}\\.txt$`),
+          );
           expect(await page.locator('#blob-content').textContent()).toBe(
             `Hello from ${prefix}/test-app-client.txt`,
           );
@@ -119,7 +130,9 @@ test.describe('@vercel/blob', () => {
         );
 
         const textContent = await page.locator('#blob-path').textContent();
-        expect(textContent).toBe(`${prefix}/test-app-client.txt`);
+        expect(textContent).toMatch(
+          new RegExp(`^${prefix}/test-app-client-.{30}\\.txt$`),
+        );
         expect(await page.locator('#blob-content').textContent()).toBe(
           `Hello from ${prefix}/test-app-client.txt`,
         );
@@ -143,9 +156,13 @@ test.describe('@vercel/blob', () => {
                 },
               })
               .then((r) => r.json())) as PutBlobResult;
-            expect(data.contentDisposition).toBe('inline; filename="test.txt"');
+            expect(data.contentDisposition).toBe(
+              `inline; filename="${getFilenameFromUrl(data.url)}"`,
+            );
             expect(data.contentType).toBe('text/plain');
-            expect(data.pathname).toBe(`${prefix}/test.txt`);
+            expect(data.pathname).toBe(
+              `${prefix}/${getFilenameFromUrl(data.url)}`,
+            );
             const content = await request.get(data.url).then((r) => r.text());
             expect(content).toBe(`Hello world ${path} ${prefix}`);
           });

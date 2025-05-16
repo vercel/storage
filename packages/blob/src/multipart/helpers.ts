@@ -5,14 +5,39 @@ import type { Buffer } from 'buffer';
 import isBuffer from 'is-buffer';
 import type { PutBody } from '../put-helpers';
 
+/**
+ * Input format for a multipart upload part.
+ * Used internally for processing multipart uploads.
+ */
 export interface PartInput {
+  /**
+   * The part number (1-based index).
+   */
   partNumber: number;
+
+  /**
+   * The content of the part.
+   */
   blob: PutBody;
 }
 
+/**
+ * Represents a single part of a multipart upload.
+ * This structure is used when completing a multipart upload to specify the
+ * uploaded parts and their order.
+ */
 export interface Part {
-  partNumber: number;
+  /**
+   * The ETag value returned when the part was uploaded.
+   * This value is used to verify the integrity of the uploaded part.
+   */
   etag: string;
+
+  /**
+   * The part number of this part (1-based).
+   * This number is used to order the parts when completing the multipart upload.
+   */
+  partNumber: number;
 }
 
 const supportsNewBlobFromArrayBuffer = new Promise<boolean>((resolve) => {

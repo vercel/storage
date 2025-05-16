@@ -12,19 +12,42 @@ import { MAXIMUM_PATHNAME_LENGTH } from './api';
 export const putOptionHeaderMap = {
   cacheControlMaxAge: 'x-cache-control-max-age',
   addRandomSuffix: 'x-add-random-suffix',
+  allowOverwrite: 'x-allow-overwrite',
   contentType: 'x-content-type',
 };
 
+/**
+ * Result of a successful put or copy operation.
+ */
 export interface PutBlobResult {
+  /**
+   * The URL of the blob.
+   */
   url: string;
+  /**
+   * A URL that will cause browsers to download the file instead of displaying it inline.
+   */
   downloadUrl: string;
+  /**
+   * The pathname of the blob within the store.
+   */
   pathname: string;
+  /**
+   * The content-type of the blob.
+   */
   contentType: string;
+  /**
+   * The content disposition header value.
+   */
   contentDisposition: string;
 }
 
 export type PutBlobApiResponse = PutBlobResult;
 
+/**
+ * Represents the body content for a put operation.
+ * Can be one of several supported types.
+ */
 export type PutBody =
   | string
   | Readable // Node.js streams
@@ -58,6 +81,15 @@ export function createPutHeaders<TOptions extends CommonPutCommandOptions>(
     options.addRandomSuffix !== undefined
   ) {
     headers[putOptionHeaderMap.addRandomSuffix] = options.addRandomSuffix
+      ? '1'
+      : '0';
+  }
+
+  if (
+    allowedOptions.includes('allowOverwrite') &&
+    options.allowOverwrite !== undefined
+  ) {
+    headers[putOptionHeaderMap.allowOverwrite] = options.allowOverwrite
       ? '1'
       : '0';
   }

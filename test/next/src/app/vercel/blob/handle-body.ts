@@ -38,6 +38,7 @@ export async function handleBody(request: Request): Promise<NextResponse> {
   const blob = await vercelBlob.put(pathname, body, {
     access: 'public',
     multipart,
+    addRandomSuffix: true,
   });
 
   return NextResponse.json(blob);

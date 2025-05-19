@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 1.0.2
+
+### Patch Changes
+
+- d3627fa: Update Vercel Blob API endpoint to a more efficient one
+
 ## 1.0.1
 
 ### Patch Changes

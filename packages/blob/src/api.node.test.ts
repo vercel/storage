@@ -35,7 +35,7 @@ describe('api', () => {
       process.env.BLOB_READ_WRITE_TOKEN = undefined;
 
       await expect(
-        requestApi('/api', { method: 'GET' }, undefined),
+        requestApi('/method', { method: 'GET' }, undefined),
       ).rejects.toThrow(BlobError);
 
       expect(fetchMock).toHaveBeenCalledTimes(0);
@@ -51,7 +51,7 @@ describe('api', () => {
       );
 
       const res = await requestApi<{ success: boolean }>(
-        '/api',
+        '/method',
         { method: 'POST', body: JSON.stringify({ foo: 'bar' }) },
         { token: '123' },
       );
@@ -59,14 +59,14 @@ describe('api', () => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
       expect(fetchMock).toHaveBeenNthCalledWith(
         1,
-        'https://blob.vercel-storage.com/api',
+        'https://vercel.com/api/blob/method',
         {
           body: '{"foo":"bar"}',
           headers: {
             authorization: 'Bearer 123',
             'x-api-blob-request-attempt': '0',
             'x-api-blob-request-id': expect.any(String) as string,
-            'x-api-version': '10',
+            'x-api-version': '11',
           },
           method: 'POST',
         },

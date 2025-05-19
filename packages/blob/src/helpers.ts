@@ -9,6 +9,8 @@ import type { PutBody } from './put-helpers';
 
 export { bytes } from './bytes';
 
+const defaultVercelBlobApiUrl = 'https://vercel.com/api/blob';
+
 export interface BlobCommandOptions {
   /**
    * Define your blob API token.
@@ -205,7 +207,7 @@ export function getApiUrl(pathname = ''): string {
     // noop
   }
 
-  return `${baseUrl || 'https://blob.vercel-storage.com'}${pathname}`;
+  return `${baseUrl || defaultVercelBlobApiUrl}${pathname}`;
 }
 
 const TEXT_ENCODER =

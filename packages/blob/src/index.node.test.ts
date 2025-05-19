@@ -11,7 +11,7 @@ import {
   completeMultipartUpload,
 } from './index';
 
-const BLOB_API_URL = 'https://blob.vercel-storage.com';
+const BLOB_API_URL_AGENT = 'https://vercel.com';
 const BLOB_STORE_BASE_URL = 'https://storeId.public.blob.vercel-storage.com';
 
 const mockedFileMeta = {
@@ -33,7 +33,7 @@ describe('blob client', () => {
     const mockAgent = new MockAgent();
     mockAgent.disableNetConnect();
     setGlobalDispatcher(mockAgent);
-    mockClient = mockAgent.get(BLOB_API_URL);
+    mockClient = mockAgent.get(BLOB_API_URL_AGENT);
     jest.resetAllMocks();
 
     process.env.VERCEL_BLOB_RETRIES = '0';
@@ -68,7 +68,7 @@ describe('blob client', () => {
               }
           `);
       expect(path).toEqual(
-        '/?url=https%3A%2F%2FstoreId.public.blob.vercel-storage.com%2Ffoo-id.txt',
+        '/api/blob?url=https%3A%2F%2FstoreId.public.blob.vercel-storage.com%2Ffoo-id.txt',
       );
       expect(headers.authorization).toEqual(
         'Bearer vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678',
@@ -189,7 +189,7 @@ describe('blob client', () => {
         del(`${BLOB_STORE_BASE_URL}/foo-id.txt`),
       ).resolves.toBeUndefined();
 
-      expect(path).toEqual('/delete');
+      expect(path).toEqual('/api/blob/delete');
       expect(headers.authorization).toEqual(
         'Bearer vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678',
       );
@@ -220,7 +220,7 @@ describe('blob client', () => {
           `${BLOB_STORE_BASE_URL}/foo-id2.txt`,
         ]),
       ).resolves.toBeUndefined();
-      expect(path).toEqual('/delete');
+      expect(path).toEqual('/api/blob/delete');
       expect(headers.authorization).toEqual(
         'Bearer vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678',
       );
@@ -311,7 +311,9 @@ describe('blob client', () => {
           "hasMore": true,
         }
       `);
-      expect(path).toBe('/?limit=10&prefix=test-prefix&cursor=cursor-abc');
+      expect(path).toBe(
+        '/api/blob?limit=10&prefix=test-prefix&cursor=cursor-abc',
+      );
       expect(headers.authorization).toEqual(
         'Bearer vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678',
       );
@@ -383,7 +385,7 @@ describe('blob client', () => {
         }
       `);
 
-      expect(path).toBe('/?mode=folded');
+      expect(path).toBe('/api/blob?mode=folded');
     });
   });
 
@@ -455,7 +457,7 @@ describe('blob client', () => {
           "url": "https://storeId.public.blob.vercel-storage.com/foo-id.txt",
         }
       `);
-      expect(path).toBe('/?pathname=foo.txt');
+      expect(path).toBe('/api/blob/?pathname=foo.txt');
       expect(headers.authorization).toEqual('Bearer NEW_TOKEN');
       expect(body).toMatchInlineSnapshot(`"Test Body"`);
     });

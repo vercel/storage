@@ -21,6 +21,11 @@ export default function AppBodyClient(props: {
         access: 'public',
         handleUploadUrl: callback,
         multipart: multipart === '1',
+        // Example of using the new headers parameter to send an authorization header
+        headers: {
+          Authorization: 'Bearer test-token',
+          'X-Test-Header': 'Test Value',
+        },
       });
       setBlob(blobResult);
       setContent(await fetch(blobResult.url).then((r) => r.text()));

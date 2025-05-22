@@ -33,6 +33,11 @@ export default function AppClientUpload(): React.JSX.Element {
               access: 'public',
               multipart: searchParams?.get('multipart') === '1',
               handleUploadUrl: `/vercel/blob/api/app/handle-blob-upload/serverless`,
+              // Example of using the new headers parameter to send an authorization header
+              headers: {
+                Authorization: 'Bearer your-token-here',
+                'X-Custom-Header': 'Custom Value',
+              },
               onUploadProgress(progressEvent) {
                 setProgressEvents((prev) => [
                   ...prev,

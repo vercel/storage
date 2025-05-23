@@ -1,6 +1,7 @@
-import type { Response as UndiciResponse } from 'undici';
+import type { Readable } from 'stream';
 import { isReadableStream, type BlobRequest } from './helpers';
 import { debug } from './debug';
+import type { PutBody } from './put-helpers';
 
 export const hasXhr = typeof XMLHttpRequest !== 'undefined';
 
@@ -23,13 +24,7 @@ export const blobXhr: BlobRequest = async ({
     if (isReadableStream(init.body)) {
       body = await new Response(init.body).blob();
     } else {
-      // We "type lie" here, what we should do instead:
-      // Exclude ReadableStream:
-      // body = init.body as Exclude<PutBody, ReadableStream | Readable>;
-      // We can't do this because init.body (PutBody) relies on Blob (node:buffer)
-      // while XMLHttpRequestBodyInit relies on native Blob type.
-      // If we get rid of undici we can remove this trick.
-      body = init.body as XMLHttpRequestBodyInit;
+      body = init.body as Exclude<PutBody, ReadableStream | Readable>;
     }
   }
 
@@ -72,7 +67,7 @@ export const blobXhr: BlobRequest = async ({
         status: xhr.status,
         statusText: xhr.statusText,
         headers,
-      }) as unknown as UndiciResponse;
+      });
 
       resolve(response);
     };
@@ -94,7 +89,7 @@ export const blobXhr: BlobRequest = async ({
 
     // Set headers
     if (init.headers) {
-      const headers = new Headers(init.headers as HeadersInit);
+      const headers = new Headers(init.headers);
       headers.forEach((value, key) => {
         xhr.setRequestHeader(key, value);
       });

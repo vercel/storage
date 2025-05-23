@@ -1,4 +1,3 @@
-import type { Response } from 'undici';
 import retry from 'async-retry';
 import isNetworkError from './is-network-error';
 import { debug } from './debug';

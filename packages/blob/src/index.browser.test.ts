@@ -4,34 +4,35 @@ import { put } from './index';
 
 const BLOB_STORE_BASE_URL = 'https://storeId.public.blob.vercel-storage.com';
 
-// Can't use the usual undici mocking utilities because they don't work with jsdom environment
-jest.mock('undici', () => ({
-  fetch: (): unknown =>
-    Promise.resolve({
-      status: 200,
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          url: `${BLOB_STORE_BASE_URL}/foo-id.txt`,
-          downloadUrl: `${BLOB_STORE_BASE_URL}/foo-id.txt?download=1`,
-          pathname: 'foo.txt',
-          contentType: 'text/plain',
-          contentDisposition: 'attachment; filename="foo.txt"',
-        }),
-    }),
-}));
-
 describe('blob client', () => {
-  beforeEach(() => {
-    jest.resetAllMocks();
-  });
+  const fetchMock = jest.fn();
 
   describe('put', () => {
     beforeEach(() => {
       jest.resetAllMocks();
+
+      globalThis.fetch = fetchMock;
     });
 
     it('should upload a file from the client', async () => {
+      fetchMock.mockResolvedValueOnce({
+        status: 200,
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 200,
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                url: `${BLOB_STORE_BASE_URL}/foo-id.txt`,
+                downloadUrl: `${BLOB_STORE_BASE_URL}/foo-id.txt?download=1`,
+                pathname: 'foo.txt',
+                contentType: 'text/plain',
+                contentDisposition: 'attachment; filename="foo.txt"',
+              }),
+          }),
+      });
+
       await expect(
         put('foo.txt', 'Test Body', {
           access: 'public',

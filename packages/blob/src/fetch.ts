@@ -1,5 +1,3 @@
-import type { BodyInit } from 'undici';
-import { fetch } from 'undici';
 import type { BlobRequest } from './helpers';
 import {
   createChunkTransformStream,
@@ -52,13 +50,10 @@ export const blobFetch: BlobRequest = async ({
       ? 'half'
       : undefined;
 
-  return fetch(
-    input,
-    // @ts-expect-error -- Blob and Nodejs Blob are triggering type errors, fine with it
-    {
-      ...init,
-      ...(init.body ? { body } : {}),
-      duplex,
-    },
-  );
+  return fetch(input, {
+    ...init,
+    ...(init.body ? { body } : {}),
+    // @ts-expect-error -- not typed
+    duplex,
+  });
 };

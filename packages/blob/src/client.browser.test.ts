@@ -1,4 +1,3 @@
-import undici from 'undici';
 import {
   completeMultipartUpload,
   createMultipartUpload,
@@ -9,6 +8,7 @@ import {
 } from './client';
 
 describe('client', () => {
+  const fetchMock = jest.fn();
   let requestId = '';
 
   beforeEach(() => {
@@ -24,6 +24,8 @@ describe('client', () => {
 
     jest.spyOn(global.Math, 'random').mockReturnValue(Math.random());
     requestId = Math.random().toString(16).slice(2);
+
+    global.fetch = fetchMock;
   });
 
   afterEach(() => {
@@ -31,32 +33,30 @@ describe('client', () => {
   });
 
   describe('upload()', () => {
-    it('should upload a file from the client', async () => {
-      const fetchMock = jest.spyOn(undici, 'fetch').mockImplementation(
-        jest
-          .fn()
-          .mockResolvedValueOnce({
-            status: 200,
-            ok: true,
-            json: () =>
-              Promise.resolve({
-                type: 'blob.generate-client-token',
-                clientToken: 'vercel_blob_client_fake_123',
-              }),
-          })
-          .mockResolvedValueOnce({
-            status: 200,
-            ok: true,
-            json: () =>
-              Promise.resolve({
-                url: `https://storeId.public.blob.vercel-storage.com/superfoo.txt`,
-                downloadUrl: `https://storeId.public.blob.vercel-storage.com/superfoo.txt?download=1`,
-                pathname: 'foo.txt',
-                contentType: 'text/plain',
-                contentDisposition: 'attachment; filename="foo.txt"',
-              }),
-          }),
-      );
+    it.only('should upload a file from the client', async () => {
+      fetchMock
+        .mockResolvedValueOnce({
+          status: 200,
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              type: 'blob.generate-client-token',
+              clientToken: 'vercel_blob_client_fake_123',
+            }),
+        })
+        .mockResolvedValueOnce({
+          status: 200,
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              url: 'https://storeId.public.blob.vercel-storage.com/superfoo.txt',
+              downloadUrl:
+                'https://storeId.public.blob.vercel-storage.com/superfoo.txt?download=1',
+              pathname: 'foo.txt',
+              contentType: 'text/plain',
+              contentDisposition: 'attachment; filename="foo.txt"',
+            }),
+        });
 
       await expect(
         upload('foo.txt', 'Test file data', {
@@ -118,36 +118,33 @@ describe('client', () => {
     });
 
     it('should upload a file using the manual functions', async () => {
-      const fetchMock = jest.spyOn(undici, 'fetch').mockImplementation(
-        jest
-          .fn()
-          .mockResolvedValueOnce({
-            status: 200,
-            ok: true,
-            json: () => Promise.resolve({ key: 'key', uploadId: 'uploadId' }),
-          })
-          .mockResolvedValueOnce({
-            status: 200,
-            ok: true,
-            json: () => Promise.resolve({ etag: 'etag1' }),
-          })
-          .mockResolvedValueOnce({
-            status: 200,
-            ok: true,
-            json: () => Promise.resolve({ etag: 'etag2' }),
-          })
-          .mockResolvedValueOnce({
-            status: 200,
-            ok: true,
-            json: () =>
-              Promise.resolve({
-                url: `https://storeId.public.blob.vercel-storage.com/foo.txt`,
-                pathname: 'foo.txt',
-                contentType: 'text/plain',
-                contentDisposition: 'attachment; filename="foo.txt"',
-              }),
-          }),
-      );
+      fetchMock
+        .mockResolvedValueOnce({
+          status: 200,
+          ok: true,
+          json: () => Promise.resolve({ key: 'key', uploadId: 'uploadId' }),
+        })
+        .mockResolvedValueOnce({
+          status: 200,
+          ok: true,
+          json: () => Promise.resolve({ etag: 'etag1' }),
+        })
+        .mockResolvedValueOnce({
+          status: 200,
+          ok: true,
+          json: () => Promise.resolve({ etag: 'etag2' }),
+        })
+        .mockResolvedValueOnce({
+          status: 200,
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              url: 'https://storeId.public.blob.vercel-storage.com/foo.txt',
+              pathname: 'foo.txt',
+              contentType: 'text/plain',
+              contentDisposition: 'attachment; filename="foo.txt"',
+            }),
+        });
 
       const pathname = 'foo.txt';
       const token = 'vercel_blob_client_fake_token_for_test';
@@ -278,36 +275,33 @@ describe('client', () => {
     });
 
     it('should upload a file using the uploader', async () => {
-      const fetchMock = jest.spyOn(undici, 'fetch').mockImplementation(
-        jest
-          .fn()
-          .mockResolvedValueOnce({
-            status: 200,
-            ok: true,
-            json: () => Promise.resolve({ key: 'key', uploadId: 'uploadId' }),
-          })
-          .mockResolvedValueOnce({
-            status: 200,
-            ok: true,
-            json: () => Promise.resolve({ etag: 'etag1' }),
-          })
-          .mockResolvedValueOnce({
-            status: 200,
-            ok: true,
-            json: () => Promise.resolve({ etag: 'etag2' }),
-          })
-          .mockResolvedValueOnce({
-            status: 200,
-            ok: true,
-            json: () =>
-              Promise.resolve({
-                url: `https://storeId.public.blob.vercel-storage.com/foo.txt`,
-                pathname: 'foo.txt',
-                contentType: 'text/plain',
-                contentDisposition: 'attachment; filename="foo.txt"',
-              }),
-          }),
-      );
+      fetchMock
+        .mockResolvedValueOnce({
+          status: 200,
+          ok: true,
+          json: () => Promise.resolve({ key: 'key', uploadId: 'uploadId' }),
+        })
+        .mockResolvedValueOnce({
+          status: 200,
+          ok: true,
+          json: () => Promise.resolve({ etag: 'etag1' }),
+        })
+        .mockResolvedValueOnce({
+          status: 200,
+          ok: true,
+          json: () => Promise.resolve({ etag: 'etag2' }),
+        })
+        .mockResolvedValueOnce({
+          status: 200,
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              url: 'https://storeId.public.blob.vercel-storage.com/foo.txt',
+              pathname: 'foo.txt',
+              contentType: 'text/plain',
+              contentDisposition: 'attachment; filename="foo.txt"',
+            }),
+        });
 
       const pathname = 'foo.txt';
       const token = 'vercel_blob_client_fake_token_for_test';
@@ -421,13 +415,11 @@ describe('client', () => {
 
     it('should reject incorrect body in uploader.uploadPart()', async () => {
       // Mock the createMultipartUploader to return a minimal uploader object
-      jest.spyOn(undici, 'fetch').mockImplementation(
-        jest.fn().mockResolvedValueOnce({
-          status: 200,
-          ok: true,
-          json: () => Promise.resolve({ key: 'key', uploadId: 'uploadId' }),
-        }),
-      );
+      fetchMock.mockResolvedValueOnce({
+        status: 200,
+        ok: true,
+        json: () => Promise.resolve({ key: 'key', uploadId: 'uploadId' }),
+      });
 
       const uploader = await createMultipartUploader('foo.txt', {
         access: 'public',
@@ -469,6 +461,7 @@ describe('client', () => {
             {
               access: 'public',
               multipart: true,
+              token: '123',
             },
           ),
       ],

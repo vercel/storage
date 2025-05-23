@@ -6,7 +6,6 @@
 import { createReadStream, readFile, readFileSync } from 'node:fs';
 import type { IncomingMessage } from 'node:http';
 import https from 'node:https';
-import { fetch } from 'undici';
 import axios from 'axios';
 import got from 'got';
 import * as vercelBlob from '@vercel/blob';

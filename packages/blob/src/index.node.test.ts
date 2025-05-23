@@ -1,4 +1,3 @@
-import { type Interceptable, MockAgent, setGlobalDispatcher } from 'undici';
 import { BlobRequestAbortedError, BlobServiceNotAvailable } from './api';
 import {
   list,
@@ -11,7 +10,6 @@ import {
   completeMultipartUpload,
 } from './index';
 
-const BLOB_API_URL_AGENT = 'https://vercel.com';
 const BLOB_STORE_BASE_URL = 'https://storeId.public.blob.vercel-storage.com';
 
 const mockedFileMeta = {
@@ -25,34 +23,34 @@ const mockedFileMeta = {
 };
 
 describe('blob client', () => {
-  let mockClient: Interceptable;
+  const realFetch = globalThis.fetch;
+  const fetchMock = jest.fn();
 
   beforeEach(() => {
     process.env.BLOB_READ_WRITE_TOKEN =
       'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
-    const mockAgent = new MockAgent();
-    mockAgent.disableNetConnect();
-    setGlobalDispatcher(mockAgent);
-    mockClient = mockAgent.get(BLOB_API_URL_AGENT);
     jest.resetAllMocks();
 
     process.env.VERCEL_BLOB_RETRIES = '0';
+    globalThis.fetch = fetchMock;
+  });
+
+  afterEach(() => {
+    fetchMock.mockClear();
   });
 
   describe('head', () => {
     it('should return Blob metadata when calling `head()`', async () => {
       let path: string | null = null;
       let headers: Record<string, string> = {};
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'GET',
-        })
-        .reply(200, (req) => {
-          path = req.path;
-          headers = req.headers as Record<string, string>;
-          return mockedFileMeta;
-        });
+      fetchMock.mockImplementationOnce((input: string, init: RequestInit) => {
+        const url = new URL(input);
+
+        path = url.pathname + url.search;
+        headers = init.headers as Record<string, string>;
+
+        return Promise.resolve(Response.json(mockedFileMeta));
+      });
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).resolves
         .toMatchInlineSnapshot(`
@@ -76,12 +74,14 @@ describe('blob client', () => {
     });
 
     it('should return null when calling `head()` with an url that does not exist', async () => {
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'GET',
-        })
-        .reply(404, { error: { code: 'not_found', message: 'Not found' } });
+      fetchMock.mockResolvedValueOnce({
+        status: 404,
+        ok: false,
+        json: () =>
+          Promise.resolve({
+            error: { code: 'not_found', message: 'Not found' },
+          }),
+      });
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error('Vercel Blob: The requested blob does not exist'),
@@ -89,12 +89,14 @@ describe('blob client', () => {
     });
 
     it('should throw when calling `head()` with an invalid token', async () => {
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'GET',
-        })
-        .reply(403, { error: { code: 'forbidden' } });
+      fetchMock.mockResolvedValueOnce({
+        status: 403,
+        ok: false,
+        json: () =>
+          Promise.resolve({
+            error: { code: 'forbidden', message: 'Forbidden' },
+          }),
+      });
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
@@ -104,12 +106,11 @@ describe('blob client', () => {
     });
 
     it('should throw a generic error when the worker returns a 500 status code', async () => {
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'GET',
-        })
-        .reply(500, 'Invalid token');
+      fetchMock.mockResolvedValueOnce({
+        status: 500,
+        ok: false,
+        json: () => Promise.resolve({ error: { code: 'unknown_error' } }),
+      });
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
@@ -129,12 +130,11 @@ describe('blob client', () => {
     });
 
     it('should throw when store is suspended', async () => {
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'GET',
-        })
-        .reply(403, { error: { code: 'store_suspended' } });
+      fetchMock.mockResolvedValueOnce({
+        status: 403,
+        ok: false,
+        json: () => Promise.resolve({ error: { code: 'store_suspended' } }),
+      });
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error('Vercel Blob: This store has been suspended.'),
@@ -142,12 +142,11 @@ describe('blob client', () => {
     });
 
     it('should throw when store does NOT exist', async () => {
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'GET',
-        })
-        .reply(403, { error: { code: 'store_not_found' } });
+      fetchMock.mockResolvedValueOnce({
+        status: 403,
+        ok: false,
+        json: () => Promise.resolve({ error: { code: 'store_not_found' } }),
+      });
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error('Vercel Blob: This store does not exist.'),
@@ -155,12 +154,11 @@ describe('blob client', () => {
     });
 
     it('should throw when service unavailable', async () => {
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'GET',
-        })
-        .reply(502, { error: { code: 'service_unavailable' } });
+      fetchMock.mockResolvedValueOnce({
+        status: 502,
+        ok: false,
+        json: () => Promise.resolve({ error: { code: 'service_unavailable' } }),
+      });
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new BlobServiceNotAvailable(),
@@ -173,17 +171,15 @@ describe('blob client', () => {
       let path: string | null = null;
       let headers: Record<string, string> = {};
       let body = '';
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'POST',
-        })
-        .reply(200, (req) => {
-          path = req.path;
-          headers = req.headers as Record<string, string>;
-          body = req.body as string;
-          return [mockedFileMeta.url];
-        });
+      fetchMock.mockImplementationOnce((input: string, init: RequestInit) => {
+        const url = new URL(input);
+
+        path = url.pathname + url.search;
+        headers = init.headers as Record<string, string>;
+        body = init.body as string;
+
+        return Promise.resolve(Response.json(mockedFileMeta));
+      });
 
       await expect(
         del(`${BLOB_STORE_BASE_URL}/foo-id.txt`),
@@ -202,17 +198,15 @@ describe('blob client', () => {
       let path: string | null = null;
       let headers: Record<string, string> = {};
       let body = '';
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'POST',
-        })
-        .reply(200, (req) => {
-          path = req.path;
-          headers = req.headers as Record<string, string>;
-          body = req.body as string;
-          return [mockedFileMeta.url, mockedFileMeta.url];
-        });
+      fetchMock.mockImplementationOnce((input: string, init: RequestInit) => {
+        const url = new URL(input);
+
+        path = url.pathname + url.search;
+        headers = init.headers as Record<string, string>;
+        body = init.body as string;
+
+        return Promise.resolve(Response.json(mockedFileMeta));
+      });
 
       await expect(
         del([
@@ -230,12 +224,11 @@ describe('blob client', () => {
     });
 
     it('should throw when calling `del()` with an invalid token', async () => {
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'POST',
-        })
-        .reply(403, { error: { code: 'forbidden' } });
+      fetchMock.mockResolvedValueOnce({
+        status: 403,
+        ok: false,
+        json: () => Promise.resolve({ error: { code: 'forbidden' } }),
+      });
 
       await expect(del(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
@@ -245,12 +238,11 @@ describe('blob client', () => {
     });
 
     it('should throw a generic error when the worker returns a 500 status code', async () => {
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'POST',
-        })
-        .reply(500, 'Invalid token');
+      fetchMock.mockResolvedValueOnce({
+        status: 500,
+        ok: false,
+        json: () => Promise.resolve({ error: { code: 'unknown_error' } }),
+      });
 
       await expect(del(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
@@ -272,20 +264,20 @@ describe('blob client', () => {
     it('should return a list of Blob metadata when calling `list()`', async () => {
       let path: string | null = null;
       let headers: Record<string, string> = {};
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'GET',
-        })
-        .reply(200, (req) => {
-          path = req.path;
-          headers = req.headers as Record<string, string>;
-          return {
+      fetchMock.mockImplementationOnce((input: string, init: RequestInit) => {
+        const url = new URL(input);
+
+        path = url.pathname + url.search;
+        headers = init.headers as Record<string, string>;
+
+        return Promise.resolve(
+          Response.json({
             blobs: [mockedFileMetaList, mockedFileMetaList],
             cursor: 'cursor-123',
             hasMore: true,
-          };
-        });
+          }),
+        );
+      });
 
       await expect(
         list({ cursor: 'cursor-abc', limit: 10, prefix: 'test-prefix' }),
@@ -320,12 +312,11 @@ describe('blob client', () => {
     });
 
     it('should throw when calling `list()` with an invalid token', async () => {
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'GET',
-        })
-        .reply(403, { error: { code: 'forbidden' } });
+      fetchMock.mockResolvedValueOnce({
+        status: 403,
+        ok: false,
+        json: () => Promise.resolve({ error: { code: 'forbidden' } }),
+      });
 
       await expect(list()).rejects.toThrow(
         new Error(
@@ -335,12 +326,12 @@ describe('blob client', () => {
     });
 
     it('should throw a generic error when the worker returns a 500 status code', async () => {
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'GET',
-        })
-        .reply(500, 'Invalid token');
+      fetchMock.mockResolvedValueOnce({
+        status: 500,
+        ok: false,
+        json: () => Promise.resolve({ error: { code: 'unknown_error' } }),
+      });
+
       await expect(list()).rejects.toThrow(
         new Error(
           'Vercel Blob: Unknown error, please visit https://vercel.com/help.',
@@ -350,20 +341,18 @@ describe('blob client', () => {
 
     it('list should pass the mode param and return folders array', async () => {
       let path: string | null = null;
+      fetchMock.mockImplementationOnce((input: string) => {
+        const url = new URL(input);
+        path = url.pathname + url.search;
 
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'GET',
-        })
-        .reply(200, (req) => {
-          path = req.path;
-          return {
+        return Promise.resolve(
+          Response.json({
             blobs: [mockedFileMetaList],
             folders: ['foo', 'bar'],
             hasMore: false,
-          };
-        });
+          }),
+        );
+      });
 
       await expect(list({ mode: 'folded' })).resolves.toMatchInlineSnapshot(`
         {
@@ -399,14 +388,11 @@ describe('blob client', () => {
     };
 
     it('has an onUploadProgress option', async () => {
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'PUT',
-        })
-        .reply(200, () => {
-          return mockedFileMetaPut;
-        });
+      fetchMock.mockResolvedValueOnce({
+        status: 200,
+        ok: true,
+        json: () => Promise.resolve(mockedFileMetaPut),
+      });
 
       const onUploadProgress = jest.fn();
 
@@ -431,17 +417,15 @@ describe('blob client', () => {
       let path: string | null = null;
       let headers: Record<string, string> = {};
       let body = '';
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'PUT',
-        })
-        .reply(200, (req) => {
-          path = req.path;
-          headers = req.headers as Record<string, string>;
-          body = req.body as string;
-          return mockedFileMetaPut;
-        });
+      fetchMock.mockImplementationOnce((input: string, init: RequestInit) => {
+        const url = new URL(input);
+
+        path = url.pathname + url.search;
+        headers = init.headers as Record<string, string>;
+        body = init.body as string;
+
+        return Promise.resolve(Response.json(mockedFileMetaPut));
+      });
 
       await expect(
         put('foo.txt', 'Test Body', {
@@ -464,16 +448,11 @@ describe('blob client', () => {
 
     it('should upload a file with a custom content-type', async () => {
       let headers: Record<string, string> = {};
+      fetchMock.mockImplementationOnce((_, init: RequestInit) => {
+        headers = init.headers as Record<string, string>;
 
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'PUT',
-        })
-        .reply(200, (req) => {
-          headers = req.headers as Record<string, string>;
-          return mockedFileMetaPut;
-        });
+        return Promise.resolve(Response.json(mockedFileMeta));
+      });
 
       await put('foo.txt', 'Test Body', {
         access: 'public',
@@ -483,12 +462,11 @@ describe('blob client', () => {
     });
 
     it('should throw when calling `put()` with an invalid token', async () => {
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'PUT',
-        })
-        .reply(403, { error: { code: 'forbidden' } });
+      fetchMock.mockResolvedValueOnce({
+        status: 403,
+        ok: false,
+        json: () => Promise.resolve({ error: { code: 'forbidden' } }),
+      });
 
       await expect(
         put('foo.txt', 'Test Body', {
@@ -503,12 +481,10 @@ describe('blob client', () => {
     });
 
     it('should throw a generic error when the worker returns a 500 status code', async () => {
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'PUT',
-        })
-        .reply(500, 'Generic Error');
+      fetchMock.mockResolvedValueOnce({
+        status: 500,
+        ok: false,
+      });
       await expect(
         put('foo.txt', 'Test Body', {
           access: 'public',
@@ -522,12 +498,11 @@ describe('blob client', () => {
     });
 
     it('should fail when the filepath is missing', async () => {
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'PUT',
-        })
-        .reply(200, mockedFileMetaPut);
+      fetchMock.mockResolvedValueOnce({
+        status: 200,
+        ok: true,
+        json: () => Promise.resolve(mockedFileMetaPut),
+      });
 
       await expect(
         put('', 'Test Body', {
@@ -537,12 +512,11 @@ describe('blob client', () => {
     });
 
     it('should fail when the body is missing', async () => {
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'PUT',
-        })
-        .reply(200, mockedFileMetaPut);
+      fetchMock.mockResolvedValueOnce({
+        status: 200,
+        ok: true,
+        json: () => Promise.resolve(mockedFileMetaPut),
+      });
 
       await expect(
         put('path.txt', '', {
@@ -552,12 +526,11 @@ describe('blob client', () => {
     });
 
     it('should throw when uploading a private file', async () => {
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'PUT',
-        })
-        .reply(200, mockedFileMetaPut);
+      fetchMock.mockResolvedValueOnce({
+        status: 200,
+        ok: true,
+        json: () => Promise.resolve(mockedFileMetaPut),
+      });
 
       await expect(
         put('foo.txt', 'Test Body', {
@@ -569,16 +542,11 @@ describe('blob client', () => {
 
     it('sets the correct header when using the addRandomSuffix option', async () => {
       let headers: Record<string, string> = {};
+      fetchMock.mockImplementationOnce((input, init) => {
+        headers = init.headers as Record<string, string>;
 
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'PUT',
-        })
-        .reply(200, (req) => {
-          headers = req.headers as Record<string, string>;
-          return mockedFileMetaPut;
-        });
+        return Promise.resolve(Response.json(mockedFileMeta));
+      });
 
       await put('foo.txt', 'Test Body', {
         access: 'public',
@@ -589,16 +557,11 @@ describe('blob client', () => {
 
     it('sets the correct header when using the cacheControlMaxAge option', async () => {
       let headers: Record<string, string> = {};
+      fetchMock.mockImplementationOnce((input, init) => {
+        headers = init.headers as Record<string, string>;
 
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'PUT',
-        })
-        .reply(200, (req) => {
-          headers = req.headers as Record<string, string>;
-          return mockedFileMetaPut;
-        });
+        return Promise.resolve(Response.json(mockedFileMeta));
+      });
 
       await put('foo.txt', 'Test Body', {
         access: 'public',
@@ -702,6 +665,8 @@ describe('blob client', () => {
       'cancels requests with an abort controller: %s',
       async (_, operation) => {
         await expect(async () => {
+          globalThis.fetch = realFetch;
+
           const controller = new AbortController();
           const promise = operation(controller.signal);
 

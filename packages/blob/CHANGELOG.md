@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 1.1.1
+
+### Patch Changes
+
+- f65d3c9: copy, head and del can receive a blob url or pathname, until now it was not very clear.
+
 ## 1.1.0
 
 ### Minor Changes

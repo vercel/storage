@@ -17,6 +17,22 @@ console.log('=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*');
 console.log();
 
 async function run(): Promise<void> {
+  let count = 0;
+  let hasMore = true;
+  let cursor: string | undefined;
+  while (hasMore) {
+    // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
+    const listResult = await vercelBlob.list({
+      cursor,
+    });
+    if (listResult.blobs.length > 0) {
+      await vercelBlob.del(listResult.blobs.map((blob) => blob.url));
+    }
+    hasMore = listResult.hasMore;
+    cursor = listResult.cursor;
+    count += listResult.blobs.length;
+  }
+
   const urls = await Promise.all([
     textFileExample(),
     textFileNoRandomSuffixExample(),
@@ -33,7 +49,7 @@ async function run(): Promise<void> {
     createFolder(),
     manualMultipartUpload(),
     manualMultipartUploader(),
-    // cancelPut(),
+    cancelPut(),
 
     // The following stream examples will fail when targeting the local api-blob because the server doesn't buffer
     // the request body, so we have no idea of the size of the file we need to put in S3
@@ -61,18 +77,20 @@ async function run(): Promise<void> {
   );
 
   // list all blobs
-  let count = 0;
-  let hasMore = true;
-  let cursor: string | undefined;
+  count = 0;
+  hasMore = true;
   while (hasMore) {
     // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
     const listResult = await vercelBlob.list({
       cursor,
     });
+    console.log(listResult);
     hasMore = listResult.hasMore;
     cursor = listResult.cursor;
     count += listResult.blobs.length;
   }
+
+  console.log(filteredUrls, 'filtered urls');
 
   console.log(count, 'blobs in this store');
 
@@ -92,10 +110,16 @@ async function textFileExample(): Promise<string> {
     },
   );
   const head = await vercelBlob.head(blob.url);
-  console.log(head);
+  console.log('URL head', head);
+  console.log(
+    'pathname head',
+    await vercelBlob.head(
+      `some/new-folder/file-with-chars%20!'()@@{}[]-#?file.txt`,
+    ),
+  );
   const copy = await vercelBlob.copy(
-    blob.url,
-    `some/even-new-folder/file-with-chars%20!'()@@{}[]-#?file.txt`,
+    `some/new-folder/file-with-chars%20!'()@@{}[]-#?file.txt`,
+    `YO.txt`,
     {
       access: 'public',
     },

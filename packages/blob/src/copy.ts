@@ -16,12 +16,12 @@ export interface CopyBlobResult {
  * Copies a blob to another location in your store.
  * Detailed documentation can be found here: https://vercel.com/docs/vercel-blob/using-blob-sdk#copy-a-blob
  *
- * @param fromUrl - The blob URL to copy. You can only copy blobs that are in the store, that your 'BLOB_READ_WRITE_TOKEN' has access to.
+ * @param fromUrlOrPathname - The blob URL (or pathname) to copy. You can only copy blobs that are in the store, that your 'BLOB_READ_WRITE_TOKEN' has access to.
  * @param toPathname - The pathname to copy the blob to. This includes the filename.
  * @param options - Additional options. The copy method will not preserve any metadata configuration (e.g.: 'cacheControlMaxAge') of the source blob. If you want to copy the metadata, you need to define it here again.
  */
 export async function copy(
-  fromUrl: string,
+  fromUrlOrPathname: string,
   toPathname: string,
   options: CopyCommandOptions,
 ): Promise<CopyBlobResult> {
@@ -67,7 +67,10 @@ export async function copy(
     headers['x-cache-control-max-age'] = options.cacheControlMaxAge.toString();
   }
 
-  const params = new URLSearchParams({ pathname: toPathname, fromUrl });
+  const params = new URLSearchParams({
+    pathname: toPathname,
+    fromUrl: fromUrlOrPathname,
+  });
 
   const response = await requestApi<CopyBlobResult>(
     `?${params.toString()}`,

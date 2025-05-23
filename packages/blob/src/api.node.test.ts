@@ -1,4 +1,3 @@
-import undici from 'undici';
 import {
   BlobAccessError,
   BlobNotFoundError,
@@ -12,6 +11,8 @@ import {
 import { BlobError } from './helpers';
 
 describe('api', () => {
+  const fetchMock = jest.fn();
+
   describe('request api', () => {
     const OLD_ENV = process.env;
 
@@ -21,16 +22,16 @@ describe('api', () => {
       jest.restoreAllMocks();
 
       process.env = { ...OLD_ENV };
+
+      globalThis.fetch = fetchMock;
     });
 
     it('should throw if no token is provided', async () => {
-      const fetchMock = jest.spyOn(undici, 'fetch').mockImplementation(
-        jest.fn().mockResolvedValue({
-          status: 200,
-          ok: true,
-          json: () => Promise.resolve({ success: true }),
-        }),
-      );
+      fetchMock.mockResolvedValueOnce({
+        status: 200,
+        ok: true,
+        json: () => Promise.resolve({ success: true }),
+      });
 
       process.env.BLOB_READ_WRITE_TOKEN = undefined;
 
@@ -42,13 +43,11 @@ describe('api', () => {
     });
 
     it('should not retry successful request', async () => {
-      const fetchMock = jest.spyOn(undici, 'fetch').mockImplementation(
-        jest.fn().mockResolvedValue({
-          status: 200,
-          ok: true,
-          json: () => Promise.resolve({ success: true }),
-        }),
-      );
+      fetchMock.mockResolvedValueOnce({
+        status: 200,
+        ok: true,
+        json: () => Promise.resolve({ success: true }),
+      });
 
       const res = await requestApi<{ success: boolean }>(
         '/method',
@@ -81,13 +80,11 @@ describe('api', () => {
     ])(
       `should retry '%s %s' error response`,
       async (status, code, error) => {
-        const fetchMock = jest.spyOn(undici, 'fetch').mockImplementation(
-          jest.fn().mockResolvedValue({
-            status,
-            ok: false,
-            json: () => Promise.resolve({ error: { code } }),
-          }),
-        );
+        fetchMock.mockResolvedValue({
+          status,
+          ok: false,
+          json: () => Promise.resolve({ error: { code } }),
+        });
 
         process.env.VERCEL_BLOB_RETRIES = '1';
         process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
@@ -118,13 +115,11 @@ describe('api', () => {
     ])(
       `should not retry '%s %s' response error response`,
       async (status, code, error, message = '') => {
-        const fetchMock = jest.spyOn(undici, 'fetch').mockImplementation(
-          jest.fn().mockResolvedValue({
-            status,
-            ok: false,
-            json: () => Promise.resolve({ error: { code, message } }),
-          }),
-        );
+        fetchMock.mockResolvedValue({
+          status,
+          ok: false,
+          json: () => Promise.resolve({ error: { code, message } }),
+        });
 
         await expect(
           requestApi('/api', { method: 'GET' }, { token: '123' }),

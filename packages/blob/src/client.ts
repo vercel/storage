@@ -1,10 +1,6 @@
 // eslint-disable-next-line unicorn/prefer-node-protocol -- node:crypto does not resolve correctly in browser and edge runtime
 import * as crypto from 'crypto';
 import type { IncomingMessage } from 'node:http';
-// When bundled via a bundler supporting the `browser` field, then
-// the `undici` module will be replaced with https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
-// for browser contexts. See ./undici-browser.js and ./package.json
-import { fetch } from 'undici';
 import type { BlobCommandOptions, WithUploadProgress } from './helpers';
 import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
 import { createPutMethod } from './put';
@@ -384,7 +380,7 @@ function hexToArrayByte(input: string): Buffer {
   const view = new Uint8Array(input.length / 2);
 
   for (let i = 0; i < input.length; i += 2) {
-    view[i / 2] = parseInt(input.substring(i, i + 2), 16);
+    view[i / 2] = Number.parseInt(input.substring(i, i + 2), 16);
   }
 
   return Buffer.from(view);

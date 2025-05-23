@@ -109,7 +109,6 @@ export async function uploadPart({
         'x-mpu-upload-id': uploadId,
         'x-mpu-part-number': part.partNumber.toString(),
       },
-      // weird things between undici types and native fetch types
       body: part.blob,
     },
     options,

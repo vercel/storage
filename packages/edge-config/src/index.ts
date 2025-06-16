@@ -90,7 +90,7 @@ const getFileSystemEdgeConfig = trace(
  * This is used at runtime on serverless functions.
  */
 const getBuildContainerEdgeConfig = trace(
-  async function getFileSystemEdgeConfig(
+  async function getBuildContainerEdgeConfig(
     connection: Connection,
   ): Promise<EmbeddedEdgeConfig | null> {
     // can't optimize non-vercel hosted edge configs
@@ -100,8 +100,10 @@ const getBuildContainerEdgeConfig = trace(
     if (process.env.NODE_ENV === 'development') return null;
 
     try {
-      const edgeConfig = await import(`/tmp/edge-config/${connection.id}.json`);
-      return edgeConfig.default as EmbeddedEdgeConfig;
+      const edgeConfig = (await import(
+        /* webpackIgnore. true */ `/tmp/edge-config/${connection.id}.json`
+      )) as { default: EmbeddedEdgeConfig };
+      return edgeConfig.default;
     } catch {
       return null;
     }

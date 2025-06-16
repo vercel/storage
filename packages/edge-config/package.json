@@ -17,6 +17,9 @@
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
+  "bin": {
+    "edge-config": "./dist/cli.cjs"
+  },
   "files": [
     "dist"
   ],

@@ -6,7 +6,7 @@ import {
   isEmptyKey,
   ERRORS,
   UnexpectedNetworkError,
-  hasOwnProperty,
+  hasOwn,
   parseConnectionString,
   pick,
 } from './utils';
@@ -82,6 +82,32 @@ const getFileSystemEdgeConfig = trace(
   },
   {
     name: 'getFileSystemEdgeConfig',
+  },
+);
+
+/**
+ * Reads an Edge Config from the local file system using an async import.
+ * This is used at runtime on serverless functions.
+ */
+const getBuildContainerEdgeConfig = trace(
+  async function getFileSystemEdgeConfig(
+    connection: Connection,
+  ): Promise<EmbeddedEdgeConfig | null> {
+    // can't optimize non-vercel hosted edge configs
+    if (connection.type !== 'vercel') return null;
+
+    // the folder won't exist in development, only when deployed
+    if (process.env.NODE_ENV === 'development') return null;
+
+    try {
+      const edgeConfig = await import(`/tmp/edge-config/${connection.id}.json`);
+      return edgeConfig.default as EmbeddedEdgeConfig;
+    } catch {
+      return null;
+    }
+  },
+  {
+    name: 'getBuildContainerEdgeConfig',
   },
 );
 
@@ -208,20 +234,53 @@ function addConsistentReadHeader(headers: Headers): void {
 }
 
 /**
+ * Check if running in Vercel build environment
+ */
+const isVercelBuild =
+  process.env.VERCEL === '1' &&
+  process.env.CI === '1' &&
+  !process.env.VERCEL_URL; // VERCEL_URL is only available at runtime
+
+/**
  * Reads the Edge Config from a local provider, if available,
  * to avoid Network requests.
  */
 async function getLocalEdgeConfig(
   connection: Connection,
   options?: EdgeConfigFunctionsOptions,
+  getInMemoryEdgeConfig?: (
+    options?: EdgeConfigFunctionsOptions,
+  ) => Promise<EmbeddedEdgeConfig | null>,
 ): Promise<EmbeddedEdgeConfig | null> {
   if (options?.consistentRead) return null;
 
-  const edgeConfig =
-    (await getPrivateEdgeConfig(connection)) ||
-    (await getFileSystemEdgeConfig(connection));
+  // Try using the Edge Config from the build container if we are in a build.
+  // This guarantees the same version of an Edge Config is used throughout the build process.
+  if (isVercelBuild) {
+    const buildContainerEdgeConfig =
+      await getBuildContainerEdgeConfig(connection);
+    if (buildContainerEdgeConfig) return buildContainerEdgeConfig;
+  }
 
-  return edgeConfig;
+  // Try using the Edge Config from the in-memory cache at runtime.
+  const inMemoryEdgeConfig = await getInMemoryEdgeConfig?.(options);
+  if (inMemoryEdgeConfig) return inMemoryEdgeConfig;
+
+  // Fall back to the private Edge Config if we don't have one in memory.
+  const privateEdgeConfig = await getPrivateEdgeConfig(connection);
+  if (privateEdgeConfig) return privateEdgeConfig;
+
+  // Fall back to the file system Edge Config otherwise
+  const fileSystemEdgeConfig = await getFileSystemEdgeConfig(connection);
+  if (fileSystemEdgeConfig) return fileSystemEdgeConfig;
+
+  // Fall back to the build container Edge Config as a last resort.
+  // This edge config might be quite outdated, but it's better than not resolving at all.
+  const buildContainerEdgeConfig =
+    await getBuildContainerEdgeConfig(connection);
+  if (buildContainerEdgeConfig) return buildContainerEdgeConfig;
+
+  return null;
 }
 
 /**
@@ -347,9 +406,11 @@ export const createClient = trace(
           key: string,
           localOptions?: EdgeConfigFunctionsOptions,
         ): Promise<T | undefined> {
-          const localEdgeConfig =
-            (await getInMemoryEdgeConfig(localOptions)) ||
-            (await getLocalEdgeConfig(connection, localOptions));
+          const localEdgeConfig = await getLocalEdgeConfig(
+            connection,
+            localOptions,
+            getInMemoryEdgeConfig,
+          );
 
           assertIsKey(key);
           if (isEmptyKey(key)) return undefined;
@@ -397,15 +458,17 @@ export const createClient = trace(
           key,
           localOptions?: EdgeConfigFunctionsOptions,
         ): Promise<boolean> {
-          const localEdgeConfig =
-            (await getInMemoryEdgeConfig(localOptions)) ||
-            (await getLocalEdgeConfig(connection, localOptions));
+          const localEdgeConfig = await getLocalEdgeConfig(
+            connection,
+            localOptions,
+            getInMemoryEdgeConfig,
+          );
 
           assertIsKey(key);
           if (isEmptyKey(key)) return false;
 
           if (localEdgeConfig) {
-            return Promise.resolve(hasOwnProperty(localEdgeConfig.items, key));
+            return Promise.resolve(hasOwn(localEdgeConfig.items, key));
           }
 
           const localHeaders = new Headers(headers);
@@ -438,9 +501,11 @@ export const createClient = trace(
           keys?: (keyof T)[],
           localOptions?: EdgeConfigFunctionsOptions,
         ): Promise<T> {
-          const localEdgeConfig =
-            (await getInMemoryEdgeConfig(localOptions)) ||
-            (await getLocalEdgeConfig(connection, localOptions));
+          const localEdgeConfig = await getLocalEdgeConfig(
+            connection,
+            localOptions,
+            getInMemoryEdgeConfig,
+          );
 
           if (localEdgeConfig) {
             if (keys === undefined) {
@@ -497,9 +562,11 @@ export const createClient = trace(
         async function digest(
           localOptions?: EdgeConfigFunctionsOptions,
         ): Promise<string> {
-          const localEdgeConfig =
-            (await getInMemoryEdgeConfig(localOptions)) ||
-            (await getLocalEdgeConfig(connection, localOptions));
+          const localEdgeConfig = await getLocalEdgeConfig(
+            connection,
+            localOptions,
+            getInMemoryEdgeConfig,
+          );
 
           if (localEdgeConfig) {
             return Promise.resolve(localEdgeConfig.digest);

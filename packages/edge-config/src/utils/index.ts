@@ -17,7 +17,7 @@ export class UnexpectedNetworkError extends Error {
 /**
  * Checks if an object has a property
  */
-export function hasOwnProperty<X, Y extends PropertyKey>(
+export function hasOwn<X, Y extends PropertyKey>(
   obj: X,
   prop: Y,
 ): obj is X & Record<Y, unknown> {

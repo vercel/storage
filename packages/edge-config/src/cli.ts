@@ -40,6 +40,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((error) => {
+  // eslint-disable-next-line no-console -- This is a CLI tool
   console.error('@vercerl/edge-config: prepare failed', error);
   process.exit(1);
 });

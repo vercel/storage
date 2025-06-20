@@ -26,6 +26,13 @@ export async function handleUploadHandler(
   request: Request,
 ): Promise<NextResponse> {
   const body = (await request.json()) as HandleUploadBody;
+
+  // Log all headers received
+  console.log('Request headers:');
+  request.headers.forEach((value, key) => {
+    console.log(`${key}: ${value}`);
+  });
+
   try {
     const jsonResponse = await handleUpload({
       body,
@@ -38,10 +45,17 @@ export async function handleUploadHandler(
           throw new Error('Not authorized');
         }
 
+        // You can now access headers in the authorization logic
+        const customHeader =
+          request.headers.get('X-Custom-Header') ||
+          request.headers.get('X-Test-Header');
+        console.log('Custom header received:', customHeader);
+
         return {
           addRandomSuffix: true,
           tokenPayload: JSON.stringify({
             userId: user?.id,
+            customHeader,
           }),
         };
       },

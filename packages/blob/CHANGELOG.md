@@ -1,5 +1,25 @@
 # @vercel/blob
 
+## 1.1.1
+
+### Patch Changes
+
+- f65d3c9: copy, head and del can receive a blob url or pathname, until now it was not very clear.
+
+## 1.1.0
+
+### Minor Changes
+
+- 2b4acc3: feat(blob): Add support for custom headers in client upload method
+
+  This change adds the ability to pass custom headers to the `upload` method in the client, which will be forwarded to the server endpoint specified by `handleUploadUrl`. This is particularly useful for sending authorization headers and solves issues like [#796](https://github.com/vercel/storage/issues/796) and [#420](https://github.com/vercel/storage/issues/420).
+
+## 1.0.2
+
+### Patch Changes
+
+- d3627fa: Update Vercel Blob API endpoint to a more efficient one
+
 ## 1.0.1
 
 ### Patch Changes

@@ -234,6 +234,11 @@ export interface CommonUploadOptions {
    * Additional data which will be sent to your `handleUpload` route.
    */
   clientPayload?: string;
+  /**
+   * Additional headers to be sent when making the request to your `handleUpload` route.
+   * This is useful for sending authorization headers or any other custom headers.
+   */
+  headers?: Record<string, string>;
 }
 
 /**
@@ -255,6 +260,7 @@ export type UploadOptions = ClientCommonPutOptions & CommonUploadOptions;
  *   - access - (Required) Must be 'public' as blobs are publicly accessible.
  *   - handleUploadUrl - (Required) A string specifying the route to call for generating client tokens for client uploads.
  *   - clientPayload - (Optional) A string to be sent to your handleUpload server code. Example use-case: attaching the post id an image relates to.
+ *   - headers - (Optional) An object containing custom headers to be sent with the request to your handleUpload route. Example use-case: sending Authorization headers.
  *   - contentType - (Optional) A string indicating the media type. By default, it's extracted from the pathname's extension.
  *   - multipart - (Optional) Whether to use multipart upload for large files. It will split the file into multiple parts, upload them in parallel and retry failed parts.
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
@@ -290,6 +296,7 @@ export const upload = createPutMethod<UploadOptions>({
       pathname,
       clientPayload: options.clientPayload ?? null,
       multipart: options.multipart ?? false,
+      headers: options.headers,
     });
   },
 });
@@ -643,6 +650,7 @@ async function retrieveClientToken(options: {
   clientPayload: string | null;
   multipart: boolean;
   abortSignal?: AbortSignal;
+  headers?: Record<string, string>;
 }): Promise<string> {
   const { handleUploadUrl, pathname } = options;
   const url = isAbsoluteUrl(handleUploadUrl)
@@ -664,6 +672,7 @@ async function retrieveClientToken(options: {
     body: JSON.stringify(event),
     headers: {
       'content-type': 'application/json',
+      ...options.headers,
     },
     signal: options.abortSignal,
   });

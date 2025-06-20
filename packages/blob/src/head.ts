@@ -54,14 +54,14 @@ interface HeadBlobApiResponse extends Omit<HeadBlobResult, 'uploadedAt'> {
  * Fetches metadata of a blob object.
  * Detailed documentation can be found here: https://vercel.com/docs/vercel-blob/using-blob-sdk#get-blob-metadata
  *
- * @param url - Blob url to lookup.
+ * @param urlOrPathname - Blob url or pathname to lookup.
  * @param options - Additional options for the request.
  */
 export async function head(
-  url: string,
+  urlOrPathname: string,
   options?: BlobCommandOptions,
 ): Promise<HeadBlobResult> {
-  const searchParams = new URLSearchParams({ url });
+  const searchParams = new URLSearchParams({ url: urlOrPathname });
 
   const response = await requestApi<HeadBlobApiResponse>(
     `?${searchParams.toString()}`,

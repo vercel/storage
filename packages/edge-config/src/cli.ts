@@ -27,7 +27,7 @@ async function main(): Promise<void> {
         headers: {
           authorization: `Bearer ${connection.token}`,
           // consistentRead
-          // 'x-edge-config-min-updated-at': `${Number.MAX_SAFE_INTEGER}`,
+          'x-edge-config-min-updated-at': `${Number.MAX_SAFE_INTEGER}`,
         },
       }).then((res) => res.json() as Promise<EmbeddedEdgeConfig>);
 

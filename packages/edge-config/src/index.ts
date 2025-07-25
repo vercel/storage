@@ -377,7 +377,10 @@ export const createClient = trace(
         { name: 'get', isVerboseTrace: false, attributes: { edgeConfigId } },
       ),
       has: trace(
-        async function has(key, localOptions?: EdgeConfigFunctionsOptions) {
+        async function has(
+          key: string,
+          localOptions?: EdgeConfigFunctionsOptions,
+        ): Promise<boolean | { exists: boolean; digest: string }> {
           assertIsKey(key);
           if (isEmptyKey(key)) {
             throw new Error('@vercel/edge-config: Can not read empty key');
@@ -387,7 +390,7 @@ export const createClient = trace(
           return localOptions?.metadata ? data : data.exists;
         },
         { name: 'has', isVerboseTrace: false, attributes: { edgeConfigId } },
-      ),
+      ) as EdgeConfigClient['has'],
       getMultiple: trace(
         async function getMultiple<T>(
           keys: (keyof T)[],
@@ -481,10 +484,10 @@ export const get: EdgeConfigClient['get'] = (...args) => {
  * @param key - the key to check
  * @returns true if the given key exists in the Edge Config.
  */
-export const has: EdgeConfigClient['has'] = (...args) => {
+export const has = ((...args: Parameters<EdgeConfigClient['has']>) => {
   init();
   return defaultEdgeConfigClient.has(...args);
-};
+}) as EdgeConfigClient['has'];
 
 /**
  * Get the digest of the Edge Config.

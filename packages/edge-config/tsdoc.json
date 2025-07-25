@@ -1,0 +1,17 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/tsdoc/v0/tsdoc.schema.json",
+  "tagDefinitions": [
+    {
+      "tagName": "@default",
+      "syntaxKind": "block",
+      "allowMultiple": false
+    }
+  ],
+  "supportForTags": {
+    "@default": true,
+    "@returns": true,
+    "@param": true,
+    "@see": true,
+    "@link": true
+  }
+}

@@ -38,29 +38,62 @@ export interface EdgeConfigClient {
    * @param key - the key to read
    * @returns the value stored under the given key, or undefined
    */
-  get: <T = EdgeConfigValue>(
-    key: string,
-    options?: EdgeConfigFunctionsOptions,
-  ) => Promise<T | undefined>;
+  get: {
+    <T = EdgeConfigValue>(
+      key: string,
+      options: EdgeConfigFunctionsOptions & { metadata: true },
+    ): Promise<{ value: T | undefined; digest: string }>;
+    <T = EdgeConfigValue>(
+      key: string,
+      options?: EdgeConfigFunctionsOptions,
+    ): Promise<T | undefined>;
+  };
   /**
-   * Reads multiple or all values.
+   * Reads multiple values.
    *
-   * Allows you to read all or only selected keys of an Edge Config at once.
+   * Allows you to read multiple keys of an Edge Config at once.
    *
    * @param keys - the keys to read
-   * @returns Returns all entries when called with no arguments or only entries matching the given keys otherwise.
+   * @returns Returns entries matching the given keys.
    */
-  getAll: <T = EdgeConfigItems>(
-    keys?: (keyof T)[],
-    options?: EdgeConfigFunctionsOptions,
-  ) => Promise<T>;
+  getMultiple: {
+    <T = EdgeConfigItems>(
+      keys: (keyof T)[],
+      options: EdgeConfigFunctionsOptions & { metadata: true },
+    ): Promise<{ value: T; digest: string }>;
+    <T = EdgeConfigItems>(
+      keys: (keyof T)[],
+      options?: EdgeConfigFunctionsOptions,
+    ): Promise<T>;
+  };
+
+  /**
+   * Reads all values.
+   *
+   * Allows you to read all keys of an Edge Config at once.
+   *
+   * @returns Returns all entries.
+   */
+  getAll: {
+    <T = EdgeConfigItems>(
+      options: EdgeConfigFunctionsOptions & { metadata: true },
+    ): Promise<{ value: T; digest: string }>;
+    <T = EdgeConfigItems>(options?: EdgeConfigFunctionsOptions): Promise<T>;
+  };
+
   /**
    * Check if a given key exists in the Edge Config.
    *
    * @param key - the key to check
    * @returns true if the given key exists in the Edge Config.
    */
-  has: (key: string, options?: EdgeConfigFunctionsOptions) => Promise<boolean>;
+  has: {
+    (
+      key: string,
+      options: EdgeConfigFunctionsOptions & { metadata: true },
+    ): Promise<{ exists: boolean; digest: string }>;
+    (key: string, options?: EdgeConfigFunctionsOptions): Promise<boolean>;
+  };
   /**
    * Get the digest of the Edge Config.
    *
@@ -91,4 +124,9 @@ export interface EdgeConfigFunctionsOptions {
    * need to ensure you generate with the latest content.
    */
   consistentRead?: boolean;
+
+  /**
+   * Whether to return metadata about the Edge Config, like the digest.
+   */
+  metadata?: boolean;
 }

@@ -24,7 +24,7 @@ import type {
   EdgeConfigFunctionsOptions,
   Connection,
 } from './types';
-import { fetchWithCachedResponse } from './utils/fetch-with-cached-response';
+import { enhancedFetch } from './utils/enhanced-fetch';
 import { trace } from './utils/tracing';
 import { consumeResponseBody } from './utils/consume-response-body';
 import { addConsistentReadHeader } from './utils/add-consistent-read-header';
@@ -118,7 +118,7 @@ class Controller {
     key: string,
     localOptions?: EdgeConfigFunctionsOptions,
   ): Promise<{ value: T | undefined; digest: string }> {
-    return fetchWithCachedResponse(
+    return enhancedFetch(
       `${this.connection.baseUrl}/item/${key}?version=${this.connection.version}`,
       {
         headers: this.getHeaders(localOptions),
@@ -148,8 +148,6 @@ class Controller {
         // the edge config itself does not exist
         throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
       }
-      // if (res.cachedResponseBody !== undefined)
-      //   return res.cachedResponseBody as T;
       throw new UnexpectedNetworkError(res);
     });
   }
@@ -183,7 +181,7 @@ class Controller {
   public async digest(
     localOptions?: Pick<EdgeConfigFunctionsOptions, 'consistentRead'>,
   ): Promise<string> {
-    return fetchWithCachedResponse(
+    return enhancedFetch(
       `${this.connection.baseUrl}/digest?version=${this.connection.version}`,
       {
         headers: this.getHeaders(localOptions),
@@ -220,7 +218,7 @@ class Controller {
         .map((key) => ['key', key] as [string, string]),
     ).toString();
 
-    return fetchWithCachedResponse(
+    return enhancedFetch(
       `${this.connection.baseUrl}/items?version=${this.connection.version}&${search}`,
       {
         headers: this.getHeaders(localOptions),
@@ -250,7 +248,7 @@ class Controller {
   public async getAll<T>(
     localOptions?: EdgeConfigFunctionsOptions,
   ): Promise<{ value: T; digest: string }> {
-    return fetchWithCachedResponse(
+    return enhancedFetch(
       `${this.connection.baseUrl}/items?version=${this.connection.version}`,
       {
         headers: this.getHeaders(localOptions),
@@ -422,13 +420,10 @@ export const createClient = trace(
           if (localOptions?.consistentRead)
             addConsistentReadHeader(localHeaders);
 
-          return fetchWithCachedResponse(
-            `${baseUrl}/digest?version=${version}`,
-            {
-              headers: localHeaders,
-              cache: fetchCache,
-            },
-          ).then(async (res) => {
+          return enhancedFetch(`${baseUrl}/digest?version=${version}`, {
+            headers: localHeaders,
+            cache: fetchCache,
+          }).then(async (res) => {
             if (res.ok) return res.json() as Promise<string>;
             await consumeResponseBody(res);
 

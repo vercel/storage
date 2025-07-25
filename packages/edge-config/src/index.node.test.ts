@@ -2,7 +2,7 @@ import { readFile } from '@vercel/edge-config-fs';
 import fetchMock from 'jest-fetch-mock';
 import { version as pkgVersion } from '../package.json';
 import type { EmbeddedEdgeConfig } from './types';
-import { cache } from './utils/fetch-with-cached-response';
+import { cache } from './utils/enhanced-fetch';
 import { get, has, digest, createClient, getAll } from './index';
 
 const sdkVersion = typeof pkgVersion === 'string' ? pkgVersion : '';

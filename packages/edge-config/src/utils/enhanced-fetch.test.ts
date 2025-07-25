@@ -1,5 +1,5 @@
 import fetchMock from 'jest-fetch-mock';
-import { fetchWithCachedResponse, cache } from './fetch-with-cached-response';
+import { enhancedFetch, cache } from './enhanced-fetch';
 
 jest.useFakeTimers();
 
@@ -9,7 +9,7 @@ describe('cache', () => {
   });
 });
 
-describe('fetchWithCachedResponse', () => {
+describe('enhancedFetch', () => {
   beforeEach(() => {
     fetchMock.resetMocks();
     cache.clear();
@@ -21,7 +21,7 @@ describe('fetchWithCachedResponse', () => {
     });
 
     // First request
-    const data1 = await fetchWithCachedResponse('https://example.com/api/data');
+    const data1 = await enhancedFetch('https://example.com/api/data');
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith('https://example.com/api/data', {});
@@ -42,7 +42,7 @@ describe('fetchWithCachedResponse', () => {
         'content-type': 'application/json',
       },
     });
-    const data2 = await fetchWithCachedResponse('https://example.com/api/data');
+    const data2 = await enhancedFetch('https://example.com/api/data');
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock).toHaveBeenCalledWith('https://example.com/api/data', {
@@ -65,12 +65,9 @@ describe('fetchWithCachedResponse', () => {
     });
 
     // First request
-    const data1 = await fetchWithCachedResponse(
-      'https://example.com/api/data',
-      {
-        headers: new Headers({ authorization: 'bearer A' }),
-      },
-    );
+    const data1 = await enhancedFetch('https://example.com/api/data', {
+      headers: new Headers({ authorization: 'bearer A' }),
+    });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith('https://example.com/api/data', {
@@ -85,13 +82,10 @@ describe('fetchWithCachedResponse', () => {
     fetchMock.mockResponseOnce(JSON.stringify({ name: 'Bob' }), {
       headers: { ETag: 'abc123', 'content-type': 'application/json' },
     });
-    const data2 = await fetchWithCachedResponse(
-      'https://example.com/api/data',
-      {
-        // using a different authorization header here
-        headers: new Headers({ authorization: 'bearer B' }),
-      },
-    );
+    const data2 = await enhancedFetch('https://example.com/api/data', {
+      // using a different authorization header here
+      headers: new Headers({ authorization: 'bearer B' }),
+    });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock).toHaveBeenCalledWith('https://example.com/api/data', {
@@ -111,12 +105,9 @@ describe('fetchWithCachedResponse', () => {
       status: 304,
       headers: { ETag: 'abc123', 'content-type': 'application/json' },
     });
-    const data3 = await fetchWithCachedResponse(
-      'https://example.com/api/data',
-      {
-        headers: new Headers({ authorization: 'bearer A' }),
-      },
-    );
+    const data3 = await enhancedFetch('https://example.com/api/data', {
+      headers: new Headers({ authorization: 'bearer A' }),
+    });
 
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(fetchMock).toHaveBeenCalledWith('https://example.com/api/data', {
@@ -139,7 +130,7 @@ describe('fetchWithCachedResponse', () => {
     });
 
     // First request
-    const data1 = await fetchWithCachedResponse('https://example.com/api/data');
+    const data1 = await enhancedFetch('https://example.com/api/data');
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith('https://example.com/api/data', {});
@@ -156,10 +147,9 @@ describe('fetchWithCachedResponse', () => {
 
     // Second request (should come from cache)
     fetchMock.mockResponseOnce('', { status: 502 });
-    const data2 = await fetchWithCachedResponse(
-      'https://example.com/api/data',
-      { headers: new Headers({ 'Cache-Control': 'stale-if-error=10' }) },
-    );
+    const data2 = await enhancedFetch('https://example.com/api/data', {
+      headers: new Headers({ 'Cache-Control': 'stale-if-error=10' }),
+    });
 
     jest.advanceTimersByTime(3000);
 
@@ -184,7 +174,7 @@ describe('fetchWithCachedResponse', () => {
     });
 
     // First request
-    const data1 = await fetchWithCachedResponse('https://example.com/api/data');
+    const data1 = await enhancedFetch('https://example.com/api/data');
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith('https://example.com/api/data', {});
@@ -201,10 +191,9 @@ describe('fetchWithCachedResponse', () => {
 
     // Second request (should come from cache)
     fetchMock.mockAbortOnce();
-    const data2 = await fetchWithCachedResponse(
-      'https://example.com/api/data',
-      { headers: new Headers({ 'Cache-Control': 'stale-if-error=10' }) },
-    );
+    const data2 = await enhancedFetch('https://example.com/api/data', {
+      headers: new Headers({ 'Cache-Control': 'stale-if-error=10' }),
+    });
 
     jest.advanceTimersByTime(3000);
 

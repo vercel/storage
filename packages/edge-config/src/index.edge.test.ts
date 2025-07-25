@@ -1,6 +1,6 @@
 import fetchMock from 'jest-fetch-mock';
 import { version as pkgVersion } from '../package.json';
-import { cache } from './utils/fetch-with-cached-response';
+import { cache } from './utils/enhanced-fetch';
 import { get, has, digest, getAll, createClient } from './index';
 
 const sdkVersion = typeof pkgVersion === 'string' ? pkgVersion : '';

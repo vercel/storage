@@ -12,6 +12,7 @@ type FetchOptions = Omit<RequestInit, 'headers'> & { headers?: Headers };
 
 interface ResponseWithCachedResponse extends Response {
   cachedResponseBody?: unknown;
+  cachedResponseHeaders?: Headers;
 }
 
 /**
@@ -97,8 +98,8 @@ function extractStaleIfError(cacheControlHeader: string | null): number | null {
  * This is similar to fetch, but it also implements ETag semantics, and
  * it implmenets stale-if-error semantics.
  */
-export const fetchWithCachedResponse = trace(
-  async function fetchWithCachedResponse(
+export const enhancedFetch = trace(
+  async function enhancedFetch(
     url: string,
     options: FetchOptions = {},
   ): Promise<ResponseWithCachedResponse> {
@@ -126,6 +127,7 @@ export const fetchWithCachedResponse = trace(
 
       if (res.status === 304) {
         res.cachedResponseBody = JSON.parse(cachedResponse);
+        res.cachedResponseHeaders = new Headers(res.headers);
         return res;
       }
 
@@ -156,7 +158,7 @@ export const fetchWithCachedResponse = trace(
     return res;
   },
   {
-    name: 'fetchWithCachedResponse',
+    name: 'enhancedFetch',
     attributesSuccess(result) {
       return {
         status: result.status,

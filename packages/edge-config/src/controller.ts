@@ -1,4 +1,3 @@
-import { time } from 'node:console';
 import type {
   EdgeConfigValue,
   EmbeddedEdgeConfig,
@@ -17,6 +16,13 @@ let timestampOfLatestUpdate: number | undefined;
 
 export function setTimestampOfLatestUpdate(timestamp: number): void {
   timestampOfLatestUpdate = timestamp;
+}
+
+function parseTs(updatedAt: string | null): number | null {
+  if (!updatedAt) return null;
+  const parsed = Number.parseInt(updatedAt, 10);
+  if (Number.isNaN(parsed)) return null;
+  return parsed;
 }
 
 export class Controller {
@@ -188,14 +194,7 @@ export class Controller {
     }
 
     // otherwise, create a new promise
-
-    const promise = this.fetchItem<T>(
-      key,
-      timestampOfLatestUpdate,
-      localOptions,
-    );
-
-    return promise;
+    return this.fetchItem<T>(key, timestampOfLatestUpdate, localOptions);
   }
 
   private fetchItem<T extends EdgeConfigValue>(
@@ -215,19 +214,22 @@ export class Controller {
       },
     ).then<{ value: T | undefined; digest: string; source: Source }>(
       async (res) => {
-        // TODO deal with filling the cache
         const digest = res.headers.get('x-edge-config-digest');
-
-        if (!digest) {
-          throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-        }
+        const updatedAt = parseTs(res.headers.get('x-edge-config-updated-at'));
+        if (!digest) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
 
         if (res.ok) {
           const value = (await res.json()) as T;
           // TODO this header is not present on responses of the real API currently,
           // but we mock it in tests already
-          const updatedAt = Number(res.headers.get('x-edge-config-updated-at'));
-          this.itemCache.set(key, { value, updatedAt, digest });
+
+          // set the cache if the loaded value is newer than the cached one
+          if (updatedAt) {
+            const existing = this.itemCache.get(key);
+            if (!existing || existing.updatedAt < updatedAt) {
+              this.itemCache.set(key, { value, updatedAt, digest });
+            }
+          }
           return { value, digest, source: 'network-blocking' };
         }
 
@@ -237,11 +239,7 @@ export class Controller {
         if (res.status === 404) {
           // if the x-edge-config-digest header is present, it means
           // the edge config exists, but the item does not
-          if (digest) {
-            const updatedAt = Number(
-              res.headers.get('x-edge-config-updated-at'),
-            );
-
+          if (digest && updatedAt) {
             this.itemCache.set(key, { value: undefined, updatedAt, digest });
             return { value: undefined, digest, source: 'network-blocking' };
           }

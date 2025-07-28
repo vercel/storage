@@ -3,7 +3,7 @@ import { trace } from './tracing';
 interface CachedResponseEntry {
   etag: string;
   response: string;
-  headers: Record<string, string>;
+  headers: Headers;
   status: number;
   time: number;
 }
@@ -102,7 +102,7 @@ export const enhancedFetch = trace(
   async function enhancedFetch(
     url: string,
     options: FetchOptions = {},
-  ): Promise<ResponseWithCachedResponse> {
+  ): Promise<Response> {
     const { headers: customHeaders = new Headers(), ...customOptions } =
       options;
     const authHeader = customHeaders.get('Authorization');
@@ -111,7 +111,11 @@ export const enhancedFetch = trace(
     const cachedResponseEntry = cache.get(cacheKey);
 
     if (cachedResponseEntry) {
-      const { etag, response: cachedResponse } = cachedResponseEntry;
+      const {
+        etag,
+        response: cachedResponse,
+        headers: cachedResponseHeaders,
+      } = cachedResponseEntry;
       const headers = new Headers(customHeaders);
       headers.set('If-None-Match', etag);
 
@@ -126,22 +130,27 @@ export const enhancedFetch = trace(
       );
 
       if (res.status === 304) {
+        console.log('resolving from cache');
         res.cachedResponseBody = JSON.parse(cachedResponse);
-        res.cachedResponseHeaders = new Headers(res.headers);
+        res.cachedResponseHeaders = cachedResponseHeaders;
         return res;
       }
 
       const newETag = res.headers.get('ETag');
-      if (res.ok && newETag)
+      if (res.ok && newETag) {
+        console.log('filling cache');
         cache.set(cacheKey, {
           etag: newETag,
           response: await res.clone().text(),
-          headers: Object.fromEntries(res.headers.entries()),
+          headers: new Headers(res.headers),
           status: res.status,
           time: Date.now(),
         });
+      }
       return res;
     }
+
+    console.log('resolving from network');
 
     const res = await fetch(url, options);
     const etag = res.headers.get('ETag');
@@ -149,7 +158,7 @@ export const enhancedFetch = trace(
       cache.set(cacheKey, {
         etag,
         response: await res.clone().text(),
-        headers: Object.fromEntries(res.headers.entries()),
+        headers: new Headers(res.headers),
         status: res.status,
         time: Date.now(),
       });
@@ -158,7 +167,7 @@ export const enhancedFetch = trace(
     return res;
   },
   {
-    name: 'enhancedFetch',
+    name: 'fetchWithCachedResponse',
     attributesSuccess(result) {
       return {
         status: result.status,

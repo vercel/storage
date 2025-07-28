@@ -43,11 +43,7 @@
     ],
     "testEnvironment": "node"
   },
-  "dependencies": {
-    "@vercel/edge-config-fs": "workspace:*",
-    "http-cache-semantics": "4.2.0",
-    "shorthash": "0.0.2"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@changesets/cli": "2.28.1",
     "@edge-runtime/jest-environment": "2.3.10",

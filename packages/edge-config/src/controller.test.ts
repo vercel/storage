@@ -91,4 +91,51 @@ describe('controller', () => {
     // needs to fetch again
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
+
+  it('should dedupe within a version', async () => {
+    const controller = new Controller(connection, {}, false);
+
+    setTimestampOfLatestUpdate(1000);
+
+    const { promise, resolve } = Promise.withResolvers<Response>();
+
+    fetchMock.mockResolvedValueOnce(promise);
+
+    // blocking fetches first, which should get deduped
+    const read1 = controller.get('key1');
+    const read2 = controller.get('key1');
+
+    resolve(
+      new Response(JSON.stringify('value1'), {
+        headers: {
+          'x-edge-config-digest': 'digest1',
+          'x-edge-config-updated-at': '1000',
+        },
+      }),
+    );
+
+    await expect(read1).resolves.toEqual({
+      value: 'value1',
+      digest: 'digest1',
+      source: 'MISS',
+    });
+
+    // reuses the pending fetch promise
+    await expect(read2).resolves.toEqual({
+      value: 'value1',
+      digest: 'digest1',
+      source: 'MISS',
+    });
+
+    // hits the cache
+    const read3 = controller.get('key1');
+    await expect(read3).resolves.toEqual({
+      value: 'value1',
+      digest: 'digest1',
+      source: 'HIT',
+    });
+
+    //
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });

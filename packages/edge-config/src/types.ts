@@ -130,3 +130,64 @@ export interface EdgeConfigFunctionsOptions {
    */
   metadata?: boolean;
 }
+
+export interface EdgeConfigClientOptions {
+  /**
+   * Configure for how long the SDK will return a stale value in case a fresh value could not be fetched.
+   *
+   * @default Infinity
+   */
+  staleIfError?: number | false;
+
+  /**
+   * Configure the threshold for how long the SDK allows stale values to be
+   * served after they become outdated. The SDK will switch from refreshing
+   * in the background to performing a blocking fetch when this threshold is
+   * exceeded.
+   *
+   * The threshold configures the difference, in seconds, between when an update
+   * was made until the SDK will force fetch the latest value.
+   *
+   * Background refresh example:
+   * If you set this value to 10 seconds, then reads within 10
+   * seconds after an update was made will be served from the in-memory cache,
+   * while a background refresh will be performed. Once the background refresh
+   * completes any further reads will be served from the updated in-memory cache,
+   * and thus also return the latest value.
+   *
+   * Blocking read example:
+   * If an Edge Config is updated and there are no reads in the 10 seconds after
+   * the update was made then there will be no background refresh. When the next
+   * read happens more than 10 seconds later it will be a blocking read which
+   * reads from the origin. This takes slightly longer but guarantees that the
+   * SDK will never serve a value that is stale for more than 10 seconds.
+   *
+   *
+   * @default 10
+   */
+  staleThreshold?: number;
+
+  /**
+   * In development, a stale-while-revalidate cache is employed as the default caching strategy.
+   *
+   * This cache aims to deliver speedy Edge Config reads during development, though it comes
+   * at the cost of delayed visibility for updates to Edge Config. Typically, you may need to
+   * refresh twice to observe these changes as the stale value is replaced.
+   *
+   * This cache is not used in preview or production deployments as superior optimisations are applied there.
+   */
+  disableDevelopmentCache?: boolean;
+
+  /**
+   * Sets a `cache` option on the `fetch` call made by Edge Config.
+   *
+   * Unlike Next.js, this defaults to `no-store`, as you most likely want to use Edge Config dynamically.
+   */
+  cache?: 'no-store' | 'force-cache';
+}
+
+export type Source =
+  | 'cached-fresh' // value is cached and deemed fresh
+  | 'cached-stale' // value is cached but we know it's outdated
+  | 'network-blocking' // value was fetched over network as the staleThreshold was exceeded
+  | 'network-consistent'; // value was fetched over the network as a consistent read was requested

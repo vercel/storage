@@ -32,14 +32,14 @@ describe('controller', () => {
     await expect(controller.get('key1')).resolves.toEqual({
       value: 'value1',
       digest: 'digest1',
-      source: 'network-blocking',
+      source: 'MISS',
     });
 
     // cache HIT after
     await expect(controller.get('key1')).resolves.toEqual({
       value: 'value1',
       digest: 'digest1',
-      source: 'cached-fresh',
+      source: 'HIT',
     });
 
     // should not fetch again
@@ -57,7 +57,7 @@ describe('controller', () => {
     await expect(controller.get('key1')).resolves.toEqual({
       value: 'value1',
       digest: 'digest1',
-      source: 'cached-stale',
+      source: 'STALE',
     });
 
     // should fetch again in background
@@ -70,7 +70,7 @@ describe('controller', () => {
     await expect(controller.get('key1')).resolves.toEqual({
       value: 'value2',
       digest: 'digest2',
-      source: 'cached-fresh',
+      source: 'HIT',
     });
 
     // exceeds stale threshold should lead to cache MISS and blocking fetch
@@ -85,7 +85,7 @@ describe('controller', () => {
     await expect(controller.get('key1')).resolves.toEqual({
       value: 'value3',
       digest: 'digest3',
-      source: 'network-blocking',
+      source: 'MISS',
     });
 
     // needs to fetch again

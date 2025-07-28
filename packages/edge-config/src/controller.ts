@@ -18,6 +18,14 @@ export function setTimestampOfLatestUpdate(timestamp: number): void {
   timestampOfLatestUpdate = timestamp;
 }
 
+function canReusePendingFetch(
+  pending: { minUpdatedAt: number } | undefined,
+  requiredMinUpdatedAt: number,
+): boolean {
+  if (!pending) return false;
+  return pending.minUpdatedAt >= requiredMinUpdatedAt;
+}
+
 function parseTs(updatedAt: string | null): number | null {
   if (!updatedAt) return null;
   const parsed = Number.parseInt(updatedAt, 10);
@@ -54,8 +62,12 @@ export class Controller {
     }
   >();
 
-  private pendingEdgeConfigPromise: Promise<EmbeddedEdgeConfig | null> | null =
-    null;
+  private pendingEdgeConfigPromise:
+    | {
+        minUpdatedAt: number;
+        promise: Promise<EmbeddedEdgeConfig | null>;
+      }
+    | undefined = undefined;
 
   constructor(
     connection: Connection,
@@ -78,11 +90,8 @@ export class Controller {
     // pick newer version on HIT
 
     // otherwise
-    // blocking fetch if MISS
     // background fetch if STALE
-
-    // const [state, effects] = reduce(state)
-    // await processEffects(effects)
+    // blocking fetch if MISS
 
     // only use the cache if we have a timestamp of the latest update
     if (timestampOfLatestUpdate) {
@@ -121,49 +130,70 @@ export class Controller {
       }
 
       if (cached) {
+        // HIT
         if (timestampOfLatestUpdate === cached.updatedAt) {
           return {
             value: cached.value,
             digest: cached.digest,
-            source: 'cached-fresh',
+            source: 'HIT',
           };
         }
-        if (timestampOfLatestUpdate > cached.updatedAt) {
-          // we're outdated, but check if we can serve the STALE value
-          if (
-            cached.updatedAt >=
-            timestampOfLatestUpdate - this.staleThreshold
-          ) {
-            // background refresh
-            // reuse existing promise if there is one
-            const pendingPromise = this.pendingItemFetches.get(key);
-            if (
-              pendingPromise &&
-              pendingPromise.minUpdatedAt >= timestampOfLatestUpdate &&
-              // ensure the pending promise can not end up being stale
-              pendingPromise.minUpdatedAt + this.staleThreshold >=
-                timestampOfLatestUpdate
-            ) {
-              // do nothing
-            } else {
-              // TODO cancel existing pending fetch with an AbortController if
-              // there is one? does this lead to problems if it is being awaited
-              // by a blocking read?
-              //
-              // TODO use waitUntil?
-              void this.fetchItem<T>(
-                key,
-                timestampOfLatestUpdate,
-                localOptions,
-              ).catch(() => null);
-            }
 
-            return {
-              value: cached.value,
-              digest: cached.digest,
-              source: 'cached-stale',
-            };
+        // STALE
+        // we're outdated, but check if we can serve the STALE value
+        if (
+          timestampOfLatestUpdate > cached.updatedAt &&
+          cached.updatedAt >= timestampOfLatestUpdate - this.staleThreshold
+        ) {
+          // background refresh
+          // reuse existing promise if there is one
+          const pendingItemPromise = this.pendingItemFetches.get(key);
+          const pendingEdgeConfigPromise = this.pendingEdgeConfigPromise;
+
+          const canReusePendingItemFetch = canReusePendingFetch(
+            pendingItemPromise,
+            timestampOfLatestUpdate,
+          );
+          const canReusePendingEdgeConfigFetch = canReusePendingFetch(
+            pendingEdgeConfigPromise,
+            timestampOfLatestUpdate,
+          );
+
+          if (!canReusePendingItemFetch && !canReusePendingEdgeConfigFetch) {
+            // trigger a new fetch if we can't reuse the pending fetches
+            void this.fetchItem<T>(
+              key,
+              timestampOfLatestUpdate,
+              localOptions,
+            ).catch(() => null);
           }
+
+          // if (
+          //   pendingItemPromise &&
+          //   pendingItemPromise.minUpdatedAt >= timestampOfLatestUpdate &&
+          //   // ensure the pending promise can not end up being stale
+          //   pendingItemPromise.minUpdatedAt + this.staleThreshold >=
+          //     timestampOfLatestUpdate
+          // ) {
+          //   // do nothing
+          // } else {
+          //   // TODO cancel existing pending fetch with an AbortController if
+          //   // there is one? does this lead to problems if it is being awaited
+          //   // by a blocking read?
+          //   //
+          //   // TODO use waitUntil?
+          //   void this.fetchItem<T>(
+          //     key,
+          //     timestampOfLatestUpdate,
+          //     localOptions,
+          //   ).catch(() => null);
+          // }
+
+          return {
+            value: cached.value,
+            digest: cached.digest,
+            source: 'STALE',
+          };
 
           // we're outdated, but we can't serve the STALE value
           // so we need to fetch the latest value in a BLOCKING way and then
@@ -174,6 +204,7 @@ export class Controller {
         }
       }
 
+      // MISS, with pending fetch
       // reuse existing promise if there is one
       const pendingPromise = this.pendingItemFetches.get(key);
       if (
@@ -193,6 +224,7 @@ export class Controller {
       }
     }
 
+    // MISS, without pending fetch
     // otherwise, create a new promise
     return this.fetchItem<T>(key, timestampOfLatestUpdate, localOptions);
   }
@@ -230,7 +262,7 @@ export class Controller {
               this.itemCache.set(key, { value, updatedAt, digest });
             }
           }
-          return { value, digest, source: 'network-blocking' };
+          return { value, digest, source: 'MISS' };
         }
 
         await consumeResponseBody(res);
@@ -240,8 +272,11 @@ export class Controller {
           // if the x-edge-config-digest header is present, it means
           // the edge config exists, but the item does not
           if (digest && updatedAt) {
-            this.itemCache.set(key, { value: undefined, updatedAt, digest });
-            return { value: undefined, digest, source: 'network-blocking' };
+            const existing = this.itemCache.get(key);
+            if (!existing || existing.updatedAt < updatedAt) {
+              this.itemCache.set(key, { value: undefined, updatedAt, digest });
+            }
+            return { value: undefined, digest, source: 'MISS' };
           }
           // if the x-edge-config-digest header is not present, it means
           // the edge config itself does not exist
@@ -284,7 +319,7 @@ export class Controller {
         return {
           digest,
           exists: res.status !== 404,
-          source: 'network-blocking',
+          source: 'MISS',
         };
       throw new UnexpectedNetworkError(res);
     });

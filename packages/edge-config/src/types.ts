@@ -187,7 +187,7 @@ export interface EdgeConfigClientOptions {
 }
 
 export type Source =
-  | 'cached-fresh' // value is cached and deemed fresh
-  | 'cached-stale' // value is cached but we know it's outdated
-  | 'network-blocking' // value was fetched over network as the staleThreshold was exceeded
-  | 'network-consistent'; // value was fetched over the network as a consistent read was requested
+  | 'HIT' // value is cached and deemed fresh
+  | 'STALE' // value is cached but we know it's outdated
+  | 'MISS' // value was fetched over network as the staleThreshold was exceeded
+  | 'BYPASS'; // value was fetched over the network as a consistent read was requested

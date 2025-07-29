@@ -25,6 +25,7 @@ describe('controller', () => {
       headers: {
         'x-edge-config-digest': 'digest1',
         'x-edge-config-updated-at': '1000',
+        etag: '"digest1"',
       },
     });
 
@@ -51,6 +52,7 @@ describe('controller', () => {
       headers: {
         'x-edge-config-digest': 'digest2',
         'x-edge-config-updated-at': '7000',
+        etag: '"digest2"',
       },
     });
 

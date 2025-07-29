@@ -9,6 +9,9 @@ import type {
 import { ERRORS, isEmptyKey, UnexpectedNetworkError } from './utils';
 import { consumeResponseBody } from './utils/consume-response-body';
 import { addConsistentReadHeader } from './utils/add-consistent-read-header';
+import { createEnhancedFetch } from './utils/enhanced-fetch';
+
+const enhancedFetch = createEnhancedFetch();
 
 const DEFAULT_STALE_THRESHOLD = 10_000; // 10 seconds
 
@@ -252,7 +255,7 @@ export class Controller {
     digest: string;
     source: Source;
   }> {
-    const promise = fetch(
+    const promise = enhancedFetch(
       `${this.connection.baseUrl}/item/${key}?version=${this.connection.version}`,
       {
         headers: this.getHeaders(localOptions),

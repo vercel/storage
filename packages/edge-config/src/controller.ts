@@ -34,12 +34,18 @@ function parseTs(updatedAt: string | null): number | null {
 }
 
 export class Controller {
-  private edgeConfigCache: (EmbeddedEdgeConfig & { updatedAt: number }) | null =
-    null;
+  private edgeConfigCache:
+    | (EmbeddedEdgeConfig & { updatedAt: number; responseTimestamp: number })
+    | null = null;
   private itemCache = new Map<
     string,
     // an undefined value signals the key does not exist
-    { value: EdgeConfigValue | undefined; updatedAt: number; digest: string }
+    {
+      value: EdgeConfigValue | undefined;
+      updatedAt: number;
+      digest: string;
+      responseTimestamp: number;
+    }
   >();
 
   private connection: Connection;
@@ -84,6 +90,55 @@ export class Controller {
     key: string,
     localOptions?: EdgeConfigFunctionsOptions,
   ): Promise<{ value: T | undefined; digest: string; source: Source }> {
+    if (this.shouldUseDevelopmentCache) {
+      const cache = this.itemCache.get(key);
+      if (cache) {
+        // background refresh, but only if cached value is older than 1 second
+        // const pending = this.pendingItemFetches.get(key);
+        // if (pending) {
+        //   return pending.promise.then(
+        //     (v) => {
+        //       if (
+        //         this.pendingItemFetches.get(key)?.promise === pending.promise
+        //       ) {
+        //         this.pendingItemFetches.delete(key);
+        //       }
+        //       return v;
+        //     },
+        //     (err) => {
+        //       if (
+        //         this.pendingItemFetches.get(key)?.promise === pending.promise
+        //       ) {
+        //         this.pendingItemFetches.delete(key);
+        //       }
+        //       throw err;
+        //     },
+        //   ) as Promise<{
+        //     value: T | undefined;
+        //     digest: string;
+        //     source: Source;
+        //   }>;
+        // }
+
+        this.pendingItemFetches.set(key, {
+          promise: this.fetchItem<T>(
+            key,
+            timestampOfLatestUpdate,
+            localOptions,
+          ),
+          minUpdatedAt: Date.now(),
+        });
+
+        return {
+          value: cache.value as T | undefined,
+          digest: cache.digest,
+          source: 'HIT',
+        };
+      }
+
+      return this.fetchItem<T>(key, timestampOfLatestUpdate, localOptions);
+    }
+
     // check full config cache
     // check item cache
     //
@@ -259,7 +314,12 @@ export class Controller {
           if (updatedAt) {
             const existing = this.itemCache.get(key);
             if (!existing || existing.updatedAt < updatedAt) {
-              this.itemCache.set(key, { value, updatedAt, digest });
+              this.itemCache.set(key, {
+                value,
+                updatedAt,
+                digest,
+                responseTimestamp: Date.now(),
+              });
             }
           }
           return { value, digest, source: 'MISS' };
@@ -274,7 +334,12 @@ export class Controller {
           if (digest && updatedAt) {
             const existing = this.itemCache.get(key);
             if (!existing || existing.updatedAt < updatedAt) {
-              this.itemCache.set(key, { value: undefined, updatedAt, digest });
+              this.itemCache.set(key, {
+                value: undefined,
+                updatedAt,
+                digest,
+                responseTimestamp: Date.now(),
+              });
             }
             return { value: undefined, digest, source: 'MISS' };
           }

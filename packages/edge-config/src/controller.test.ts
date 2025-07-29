@@ -139,3 +139,47 @@ describe('controller', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('development cache', () => {
+  it('should work', async () => {
+    const controller = new Controller(connection, {}, true);
+
+    fetchMock.mockResponseOnce(JSON.stringify('value1'), {
+      headers: {
+        'x-edge-config-digest': 'digest1',
+        'x-edge-config-updated-at': '1000',
+      },
+    });
+
+    await expect(controller.get('key1')).resolves.toEqual({
+      value: 'value1',
+      digest: 'digest1',
+      source: 'MISS',
+    });
+
+    fetchMock.mockResponse(JSON.stringify('value2'), {
+      headers: {
+        'x-edge-config-digest': 'digest2',
+        'x-edge-config-updated-at': '1001',
+      },
+    });
+
+    await expect(controller.get('key1')).resolves.toEqual({
+      value: 'value1',
+      digest: 'digest1',
+      source: 'HIT',
+    });
+
+    await Promise.resolve();
+
+    await expect(controller.get('key1')).resolves.toEqual({
+      value: 'value2',
+      digest: 'digest2',
+      source: 'HIT',
+    });
+
+    await Promise.resolve();
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+});

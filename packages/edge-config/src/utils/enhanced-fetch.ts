@@ -29,8 +29,14 @@ export function createEnhancedFetch(): (
   const pendingRequests = new Map<string, Promise<Response>>();
   const httpCache = new Map<string, Response>();
 
-  function fillHttpCache(httpCacheKey: string, res: Response): void {
-    httpCache.set(httpCacheKey, res.clone());
+  function writeHttpCache(
+    url: string,
+    options: RequestInit | undefined,
+    httpCacheKey: string,
+    response: Response,
+  ): void {
+    // TODO store this under the specific etag
+    if (response.status === 200) httpCache.set(httpCacheKey, response.clone());
   }
 
   /**
@@ -38,11 +44,16 @@ export function createEnhancedFetch(): (
    *
    * When we receive a 304 with matching etag we return the cached response.
    */
-  function getHttpCache(
+  function readHttpCache(
+    url: string,
+    options: RequestInit | undefined,
     httpCacheKey: string,
     response: Response,
   ): Response | null {
     if (response.status !== 304) return null;
+    // TODO get the specific etag
+    const cachedResponse = httpCache.get(httpCacheKey);
+    if (cachedResponse) return cachedResponse.clone();
     return null;
   }
 
@@ -56,14 +67,14 @@ export function createEnhancedFetch(): (
      */
     const attach = (r: Response): [Response, Response | null] => [
       r,
-      getHttpCache(httpCacheKey, r),
+      readHttpCache(url, options, httpCacheKey, r),
     ];
 
     if (pendingRequest) return pendingRequest.then(attach);
 
     const promise = fetch(url, options)
       .then((res) => {
-        fillHttpCache(httpCacheKey, res);
+        writeHttpCache(url, options, httpCacheKey, res);
         return res;
       })
       .finally(() => {

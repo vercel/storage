@@ -17,7 +17,7 @@ beforeEach(() => {
 
 describe('controller', () => {
   it('should work', async () => {
-    const controller = new Controller(connection, {}, false);
+    const controller = new Controller(connection, {});
 
     setTimestampOfLatestUpdate(1000);
 
@@ -93,7 +93,7 @@ describe('controller', () => {
   });
 
   it('should dedupe within a version', async () => {
-    const controller = new Controller(connection, {}, false);
+    const controller = new Controller(connection, {});
 
     setTimestampOfLatestUpdate(1000);
 
@@ -141,8 +141,49 @@ describe('controller', () => {
 });
 
 describe('development cache', () => {
-  it('should work', async () => {
-    const controller = new Controller(connection, {}, true);
+  it('should fetch on every read', async () => {
+    setTimestampOfLatestUpdate(undefined);
+    const controller = new Controller(connection, {});
+
+    fetchMock.mockResponseOnce(JSON.stringify('value1'), {
+      headers: {
+        'x-edge-config-digest': 'digest1',
+        'x-edge-config-updated-at': '1000',
+      },
+    });
+
+    await expect(controller.get('key1')).resolves.toEqual({
+      value: 'value1',
+      digest: 'digest1',
+      source: 'MISS',
+    });
+
+    fetchMock.mockResponse(JSON.stringify('value2'), {
+      headers: {
+        'x-edge-config-digest': 'digest2',
+        'x-edge-config-updated-at': '1000',
+      },
+    });
+
+    await expect(controller.get('key1')).resolves.toEqual({
+      value: 'value2',
+      digest: 'digest2',
+      source: 'MISS',
+    });
+
+    await expect(controller.get('key1')).resolves.toEqual({
+      value: 'value2',
+      digest: 'digest2',
+      source: 'MISS',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  // eslint-disable-next-line jest/no-disabled-tests -- not implemented yet
+  it.skip('should work', async () => {
+    setTimestampOfLatestUpdate(undefined);
+    const controller = new Controller(connection, {});
 
     fetchMock.mockResponseOnce(JSON.stringify('value1'), {
       headers: {

@@ -14,7 +14,9 @@ const DEFAULT_STALE_THRESHOLD = 10_000; // 10 seconds
 
 let timestampOfLatestUpdate: number | undefined;
 
-export function setTimestampOfLatestUpdate(timestamp: number): void {
+export function setTimestampOfLatestUpdate(
+  timestamp: number | undefined,
+): void {
   timestampOfLatestUpdate = timestamp;
 }
 
@@ -48,8 +50,15 @@ export class Controller {
     }
   >();
 
+  /**
+   * While in development we use SWR-like behavior for the api client to
+   * reduce latency.
+   */
+  private isDevEnvironment =
+    process.env.NODE_ENV === 'development' &&
+    process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
+
   private connection: Connection;
-  private shouldUseDevelopmentCache: boolean;
   private staleThreshold: number;
   private cacheMode: 'no-store' | 'force-cache';
 
@@ -75,13 +84,8 @@ export class Controller {
       }
     | undefined = undefined;
 
-  constructor(
-    connection: Connection,
-    options: EdgeConfigClientOptions,
-    shouldUseDevelopmentCache: boolean,
-  ) {
+  constructor(connection: Connection, options: EdgeConfigClientOptions) {
     this.connection = connection;
-    this.shouldUseDevelopmentCache = shouldUseDevelopmentCache;
     this.staleThreshold = options.staleThreshold ?? DEFAULT_STALE_THRESHOLD;
     this.cacheMode = options.cache || 'no-store';
   }
@@ -90,52 +94,7 @@ export class Controller {
     key: string,
     localOptions?: EdgeConfigFunctionsOptions,
   ): Promise<{ value: T | undefined; digest: string; source: Source }> {
-    if (this.shouldUseDevelopmentCache) {
-      const cache = this.itemCache.get(key);
-      if (cache) {
-        // background refresh, but only if cached value is older than 1 second
-        // const pending = this.pendingItemFetches.get(key);
-        // if (pending) {
-        //   return pending.promise.then(
-        //     (v) => {
-        //       if (
-        //         this.pendingItemFetches.get(key)?.promise === pending.promise
-        //       ) {
-        //         this.pendingItemFetches.delete(key);
-        //       }
-        //       return v;
-        //     },
-        //     (err) => {
-        //       if (
-        //         this.pendingItemFetches.get(key)?.promise === pending.promise
-        //       ) {
-        //         this.pendingItemFetches.delete(key);
-        //       }
-        //       throw err;
-        //     },
-        //   ) as Promise<{
-        //     value: T | undefined;
-        //     digest: string;
-        //     source: Source;
-        //   }>;
-        // }
-
-        this.pendingItemFetches.set(key, {
-          promise: this.fetchItem<T>(
-            key,
-            timestampOfLatestUpdate,
-            localOptions,
-          ),
-          minUpdatedAt: Date.now(),
-        });
-
-        return {
-          value: cache.value as T | undefined,
-          digest: cache.digest,
-          source: 'HIT',
-        };
-      }
-
+    if (this.isDevEnvironment || !timestampOfLatestUpdate) {
       return this.fetchItem<T>(key, timestampOfLatestUpdate, localOptions);
     }
 

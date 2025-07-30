@@ -78,7 +78,9 @@ export function createEnhancedFetch(): (
         ? [r, cachedResponse.clone()]
         : [r, null];
 
-    if (pendingRequest) return pendingRequest.then(attach);
+    // we need to clone to avoid returning the same request as its body
+    // can only be consumed once
+    if (pendingRequest) return pendingRequest.then((r) => attach(r.clone()));
 
     const promise = fetch(url, options)
       .then((res) => {

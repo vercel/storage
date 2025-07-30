@@ -4,11 +4,10 @@ import type {
   EdgeConfigFunctionsOptions,
   Connection,
   EdgeConfigClientOptions,
-  Source,
+  CacheSource,
 } from './types';
 import { ERRORS, isEmptyKey, UnexpectedNetworkError } from './utils';
 import { consumeResponseBody } from './utils/consume-response-body';
-import { addConsistentReadHeader } from './utils/add-consistent-read-header';
 import { createEnhancedFetch } from './utils/enhanced-fetch';
 
 const enhancedFetch = createEnhancedFetch();
@@ -21,14 +20,6 @@ export function setTimestampOfLatestUpdate(
   timestamp: number | undefined,
 ): void {
   timestampOfLatestUpdate = timestamp;
-}
-
-function canReusePendingFetch(
-  pending: { minUpdatedAt: number } | undefined,
-  requiredMinUpdatedAt: number,
-): boolean {
-  if (!pending) return false;
-  return pending.minUpdatedAt >= requiredMinUpdatedAt;
 }
 
 function parseTs(updatedAt: string | null): number | null {
@@ -53,17 +44,10 @@ export class Controller {
     }
   >();
 
-  /**
-   * While in development we use SWR-like behavior for the api client to
-   * reduce latency.
-   */
-  private isDevEnvironment =
-    process.env.NODE_ENV === 'development' &&
-    process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
-
   private connection: Connection;
   private staleThreshold: number;
   private cacheMode: 'no-store' | 'force-cache';
+  private enableDevelopmentCache: boolean;
 
   /**
    * A map of keys to pending promises
@@ -75,29 +59,26 @@ export class Controller {
       promise: Promise<{
         value: EdgeConfigValue | undefined;
         digest: string;
-        source: Source;
+        cache: CacheSource;
       }>;
     }
   >();
 
-  private pendingEdgeConfigPromise:
-    | {
-        minUpdatedAt: number;
-        promise: Promise<EmbeddedEdgeConfig | null>;
-      }
-    | undefined = undefined;
-
-  constructor(connection: Connection, options: EdgeConfigClientOptions) {
+  constructor(
+    connection: Connection,
+    options: EdgeConfigClientOptions & { enableDevelopmentCache: boolean },
+  ) {
     this.connection = connection;
     this.staleThreshold = options.staleThreshold ?? DEFAULT_STALE_THRESHOLD;
     this.cacheMode = options.cache || 'no-store';
+    this.enableDevelopmentCache = options.enableDevelopmentCache;
   }
 
   public async get<T extends EdgeConfigValue>(
     key: string,
     localOptions?: EdgeConfigFunctionsOptions,
-  ): Promise<{ value: T | undefined; digest: string; source: Source }> {
-    if (this.isDevEnvironment || !timestampOfLatestUpdate) {
+  ): Promise<{ value: T | undefined; digest: string; cache: CacheSource }> {
+    if (this.enableDevelopmentCache || !timestampOfLatestUpdate) {
       return this.fetchItem<T>(key, timestampOfLatestUpdate, localOptions);
     }
 
@@ -112,39 +93,7 @@ export class Controller {
 
     // only use the cache if we have a timestamp of the latest update
     if (timestampOfLatestUpdate) {
-      const cachedItem = this.itemCache.get(key);
-      const cachedConfig = this.edgeConfigCache;
-      let cached: {
-        value: T | undefined;
-        updatedAt: number;
-        digest: string;
-      } | null = null;
-      if (cachedItem && cachedConfig) {
-        cached =
-          cachedItem.updatedAt > cachedConfig.updatedAt
-            ? {
-                value: cachedItem.value as T | undefined,
-                updatedAt: cachedItem.updatedAt,
-                digest: cachedItem.digest,
-              }
-            : {
-                digest: cachedConfig.digest,
-                value: cachedConfig.items[key] as T | undefined,
-                updatedAt: cachedConfig.updatedAt,
-              };
-      } else if (cachedItem && !cachedConfig) {
-        cached = {
-          value: cachedItem.value as T | undefined,
-          updatedAt: cachedItem.updatedAt,
-          digest: cachedItem.digest,
-        };
-      } else if (!cachedItem && cachedConfig) {
-        cached = {
-          value: cachedConfig.items[key] as T | undefined,
-          updatedAt: cachedConfig.updatedAt,
-          digest: cachedConfig.digest,
-        };
-      }
+      const cached = this.getCachedItem<T>(key);
 
       if (cached) {
         // HIT
@@ -152,7 +101,7 @@ export class Controller {
           return {
             value: cached.value,
             digest: cached.digest,
-            source: 'HIT',
+            cache: 'HIT',
           };
         }
 
@@ -163,53 +112,16 @@ export class Controller {
           cached.updatedAt >= timestampOfLatestUpdate - this.staleThreshold
         ) {
           // background refresh
-          // reuse existing promise if there is one
-          const pendingItemPromise = this.pendingItemFetches.get(key);
-          const pendingEdgeConfigPromise = this.pendingEdgeConfigPromise;
-
-          const canReusePendingItemFetch = canReusePendingFetch(
-            pendingItemPromise,
+          void this.fetchItem<T>(
+            key,
             timestampOfLatestUpdate,
-          );
-          const canReusePendingEdgeConfigFetch = canReusePendingFetch(
-            pendingEdgeConfigPromise,
-            timestampOfLatestUpdate,
-          );
-
-          if (!canReusePendingItemFetch && !canReusePendingEdgeConfigFetch) {
-            // trigger a new fetch if we can't reuse the pending fetches
-            void this.fetchItem<T>(
-              key,
-              timestampOfLatestUpdate,
-              localOptions,
-            ).catch(() => null);
-          }
-
-          // if (
-          //   pendingItemPromise &&
-          //   pendingItemPromise.minUpdatedAt >= timestampOfLatestUpdate &&
-          //   // ensure the pending promise can not end up being stale
-          //   pendingItemPromise.minUpdatedAt + this.staleThreshold >=
-          //     timestampOfLatestUpdate
-          // ) {
-          //   // do nothing
-          // } else {
-          //   // TODO cancel existing pending fetch with an AbortController if
-          //   // there is one? does this lead to problems if it is being awaited
-          //   // by a blocking read?
-          //   //
-          //   // TODO use waitUntil?
-          //   void this.fetchItem<T>(
-          //     key,
-          //     timestampOfLatestUpdate,
-          //     localOptions,
-          //   ).catch(() => null);
-          // }
+            localOptions,
+          ).catch(() => null);
 
           return {
             value: cached.value,
             digest: cached.digest,
-            source: 'STALE',
+            cache: 'STALE',
           };
 
           // we're outdated, but we can't serve the STALE value
@@ -220,30 +132,57 @@ export class Controller {
           // so we just fall through
         }
       }
-
-      // MISS, with pending fetch
-      // reuse existing promise if there is one
-      const pendingPromise = this.pendingItemFetches.get(key);
-      if (
-        pendingPromise &&
-        pendingPromise.minUpdatedAt >= timestampOfLatestUpdate &&
-        // ensure the pending promise can not end up being stale
-        pendingPromise.minUpdatedAt + this.staleThreshold >=
-          timestampOfLatestUpdate
-      ) {
-        // TODO should we check once the promise resolves whether it ended up
-        // being stale and do a blocking refetch in that case?
-        return pendingPromise.promise as Promise<{
-          value: T | undefined;
-          digest: string;
-          source: Source;
-        }>;
-      }
     }
 
-    // MISS, without pending fetch
-    // otherwise, create a new promise
+    // MISS
     return this.fetchItem<T>(key, timestampOfLatestUpdate, localOptions);
+  }
+
+  /**
+   * Returns an item from the item cache or edge config cache, depending on
+   * which value is newer, or null if there is no cached value.
+   */
+  private getCachedItem<T extends EdgeConfigValue>(
+    key: string,
+  ): {
+    value: T | undefined;
+    updatedAt: number;
+    digest: string;
+  } | null {
+    const cachedItem = this.itemCache.get(key);
+    const cachedConfig = this.edgeConfigCache;
+
+    if (cachedItem && cachedConfig) {
+      return cachedItem.updatedAt > cachedConfig.updatedAt
+        ? {
+            value: cachedItem.value as T | undefined,
+            updatedAt: cachedItem.updatedAt,
+            digest: cachedItem.digest,
+          }
+        : {
+            digest: cachedConfig.digest,
+            value: cachedConfig.items[key] as T | undefined,
+            updatedAt: cachedConfig.updatedAt,
+          };
+    }
+
+    if (cachedItem && !cachedConfig) {
+      return {
+        value: cachedItem.value as T | undefined,
+        updatedAt: cachedItem.updatedAt,
+        digest: cachedItem.digest,
+      };
+    }
+
+    if (!cachedItem && cachedConfig) {
+      return {
+        value: cachedConfig.items[key] as T | undefined,
+        updatedAt: cachedConfig.updatedAt,
+        digest: cachedConfig.digest,
+      };
+    }
+
+    return null;
   }
 
   private fetchItem<T extends EdgeConfigValue>(
@@ -253,15 +192,15 @@ export class Controller {
   ): Promise<{
     value: T | undefined;
     digest: string;
-    source: Source;
+    cache: CacheSource;
   }> {
     const promise = enhancedFetch(
       `${this.connection.baseUrl}/item/${key}?version=${this.connection.version}`,
       {
-        headers: this.getHeaders(localOptions),
+        headers: this.getHeaders(localOptions, minUpdatedAt),
         cache: this.cacheMode,
       },
-    ).then<{ value: T | undefined; digest: string; source: Source }>(
+    ).then<{ value: T | undefined; digest: string; cache: CacheSource }>(
       async ([res, cachedRes]) => {
         const digest = res.headers.get('x-edge-config-digest');
         // TODO this header is not present on responses of the real API currently,
@@ -269,8 +208,10 @@ export class Controller {
         const updatedAt = parseTs(res.headers.get('x-edge-config-updated-at'));
         if (!digest) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
 
-        if (res.ok) {
-          const value = (await (cachedRes || res).json()) as T;
+        if (res.ok || (res.status === 304 && cachedRes)) {
+          const value = (await (
+            res.status === 304 && cachedRes ? cachedRes : res
+          ).json()) as T;
           // set the cache if the loaded value is newer than the cached one
           if (updatedAt) {
             const existing = this.itemCache.get(key);
@@ -283,7 +224,7 @@ export class Controller {
               });
             }
           }
-          return { value, digest, source: 'MISS' };
+          return { value, digest, cache: 'MISS' };
         }
 
         await Promise.all([
@@ -305,7 +246,7 @@ export class Controller {
                 responseTimestamp: Date.now(),
               });
             }
-            return { value: undefined, digest, source: 'MISS' };
+            return { value: undefined, digest, cache: 'MISS' };
           }
           // if the x-edge-config-digest header is not present, it means
           // the edge config itself does not exist
@@ -326,15 +267,15 @@ export class Controller {
   public async has(
     key: string,
     localOptions?: EdgeConfigFunctionsOptions,
-  ): Promise<{ exists: boolean; digest: string; source: Source }> {
+  ): Promise<{ exists: boolean; digest: string; cache: CacheSource }> {
     return fetch(
       `${this.connection.baseUrl}/item/${key}?version=${this.connection.version}`,
       {
         method: 'HEAD',
-        headers: this.getHeaders(localOptions),
+        headers: this.getHeaders(localOptions, timestampOfLatestUpdate),
         cache: this.cacheMode,
       },
-    ).then<{ exists: boolean; digest: string; source: Source }>((res) => {
+    ).then<{ exists: boolean; digest: string; cache: CacheSource }>((res) => {
       if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
       const digest = res.headers.get('x-edge-config-digest');
 
@@ -348,7 +289,7 @@ export class Controller {
         return {
           digest,
           exists: res.status !== 404,
-          source: 'MISS',
+          cache: 'MISS',
         };
       throw new UnexpectedNetworkError(res);
     });
@@ -360,7 +301,7 @@ export class Controller {
     return fetch(
       `${this.connection.baseUrl}/digest?version=${this.connection.version}`,
       {
-        headers: this.getHeaders(localOptions),
+        headers: this.getHeaders(localOptions, timestampOfLatestUpdate),
         cache: this.cacheMode,
       },
     ).then<string>(async (res) => {
@@ -397,7 +338,7 @@ export class Controller {
     return fetch(
       `${this.connection.baseUrl}/items?version=${this.connection.version}&${search}`,
       {
-        headers: this.getHeaders(localOptions),
+        headers: this.getHeaders(localOptions, timestampOfLatestUpdate),
         cache: this.cacheMode,
       },
     ).then<{ value: T; digest: string }>(async (res) => {
@@ -427,7 +368,7 @@ export class Controller {
     return fetch(
       `${this.connection.baseUrl}/items?version=${this.connection.version}`,
       {
-        headers: this.getHeaders(localOptions),
+        headers: this.getHeaders(localOptions, timestampOfLatestUpdate),
         cache: this.cacheMode,
       },
     ).then<{ value: T; digest: string }>(async (res) => {
@@ -453,12 +394,19 @@ export class Controller {
 
   private getHeaders(
     localOptions: EdgeConfigFunctionsOptions | undefined,
+    minUpdatedAt: number | undefined,
   ): Headers {
     const headers: Record<string, string> = {
       Authorization: `Bearer ${this.connection.token}`,
     };
     const localHeaders = new Headers(headers);
-    if (localOptions?.consistentRead) addConsistentReadHeader(localHeaders);
+
+    if (localOptions?.consistentRead || minUpdatedAt) {
+      localHeaders.set(
+        'x-edge-config-min-updated-at',
+        `${localOptions?.consistentRead ? Number.MAX_SAFE_INTEGER : minUpdatedAt}`,
+      );
+    }
 
     return localHeaders;
   }

@@ -186,7 +186,7 @@ export interface EdgeConfigClientOptions {
   cache?: 'no-store' | 'force-cache';
 }
 
-export type Source =
+export type CacheSource =
   | 'HIT' // value is cached and deemed fresh
   | 'STALE' // value is cached but we know it's outdated
   | 'MISS' // value was fetched over network as the staleThreshold was exceeded

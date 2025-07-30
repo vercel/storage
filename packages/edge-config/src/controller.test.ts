@@ -2,11 +2,6 @@ import fetchMock from 'jest-fetch-mock';
 import { Controller, setTimestampOfLatestUpdate } from './controller';
 import type { Connection } from './types';
 
-const delay = (ms: number): Promise<void> =>
-  new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-
 const connection: Connection = {
   baseUrl: 'https://edge-config.vercel.com',
   id: 'ecfg_FAKE_EDGE_CONFIG_ID',
@@ -15,17 +10,13 @@ const connection: Connection = {
   type: 'vercel',
 };
 
-// eslint-disable-next-line jest/require-top-level-describe -- [@vercel/style-guide@5 migration]
-beforeEach(() => {
-  fetchMock.resetMocks();
-});
-
-describe('controller', () => {
-  it('should work', async () => {
-    const controller = new Controller(connection, {});
-
+// the "it" tests in the lifecycle are run sequentially, so their order matters
+describe('lifecycle', () => {
+  const controller = new Controller(connection, {
+    enableDevelopmentCache: false,
+  });
+  it('should MISS the cache initially', async () => {
     setTimestampOfLatestUpdate(1000);
-
     fetchMock.mockResponseOnce(JSON.stringify('value1'), {
       headers: {
         'x-edge-config-digest': 'digest1',
@@ -35,21 +26,14 @@ describe('controller', () => {
       },
     });
 
-    // blocking fetch first
     await expect(controller.get('key1')).resolves.toEqual({
       value: 'value1',
       digest: 'digest1',
-      source: 'MISS',
+      cache: 'MISS',
     });
+  });
 
-    // cache HIT after
-    await expect(controller.get('key1')).resolves.toEqual({
-      value: 'value1',
-      digest: 'digest1',
-      source: 'HIT',
-    });
-
-    // should not fetch again
+  it('should fire off a background refresh after the cache MISS', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenLastCalledWith(
       'https://edge-config.vercel.com/item/key1?version=1',
@@ -57,11 +41,25 @@ describe('controller', () => {
         cache: 'no-store',
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
+          'x-edge-config-min-updated-at': '1000',
         }),
       },
     );
+  });
 
-    // should refresh in background and serve stale value in the meantime
+  it('should HIT the cache if the timestamp has not changed', async () => {
+    await expect(controller.get('key1')).resolves.toEqual({
+      value: 'value1',
+      digest: 'digest1',
+      cache: 'HIT',
+    });
+  });
+
+  it('should not fire off any background refreshes after the cache HIT', () => {
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should serve a stale value if the timestamp has changed but is within the threshold', async () => {
     setTimestampOfLatestUpdate(7000);
     fetchMock.mockResponseOnce(JSON.stringify('value2'), {
       headers: {
@@ -75,10 +73,11 @@ describe('controller', () => {
     await expect(controller.get('key1')).resolves.toEqual({
       value: 'value1',
       digest: 'digest1',
-      source: 'STALE',
+      cache: 'STALE',
     });
+  });
 
-    // should have fetched again in background
+  it('should trigger a background refresh after the STALE value', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock).toHaveBeenLastCalledWith(
       'https://edge-config.vercel.com/item/key1?version=1',
@@ -86,22 +85,26 @@ describe('controller', () => {
         cache: 'no-store',
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
-          'If-None-Match': '"digest1"',
+          // 'If-None-Match': '"digest1"',
+          'x-edge-config-min-updated-at': '7000',
         }),
       },
     );
+  });
 
-    // run event loop once
-    await delay(0);
-
-    // should now serve the updated value
+  it('should serve the new value from cache after the background refresh completes', async () => {
     await expect(controller.get('key1')).resolves.toEqual({
       value: 'value2',
       digest: 'digest2',
-      source: 'HIT',
+      cache: 'HIT',
     });
+  });
 
-    // exceeds stale threshold should lead to cache MISS and blocking fetch
+  it('should not fire off any subsequent background refreshes', () => {
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('should refresh when the stale threshold is exceeded', async () => {
     setTimestampOfLatestUpdate(17001);
     fetchMock.mockResponseOnce(JSON.stringify('value3'), {
       headers: {
@@ -110,41 +113,52 @@ describe('controller', () => {
       },
     });
 
+    await expect(controller.get('key1')).resolves.toEqual({
+      value: 'value3',
+      digest: 'digest3',
+      cache: 'MISS',
+    });
+  });
+
+  it('should have a blocking refresh after the stale threshold was exceeded', () => {
+    expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(fetchMock).toHaveBeenLastCalledWith(
       'https://edge-config.vercel.com/item/key1?version=1',
       {
         cache: 'no-store',
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
-          'If-None-Match': '"digest1"',
+          // 'If-None-Match': '"digest1"',
+          'x-edge-config-min-updated-at': '17001',
         }),
       },
     );
+  });
+});
 
-    await expect(controller.get('key1')).resolves.toEqual({
-      value: 'value3',
-      digest: 'digest3',
-      source: 'MISS',
-    });
-
-    // needs to fetch again
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+describe('deduping within a version', () => {
+  beforeAll(() => {
+    fetchMock.resetMocks();
+  });
+  const controller = new Controller(connection, {
+    enableDevelopmentCache: false,
   });
 
-  it('should dedupe within a version', async () => {
-    const controller = new Controller(connection, {});
+  // let promisedValue1: ReturnType<typeof controller.get>;
+  let promisedValue2: ReturnType<typeof controller.get>;
 
+  it('should only fetch once given the same request', async () => {
     setTimestampOfLatestUpdate(1000);
+    const resolvers = Promise.withResolvers<Response>();
 
-    const { promise, resolve } = Promise.withResolvers<Response>();
-
-    fetchMock.mockResolvedValueOnce(promise);
+    fetchMock.mockResolvedValueOnce(resolvers.promise);
 
     // blocking fetches first, which should get deduped
-    const read1 = controller.get('key1');
-    const read2 = controller.get('key1');
+    const promisedValue1 = controller.get('key1');
+    // fetch again before resolving promise of the first fetch
+    promisedValue2 = controller.get('key1');
 
-    resolve(
+    resolvers.resolve(
       new Response(JSON.stringify('value1'), {
         headers: {
           'x-edge-config-digest': 'digest1',
@@ -153,37 +167,105 @@ describe('controller', () => {
       }),
     );
 
-    await expect(read1).resolves.toEqual({
+    await expect(promisedValue1).resolves.toEqual({
       value: 'value1',
       digest: 'digest1',
-      source: 'MISS',
+      cache: 'MISS',
     });
+  });
 
-    // reuses the pending fetch promise
-    await expect(read2).resolves.toEqual({
+  it('should reuse the existing promise', async () => {
+    await expect(promisedValue2).resolves.toEqual({
       value: 'value1',
       digest: 'digest1',
-      source: 'MISS',
+      cache: 'MISS',
     });
+  });
 
-    // hits the cache
+  it('should only have fetched once due to deduping', () => {
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should hit the cache on subsequent reads without refetching', async () => {
     const read3 = controller.get('key1');
     await expect(read3).resolves.toEqual({
       value: 'value1',
       digest: 'digest1',
-      source: 'HIT',
+      cache: 'HIT',
     });
+  });
 
-    //
+  it('should not trigger a new background refresh', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
 
-describe('development cache', () => {
-  it('should fetch on every read', async () => {
-    setTimestampOfLatestUpdate(undefined);
-    const controller = new Controller(connection, {});
+describe('bypassing dedupe when the timestamp changes', () => {
+  beforeAll(() => {
+    fetchMock.resetMocks();
+  });
+  const controller = new Controller(connection, {
+    enableDevelopmentCache: false,
+  });
 
+  it('should only fetch once given the same request', async () => {
+    setTimestampOfLatestUpdate(1000);
+    const read1 = Promise.withResolvers<Response>();
+    const read2 = Promise.withResolvers<Response>();
+
+    fetchMock.mockResolvedValueOnce(read1.promise);
+    fetchMock.mockResolvedValueOnce(read2.promise);
+
+    // blocking fetches first, which should get deduped
+    const promisedValue1 = controller.get('key1');
+    setTimestampOfLatestUpdate(1001);
+    const promisedValue2 = controller.get('key1');
+
+    read1.resolve(
+      new Response(JSON.stringify('value1'), {
+        headers: {
+          'x-edge-config-digest': 'digest1',
+          'x-edge-config-updated-at': '1000',
+        },
+      }),
+    );
+
+    await expect(promisedValue1).resolves.toEqual({
+      value: 'value1',
+      digest: 'digest1',
+      cache: 'MISS',
+    });
+
+    read2.resolve(
+      new Response(JSON.stringify('value2'), {
+        headers: {
+          'x-edge-config-digest': 'digest2',
+          'x-edge-config-updated-at': '1001',
+        },
+      }),
+    );
+
+    // reuses the pending fetch promise
+    await expect(promisedValue2).resolves.toEqual({
+      value: 'value2',
+      digest: 'digest2',
+      cache: 'MISS',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('development cache', () => {
+  const controller = new Controller(connection, {
+    enableDevelopmentCache: true,
+  });
+  beforeAll(() => {
+    fetchMock.resetMocks();
+  });
+
+  it('should fetch initially', async () => {
+    setTimestampOfLatestUpdate(undefined);
     fetchMock.mockResponseOnce(JSON.stringify('value1'), {
       headers: {
         'x-edge-config-digest': 'digest1',
@@ -194,72 +276,106 @@ describe('development cache', () => {
     await expect(controller.get('key1')).resolves.toEqual({
       value: 'value1',
       digest: 'digest1',
-      source: 'MISS',
+      cache: 'MISS',
     });
 
-    fetchMock.mockResponse(JSON.stringify('value2'), {
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not fetch when another fetch is pending', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify('value2'), {
       headers: {
         'x-edge-config-digest': 'digest2',
         'x-edge-config-updated-at': '1000',
+        etag: '"digest2"',
+        'content-type': 'application/json',
+      },
+    });
+
+    // run them in parallel so the deduplication can take action
+    const [promise1, promise2] = [
+      controller.get('key1'),
+      controller.get('key1'),
+    ];
+
+    await expect(promise1).resolves.toEqual({
+      value: 'value2',
+      digest: 'digest2',
+      cache: 'MISS',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    await expect(promise2).resolves.toEqual({
+      value: 'value2',
+      digest: 'digest2',
+      cache: 'MISS',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('should use the etag http cache', async () => {
+    fetchMock.mockResponseOnce('', {
+      status: 304,
+      headers: {
+        'x-edge-config-digest': 'digest2',
+        'x-edge-config-updated-at': '1000',
+        etag: '"digest2"',
+        'content-type': 'application/json',
       },
     });
 
     await expect(controller.get('key1')).resolves.toEqual({
       value: 'value2',
       digest: 'digest2',
-      source: 'MISS',
+      // hits the etag http cache, but misses the in-memory cache, so it's a MISS
+      cache: 'MISS',
     });
 
-    await expect(controller.get('key1')).resolves.toEqual({
-      value: 'value2',
-      digest: 'digest2',
-      source: 'MISS',
-    });
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      'https://edge-config.vercel.com/item/key1?version=1',
+      {
+        cache: 'no-store',
+        headers: new Headers({
+          Authorization: 'Bearer fake-edge-config-token',
+          'If-None-Match': '"digest2"',
+        }),
+      },
+    );
 
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
-  // eslint-disable-next-line jest/no-disabled-tests -- not implemented yet
-  it.skip('should work', async () => {
-    setTimestampOfLatestUpdate(undefined);
-    const controller = new Controller(connection, {});
-
-    fetchMock.mockResponseOnce(JSON.stringify('value1'), {
+  it('should return the latest value when the etag changes', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify('value3'), {
       headers: {
-        'x-edge-config-digest': 'digest1',
-        'x-edge-config-updated-at': '1000',
-      },
-    });
-
-    await expect(controller.get('key1')).resolves.toEqual({
-      value: 'value1',
-      digest: 'digest1',
-      source: 'MISS',
-    });
-
-    fetchMock.mockResponse(JSON.stringify('value2'), {
-      headers: {
-        'x-edge-config-digest': 'digest2',
+        'x-edge-config-digest': 'digest3',
         'x-edge-config-updated-at': '1001',
+        // a newer etag will be returned
+        etag: '"digest3"',
+        'content-type': 'application/json',
       },
     });
 
     await expect(controller.get('key1')).resolves.toEqual({
-      value: 'value1',
-      digest: 'digest1',
-      source: 'HIT',
+      value: 'value3',
+      digest: 'digest3',
+      cache: 'MISS',
     });
 
-    await Promise.resolve();
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      'https://edge-config.vercel.com/item/key1?version=1',
+      {
+        cache: 'no-store',
+        headers: new Headers({
+          Authorization: 'Bearer fake-edge-config-token',
+          // we query with the older etag we had in memory
+          'If-None-Match': '"digest2"',
+        }),
+      },
+    );
 
-    await expect(controller.get('key1')).resolves.toEqual({
-      value: 'value2',
-      digest: 'digest2',
-      source: 'HIT',
-    });
-
-    await Promise.resolve();
-
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 });

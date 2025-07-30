@@ -1,5 +1,4 @@
 // import { trace } from './tracing';
-import { parseETag, stringifyETag, type ETag } from '@httpland/etag-parser';
 
 /**
  * Generate a key for the dedupe cache
@@ -12,16 +11,11 @@ function getDedupeCacheKey(url: string, init?: RequestInit): string {
       ? init.headers
       : new Headers(init?.headers);
 
-  return JSON.stringify({ url, authorization: h.get('Authorization') });
-}
-
-function safeParseETag(headerValue: string | null): ETag | null {
-  if (!headerValue) return null;
-  try {
-    return parseETag(headerValue);
-  } catch {
-    return null;
-  }
+  return JSON.stringify({
+    url,
+    authorization: h.get('Authorization'),
+    minUpdatedAt: h.get('x-edge-config-min-updated-at'),
+  });
 }
 
 export function createEnhancedFetch(): (
@@ -30,7 +24,7 @@ export function createEnhancedFetch(): (
 ) => Promise<[Response, Response | null]> {
   const pendingRequests = new Map<string, Promise<Response>>();
   /* not a full http cache, but caches by etags */
-  const httpCache = new Map<string, { response: Response; etag: ETag }>();
+  const httpCache = new Map<string, { response: Response; etag: string }>();
 
   function writeHttpCache(
     /* the original 200 response */
@@ -39,7 +33,7 @@ export function createEnhancedFetch(): (
   ): void {
     if (!httpCacheKey) return;
     if (response.status !== 200) return;
-    const etag = safeParseETag(response.headers.get('ETag'));
+    const etag = response.headers.get('ETag');
     if (!etag) return;
     httpCache.set(httpCacheKey, { response: response.clone(), etag });
   }
@@ -51,18 +45,17 @@ export function createEnhancedFetch(): (
    */
   function readHttpCache(
     httpCacheKey: string | null,
-  ): [ETag, Response] | [null, null] {
+  ): [string, Response] | [null, null] {
     if (!httpCacheKey) return [null, null];
     const cacheEntry = httpCache.get(httpCacheKey);
     if (!cacheEntry) return [null, null];
-    return [cacheEntry.etag, cacheEntry.response.clone()];
+    return [cacheEntry.etag, cacheEntry.response];
   }
 
-  function addIfNoneMatchHeader(options: RequestInit, etag: ETag): Headers {
+  function addIfNoneMatchHeader(options: RequestInit, etag: string): Headers {
     const h = new Headers(options.headers);
     const existing = h.get('If-None-Match');
-    if (!existing)
-      h.set('If-None-Match', stringifyETag({ tag: etag.tag, weak: true }));
+    if (!existing) h.set('If-None-Match', etag);
     return h;
   }
 
@@ -81,7 +74,9 @@ export function createEnhancedFetch(): (
 
     /** Attaches the cached response */
     const attach = (r: Response): [Response, Response | null] =>
-      r.status === 304 ? [r, cachedResponse] : [r, null];
+      r.status === 304 && cachedResponse
+        ? [r, cachedResponse.clone()]
+        : [r, null];
 
     if (pendingRequest) return pendingRequest.then(attach);
 

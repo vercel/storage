@@ -86,9 +86,8 @@ describe('enhancedFetch', () => {
 
   describe('etag and if-none-match', () => {
     it('should return from the http cache if the response is not modified', async () => {
-      fetchMock.mockResponseOnce(JSON.stringify({ name: 'A' }), {
-        headers: { ETag: '"123"' },
-      });
+      const content = JSON.stringify({ name: 'A' });
+      fetchMock.mockResponseOnce(content, { headers: { ETag: '"123"' } });
       fetchMock.mockResponseOnce('', {
         status: 304,
         headers: { ETag: '"123"' },
@@ -98,10 +97,14 @@ describe('enhancedFetch', () => {
         'https://example.com/api/data',
       );
 
-      // ensure the etag was added to the request headers
-      const headers = fetchMock.mock.calls[1]?.[1]?.headers;
-      expect(headers).toBeInstanceOf(Headers);
-      expect((headers as Headers).get('If-None-Match')).toEqual('W/"123"');
+      // ensure the etag was not added to the request headers of the 1st request
+      const headers1 = fetchMock.mock.calls[0]?.[1]?.headers;
+      expect(headers1).toBeUndefined();
+
+      // ensure the etag was added to the request headers of the 2nd request
+      const headers2 = fetchMock.mock.calls[1]?.[1]?.headers;
+      expect(headers2).toBeInstanceOf(Headers);
+      expect((headers2 as Headers).get('If-None-Match')).toEqual('"123"');
 
       expect(res1).toHaveProperty('status', 200);
       expect(res2).toHaveProperty('status', 304);
@@ -109,35 +112,7 @@ describe('enhancedFetch', () => {
       const text1 = await res1.text();
       const cachedText = await cachedRes2?.text();
       expect(text1).toStrictEqual(cachedText);
-      expect(text1).toEqual(JSON.stringify({ name: 'A' }));
-      expect(fetchMock).toHaveBeenCalledTimes(2);
-    });
-
-    it('should return from the http cache if the response is not modified with weak etag', async () => {
-      fetchMock.mockResponseOnce(JSON.stringify({ name: 'A' }), {
-        headers: { ETag: '"123"' },
-      });
-      fetchMock.mockResponseOnce('', {
-        status: 304,
-        headers: { ETag: 'W/"123"' }, // <--- only difference to above test
-      });
-      const [res1] = await enhancedFetch('https://example.com/api/data');
-      const [res2, cachedRes2] = await enhancedFetch(
-        'https://example.com/api/data',
-      );
-
-      // ensure the etag was added to the request headers
-      const headers = fetchMock.mock.calls[1]?.[1]?.headers;
-      expect(headers).toBeInstanceOf(Headers);
-      expect((headers as Headers).get('If-None-Match')).toEqual('W/"123"');
-
-      expect(res1).toHaveProperty('status', 200);
-      expect(res2).toHaveProperty('status', 304);
-      expect(cachedRes2).toHaveProperty('status', 200);
-      const text1 = await res1.text();
-      const cachedText = await cachedRes2?.text();
-      expect(text1).toStrictEqual(cachedText);
-      expect(text1).toEqual(JSON.stringify({ name: 'A' }));
+      expect(text1).toEqual(content);
       expect(fetchMock).toHaveBeenCalledTimes(2);
     });
   });

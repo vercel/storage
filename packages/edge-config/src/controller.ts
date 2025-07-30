@@ -148,7 +148,7 @@ export class Controller {
 
       if (cached) {
         // HIT
-        if (timestampOfLatestUpdate === cached.updatedAt) {
+        if (timestampOfLatestUpdate <= cached.updatedAt) {
           return {
             value: cached.value,
             digest: cached.digest,
@@ -270,7 +270,7 @@ export class Controller {
         if (!digest) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
 
         if (res.ok) {
-          const value = (await (cachedRes ?? res).json()) as T;
+          const value = (await (cachedRes || res).json()) as T;
           // set the cache if the loaded value is newer than the cached one
           if (updatedAt) {
             const existing = this.itemCache.get(key);
@@ -286,7 +286,10 @@ export class Controller {
           return { value, digest, source: 'MISS' };
         }
 
-        await consumeResponseBody(res);
+        await Promise.all([
+          consumeResponseBody(res),
+          cachedRes ? consumeResponseBody(cachedRes) : null,
+        ]);
 
         if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
         if (res.status === 404) {

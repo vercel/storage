@@ -43,9 +43,7 @@
     ],
     "testEnvironment": "node"
   },
-  "dependencies": {
-    "@httpland/etag-parser": "1.1.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@changesets/cli": "2.28.1",
     "@edge-runtime/jest-environment": "2.3.10",

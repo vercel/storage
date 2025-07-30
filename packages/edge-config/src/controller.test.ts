@@ -2,6 +2,11 @@ import fetchMock from 'jest-fetch-mock';
 import { Controller, setTimestampOfLatestUpdate } from './controller';
 import type { Connection } from './types';
 
+const delay = (ms: number): Promise<void> =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
 const connection: Connection = {
   baseUrl: 'https://edge-config.vercel.com',
   id: 'ecfg_FAKE_EDGE_CONFIG_ID',
@@ -21,11 +26,12 @@ describe('controller', () => {
 
     setTimestampOfLatestUpdate(1000);
 
-    fetchMock.mockResponse(JSON.stringify('value1'), {
+    fetchMock.mockResponseOnce(JSON.stringify('value1'), {
       headers: {
         'x-edge-config-digest': 'digest1',
         'x-edge-config-updated-at': '1000',
         etag: '"digest1"',
+        'content-type': 'application/json',
       },
     });
 
@@ -45,14 +51,24 @@ describe('controller', () => {
 
     // should not fetch again
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      'https://edge-config.vercel.com/item/key1?version=1',
+      {
+        cache: 'no-store',
+        headers: new Headers({
+          Authorization: 'Bearer fake-edge-config-token',
+        }),
+      },
+    );
 
-    // should refresh in background and serve stale value
+    // should refresh in background and serve stale value in the meantime
     setTimestampOfLatestUpdate(7000);
-    fetchMock.mockResponse(JSON.stringify('value2'), {
+    fetchMock.mockResponseOnce(JSON.stringify('value2'), {
       headers: {
         'x-edge-config-digest': 'digest2',
         'x-edge-config-updated-at': '7000',
         etag: '"digest2"',
+        'content-type': 'application/json',
       },
     });
 
@@ -62,13 +78,23 @@ describe('controller', () => {
       source: 'STALE',
     });
 
-    // should fetch again in background
+    // should have fetched again in background
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      'https://edge-config.vercel.com/item/key1?version=1',
+      {
+        cache: 'no-store',
+        headers: new Headers({
+          Authorization: 'Bearer fake-edge-config-token',
+          'If-None-Match': '"digest1"',
+        }),
+      },
+    );
 
     // run event loop once
-    await Promise.resolve();
+    await delay(0);
 
-    // should now serve the stale value
+    // should now serve the updated value
     await expect(controller.get('key1')).resolves.toEqual({
       value: 'value2',
       digest: 'digest2',
@@ -77,12 +103,23 @@ describe('controller', () => {
 
     // exceeds stale threshold should lead to cache MISS and blocking fetch
     setTimestampOfLatestUpdate(17001);
-    fetchMock.mockResponse(JSON.stringify('value3'), {
+    fetchMock.mockResponseOnce(JSON.stringify('value3'), {
       headers: {
         'x-edge-config-digest': 'digest3',
         'x-edge-config-updated-at': '17001',
       },
     });
+
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      'https://edge-config.vercel.com/item/key1?version=1',
+      {
+        cache: 'no-store',
+        headers: new Headers({
+          Authorization: 'Bearer fake-edge-config-token',
+          'If-None-Match': '"digest1"',
+        }),
+      },
+    );
 
     await expect(controller.get('key1')).resolves.toEqual({
       value: 'value3',

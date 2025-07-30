@@ -1,4 +1,5 @@
 // import { trace } from './tracing';
+import { parseETag } from '@httpland/etag-parser';
 
 /**
  * Generate a key for the dedupe cache
@@ -14,12 +15,31 @@ function getDedupeCacheKey(url: string, init?: RequestInit): string {
   return JSON.stringify({ url, authorization: h.get('Authorization') });
 }
 
-function getHttpCacheKey(url: string, init?: RequestInit): string {
+function getHttpCacheKey(
+  url: string,
+  init?: RequestInit,
+  /**
+   * Either the original 200 response if we're writing or the 304 response if we're reading
+   */
+  response?: Response,
+): string | null {
   const h =
     init?.headers instanceof Headers
       ? init.headers
       : new Headers(init?.headers);
-  return JSON.stringify({ url, authorization: h.get('Authorization') });
+  try {
+    const etagHeader = response?.headers.get('ETag');
+    if (!etagHeader) return null;
+    const etag = parseETag(etagHeader);
+
+    return JSON.stringify({
+      url,
+      authorization: h.get('Authorization'),
+      tag: etag.tag,
+    });
+  } catch {
+    return null;
+  }
 }
 
 export function createEnhancedFetch(): (
@@ -32,11 +52,13 @@ export function createEnhancedFetch(): (
   function writeHttpCache(
     url: string,
     options: RequestInit | undefined,
-    httpCacheKey: string,
+    /* the original 200 response */
+    httpCacheKey: string | null,
     response: Response,
   ): void {
-    // TODO store this under the specific etag
-    if (response.status === 200) httpCache.set(httpCacheKey, response.clone());
+    if (!httpCacheKey) return;
+    if (response.status !== 200) return;
+    httpCache.set(httpCacheKey, response.clone());
   }
 
   /**
@@ -47,11 +69,12 @@ export function createEnhancedFetch(): (
   function readHttpCache(
     url: string,
     options: RequestInit | undefined,
-    httpCacheKey: string,
+    httpCacheKey: string | null,
+    /* the 304 response */
     response: Response,
   ): Response | null {
+    if (!httpCacheKey) return null;
     if (response.status !== 304) return null;
-    // TODO get the specific etag
     const cachedResponse = httpCache.get(httpCacheKey);
     if (cachedResponse) return cachedResponse.clone();
     return null;
@@ -59,7 +82,6 @@ export function createEnhancedFetch(): (
 
   return function enhancedFetch(url, options) {
     const dedupeCacheKey = getDedupeCacheKey(url, options);
-    const httpCacheKey = getHttpCacheKey(url, options);
     const pendingRequest = pendingRequests.get(dedupeCacheKey);
 
     /**
@@ -67,14 +89,14 @@ export function createEnhancedFetch(): (
      */
     const attach = (r: Response): [Response, Response | null] => [
       r,
-      readHttpCache(url, options, httpCacheKey, r),
+      readHttpCache(url, options, getHttpCacheKey(url, options, r), r),
     ];
 
     if (pendingRequest) return pendingRequest.then(attach);
 
     const promise = fetch(url, options)
       .then((res) => {
-        writeHttpCache(url, options, httpCacheKey, res);
+        writeHttpCache(url, options, getHttpCacheKey(url, options, res), res);
         return res;
       })
       .finally(() => {

@@ -102,6 +102,9 @@ importers:
 
   packages/edge-config:
     dependencies:
+      '@httpland/etag-parser':
+        specifier: 1.1.0
+        version: 1.1.0
       '@opentelemetry/api':
         specifier: ^1.7.0
         version: 1.7.0
@@ -1115,6 +1118,9 @@ packages:
     resolution: {integrity: sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==}
     engines: {node: '>=14'}
 
+  '@httpland/etag-parser@1.1.0':
+    resolution: {integrity: sha512-l3eZdzJKQpKhP1WgFR+rlskZJUPC7wW+ffOs9vXX8ZhhN6S2JAUOcFWwhROzUN4N2FYcbnbwlSF2IG33ibagJw==}
+
   '@humanwhocodes/config-array@0.11.14':
     resolution: {integrity: sha512-3T8LkOmg45BV5FICb15QQMsyUSWrQ8AygVfC7ZG32zOalnqrilm018ZVCw0eapXux8FtA33q8PSRSstjee3jSg==}
     engines: {node: '>=10.10.0'}
@@ -1379,6 +1385,9 @@ packages:
 
   '@microsoft/tsdoc@0.14.2':
     resolution: {integrity: sha512-9b8mPpKrfeGRuhFH5iO1iwCLeIIsV6+H1sRfxbkoGXIyQE2BTsPd9zqSqQJ+pv5sJ/hT5M1zvOFL02MnEezFug==}
+
+  '@miyauci/isx@1.0.0':
+    resolution: {integrity: sha512-W3MhSwkunnVu1NPl6sSWX+TkzqeZiVmINQsNuTF6ukE7MIuPnWupQRB/ZWaH603CGhQ8MXQ1BvbMwfXkUirexw==}
 
   '@neondatabase/serverless@0.10.2':
     resolution: {integrity: sha512-XaIMQ9fXDPWLiShfsg+YJQvmMMIyVQB7J3jnirckyoDxN7YIATyzXBThpUeFJqBUkbFJQ0e5PCxXTpK2rG4WbQ==}
@@ -6402,6 +6411,10 @@ snapshots:
 
   '@fastify/busboy@2.1.1': {}
 
+  '@httpland/etag-parser@1.1.0':
+    dependencies:
+      '@miyauci/isx': 1.0.0
+
   '@humanwhocodes/config-array@0.11.14':
     dependencies:
       '@humanwhocodes/object-schema': 2.0.2
@@ -6797,6 +6810,8 @@ snapshots:
       resolve: 1.19.0
 
   '@microsoft/tsdoc@0.14.2': {}
+
+  '@miyauci/isx@1.0.0': {}
 
   '@neondatabase/serverless@0.10.2':
     dependencies:

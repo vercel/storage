@@ -20,14 +20,22 @@ describe('enhancedFetch', () => {
       const invocation1Promise = enhancedFetch('https://example.com/api/data');
       const invocation2Promise = enhancedFetch('https://example.com/api/data');
       const invocation3Promise = enhancedFetch('https://example.com/api/data');
-      resolve(new Response(JSON.stringify({ name: 'John' })));
+      resolve(
+        new Response(JSON.stringify({ name: 'John' }), {
+          headers: { 'content-type': 'application/json' },
+        }),
+      );
       const [res1, res2, res3] = await Promise.all([
         invocation1Promise,
         invocation2Promise,
         invocation3Promise,
       ]);
-      expect(res1).toStrictEqual(res2);
-      expect(res1).toStrictEqual(res3);
+      expect(res1).toEqual([expect.any(Response), null]);
+      expect(res2).toEqual([expect.any(Response), null]);
+      expect(res3).toEqual([expect.any(Response), null]);
+      await expect(res1[0].json()).resolves.toStrictEqual({ name: 'John' });
+      await expect(res2[0].json()).resolves.toStrictEqual({ name: 'John' });
+      await expect(res3[0].json()).resolves.toStrictEqual({ name: 'John' });
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 

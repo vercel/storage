@@ -81,11 +81,11 @@ export class Controller {
     // check full config cache
     // check item cache
     //
-    // pick newer version on HIT
+    // if HIT, pick newer version
 
     // otherwise
-    // background fetch if STALE
-    // blocking fetch if MISS
+    // if STALE, serve cached value and trigger background refresh
+    // if MISS, perform blocking fetch
 
     // only use the cache if we have a timestamp of the latest update
     if (timestampOfLatestUpdate) {

@@ -1,10 +1,5 @@
 // import { trace } from './tracing';
-import {
-  compareWeak,
-  parseETag,
-  stringifyETag,
-  type ETag,
-} from '@httpland/etag-parser';
+import { parseETag, stringifyETag, type ETag } from '@httpland/etag-parser';
 
 /**
  * Generate a key for the dedupe cache
@@ -56,36 +51,18 @@ export function createEnhancedFetch(): (
    */
   function readHttpCache(
     httpCacheKey: string | null,
-    /* the 304 response */
-    response: Response,
-  ): Response | null {
-    if (!httpCacheKey) return null;
-    if (response.status !== 304) return null;
+  ): [ETag, Response] | [null, null] {
+    if (!httpCacheKey) return [null, null];
     const cacheEntry = httpCache.get(httpCacheKey);
-    const etag = safeParseETag(response.headers.get('ETag'));
-    if (!etag) return null;
-    if (!cacheEntry?.etag) return null;
-    return compareWeak(etag, cacheEntry.etag)
-      ? cacheEntry.response.clone()
-      : null;
+    if (!cacheEntry) return [null, null];
+    return [cacheEntry.etag, cacheEntry.response.clone()];
   }
 
-  function addIfNoneMatchHeader(
-    dedupeCacheKey: string,
-    options?: RequestInit,
-  ): Headers {
-    const h = new Headers(options?.headers);
-
-    const cacheEntry = httpCache.get(dedupeCacheKey);
-    if (!cacheEntry) return h;
-
-    if (!h.has('If-None-Match')) {
-      h.set(
-        'If-None-Match',
-        stringifyETag({ tag: cacheEntry.etag.tag, weak: true }),
-      );
-    }
-
+  function addIfNoneMatchHeader(options: RequestInit, etag: ETag): Headers {
+    const h = new Headers(options.headers);
+    const existing = h.get('If-None-Match');
+    if (!existing)
+      h.set('If-None-Match', stringifyETag({ tag: etag.tag, weak: true }));
     return h;
   }
 
@@ -93,17 +70,18 @@ export function createEnhancedFetch(): (
     const dedupeCacheKey = getDedupeCacheKey(url, options);
     const pendingRequest = pendingRequests.get(dedupeCacheKey);
 
-    // TODO get response clone here so we can guaranteed its never removed
-    // in between when we fetch and when we receive a response
-    options.headers = addIfNoneMatchHeader(dedupeCacheKey, options);
+    // pull out the cached etag and the cached response at once, so we
+    // can guarantee the cached response is never removed in between when
+    // we fetch and when we receive a response
+    const [etag, cachedResponse] = readHttpCache(dedupeCacheKey);
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- yep
+    if (etag && cachedResponse) {
+      options.headers = addIfNoneMatchHeader(options, etag);
+    }
 
-    /**
-     * Attaches the cached response
-     */
-    const attach = (r: Response): [Response, Response | null] => [
-      r,
-      readHttpCache(dedupeCacheKey, r),
-    ];
+    /** Attaches the cached response */
+    const attach = (r: Response): [Response, Response | null] =>
+      r.status === 304 ? [r, cachedResponse] : [r, null];
 
     if (pendingRequest) return pendingRequest.then(attach);
 

@@ -30,9 +30,8 @@ function parseTs(updatedAt: string | null): number | null {
 }
 
 export class Controller {
-  private edgeConfigCache:
-    | (EmbeddedEdgeConfig & { updatedAt: number; responseTimestamp: number })
-    | null = null;
+  private edgeConfigCache: (EmbeddedEdgeConfig & { updatedAt: number }) | null =
+    null;
   private itemCache = new Map<
     string,
     // an undefined value signals the key does not exist
@@ -40,7 +39,6 @@ export class Controller {
       value: EdgeConfigValue | undefined;
       updatedAt: number;
       digest: string;
-      responseTimestamp: number;
     }
   >();
 
@@ -220,7 +218,6 @@ export class Controller {
                 value,
                 updatedAt,
                 digest,
-                responseTimestamp: Date.now(),
               });
             }
           }
@@ -243,7 +240,6 @@ export class Controller {
                 value: undefined,
                 updatedAt,
                 digest,
-                responseTimestamp: Date.now(),
               });
             }
             return { value: undefined, digest, cache: 'MISS' };

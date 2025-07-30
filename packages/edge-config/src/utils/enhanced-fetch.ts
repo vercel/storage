@@ -1,5 +1,10 @@
 // import { trace } from './tracing';
-import { parseETag } from '@httpland/etag-parser';
+import {
+  compareWeak,
+  parseETag,
+  stringifyETag,
+  type ETag,
+} from '@httpland/etag-parser';
 
 /**
  * Generate a key for the dedupe cache
@@ -15,28 +20,10 @@ function getDedupeCacheKey(url: string, init?: RequestInit): string {
   return JSON.stringify({ url, authorization: h.get('Authorization') });
 }
 
-function getHttpCacheKey(
-  url: string,
-  init?: RequestInit,
-  /**
-   * Either the original 200 response if we're writing or the 304 response if we're reading
-   */
-  response?: Response,
-): string | null {
-  const h =
-    init?.headers instanceof Headers
-      ? init.headers
-      : new Headers(init?.headers);
+function safeParseETag(headerValue: string | null): ETag | null {
+  if (!headerValue) return null;
   try {
-    const etagHeader = response?.headers.get('ETag');
-    if (!etagHeader) return null;
-    const etag = parseETag(etagHeader);
-
-    return JSON.stringify({
-      url,
-      authorization: h.get('Authorization'),
-      tag: etag.tag,
-    });
+    return parseETag(headerValue);
   } catch {
     return null;
   }
@@ -47,18 +34,19 @@ export function createEnhancedFetch(): (
   options?: RequestInit,
 ) => Promise<[Response, Response | null]> {
   const pendingRequests = new Map<string, Promise<Response>>();
-  const httpCache = new Map<string, Response>();
+  /* not a full http cache, but caches by etags */
+  const httpCache = new Map<string, { response: Response; etag: ETag }>();
 
   function writeHttpCache(
-    url: string,
-    options: RequestInit | undefined,
     /* the original 200 response */
     httpCacheKey: string | null,
     response: Response,
   ): void {
     if (!httpCacheKey) return;
     if (response.status !== 200) return;
-    httpCache.set(httpCacheKey, response.clone());
+    const etag = safeParseETag(response.headers.get('ETag'));
+    if (!etag) return;
+    httpCache.set(httpCacheKey, { response: response.clone(), etag });
   }
 
   /**
@@ -67,36 +55,61 @@ export function createEnhancedFetch(): (
    * When we receive a 304 with matching etag we return the cached response.
    */
   function readHttpCache(
-    url: string,
-    options: RequestInit | undefined,
     httpCacheKey: string | null,
     /* the 304 response */
     response: Response,
   ): Response | null {
     if (!httpCacheKey) return null;
     if (response.status !== 304) return null;
-    const cachedResponse = httpCache.get(httpCacheKey);
-    if (cachedResponse) return cachedResponse.clone();
-    return null;
+    const cacheEntry = httpCache.get(httpCacheKey);
+    const etag = safeParseETag(response.headers.get('ETag'));
+    if (!etag) return null;
+    if (!cacheEntry?.etag) return null;
+    return compareWeak(etag, cacheEntry.etag)
+      ? cacheEntry.response.clone()
+      : null;
   }
 
-  return function enhancedFetch(url, options) {
+  function addIfNoneMatchHeader(
+    dedupeCacheKey: string,
+    options?: RequestInit,
+  ): Headers {
+    const h = new Headers(options?.headers);
+
+    const cacheEntry = httpCache.get(dedupeCacheKey);
+    if (!cacheEntry) return h;
+
+    if (!h.has('If-None-Match')) {
+      h.set(
+        'If-None-Match',
+        stringifyETag({ tag: cacheEntry.etag.tag, weak: true }),
+      );
+    }
+
+    return h;
+  }
+
+  return function enhancedFetch(url, options = {}) {
     const dedupeCacheKey = getDedupeCacheKey(url, options);
     const pendingRequest = pendingRequests.get(dedupeCacheKey);
+
+    // TODO get response clone here so we can guaranteed its never removed
+    // in between when we fetch and when we receive a response
+    options.headers = addIfNoneMatchHeader(dedupeCacheKey, options);
 
     /**
      * Attaches the cached response
      */
     const attach = (r: Response): [Response, Response | null] => [
       r,
-      readHttpCache(url, options, getHttpCacheKey(url, options, r), r),
+      readHttpCache(dedupeCacheKey, r),
     ];
 
     if (pendingRequest) return pendingRequest.then(attach);
 
     const promise = fetch(url, options)
       .then((res) => {
-        writeHttpCache(url, options, getHttpCacheKey(url, options, res), res);
+        writeHttpCache(dedupeCacheKey, res);
         return res;
       })
       .finally(() => {
@@ -106,177 +119,3 @@ export function createEnhancedFetch(): (
     return promise.then(attach);
   };
 }
-
-// interface CachedResponseEntry {
-//   etag: string;
-//   response: string;
-//   headers: Headers;
-//   status: number;
-//   time: number;
-// }
-
-// type FetchOptions = Omit<RequestInit, 'headers'> & { headers?: Headers };
-
-// interface ResponseWithCachedResponse extends Response {
-//   cachedResponseBody?: unknown;
-//   cachedResponseHeaders?: Headers;
-// }
-
-// /**
-//  * Creates a new response based on a cache entry
-//  */
-// function createResponse(
-//   cachedResponseEntry: CachedResponseEntry,
-// ): ResponseWithCachedResponse {
-//   return new Response(cachedResponseEntry.response, {
-//     headers: {
-//       ...cachedResponseEntry.headers,
-//       Age: String(
-//         // age header may not be 0 when serving stale content, must be >= 1
-//         Math.max(1, Math.floor((Date.now() - cachedResponseEntry.time) / 1000)),
-//       ),
-//     },
-//     status: cachedResponseEntry.status,
-//   });
-// }
-
-// /**
-//  * Used for bad responses like 500s
-//  */
-// function createHandleStaleIfError(
-//   cachedResponseEntry: CachedResponseEntry,
-//   staleIfError: number | null,
-// ) {
-//   return function handleStaleIfError(
-//     response: ResponseWithCachedResponse,
-//   ): ResponseWithCachedResponse {
-//     switch (response.status) {
-//       case 500:
-//       case 502:
-//       case 503:
-//       case 504:
-//         return typeof staleIfError === 'number' &&
-//           cachedResponseEntry.time < Date.now() + staleIfError * 1000
-//           ? createResponse(cachedResponseEntry)
-//           : response;
-//       default:
-//         return response;
-//     }
-//   };
-// }
-
-// /**
-//  * Used on network errors which end up throwing
-//  */
-// function createHandleStaleIfErrorException(
-//   cachedResponseEntry: CachedResponseEntry,
-//   staleIfError: number | null,
-// ) {
-//   return function handleStaleIfError(
-//     reason: unknown,
-//   ): ResponseWithCachedResponse {
-//     if (
-//       typeof staleIfError === 'number' &&
-//       cachedResponseEntry.time < Date.now() + staleIfError * 1000
-//     ) {
-//       return createResponse(cachedResponseEntry);
-//     }
-//     throw reason;
-//   };
-// }
-
-// /**
-//  * A cache of request urls & auth headers and the resulting responses.
-//  *
-//  * This cache does not use Response instances as the cache value as reusing
-//  * responses across requests leads to issues in Cloudflare Workers.
-//  */
-// export const cache = new Map<string, CachedResponseEntry>();
-
-// function extractStaleIfError(cacheControlHeader: string | null): number | null {
-//   if (!cacheControlHeader) return null;
-//   const matched = /stale-if-error=(?<staleIfError>\d+)/i.exec(
-//     cacheControlHeader,
-//   );
-//   return matched?.groups ? Number(matched.groups.staleIfError) : null;
-// }
-
-// /**
-//  * This is similar to fetch, but it also implements ETag semantics, and
-//  * it implmenets stale-if-error semantics.
-//  */
-// export const enhancedFetch = trace(
-//   async function enhancedFetch(
-//     url: string,
-//     options: FetchOptions = {},
-//   ): Promise<Response> {
-//     const { headers: customHeaders = new Headers(), ...customOptions } =
-//       options;
-//     const authHeader = customHeaders.get('Authorization');
-//     const cacheKey = `${url},${authHeader || ''}`;
-
-//     const cachedResponseEntry = cache.get(cacheKey);
-
-//     if (cachedResponseEntry) {
-//       const {
-//         etag,
-//         response: cachedResponse,
-//         headers: cachedResponseHeaders,
-//       } = cachedResponseEntry;
-//       const headers = new Headers(customHeaders);
-//       headers.set('If-None-Match', etag);
-
-//       const staleIfError = extractStaleIfError(headers.get('Cache-Control'));
-
-//       const res: ResponseWithCachedResponse = await fetch(url, {
-//         ...customOptions,
-//         headers,
-//       }).then(
-//         createHandleStaleIfError(cachedResponseEntry, staleIfError),
-//         createHandleStaleIfErrorException(cachedResponseEntry, staleIfError),
-//       );
-
-//       if (res.status === 304) {
-//         console.log('resolving from cache');
-//         res.cachedResponseBody = JSON.parse(cachedResponse);
-//         res.cachedResponseHeaders = cachedResponseHeaders;
-//         return res;
-//       }
-
-//       const newETag = res.headers.get('ETag');
-//       if (res.ok && newETag) {
-//         console.log('filling cache');
-//         cache.set(cacheKey, {
-//           etag: newETag,
-//           response: await res.clone().text(),
-//           headers: new Headers(res.headers),
-//           status: res.status,
-//           time: Date.now(),
-//         });
-//       }
-//       return res;
-//     }
-
-//     const res = await fetch(url, options);
-//     const etag = res.headers.get('ETag');
-//     if (res.ok && etag) {
-//       cache.set(cacheKey, {
-//         etag,
-//         response: await res.clone().text(),
-//         headers: new Headers(res.headers),
-//         status: res.status,
-//         time: Date.now(),
-//       });
-//     }
-
-//     return res;
-//   },
-//   {
-//     name: 'fetchWithCachedResponse',
-//     attributesSuccess(result) {
-//       return {
-//         status: result.status,
-//       };
-//     },
-//   },
-// );

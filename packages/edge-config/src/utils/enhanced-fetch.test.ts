@@ -97,11 +97,48 @@ describe('enhancedFetch', () => {
       const [res2, cachedRes2] = await enhancedFetch(
         'https://example.com/api/data',
       );
+
+      // ensure the etag was added to the request headers
+      const headers = fetchMock.mock.calls[1]?.[1]?.headers;
+      expect(headers).toBeInstanceOf(Headers);
+      expect((headers as Headers).get('If-None-Match')).toEqual('W/"123"');
+
       expect(res1).toHaveProperty('status', 200);
       expect(res2).toHaveProperty('status', 304);
       expect(cachedRes2).toHaveProperty('status', 200);
-      // expect(res1).toStrictEqual(cachedRes2);
-      // expect(fetchMock).toHaveBeenCalledTimes(1);
+      const text1 = await res1.text();
+      const cachedText = await cachedRes2?.text();
+      expect(text1).toStrictEqual(cachedText);
+      expect(text1).toEqual(JSON.stringify({ name: 'A' }));
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('should return from the http cache if the response is not modified with weak etag', async () => {
+      fetchMock.mockResponseOnce(JSON.stringify({ name: 'A' }), {
+        headers: { ETag: '"123"' },
+      });
+      fetchMock.mockResponseOnce('', {
+        status: 304,
+        headers: { ETag: 'W/"123"' }, // <--- only difference to above test
+      });
+      const [res1] = await enhancedFetch('https://example.com/api/data');
+      const [res2, cachedRes2] = await enhancedFetch(
+        'https://example.com/api/data',
+      );
+
+      // ensure the etag was added to the request headers
+      const headers = fetchMock.mock.calls[1]?.[1]?.headers;
+      expect(headers).toBeInstanceOf(Headers);
+      expect((headers as Headers).get('If-None-Match')).toEqual('W/"123"');
+
+      expect(res1).toHaveProperty('status', 200);
+      expect(res2).toHaveProperty('status', 304);
+      expect(cachedRes2).toHaveProperty('status', 200);
+      const text1 = await res1.text();
+      const cachedText = await cachedRes2?.text();
+      expect(text1).toStrictEqual(cachedText);
+      expect(text1).toEqual(JSON.stringify({ name: 'A' }));
+      expect(fetchMock).toHaveBeenCalledTimes(2);
     });
   });
 });

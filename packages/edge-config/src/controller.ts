@@ -262,16 +262,15 @@ export class Controller {
         cache: this.cacheMode,
       },
     ).then<{ value: T | undefined; digest: string; source: Source }>(
-      async (res) => {
+      async ([res, cachedRes]) => {
         const digest = res.headers.get('x-edge-config-digest');
+        // TODO this header is not present on responses of the real API currently,
+        // but we mock it in tests already
         const updatedAt = parseTs(res.headers.get('x-edge-config-updated-at'));
         if (!digest) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
 
         if (res.ok) {
-          const value = (await res.json()) as T;
-          // TODO this header is not present on responses of the real API currently,
-          // but we mock it in tests already
-
+          const value = (await (cachedRes ?? res).json()) as T;
           // set the cache if the loaded value is newer than the cached one
           if (updatedAt) {
             const existing = this.itemCache.get(key);

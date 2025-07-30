@@ -29,19 +29,17 @@ function parseTs(updatedAt: string | null): number | null {
   return parsed;
 }
 
+interface CachedItem<T extends EdgeConfigValue = EdgeConfigValue> {
+  // an undefined value signals the key does not exist
+  value: T | undefined;
+  updatedAt: number;
+  digest: string;
+}
+
 export class Controller {
   private edgeConfigCache: (EmbeddedEdgeConfig & { updatedAt: number }) | null =
     null;
-  private itemCache = new Map<
-    string,
-    // an undefined value signals the key does not exist
-    {
-      value: EdgeConfigValue | undefined;
-      updatedAt: number;
-      digest: string;
-    }
-  >();
-
+  private itemCache = new Map<string, CachedItem>();
   private connection: Connection;
   private staleThreshold: number;
   private cacheMode: 'no-store' | 'force-cache';
@@ -152,32 +150,24 @@ export class Controller {
 
     if (cachedItem && cachedConfig) {
       return cachedItem.updatedAt > cachedConfig.updatedAt
-        ? {
-            value: cachedItem.value as T | undefined,
-            updatedAt: cachedItem.updatedAt,
-            digest: cachedItem.digest,
-          }
-        : {
+        ? (cachedItem as CachedItem<T>)
+        : ({
             digest: cachedConfig.digest,
-            value: cachedConfig.items[key] as T | undefined,
+            value: cachedConfig.items[key],
             updatedAt: cachedConfig.updatedAt,
-          };
+          } as CachedItem<T>);
     }
 
     if (cachedItem && !cachedConfig) {
-      return {
-        value: cachedItem.value as T | undefined,
-        updatedAt: cachedItem.updatedAt,
-        digest: cachedItem.digest,
-      };
+      return cachedItem as CachedItem<T>;
     }
 
     if (!cachedItem && cachedConfig) {
       return {
-        value: cachedConfig.items[key] as T | undefined,
+        value: cachedConfig.items[key],
         updatedAt: cachedConfig.updatedAt,
         digest: cachedConfig.digest,
-      };
+      } as CachedItem<T>;
     }
 
     return null;

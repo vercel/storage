@@ -1,10 +1,11 @@
+import { waitUntil } from '@vercel/functions';
 import type {
   EdgeConfigValue,
   EmbeddedEdgeConfig,
   EdgeConfigFunctionsOptions,
   Connection,
   EdgeConfigClientOptions,
-  CacheSource,
+  CacheStatus,
 } from './types';
 import { ERRORS, isEmptyKey, UnexpectedNetworkError } from './utils';
 import { consumeResponseBody } from './utils/consume-response-body';
@@ -29,6 +30,18 @@ function parseTs(updatedAt: string | null): number | null {
   return parsed;
 }
 
+function getCacheStatus(
+  latestUpdate: number | undefined,
+  updatedAt: number,
+  staleThreshold: number,
+): CacheStatus {
+  if (latestUpdate === undefined) return 'MISS';
+  if (latestUpdate <= updatedAt) return 'HIT';
+  // check if it is within the threshold
+  if (updatedAt >= latestUpdate - staleThreshold) return 'STALE';
+  return 'MISS';
+}
+
 interface CachedItem<T extends EdgeConfigValue = EdgeConfigValue> {
   // an undefined value signals the key does not exist
   value: T | undefined;
@@ -45,21 +58,6 @@ export class Controller {
   private cacheMode: 'no-store' | 'force-cache';
   private enableDevelopmentCache: boolean;
 
-  /**
-   * A map of keys to pending promises
-   */
-  private pendingItemFetches = new Map<
-    string,
-    {
-      minUpdatedAt: number;
-      promise: Promise<{
-        value: EdgeConfigValue | undefined;
-        digest: string;
-        cache: CacheSource;
-      }>;
-    }
-  >();
-
   constructor(
     connection: Connection,
     options: EdgeConfigClientOptions & { enableDevelopmentCache: boolean },
@@ -73,7 +71,7 @@ export class Controller {
   public async get<T extends EdgeConfigValue>(
     key: string,
     localOptions?: EdgeConfigFunctionsOptions,
-  ): Promise<{ value: T | undefined; digest: string; cache: CacheSource }> {
+  ): Promise<{ value: T | undefined; digest: string; cache: CacheStatus }> {
     if (this.enableDevelopmentCache || !timestampOfLatestUpdate) {
       return this.fetchItem<T>(key, timestampOfLatestUpdate, localOptions);
     }
@@ -92,8 +90,14 @@ export class Controller {
       const cached = this.getCachedItem<T>(key);
 
       if (cached) {
+        const cacheStatus = getCacheStatus(
+          timestampOfLatestUpdate,
+          cached.updatedAt,
+          this.staleThreshold,
+        );
+
         // HIT
-        if (timestampOfLatestUpdate <= cached.updatedAt) {
+        if (cacheStatus === 'HIT') {
           return {
             value: cached.value,
             digest: cached.digest,
@@ -101,18 +105,14 @@ export class Controller {
           };
         }
 
-        // STALE
-        // we're outdated, but check if we can serve the STALE value
-        if (
-          timestampOfLatestUpdate > cached.updatedAt &&
-          cached.updatedAt >= timestampOfLatestUpdate - this.staleThreshold
-        ) {
+        // we're outdated, but we can still serve the STALE value
+        if (cacheStatus === 'STALE') {
           // background refresh
-          void this.fetchItem<T>(
-            key,
-            timestampOfLatestUpdate,
-            localOptions,
-          ).catch(() => null);
+          waitUntil(
+            this.fetchItem<T>(key, timestampOfLatestUpdate, localOptions).catch(
+              () => null,
+            ),
+          );
 
           return {
             value: cached.value,
@@ -173,6 +173,62 @@ export class Controller {
     return null;
   }
 
+  private async fetchFullConfig<T extends Record<string, EdgeConfigValue>>(
+    minUpdatedAt: number | undefined,
+    localOptions?: EdgeConfigFunctionsOptions,
+  ): Promise<{
+    value: T;
+    digest: string;
+    cache: CacheStatus;
+  }> {
+    return enhancedFetch(
+      `${this.connection.baseUrl}/items?version=${this.connection.version}`,
+      {
+        headers: this.getHeaders(localOptions, minUpdatedAt),
+        cache: this.cacheMode,
+      },
+    ).then<{ value: T; digest: string; cache: CacheStatus }>(
+      async ([res, cachedRes]) => {
+        const digest = res.headers.get('x-edge-config-digest');
+        // TODO this header is not present on responses of the real API currently,
+        // but we mock it in tests already
+        const updatedAt = parseTs(res.headers.get('x-edge-config-updated-at'));
+
+        if (res.status === 401) {
+          // don't need to empty cachedRes as 401s can never be cached anyhow
+          await consumeResponseBody(res);
+          throw new Error(ERRORS.UNAUTHORIZED);
+        }
+
+        // this can't really happen, but we need to ensure digest exists
+        if (!digest) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
+
+        if (res.ok || (res.status === 304 && cachedRes)) {
+          const value = (await (
+            res.status === 304 && cachedRes ? cachedRes : res
+          ).json()) as T;
+
+          if (res.status === 304) await consumeResponseBody(res);
+
+          if (updatedAt) {
+            const existing = this.edgeConfigCache;
+            if (!existing || existing.updatedAt < updatedAt) {
+              this.edgeConfigCache = {
+                items: value,
+                updatedAt,
+                digest,
+              };
+            }
+          }
+
+          return { value, digest, cache: 'MISS' };
+        }
+
+        throw new UnexpectedNetworkError(res);
+      },
+    );
+  }
+
   private fetchItem<T extends EdgeConfigValue>(
     key: string,
     minUpdatedAt: number | undefined,
@@ -180,15 +236,15 @@ export class Controller {
   ): Promise<{
     value: T | undefined;
     digest: string;
-    cache: CacheSource;
+    cache: CacheStatus;
   }> {
-    const promise = enhancedFetch(
+    return enhancedFetch(
       `${this.connection.baseUrl}/item/${key}?version=${this.connection.version}`,
       {
         headers: this.getHeaders(localOptions, minUpdatedAt),
         cache: this.cacheMode,
       },
-    ).then<{ value: T | undefined; digest: string; cache: CacheSource }>(
+    ).then<{ value: T | undefined; digest: string; cache: CacheStatus }>(
       async ([res, cachedRes]) => {
         const digest = res.headers.get('x-edge-config-digest');
         // TODO this header is not present on responses of the real API currently,
@@ -200,6 +256,9 @@ export class Controller {
           const value = (await (
             res.status === 304 && cachedRes ? cachedRes : res
           ).json()) as T;
+
+          if (res.status === 304) await consumeResponseBody(res);
+
           // set the cache if the loaded value is newer than the cached one
           if (updatedAt) {
             const existing = this.itemCache.get(key);
@@ -241,19 +300,12 @@ export class Controller {
         throw new UnexpectedNetworkError(res);
       },
     );
-
-    // save the pending promise and the minimum updatedAt
-    if (minUpdatedAt) {
-      this.pendingItemFetches.set(key, { minUpdatedAt, promise });
-    }
-
-    return promise;
   }
 
   public async has(
     key: string,
     localOptions?: EdgeConfigFunctionsOptions,
-  ): Promise<{ exists: boolean; digest: string; cache: CacheSource }> {
+  ): Promise<{ exists: boolean; digest: string; cache: CacheStatus }> {
     return fetch(
       `${this.connection.baseUrl}/item/${key}?version=${this.connection.version}`,
       {
@@ -261,7 +313,7 @@ export class Controller {
         headers: this.getHeaders(localOptions, timestampOfLatestUpdate),
         cache: this.cacheMode,
       },
-    ).then<{ exists: boolean; digest: string; cache: CacheSource }>((res) => {
+    ).then<{ exists: boolean; digest: string; cache: CacheStatus }>((res) => {
       if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
       const digest = res.headers.get('x-edge-config-digest');
 
@@ -348,34 +400,40 @@ export class Controller {
     });
   }
 
-  public async getAll<T>(
+  public async getAll<T extends Record<string, EdgeConfigValue>>(
     localOptions?: EdgeConfigFunctionsOptions,
-  ): Promise<{ value: T; digest: string }> {
-    return fetch(
-      `${this.connection.baseUrl}/items?version=${this.connection.version}`,
-      {
-        headers: this.getHeaders(localOptions, timestampOfLatestUpdate),
-        cache: this.cacheMode,
-      },
-    ).then<{ value: T; digest: string }>(async (res) => {
-      if (res.ok) {
-        const digest = res.headers.get('x-edge-config-digest');
-        if (!digest) {
-          throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-        }
-        const value = (await res.json()) as T;
-        return { value, digest };
-      }
-      await consumeResponseBody(res);
+  ): Promise<{ value: T; digest: string; cache: CacheStatus }> {
+    // if we have the items and they
+    if (timestampOfLatestUpdate && this.edgeConfigCache) {
+      const cacheStatus = getCacheStatus(
+        timestampOfLatestUpdate,
+        this.edgeConfigCache.updatedAt,
+        this.staleThreshold,
+      );
 
-      if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
-      // the /items endpoint never returns 404, so if we get a 404
-      // it means the edge config itself did not exist
-      if (res.status === 404) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-      // if (res.cachedResponseBody !== undefined)
-      //   return res.cachedResponseBody as T;
-      throw new UnexpectedNetworkError(res);
-    });
+      // HIT
+      if (cacheStatus === 'HIT') {
+        return {
+          value: this.edgeConfigCache.items as T,
+          digest: this.edgeConfigCache.digest,
+          cache: 'HIT',
+        };
+      }
+
+      if (cacheStatus === 'STALE') {
+        // background refresh
+        waitUntil(
+          this.fetchFullConfig(timestampOfLatestUpdate, localOptions).catch(),
+        );
+        return {
+          value: this.edgeConfigCache.items as T,
+          digest: this.edgeConfigCache.digest,
+          cache: 'STALE',
+        };
+      }
+    }
+
+    return this.fetchFullConfig<T>(timestampOfLatestUpdate, localOptions);
   }
 
   private getHeaders(

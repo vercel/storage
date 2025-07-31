@@ -527,7 +527,7 @@ describe('bypassing dedupe when the timestamp changes', () => {
   });
 });
 
-describe('development cache', () => {
+describe('development cache: get', () => {
   const controller = new Controller(connection, {
     enableDevelopmentCache: true,
   });
@@ -650,5 +650,139 @@ describe('development cache', () => {
     );
 
     expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+});
+
+describe('development cache: has', () => {
+  const controller = new Controller(connection, {
+    enableDevelopmentCache: true,
+  });
+  beforeAll(() => {
+    fetchMock.resetMocks();
+  });
+
+  it('should fetch initially', async () => {
+    setTimestampOfLatestUpdate(undefined);
+    fetchMock.mockResponseOnce('', {
+      headers: {
+        'x-edge-config-digest': 'digest1',
+        'x-edge-config-updated-at': '1000',
+      },
+    });
+
+    await expect(controller.has('key1')).resolves.toEqual({
+      exists: true,
+      digest: 'digest1',
+      cache: 'MISS',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not fetch when another fetch is pending', async () => {
+    fetchMock.mockResponseOnce('', {
+      headers: {
+        'x-edge-config-digest': 'digest2',
+        'x-edge-config-updated-at': '1000',
+        etag: '"digest2"',
+        'content-type': 'application/json',
+      },
+    });
+
+    // run them in parallel so the deduplication can take action
+    const [promise1, promise2] = [
+      controller.has('key1'),
+      controller.has('key1'),
+    ];
+
+    await expect(promise1).resolves.toEqual({
+      exists: true,
+      digest: 'digest2',
+      cache: 'MISS',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    await expect(promise2).resolves.toEqual({
+      exists: true,
+      digest: 'digest2',
+      cache: 'MISS',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('lifecycle: mixing get, has and getAll', () => {
+  beforeAll(() => {
+    fetchMock.resetMocks();
+  });
+
+  const controller = new Controller(connection, {
+    enableDevelopmentCache: false,
+  });
+
+  it('get(key1) should MISS the cache initially', async () => {
+    setTimestampOfLatestUpdate(1000);
+    fetchMock.mockResponseOnce(JSON.stringify('value1'), {
+      headers: {
+        'x-edge-config-digest': 'digest1',
+        'x-edge-config-updated-at': '1000',
+        etag: '"digest1"',
+        'content-type': 'application/json',
+      },
+    });
+
+    await expect(controller.get('key1')).resolves.toEqual({
+      value: 'value1',
+      digest: 'digest1',
+      cache: 'MISS',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('has(key1) should HIT the cache subsequently', async () => {
+    await expect(controller.has('key1')).resolves.toEqual({
+      exists: true,
+      digest: 'digest1',
+      cache: 'HIT',
+    });
+    // still one
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('has(key2) should MISS the cache initially', async () => {
+    fetchMock.mockResponseOnce('', {
+      status: 404,
+      headers: {
+        'x-edge-config-digest': 'digest1',
+        'x-edge-config-updated-at': '1000',
+        etag: '"digest1"',
+        'content-type': 'application/json',
+      },
+    });
+
+    await expect(controller.has('key2')).resolves.toEqual({
+      exists: false,
+      digest: 'digest1',
+      cache: 'MISS',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('get(key2) should HIT the cache subsequently', async () => {
+    // in this case GET knows that the value does not exist,
+    // so it does not need to perform a fetch at all since
+    // there is no such item
+    setTimestampOfLatestUpdate(1000);
+    await expect(controller.get('key2')).resolves.toEqual({
+      value: undefined,
+      digest: 'digest1',
+      cache: 'HIT',
+    });
+    // still two
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

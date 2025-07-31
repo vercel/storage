@@ -229,7 +229,7 @@ export class Controller {
     );
   }
 
-  private fetchItem<T extends EdgeConfigValue>(
+  private async fetchItem<T extends EdgeConfigValue>(
     key: string,
     minUpdatedAt: number | undefined,
     localOptions?: EdgeConfigFunctionsOptions,

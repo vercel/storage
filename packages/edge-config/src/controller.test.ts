@@ -38,11 +38,12 @@ describe('lifecycle: reading a single item', () => {
     });
   });
 
-  it('should fire off a background refresh after the cache MISS', () => {
+  it('should have performed a blocking fetch to resolve the cache MISS', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenLastCalledWith(
       'https://edge-config.vercel.com/item/key1?version=1',
       {
+        method: 'GET',
         cache: 'no-store',
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
@@ -87,6 +88,7 @@ describe('lifecycle: reading a single item', () => {
     expect(fetchMock).toHaveBeenLastCalledWith(
       'https://edge-config.vercel.com/item/key1?version=1',
       {
+        method: 'GET',
         cache: 'no-store',
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
@@ -130,6 +132,7 @@ describe('lifecycle: reading a single item', () => {
     expect(fetchMock).toHaveBeenLastCalledWith(
       'https://edge-config.vercel.com/item/key1?version=1',
       {
+        method: 'GET',
         cache: 'no-store',
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
@@ -168,7 +171,7 @@ describe('lifecycle: reading the full config', () => {
     });
   });
 
-  it('should fire off a background refresh after the cache MISS', () => {
+  it('should have performed a blocking fetch to resolve the cache MISS', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenLastCalledWith(
       'https://edge-config.vercel.com/items?version=1',
@@ -260,6 +263,139 @@ describe('lifecycle: reading the full config', () => {
     expect(fetchMock).toHaveBeenLastCalledWith(
       'https://edge-config.vercel.com/items?version=1',
       {
+        cache: 'no-store',
+        headers: new Headers({
+          Authorization: 'Bearer fake-edge-config-token',
+          // 'If-None-Match': '"digest1"',
+          'x-edge-config-min-updated-at': '17001',
+        }),
+      },
+    );
+  });
+});
+
+describe('lifecycle: checking existence of a single item', () => {
+  beforeAll(() => {
+    fetchMock.resetMocks();
+  });
+
+  const controller = new Controller(connection, {
+    enableDevelopmentCache: false,
+  });
+
+  it('should MISS the cache initially', async () => {
+    setTimestampOfLatestUpdate(1000);
+    fetchMock.mockResponseOnce('', {
+      headers: {
+        'x-edge-config-digest': 'digest1',
+        'x-edge-config-updated-at': '1000',
+        etag: '"digest1"',
+        'content-type': 'application/json',
+      },
+    });
+
+    await expect(controller.has('key1')).resolves.toEqual({
+      exists: true,
+      digest: 'digest1',
+      cache: 'MISS',
+    });
+  });
+
+  it('should have performed a blocking fetch to resolve the cache MISS', () => {
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      'https://edge-config.vercel.com/item/key1?version=1',
+      {
+        method: 'HEAD',
+        cache: 'no-store',
+        headers: new Headers({
+          Authorization: 'Bearer fake-edge-config-token',
+          'x-edge-config-min-updated-at': '1000',
+        }),
+      },
+    );
+  });
+
+  it('should HIT the cache if the timestamp has not changed', async () => {
+    await expect(controller.has('key1')).resolves.toEqual({
+      exists: true,
+      digest: 'digest1',
+      cache: 'HIT',
+    });
+  });
+
+  it('should not fire off any background refreshes after the cache HIT', () => {
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should serve a stale exitence value if the timestamp has changed but is within the threshold', async () => {
+    setTimestampOfLatestUpdate(7000);
+    fetchMock.mockResponseOnce('', {
+      status: 404,
+      headers: {
+        'x-edge-config-digest': 'digest2',
+        'x-edge-config-updated-at': '7000',
+        etag: '"digest2"',
+        'content-type': 'application/json',
+      },
+    });
+
+    await expect(controller.has('key1')).resolves.toEqual({
+      exists: true,
+      digest: 'digest1',
+      cache: 'STALE',
+    });
+  });
+
+  it('should trigger a background refresh after the STALE value', () => {
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      'https://edge-config.vercel.com/item/key1?version=1',
+      {
+        method: 'HEAD',
+        cache: 'no-store',
+        headers: new Headers({
+          Authorization: 'Bearer fake-edge-config-token',
+          'x-edge-config-min-updated-at': '7000',
+        }),
+      },
+    );
+  });
+
+  it('should serve the new value from cache after the background refresh completes', async () => {
+    await expect(controller.has('key1')).resolves.toEqual({
+      exists: false,
+      digest: 'digest2',
+      cache: 'HIT',
+    });
+  });
+
+  it('should not fire off any subsequent background refreshes', () => {
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('should refresh when the stale threshold is exceeded', async () => {
+    setTimestampOfLatestUpdate(17001);
+    fetchMock.mockResponseOnce('', {
+      headers: {
+        'x-edge-config-digest': 'digest3',
+        'x-edge-config-updated-at': '17001',
+      },
+    });
+
+    await expect(controller.has('key1')).resolves.toEqual({
+      exists: true,
+      digest: 'digest3',
+      cache: 'MISS',
+    });
+  });
+
+  it('should have done a blocking refresh after the stale threshold was exceeded', () => {
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      'https://edge-config.vercel.com/item/key1?version=1',
+      {
+        method: 'HEAD',
         cache: 'no-store',
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
@@ -471,6 +607,7 @@ describe('development cache', () => {
     expect(fetchMock).toHaveBeenLastCalledWith(
       'https://edge-config.vercel.com/item/key1?version=1',
       {
+        method: 'GET',
         cache: 'no-store',
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
@@ -502,6 +639,7 @@ describe('development cache', () => {
     expect(fetchMock).toHaveBeenLastCalledWith(
       'https://edge-config.vercel.com/item/key1?version=1',
       {
+        method: 'GET',
         cache: 'no-store',
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',

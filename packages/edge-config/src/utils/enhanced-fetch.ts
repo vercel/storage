@@ -13,6 +13,7 @@ function getDedupeCacheKey(url: string, init?: RequestInit): string {
 
   return JSON.stringify({
     url,
+    method: init?.method,
     authorization: h.get('Authorization'),
     minUpdatedAt: h.get('x-edge-config-min-updated-at'),
   });

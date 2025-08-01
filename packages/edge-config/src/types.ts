@@ -94,14 +94,6 @@ export interface EdgeConfigClient {
     ): Promise<{ exists: boolean; digest: string }>;
     (key: string, options?: EdgeConfigFunctionsOptions): Promise<boolean>;
   };
-  /**
-   * Get the digest of the Edge Config.
-   *
-   * The digest is a unique hash result based on the contents stored in the Edge Config.
-   *
-   * @returns The digest of the Edge Config.
-   */
-  digest: (options?: EdgeConfigFunctionsOptions) => Promise<string>;
 }
 
 export type EdgeConfigItems = Record<string, EdgeConfigValue>;

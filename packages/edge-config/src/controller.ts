@@ -6,6 +6,7 @@ import type {
   Connection,
   EdgeConfigClientOptions,
   CacheStatus,
+  EdgeConfigItems,
 } from './types';
 import { ERRORS, isEmptyKey, UnexpectedNetworkError } from './utils';
 import { consumeResponseBody } from './utils/consume-response-body';
@@ -445,7 +446,7 @@ export class Controller {
     });
   }
 
-  public async getAll<T extends Record<string, EdgeConfigValue>>(
+  public async getAll<T extends EdgeConfigItems>(
     localOptions?: EdgeConfigFunctionsOptions,
   ): Promise<{
     value: T;

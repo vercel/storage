@@ -1,11 +1,5 @@
 import { name as sdkName, version as sdkVersion } from '../package.json';
-import {
-  assertIsKey,
-  isEmptyKey,
-  ERRORS,
-  UnexpectedNetworkError,
-  parseConnectionString,
-} from './utils';
+import { assertIsKey, isEmptyKey, parseConnectionString } from './utils';
 import type {
   EdgeConfigClient,
   EdgeConfigItems,
@@ -14,10 +8,7 @@ import type {
   EdgeConfigFunctionsOptions,
   EdgeConfigClientOptions,
 } from './types';
-// import { fetch } from './utils/enhanced-fetch';
 import { trace } from './utils/tracing';
-import { consumeResponseBody } from './utils/consume-response-body';
-import { addConsistentReadHeader } from './utils/add-consistent-read-header';
 import { Controller } from './controller';
 
 export { setTracerProvider } from './utils/tracing';
@@ -59,8 +50,6 @@ export const createClient = trace(
         '@vercel/edge-config: Invalid connection string provided',
       );
 
-    const baseUrl = connection.baseUrl;
-    const version = connection.version; // version of the edge config read access api we talk to
     const headers: Record<string, string> = {
       Authorization: `Bearer ${connection.token}`,
     };
@@ -75,8 +64,6 @@ export const createClient = trace(
     if (typeof options.staleIfError === 'number' && options.staleIfError > 0)
       headers['cache-control'] = `stale-if-error=${options.staleIfError}`;
 
-    const fetchCache = options.cache || 'no-store';
-
     /**
      * While in development we use SWR-like behavior for the api client to
      * reduce latency.
@@ -86,17 +73,16 @@ export const createClient = trace(
       process.env.NODE_ENV === 'development' &&
       process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
 
-    const controller = new Controller(
-      connection,
-      options,
-      shouldUseDevelopmentCache,
-    );
+    const controller = new Controller(connection, {
+      ...options,
+      enableDevelopmentCache: shouldUseDevelopmentCache,
+    });
 
     const edgeConfigId = connection.id;
 
     const methods: Pick<
       EdgeConfigClient,
-      'get' | 'has' | 'getMultiple' | 'getAll' | 'digest'
+      'get' | 'has' | 'getMultiple' | 'getAll'
     > = {
       get: trace(
         async function get<T = EdgeConfigValue>(
@@ -142,35 +128,13 @@ export const createClient = trace(
         },
       ),
       getAll: trace(
-        async function getAll<T = EdgeConfigItems>(
+        async function getAll<T extends EdgeConfigItems = EdgeConfigItems>(
           localOptions?: EdgeConfigFunctionsOptions,
         ): Promise<{ value: T; digest: string } | T> {
           const data = await controller.getAll<T>(localOptions);
           return localOptions?.metadata ? data : data.value;
         },
         { name: 'getAll', isVerboseTrace: false, attributes: { edgeConfigId } },
-      ),
-      digest: trace(
-        async function digest(
-          localOptions?: EdgeConfigFunctionsOptions,
-        ): Promise<string> {
-          const localHeaders = new Headers(headers);
-          if (localOptions?.consistentRead)
-            addConsistentReadHeader(localHeaders);
-
-          return fetch(`${baseUrl}/digest?version=${version}`, {
-            headers: localHeaders,
-            cache: fetchCache,
-          }).then(async (res) => {
-            if (res.ok) return res.json() as Promise<string>;
-            await consumeResponseBody(res);
-
-            // if (res.cachedResponseBody !== undefined)
-            //   return res.cachedResponseBody as string;
-            throw new UnexpectedNetworkError(res);
-          });
-        },
-        { name: 'digest', isVerboseTrace: false, attributes: { edgeConfigId } },
       ),
     };
 
@@ -208,6 +172,34 @@ export const get: EdgeConfigClient['get'] = (...args) => {
 };
 
 /**
+ * Reads all items from the default Edge Config.
+ *
+ * This is a convenience method which reads the default Edge Config.
+ * It is conceptually similar to `createClient(process.env.EDGE_CONFIG).getAll()`.
+ *
+ * @see {@link EdgeConfigClient.getAll}
+ */
+export const getAll: EdgeConfigClient['getAll'] = (...args) => {
+  init();
+  return defaultEdgeConfigClient.getAll(...args);
+};
+
+/**
+ * Reads multiple items from the default Edge Config.
+ *
+ * This is a convenience method which reads the default Edge Config.
+ * It is conceptually similar to `createClient(process.env.EDGE_CONFIG).getMultiple()`.
+ *
+ * @see {@link EdgeConfigClient.getMultiple}
+ * @param keys - the keys to read
+ * @returns the values stored under the given keys, or undefined
+ */
+export const getMultiple: EdgeConfigClient['getMultiple'] = (...args) => {
+  init();
+  return defaultEdgeConfigClient.getMultiple(...args);
+};
+
+/**
  * Check if a given key exists in the Edge Config.
  *
  * This is a convenience method which reads the default Edge Config.
@@ -221,20 +213,6 @@ export const has = ((...args: Parameters<EdgeConfigClient['has']>) => {
   init();
   return defaultEdgeConfigClient.has(...args);
 }) as EdgeConfigClient['has'];
-
-/**
- * Get the digest of the Edge Config.
- *
- * This is a convenience method which reads the default Edge Config.
- * It is conceptually similar to `createClient(process.env.EDGE_CONFIG).digest()`.
- *
- * @see {@link EdgeConfigClient.digest}
- * @returns The digest of the Edge Config.
- */
-export const digest: EdgeConfigClient['digest'] = (...args) => {
-  init();
-  return defaultEdgeConfigClient.digest(...args);
-};
 
 /**
  * Safely clones a read-only Edge Config object and makes it mutable.

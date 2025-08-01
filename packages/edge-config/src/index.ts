@@ -1,4 +1,3 @@
-import { name as sdkName, version as sdkVersion } from '../package.json';
 import { assertIsKey, isEmptyKey, parseConnectionString } from './utils';
 import type {
   EdgeConfigClient,
@@ -50,20 +49,6 @@ export const createClient = trace(
         '@vercel/edge-config: Invalid connection string provided',
       );
 
-    const headers: Record<string, string> = {
-      Authorization: `Bearer ${connection.token}`,
-    };
-
-    // eslint-disable-next-line @typescript-eslint/prefer-optional-chain -- [@vercel/style-guide@5 migration]
-    if (typeof process !== 'undefined' && process.env.VERCEL_ENV)
-      headers['x-edge-config-vercel-env'] = process.env.VERCEL_ENV;
-
-    if (typeof sdkName === 'string' && typeof sdkVersion === 'string')
-      headers['x-edge-config-sdk'] = `${sdkName}@${sdkVersion}`;
-
-    if (typeof options.staleIfError === 'number' && options.staleIfError > 0)
-      headers['cache-control'] = `stale-if-error=${options.staleIfError}`;
-
     /**
      * While in development we use SWR-like behavior for the api client to
      * reduce latency.
@@ -85,7 +70,7 @@ export const createClient = trace(
       'get' | 'has' | 'getMultiple' | 'getAll'
     > = {
       get: trace(
-        async function get<T = EdgeConfigValue>(
+        async function get<T extends EdgeConfigValue = EdgeConfigValue>(
           key: string,
           localOptions?: EdgeConfigFunctionsOptions,
         ): Promise<T | undefined | { value: T | undefined; digest: string }> {

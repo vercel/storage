@@ -1,4 +1,5 @@
 import { waitUntil } from '@vercel/functions';
+import { name as sdkName, version as sdkVersion } from '../package.json';
 import type {
   EdgeConfigValue,
   EmbeddedEdgeConfig,
@@ -234,6 +235,8 @@ export class Controller {
         const digest = res.headers.get('x-edge-config-digest');
         const updatedAt = parseTs(res.headers.get('x-edge-config-updated-at'));
 
+        if (res.status === 500) throw new UnexpectedNetworkError(res);
+
         if (!updatedAt || !digest) {
           throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
         }
@@ -294,6 +297,7 @@ export class Controller {
       const digest = res.headers.get('x-edge-config-digest');
       const updatedAt = parseTs(res.headers.get('x-edge-config-updated-at'));
 
+      if (res.status === 500) throw new UnexpectedNetworkError(res);
       if (!digest || !updatedAt) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
 
       if (res.ok || (res.status === 304 && cachedRes)) {
@@ -504,6 +508,13 @@ export class Controller {
         `${localOptions?.consistentRead ? Number.MAX_SAFE_INTEGER : minUpdatedAt}`,
       );
     }
+
+    // eslint-disable-next-line @typescript-eslint/prefer-optional-chain -- [@vercel/style-guide@5 migration]
+    if (typeof process !== 'undefined' && process.env.VERCEL_ENV)
+      localHeaders.set('x-edge-config-vercel-env', process.env.VERCEL_ENV);
+
+    if (typeof sdkName === 'string' && typeof sdkVersion === 'string')
+      localHeaders.set('x-edge-config-sdk', `${sdkName}@${sdkVersion}`);
 
     return localHeaders;
   }

@@ -60,6 +60,7 @@ export class Controller {
   private staleThreshold: number;
   private cacheMode: 'no-store' | 'force-cache';
   private enableDevelopmentCache: boolean;
+  private staleIfError: number;
 
   // create an instance per controller so the caches are isolated
   private enhancedFetch: ReturnType<typeof createEnhancedFetch>;
@@ -70,6 +71,7 @@ export class Controller {
   ) {
     this.connection = connection;
     this.staleThreshold = options.staleThreshold ?? DEFAULT_STALE_THRESHOLD;
+    this.staleIfError = options.staleIfError ?? 604800 * 1000 /* one week */;
     this.cacheMode = options.cache || 'no-store';
     this.enableDevelopmentCache = options.enableDevelopmentCache;
     this.enhancedFetch = createEnhancedFetch();

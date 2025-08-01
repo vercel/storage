@@ -103,6 +103,13 @@ export const createClient = trace(
           keys: (keyof T)[],
           localOptions?: EdgeConfigFunctionsOptions,
         ): Promise<{ value: T; digest: string } | T> {
+          // bypass when called without valid keys and without needing metadata
+          if (
+            keys.every((k) => typeof k === 'string' && k.trim().length === 0) &&
+            !localOptions?.metadata
+          )
+            return {} as T;
+
           const data = await controller.getMultiple<T>(keys, localOptions);
           return localOptions?.metadata ? data : data.value;
         },

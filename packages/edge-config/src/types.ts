@@ -127,9 +127,9 @@ export interface EdgeConfigClientOptions {
   /**
    * Configure for how long the SDK will return a stale value in case a fresh value could not be fetched.
    *
-   * @default Infinity
+   * @default One week
    */
-  staleIfError?: number | false;
+  staleIfError?: 604800;
 
   /**
    * Configure the threshold for how long the SDK allows stale values to be

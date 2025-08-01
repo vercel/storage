@@ -16,17 +16,14 @@ const DEFAULT_STALE_THRESHOLD = 10_000; // 10 seconds
 let timestampOfLatestUpdate: number | undefined;
 
 /**
- * A symbol to represent an unresolved value.
- *
- * This is used to indicate that a value is not yet available, but we want to
- * cache the fact that it exists.
- *
- * This is only used if we definitely know that the value exists, we just don't
- * know what it is yet.
- *
- * When we definitely know a value does not exist, we use "undefined" instead.
+ * Unified cache entry that stores both the value and existence information
  */
-const unresolvedValue = Symbol('unresolvedValue');
+interface CacheEntry<T = EdgeConfigValue> {
+  value: T | undefined;
+  updatedAt: number;
+  digest: string;
+  exists: boolean;
+}
 
 export function setTimestampOfLatestUpdate(
   timestamp: number | undefined,
@@ -53,29 +50,10 @@ function getCacheStatus(
   return 'MISS';
 }
 
-interface CachedItem<T extends EdgeConfigValue = EdgeConfigValue> {
-  /**
-   * An "undefined" value signals the key does not exist on the Edge Config in
-   * the specified version and updatedAt timestamp.
-   *
-   * An "unresolved" signals that the value is not yet available,
-   */
-  value: T | undefined | typeof unresolvedValue;
-  /** the timestamp of the edge config's last update (not the item's) */
-  updatedAt: number;
-  digest: string;
-}
-
-interface ResolvedCachedItem<T extends EdgeConfigValue = EdgeConfigValue> {
-  value: Exclude<T, typeof unresolvedValue> | undefined;
-  updatedAt: number;
-  digest: string;
-}
-
 export class Controller {
   private edgeConfigCache: (EmbeddedEdgeConfig & { updatedAt: number }) | null =
     null;
-  private itemCache = new Map<string, CachedItem>();
+  private itemCache = new Map<string, CacheEntry>();
   private connection: Connection;
   private staleThreshold: number;
   private cacheMode: 'no-store' | 'force-cache';
@@ -105,29 +83,51 @@ export class Controller {
         key,
         timestampOfLatestUpdate,
         localOptions,
-      ).then((res) => ({
-        // TODO typescript should know that GET never returns unresolvedValue,
-        // so we should not need the explicit "as" cast or the whole "then" statement
-        value: res.value as T | undefined,
-        digest: res.digest,
-        cache: res.cache,
-      }));
+      );
     }
 
-    // check full config cache
-    // check item cache
-    //
-    // if HIT, pick newer version
+    return this.handleCachedRequest<
+      T,
+      { value: T | undefined; digest: string; cache: CacheStatus }
+    >(key, 'GET', localOptions, (cached, cacheStatus) => ({
+      value: cached.value,
+      digest: cached.digest,
+      cache: cacheStatus,
+    }));
+  }
 
-    // otherwise
-    // if STALE, serve cached value and trigger background refresh
-    // if MISS, perform blocking fetch
+  /**
+   * Updates the edge config cache if the new data is newer
+   */
+  private updateEdgeConfigCache(
+    items: Record<string, EdgeConfigValue>,
+    updatedAt: number | null,
+    digest: string,
+  ): void {
+    if (updatedAt) {
+      const existing = this.edgeConfigCache;
+      if (!existing || existing.updatedAt < updatedAt) {
+        this.edgeConfigCache = {
+          items,
+          updatedAt,
+          digest,
+        };
+      }
+    }
+  }
 
+  /**
+   * Generic handler for cached requests that implements the common cache logic
+   */
+  private async handleCachedRequest<T extends EdgeConfigValue, R>(
+    key: string,
+    method: 'GET' | 'HEAD',
+    localOptions: EdgeConfigFunctionsOptions | undefined,
+    callback: (cached: CacheEntry<T>, cacheStatus: CacheStatus) => R,
+  ): Promise<R> {
     // only use the cache if we have a timestamp of the latest update
     if (timestampOfLatestUpdate) {
-      const cached = this.getCachedItem<T>(key, true) as
-        | ResolvedCachedItem<T>
-        | undefined;
+      const cached = this.getCachedItem<T>(key);
 
       if (cached) {
         const cacheStatus = getCacheStatus(
@@ -137,55 +137,47 @@ export class Controller {
         );
 
         // HIT
-        if (cacheStatus === 'HIT') {
-          return {
-            value: cached.value,
-            digest: cached.digest,
-            cache: 'HIT',
-          };
-        }
+        if (cacheStatus === 'HIT') return callback(cached, 'HIT');
 
         // we're outdated, but we can still serve the STALE value
         if (cacheStatus === 'STALE') {
           // background refresh
           waitUntil(
             this.fetchItem<T>(
-              'GET',
+              method,
               key,
               timestampOfLatestUpdate,
               localOptions,
             ).catch(() => null),
           );
 
-          return {
-            value: cached.value,
-            digest: cached.digest,
-            cache: 'STALE',
-          };
-
-          // we're outdated, but we can't serve the STALE value
-          // so we need to fetch the latest value in a BLOCKING way and then
-          // update the cache afterwards
-          //
-          // this is the same behavior as if we had no cache it at all,
-          // so we just fall through
+          return callback(cached, 'STALE');
         }
       }
     }
 
     // MISS
-    return this.fetchItem<T>(
-      'GET',
+    const result = await this.fetchItem<T>(
+      method,
       key,
       timestampOfLatestUpdate,
       localOptions,
-    ).then((res) => ({
-      // TODO typescript should know that GET never returns unresolvedValue,
-      // so we should not need the explicit "as" cast or the whole "then" statement
-      value: res.value as T | undefined,
-      digest: res.digest,
-      cache: res.cache,
-    }));
+    );
+
+    // For HEAD requests, we need to return the exists format
+    if (method === 'HEAD') {
+      return {
+        exists: result.value !== undefined,
+        digest: result.digest,
+        cache: result.cache,
+      } as R;
+    }
+
+    return {
+      value: result.value,
+      digest: result.digest,
+      cache: result.cache,
+    } as R;
   }
 
   /**
@@ -194,43 +186,32 @@ export class Controller {
    */
   private getCachedItem<T extends EdgeConfigValue>(
     key: string,
-    ignoreUnresolved: boolean,
-  ): typeof ignoreUnresolved extends true
-    ? ResolvedCachedItem<T> | null
-    : CachedItem<T> | null {
-    const v = this.itemCache.get(key);
-    const cachedItem =
-      ignoreUnresolved && v?.value === unresolvedValue ? undefined : v;
+  ): CacheEntry<T> | null {
+    const itemCacheEntry = this.itemCache.get(key);
     const cachedConfig = this.edgeConfigCache;
 
-    if (cachedItem && cachedConfig) {
-      return cachedItem.updatedAt > cachedConfig.updatedAt
-        ? (cachedItem as typeof ignoreUnresolved extends true
-            ? ResolvedCachedItem<T>
-            : CachedItem<T>)
-        : ({
+    if (itemCacheEntry && cachedConfig) {
+      return itemCacheEntry.updatedAt >= cachedConfig.updatedAt
+        ? (itemCacheEntry as CacheEntry<T>)
+        : {
             digest: cachedConfig.digest,
             value: cachedConfig.items[key] as T,
             updatedAt: cachedConfig.updatedAt,
-          } as typeof ignoreUnresolved extends true
-            ? ResolvedCachedItem<T>
-            : CachedItem<T>);
+            exists: Object.hasOwn(cachedConfig.items, key),
+          };
     }
 
-    if (cachedItem && !cachedConfig) {
-      return cachedItem as typeof ignoreUnresolved extends true
-        ? ResolvedCachedItem<T>
-        : CachedItem<T>;
+    if (itemCacheEntry && !cachedConfig) {
+      return itemCacheEntry as CacheEntry<T>;
     }
 
-    if (!cachedItem && cachedConfig) {
+    if (!itemCacheEntry && cachedConfig) {
       return {
-        value: cachedConfig.items[key],
+        value: cachedConfig.items[key] as T,
         updatedAt: cachedConfig.updatedAt,
         digest: cachedConfig.digest,
-      } as typeof ignoreUnresolved extends true
-        ? ResolvedCachedItem<T>
-        : CachedItem<T>;
+        exists: Object.hasOwn(cachedConfig.items, key),
+      };
     }
 
     return null;
@@ -253,17 +234,13 @@ export class Controller {
     ).then<{ value: T; digest: string; cache: CacheStatus }>(
       async ([res, cachedRes]) => {
         const digest = res.headers.get('x-edge-config-digest');
-        // TODO this header is not present on responses of the real API currently,
-        // but we mock it in tests already
         const updatedAt = parseTs(res.headers.get('x-edge-config-updated-at'));
 
         if (res.status === 401) {
-          // don't need to empty cachedRes as 401s can never be cached anyhow
           await consumeResponseBody(res);
           throw new Error(ERRORS.UNAUTHORIZED);
         }
 
-        // this can't really happen, but we need to ensure digest exists
         if (!digest) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
 
         if (res.ok || (res.status === 304 && cachedRes)) {
@@ -273,16 +250,7 @@ export class Controller {
 
           if (res.status === 304) await consumeResponseBody(res);
 
-          if (updatedAt) {
-            const existing = this.edgeConfigCache;
-            if (!existing || existing.updatedAt < updatedAt) {
-              this.edgeConfigCache = {
-                items: value,
-                updatedAt,
-                digest,
-              };
-            }
-          }
+          this.updateEdgeConfigCache(value, updatedAt, digest);
 
           return { value, digest, cache: 'MISS' };
         }
@@ -301,7 +269,7 @@ export class Controller {
     minUpdatedAt: number | undefined,
     localOptions?: EdgeConfigFunctionsOptions,
   ): Promise<{
-    value: T | undefined | typeof unresolvedValue;
+    value: T | undefined;
     digest: string;
     cache: CacheStatus;
   }> {
@@ -313,15 +281,11 @@ export class Controller {
         cache: this.cacheMode,
       },
     ).then<{
-      value: typeof method extends 'GET'
-        ? T | undefined
-        : T | undefined | typeof unresolvedValue;
+      value: T | undefined;
       digest: string;
       cache: CacheStatus;
     }>(async ([res, cachedRes]) => {
       const digest = res.headers.get('x-edge-config-digest');
-      // TODO this header is not present on responses of the real API currently,
-      // but we mock it in tests already
       const updatedAt = parseTs(res.headers.get('x-edge-config-updated-at'));
       if (!digest) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
 
@@ -338,21 +302,21 @@ export class Controller {
           waitUntil(consumeResponseBody(res));
         }
 
-        const value =
-          method === 'GET'
-            ? ((await (
-                res.status === 304 && cachedRes ? cachedRes : res
-              ).json()) as T)
-            : unresolvedValue;
+        let value: T | undefined;
+        if (method === 'GET') {
+          value = (await (
+            res.status === 304 && cachedRes ? cachedRes : res
+          ).json()) as T;
+        }
 
         if (updatedAt) {
           const existing = this.itemCache.get(key);
-          // set the cache if the loaded value is newer than the cached one
           if (!existing || existing.updatedAt < updatedAt) {
             this.itemCache.set(key, {
               value,
               updatedAt,
               digest,
+              exists: method === 'GET' ? value !== undefined : res.ok,
             });
           }
         }
@@ -366,17 +330,18 @@ export class Controller {
 
       if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
       if (res.status === 404) {
-        // if the x-edge-config-digest header is present, it means
-        // the edge config exists, but the item does not
         if (digest && updatedAt) {
           const existing = this.itemCache.get(key);
           if (!existing || existing.updatedAt < updatedAt) {
-            this.itemCache.set(key, { value: undefined, updatedAt, digest });
+            this.itemCache.set(key, {
+              value: undefined,
+              updatedAt,
+              digest,
+              exists: false,
+            });
           }
           return { value: undefined, digest, cache: 'MISS' };
         }
-        // if the x-edge-config-digest header is not present, it means
-        // the edge config itself does not exist
         throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
       }
       throw new UnexpectedNetworkError(res);
@@ -400,73 +365,13 @@ export class Controller {
       }));
     }
 
-    // check full config cache
-    // check item cache
-    //
-    // if HIT, pick newer version
-
-    // otherwise
-    // if STALE, serve cached value and trigger background refresh
-    // if MISS, perform blocking fetch
-
-    // only use the cache if we have a timestamp of the latest update
-    if (timestampOfLatestUpdate) {
-      const cached = this.getCachedItem(key, false) as CachedItem | undefined;
-
-      if (cached) {
-        const cacheStatus = getCacheStatus(
-          timestampOfLatestUpdate,
-          cached.updatedAt,
-          this.staleThreshold,
-        );
-
-        // HIT
-        if (cacheStatus === 'HIT') {
-          return {
-            exists: cached.value !== undefined,
-            digest: cached.digest,
-            cache: 'HIT',
-          };
-        }
-
-        // we're outdated, but we can still serve the STALE value
-        if (cacheStatus === 'STALE') {
-          // background refresh
-          waitUntil(
-            this.fetchItem(
-              'HEAD',
-              key,
-              timestampOfLatestUpdate,
-              localOptions,
-            ).catch(() => null),
-          );
-
-          return {
-            exists: cached.value !== undefined,
-            digest: cached.digest,
-            cache: 'STALE',
-          };
-
-          // we're outdated, but we can't serve the STALE value
-          // so we need to fetch the latest value in a BLOCKING way and then
-          // update the cache afterwards
-          //
-          // this is the same behavior as if we had no cache it at all,
-          // so we just fall through
-        }
-      }
-    }
-
-    // MISS
-    return this.fetchItem(
-      'HEAD',
-      key,
-      timestampOfLatestUpdate,
-      localOptions,
-    ).then((res) => ({
-      exists: res.value !== undefined,
-      digest: res.digest,
-      cache: res.cache,
+    return this.handleCachedRequest<
+      EdgeConfigValue,
+      { exists: boolean; digest: string; cache: CacheStatus }
+    >(key, 'HEAD', localOptions, (cached, cacheStatus) => ({
+      exists: cached.exists,
+      digest: cached.digest,
+      cache: cacheStatus,
     }));
   }
 

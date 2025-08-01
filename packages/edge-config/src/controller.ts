@@ -375,25 +375,6 @@ export class Controller {
     }));
   }
 
-  public async digest(
-    localOptions?: Pick<EdgeConfigFunctionsOptions, 'consistentRead'>,
-  ): Promise<string> {
-    return fetch(
-      `${this.connection.baseUrl}/digest?version=${this.connection.version}`,
-      {
-        headers: this.getHeaders(localOptions, timestampOfLatestUpdate),
-        cache: this.cacheMode,
-      },
-    ).then<string>(async (res) => {
-      if (res.ok) return res.json() as Promise<string>;
-      await consumeResponseBody(res);
-
-      // if (res.cachedResponseBody !== undefined)
-      //   return res.cachedResponseBody as string;
-      throw new UnexpectedNetworkError(res);
-    });
-  }
-
   public async getMultiple<T>(
     keys: (keyof T)[],
     localOptions?: EdgeConfigFunctionsOptions,

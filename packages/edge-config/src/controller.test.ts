@@ -50,6 +50,8 @@ describe('lifecycle: reading a single item', () => {
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
           'x-edge-config-min-updated-at': '1000',
+          'x-edge-config-sdk': '@vercel/edge-config@1.4.0',
+          'x-edge-config-vercel-env': 'test',
         }),
       },
     );
@@ -100,6 +102,8 @@ describe('lifecycle: reading a single item', () => {
           Authorization: 'Bearer fake-edge-config-token',
           // 'If-None-Match': '"digest1"',
           'x-edge-config-min-updated-at': '7000',
+          'x-edge-config-sdk': '@vercel/edge-config@1.4.0',
+          'x-edge-config-vercel-env': 'test',
         }),
       },
     );
@@ -148,6 +152,8 @@ describe('lifecycle: reading a single item', () => {
           Authorization: 'Bearer fake-edge-config-token',
           // 'If-None-Match': '"digest1"',
           'x-edge-config-min-updated-at': '17001',
+          'x-edge-config-sdk': '@vercel/edge-config@1.4.0',
+          'x-edge-config-vercel-env': 'test',
         }),
       },
     );
@@ -191,6 +197,8 @@ describe('lifecycle: reading the full config', () => {
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
           'x-edge-config-min-updated-at': '1000',
+          'x-edge-config-sdk': '@vercel/edge-config@1.4.0',
+          'x-edge-config-vercel-env': 'test',
         }),
       },
     );
@@ -238,6 +246,8 @@ describe('lifecycle: reading the full config', () => {
           Authorization: 'Bearer fake-edge-config-token',
           // 'If-None-Match': '"digest1"',
           'x-edge-config-min-updated-at': '7000',
+          'x-edge-config-sdk': '@vercel/edge-config@1.4.0',
+          'x-edge-config-vercel-env': 'test',
         }),
       },
     );
@@ -283,6 +293,8 @@ describe('lifecycle: reading the full config', () => {
           Authorization: 'Bearer fake-edge-config-token',
           // 'If-None-Match': '"digest1"',
           'x-edge-config-min-updated-at': '17001',
+          'x-edge-config-sdk': '@vercel/edge-config@1.4.0',
+          'x-edge-config-vercel-env': 'test',
         }),
       },
     );
@@ -327,6 +339,8 @@ describe('lifecycle: checking existence of a single item', () => {
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
           'x-edge-config-min-updated-at': '1000',
+          'x-edge-config-sdk': '@vercel/edge-config@1.4.0',
+          'x-edge-config-vercel-env': 'test',
         }),
       },
     );
@@ -375,6 +389,8 @@ describe('lifecycle: checking existence of a single item', () => {
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
           'x-edge-config-min-updated-at': '7000',
+          'x-edge-config-sdk': '@vercel/edge-config@1.4.0',
+          'x-edge-config-vercel-env': 'test',
         }),
       },
     );
@@ -421,6 +437,8 @@ describe('lifecycle: checking existence of a single item', () => {
           Authorization: 'Bearer fake-edge-config-token',
           // 'If-None-Match': '"digest1"',
           'x-edge-config-min-updated-at': '17001',
+          'x-edge-config-sdk': '@vercel/edge-config@1.4.0',
+          'x-edge-config-vercel-env': 'test',
         }),
       },
     );
@@ -649,6 +667,8 @@ describe('development cache: get', () => {
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
           'If-None-Match': '"digest2"',
+          'x-edge-config-sdk': '@vercel/edge-config@1.4.0',
+          'x-edge-config-vercel-env': 'test',
         }),
       },
     );
@@ -684,6 +704,8 @@ describe('development cache: get', () => {
           Authorization: 'Bearer fake-edge-config-token',
           // we query with the older etag we had in memory
           'If-None-Match': '"digest2"',
+          'x-edge-config-sdk': '@vercel/edge-config@1.4.0',
+          'x-edge-config-vercel-env': 'test',
         }),
       },
     );

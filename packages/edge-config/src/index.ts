@@ -34,8 +34,18 @@ export const createClient = trace(
   function createClient(
     connectionString: string | undefined,
     options: EdgeConfigClientOptions = {
-      staleIfError: 604800 /* one week */,
-      staleThreshold: 60 /* 1 minute */,
+      /**
+       * Allows a stored response that is stale for N seconds to be served
+       * in case of an error.
+       */
+      staleIfError: 604800,
+      /**
+       * Allows a stored response that is stale for N seconds to be served
+       * while a background refresh is performed to get the latest value.
+       *
+       * If the threshold is exceeded a blocking read will be performed.
+       */
+      maxStale: 60,
       cache: 'no-store',
     },
   ): EdgeConfigClient {

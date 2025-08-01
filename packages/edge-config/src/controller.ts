@@ -43,12 +43,12 @@ function parseTs(updatedAt: string | null): number | null {
 function getCacheStatus(
   latestUpdate: number | undefined,
   updatedAt: number,
-  staleThreshold: number,
+  maxStale: number,
 ): CacheStatus {
   if (latestUpdate === undefined) return 'MISS';
   if (latestUpdate <= updatedAt) return 'HIT';
   // check if it is within the threshold
-  if (updatedAt >= latestUpdate - staleThreshold) return 'STALE';
+  if (updatedAt >= latestUpdate - maxStale) return 'STALE';
   return 'MISS';
 }
 
@@ -57,7 +57,7 @@ export class Controller {
     null;
   private itemCache = new Map<string, CacheEntry>();
   private connection: Connection;
-  private staleThreshold: number;
+  private maxStale: number;
   private cacheMode: 'no-store' | 'force-cache';
   private enableDevelopmentCache: boolean;
   private staleIfError: number;
@@ -70,7 +70,7 @@ export class Controller {
     options: EdgeConfigClientOptions & { enableDevelopmentCache: boolean },
   ) {
     this.connection = connection;
-    this.staleThreshold = options.staleThreshold ?? DEFAULT_STALE_THRESHOLD;
+    this.maxStale = options.maxStale ?? DEFAULT_STALE_THRESHOLD;
     this.staleIfError = options.staleIfError ?? 604800 * 1000 /* one week */;
     this.cacheMode = options.cache || 'no-store';
     this.enableDevelopmentCache = options.enableDevelopmentCache;
@@ -139,7 +139,7 @@ export class Controller {
         const cacheStatus = getCacheStatus(
           timestampOfLatestUpdate,
           cached.updatedAt,
-          this.staleThreshold,
+          this.maxStale,
         );
 
         // HIT
@@ -465,7 +465,7 @@ export class Controller {
       const cacheStatus = getCacheStatus(
         timestampOfLatestUpdate,
         this.edgeConfigCache.updatedAt,
-        this.staleThreshold,
+        this.maxStale,
       );
 
       // HIT

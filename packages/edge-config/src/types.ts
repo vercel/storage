@@ -157,7 +157,7 @@ export interface EdgeConfigClientOptions {
    *
    * @default 10
    */
-  staleThreshold?: number;
+  maxStale?: number;
 
   /**
    * In development, a stale-while-revalidate cache is employed as the default caching strategy.
@@ -181,5 +181,5 @@ export interface EdgeConfigClientOptions {
 export type CacheStatus =
   | 'HIT' // value is cached and deemed fresh
   | 'STALE' // value is cached but we know it's outdated
-  | 'MISS' // value was fetched over network as the staleThreshold was exceeded
+  | 'MISS' // value was fetched over network as the maxStale was exceeded
   | 'BYPASS'; // value was fetched over the network as a consistent read was requested

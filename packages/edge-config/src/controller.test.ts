@@ -35,6 +35,8 @@ describe('lifecycle: reading a single item', () => {
       value: 'value1',
       digest: 'digest1',
       cache: 'MISS',
+      exists: true,
+      updatedAt: 1000,
     });
   });
 
@@ -58,6 +60,8 @@ describe('lifecycle: reading a single item', () => {
       value: 'value1',
       digest: 'digest1',
       cache: 'HIT',
+      exists: true,
+      updatedAt: 1000,
     });
   });
 
@@ -80,6 +84,8 @@ describe('lifecycle: reading a single item', () => {
       value: 'value1',
       digest: 'digest1',
       cache: 'STALE',
+      exists: true,
+      updatedAt: 1000,
     });
   });
 
@@ -104,6 +110,8 @@ describe('lifecycle: reading a single item', () => {
       value: 'value2',
       digest: 'digest2',
       cache: 'HIT',
+      exists: true,
+      updatedAt: 7000,
     });
   });
 
@@ -124,6 +132,8 @@ describe('lifecycle: reading a single item', () => {
       value: 'value3',
       digest: 'digest3',
       cache: 'MISS',
+      exists: true,
+      updatedAt: 17001,
     });
   });
 
@@ -168,6 +178,7 @@ describe('lifecycle: reading the full config', () => {
       value: { key1: 'value1' },
       digest: 'digest1',
       cache: 'MISS',
+      updatedAt: 1000,
     });
   });
 
@@ -190,6 +201,7 @@ describe('lifecycle: reading the full config', () => {
       value: { key1: 'value1' },
       digest: 'digest1',
       cache: 'HIT',
+      updatedAt: 1000,
     });
   });
 
@@ -212,6 +224,7 @@ describe('lifecycle: reading the full config', () => {
       value: { key1: 'value1' },
       digest: 'digest1',
       cache: 'STALE',
+      updatedAt: 1000,
     });
   });
 
@@ -235,6 +248,7 @@ describe('lifecycle: reading the full config', () => {
       value: { key1: 'value2' },
       digest: 'digest2',
       cache: 'HIT',
+      updatedAt: 7000,
     });
   });
 
@@ -255,6 +269,7 @@ describe('lifecycle: reading the full config', () => {
       value: { key1: 'value3' },
       digest: 'digest3',
       cache: 'MISS',
+      updatedAt: 17001,
     });
   });
 
@@ -298,6 +313,7 @@ describe('lifecycle: checking existence of a single item', () => {
       exists: true,
       digest: 'digest1',
       cache: 'MISS',
+      updatedAt: 1000,
     });
   });
 
@@ -321,6 +337,7 @@ describe('lifecycle: checking existence of a single item', () => {
       exists: true,
       digest: 'digest1',
       cache: 'HIT',
+      updatedAt: 1000,
     });
   });
 
@@ -344,6 +361,7 @@ describe('lifecycle: checking existence of a single item', () => {
       exists: true,
       digest: 'digest1',
       cache: 'STALE',
+      updatedAt: 1000,
     });
   });
 
@@ -367,6 +385,7 @@ describe('lifecycle: checking existence of a single item', () => {
       exists: false,
       digest: 'digest2',
       cache: 'HIT',
+      updatedAt: 7000,
     });
   });
 
@@ -387,6 +406,7 @@ describe('lifecycle: checking existence of a single item', () => {
       exists: true,
       digest: 'digest3',
       cache: 'MISS',
+      updatedAt: 17001,
     });
   });
 
@@ -442,6 +462,8 @@ describe('deduping within a version', () => {
       value: 'value1',
       digest: 'digest1',
       cache: 'MISS',
+      exists: true,
+      updatedAt: 1000,
     });
   });
 
@@ -450,6 +472,8 @@ describe('deduping within a version', () => {
       value: 'value1',
       digest: 'digest1',
       cache: 'MISS',
+      updatedAt: 1000,
+      exists: true,
     });
   });
 
@@ -463,6 +487,8 @@ describe('deduping within a version', () => {
       value: 'value1',
       digest: 'digest1',
       cache: 'HIT',
+      updatedAt: 1000,
+      exists: true,
     });
   });
 
@@ -505,6 +531,8 @@ describe('bypassing dedupe when the timestamp changes', () => {
       value: 'value1',
       digest: 'digest1',
       cache: 'MISS',
+      updatedAt: 1000,
+      exists: true,
     });
 
     read2.resolve(
@@ -516,11 +544,12 @@ describe('bypassing dedupe when the timestamp changes', () => {
       }),
     );
 
-    // reuses the pending fetch promise
     await expect(promisedValue2).resolves.toEqual({
       value: 'value2',
       digest: 'digest2',
       cache: 'MISS',
+      updatedAt: 1001,
+      exists: true,
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -548,6 +577,8 @@ describe('development cache: get', () => {
       value: 'value1',
       digest: 'digest1',
       cache: 'MISS',
+      exists: true,
+      updatedAt: 1000,
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -573,6 +604,8 @@ describe('development cache: get', () => {
       value: 'value2',
       digest: 'digest2',
       cache: 'MISS',
+      exists: true,
+      updatedAt: 1000,
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -581,6 +614,8 @@ describe('development cache: get', () => {
       value: 'value2',
       digest: 'digest2',
       cache: 'MISS',
+      exists: true,
+      updatedAt: 1000,
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -602,6 +637,8 @@ describe('development cache: get', () => {
       digest: 'digest2',
       // hits the etag http cache, but misses the in-memory cache, so it's a MISS
       cache: 'MISS',
+      updatedAt: 1000,
+      exists: true,
     });
 
     expect(fetchMock).toHaveBeenLastCalledWith(
@@ -634,6 +671,8 @@ describe('development cache: get', () => {
       value: 'value3',
       digest: 'digest3',
       cache: 'MISS',
+      exists: true,
+      updatedAt: 1001,
     });
 
     expect(fetchMock).toHaveBeenLastCalledWith(
@@ -674,6 +713,7 @@ describe('development cache: has', () => {
       exists: true,
       digest: 'digest1',
       cache: 'MISS',
+      updatedAt: 1000,
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -696,9 +736,10 @@ describe('development cache: has', () => {
     ];
 
     await expect(promise1).resolves.toEqual({
-      exists: true,
       digest: 'digest2',
       cache: 'MISS',
+      exists: true,
+      updatedAt: 1000,
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -707,6 +748,7 @@ describe('development cache: has', () => {
       exists: true,
       digest: 'digest2',
       cache: 'MISS',
+      updatedAt: 1000,
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -737,6 +779,8 @@ describe('lifecycle: mixing get, has and getAll', () => {
       value: 'value1',
       digest: 'digest1',
       cache: 'MISS',
+      updatedAt: 1000,
+      exists: true,
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -747,6 +791,8 @@ describe('lifecycle: mixing get, has and getAll', () => {
       exists: true,
       digest: 'digest1',
       cache: 'HIT',
+      updatedAt: 1000,
+      value: 'value1', // we have the value from the previous GET call
     });
     // still one
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -767,6 +813,8 @@ describe('lifecycle: mixing get, has and getAll', () => {
       exists: false,
       digest: 'digest1',
       cache: 'MISS',
+      updatedAt: 1000,
+      value: undefined,
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -781,8 +829,51 @@ describe('lifecycle: mixing get, has and getAll', () => {
       value: undefined,
       digest: 'digest1',
       cache: 'HIT',
+      exists: false,
+      updatedAt: 1000,
     });
     // still two
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('has(key3) should MISS the cache initially', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify('value3'), {
+      headers: {
+        'x-edge-config-digest': 'digest1',
+        'x-edge-config-updated-at': '1000',
+        etag: '"digest1"',
+        'content-type': 'application/json',
+      },
+    });
+
+    await expect(controller.has('key3')).resolves.toEqual({
+      exists: true,
+      digest: 'digest1',
+      cache: 'MISS',
+      updatedAt: 1000,
+      value: undefined,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('get(key3) should MISS the cache subsequently', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify('value3'), {
+      headers: {
+        'x-edge-config-digest': 'digest1',
+        'x-edge-config-updated-at': '1000',
+        etag: '"digest1"',
+        'content-type': 'application/json',
+      },
+    });
+
+    await expect(controller.get('key3')).resolves.toEqual({
+      exists: true,
+      digest: 'digest1',
+      cache: 'MISS',
+      updatedAt: 1000,
+      value: 'value3',
+    });
+    // still one
+    expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 });

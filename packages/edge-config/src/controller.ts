@@ -9,7 +9,7 @@ import type {
   CacheStatus,
   EdgeConfigItems,
 } from './types';
-import { ERRORS, isEmptyKey, UnexpectedNetworkError } from './utils';
+import { ERRORS, isEmptyKey, pick, UnexpectedNetworkError } from './utils';
 import { consumeResponseBody } from './utils/consume-response-body';
 import { createEnhancedFetch } from './utils/enhanced-fetch';
 
@@ -438,27 +438,96 @@ export class Controller {
     });
   }
 
-  public async getMultiple<T>(
-    keys: (keyof T)[],
+  public async getMultiple<T extends EdgeConfigItems>(
+    keys: string[],
     localOptions?: EdgeConfigFunctionsOptions,
-  ): Promise<{ value: T; digest: string }> {
+  ): Promise<{
+    value: T | undefined;
+    digest: string;
+    cache: CacheStatus;
+    exists: boolean;
+  }> {
     if (!Array.isArray(keys)) {
       throw new Error('@vercel/edge-config: keys must be an array');
     }
 
+    const filteredKeys = keys.filter(
+      (key) => typeof key === 'string' && !isEmptyKey(key),
+    );
+
     // Return early if there are no keys to be read.
     // This is only possible if the digest is not required, or if we have a
     // cached digest (not implemented yet).
-    if (!localOptions?.metadata && keys.length === 0) {
-      return { value: {} as T, digest: '' };
+    if (!localOptions?.metadata && filteredKeys.length === 0) {
+      return {
+        value: {} as T,
+        digest: '',
+        cache: 'HIT',
+        exists: false,
+      };
     }
 
-    // TODO getMultiple is not caching yet
+    const items = filteredKeys.map((key) => this.getCachedItem(key, 'GET'));
+    const firstItem = items[0];
+
+    // check if the item cache is consistent and has all the requested items
+    const canUseItemCache =
+      firstItem &&
+      items.every(
+        (item) =>
+          item?.exists &&
+          item.value !== undefined &&
+          // ensure we only use the item cache if all items have the same updatedAt
+          item.updatedAt === firstItem.updatedAt,
+      );
+
+    // if the item cache is consistent and newer than the edge config cache,
+    // we can use it to serve the request
+    if (
+      canUseItemCache &&
+      (!this.edgeConfigCache ||
+        this.edgeConfigCache.updatedAt < firstItem.updatedAt) &&
+      ['STALE', 'HIT'].includes(
+        getCacheStatus(
+          timestampOfLatestUpdate,
+          firstItem.updatedAt,
+          this.maxStale,
+        ),
+      )
+    ) {
+      return {
+        value: filteredKeys.reduce<Partial<T>>((acc, key, index) => {
+          const item = items[index];
+          acc[key as keyof T] = item?.value as T[keyof T];
+          return acc;
+        }, {}) as T,
+        digest: firstItem.digest,
+        cache: 'HIT',
+        exists: true,
+      };
+    }
+
+    // if the edge config cache is filled we can fall back to using it
+    if (
+      this.edgeConfigCache &&
+      ['STALE', 'HIT'].includes(
+        getCacheStatus(
+          timestampOfLatestUpdate,
+          this.edgeConfigCache.updatedAt,
+          this.maxStale,
+        ),
+      )
+    ) {
+      return {
+        value: pick(this.edgeConfigCache.items, filteredKeys) as T,
+        digest: this.edgeConfigCache.digest,
+        cache: 'HIT',
+        exists: true,
+      };
+    }
 
     const search = new URLSearchParams(
-      keys
-        .filter((key) => typeof key === 'string' && !isEmptyKey(key))
-        .map((key) => ['key', key] as [string, string]),
+      filteredKeys.map((key) => ['key', key] as [string, string]),
     ).toString();
 
     return this.enhancedFetch(
@@ -467,16 +536,28 @@ export class Controller {
         headers: this.getHeaders(localOptions, timestampOfLatestUpdate),
         cache: this.cacheMode,
       },
-    ).then<{ value: T; digest: string }>(async ([res, cachedRes]) => {
+    ).then<{
+      value: T;
+      digest: string;
+      cache: CacheStatus;
+      exists: boolean;
+      updatedAt: number;
+    }>(async ([res, cachedRes]) => {
+      const digest = res.headers.get('x-edge-config-digest');
+      const updatedAt = parseTs(res.headers.get('x-edge-config-updated-at'));
+
+      if (!updatedAt || !digest) {
+        throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
+      }
+
       if (res.ok || (res.status === 304 && cachedRes)) {
-        const digest = res.headers.get('x-edge-config-digest');
         if (!digest) {
           throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
         }
         const value = (await (
           res.status === 304 && cachedRes ? cachedRes : res
         ).json()) as T;
-        return { value, digest };
+        return { value, digest, updatedAt, cache: 'MISS', exists: true };
       }
       await consumeResponseBody(res);
 

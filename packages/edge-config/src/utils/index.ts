@@ -26,9 +26,9 @@ export function hasOwn<X, Y extends PropertyKey>(
 
 export function pick<T, K extends keyof T>(obj: T, keys: K[]): Pick<T, K> {
   const ret: Partial<T> = {};
-  keys.forEach((key) => {
+  for (const key of keys) {
     ret[key] = obj[key];
-  });
+  }
   return ret as Pick<T, K>;
 }
 

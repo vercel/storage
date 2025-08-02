@@ -900,7 +900,6 @@ describe('lifecycle: mixing get, has and getAll', () => {
   });
 });
 
-// TODO missing tests for when individual items have different updatedAt timestamps
 // TODO missing tests for when the edge config cache is stale but the individual items are not
 // TODO missing tests for when items are stale but the full cache is not
 describe('lifecycle: reading multiple items without full edge config cache', () => {
@@ -1127,5 +1126,183 @@ describe('lifecycle: reading multiple items with full edge config cache', () => 
 
   it('should not fire off any background refreshes after the cache HIT', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('lifecycle: reading multiple items with different updatedAt timestamps', () => {
+  beforeAll(() => {
+    fetchMock.resetMocks();
+  });
+
+  const controller = new Controller(connection, {
+    enableDevelopmentCache: false,
+  });
+
+  it('should MISS the cache initially and populate item cache with different timestamps', async () => {
+    setTimestampOfLatestUpdate(1000);
+    fetchMock.mockResponseOnce(JSON.stringify('value1'), {
+      headers: {
+        'x-edge-config-digest': 'digest1',
+        'x-edge-config-updated-at': '1000',
+        etag: '"digest1"',
+        'content-type': 'application/json',
+      },
+    });
+
+    await expect(controller.get('key1')).resolves.toEqual({
+      value: 'value1',
+      digest: 'digest1',
+      cache: 'MISS',
+      exists: true,
+      updatedAt: 1000,
+    });
+
+    // Fetch key2 with a different timestamp
+    setTimestampOfLatestUpdate(2000);
+    fetchMock.mockResponseOnce(JSON.stringify('value2'), {
+      headers: {
+        'x-edge-config-digest': 'digest2',
+        'x-edge-config-updated-at': '2000',
+        etag: '"digest2"',
+        'content-type': 'application/json',
+      },
+    });
+
+    await expect(controller.get('key2')).resolves.toEqual({
+      value: 'value2',
+      digest: 'digest2',
+      cache: 'MISS',
+      exists: true,
+      updatedAt: 2000,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('should fetch from server when getting multiple items with different timestamps', async () => {
+    setTimestampOfLatestUpdate(3000);
+    fetchMock.mockResponseOnce(
+      JSON.stringify({ key1: 'value1a', key2: 'value2a' }),
+      {
+        headers: {
+          'x-edge-config-digest': 'digest3',
+          'x-edge-config-updated-at': '3000',
+          etag: '"digest3"',
+          'content-type': 'application/json',
+        },
+      },
+    );
+
+    await expect(controller.getMultiple(['key1', 'key2'])).resolves.toEqual({
+      value: { key1: 'value1a', key2: 'value2a' },
+      digest: 'digest3',
+      cache: 'MISS',
+      exists: true,
+      updatedAt: 3000,
+    });
+
+    // Should have made a new request because items have different timestamps
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      'https://edge-config.vercel.com/items?version=1&key=key1&key=key2',
+      {
+        cache: 'no-store',
+        headers: new Headers({
+          Authorization: 'Bearer fake-edge-config-token',
+          'x-edge-config-min-updated-at': '3000',
+          'x-edge-config-sdk': '@vercel/edge-config@1.4.0',
+          'x-edge-config-vercel-env': 'test',
+        }),
+      },
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('should update item cache with new unified timestamp after fetching multiple items', async () => {
+    // Now both items should have the same timestamp (3000)
+    await expect(controller.getMultiple(['key1', 'key2'])).resolves.toEqual({
+      value: { key1: 'value1a', key2: 'value2a' },
+      digest: 'digest3',
+      cache: 'HIT',
+      exists: true,
+      updatedAt: 3000,
+    });
+
+    // Should use cached items now that they have the same timestamp
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('should handle stale items with different timestamps by fetching fresh data', async () => {
+    setTimestampOfLatestUpdate(15000); // Beyond stale threshold
+    fetchMock.mockResponseOnce(
+      JSON.stringify({ key1: 'valueA', key2: 'valueB' }),
+      {
+        headers: {
+          'x-edge-config-digest': 'digest4',
+          'x-edge-config-updated-at': '15000',
+          etag: '"digest4"',
+          'content-type': 'application/json',
+        },
+      },
+    );
+
+    await expect(controller.getMultiple(['key1', 'key2'])).resolves.toEqual({
+      value: { key1: 'valueA', key2: 'valueB' },
+      digest: 'digest4',
+      cache: 'MISS',
+      exists: true,
+      updatedAt: 15000,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it('should handle partial cache hits when some items have different timestamps', async () => {
+    // Add a third item with yet another timestamp
+    setTimestampOfLatestUpdate(18000);
+    fetchMock.mockResponseOnce(JSON.stringify('value3'), {
+      headers: {
+        'x-edge-config-digest': 'digest5',
+        'x-edge-config-updated-at': '4000',
+        etag: '"digest5"',
+        'content-type': 'application/json',
+      },
+    });
+
+    await expect(controller.get('key3')).resolves.toEqual({
+      value: 'value3',
+      digest: 'digest5',
+      cache: 'MISS',
+      exists: true,
+      updatedAt: 4000,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+
+    // Now key1/key2 have timestamp 15000, key3 has timestamp 18000
+    setTimestampOfLatestUpdate(19000);
+    fetchMock.mockResponseOnce(
+      JSON.stringify({ key1: 'valueX', key2: 'valueY', key3: 'valueZ' }),
+      {
+        headers: {
+          'x-edge-config-digest': 'digest6',
+          'x-edge-config-updated-at': '16000',
+          etag: '"digest6"',
+          'content-type': 'application/json',
+        },
+      },
+    );
+
+    await expect(
+      controller.getMultiple(['key1', 'key2', 'key3']),
+    ).resolves.toEqual({
+      value: { key1: 'valueX', key2: 'valueY', key3: 'valueZ' },
+      digest: 'digest6',
+      cache: 'MISS',
+      exists: true,
+      updatedAt: 16000,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(6);
   });
 });

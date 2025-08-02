@@ -900,11 +900,10 @@ describe('lifecycle: mixing get, has and getAll', () => {
   });
 });
 
-// TODO missing tests for hitting the full edge config cache
 // TODO missing tests for when individual items have different updatedAt timestamps
 // TODO missing tests for when the edge config cache is stale but the individual items are not
 // TODO missing tests for when items are stale but the full cache is not
-describe('lifecycle: reading multiple items', () => {
+describe('lifecycle: reading multiple items without full edge config cache', () => {
   beforeAll(() => {
     fetchMock.resetMocks();
   });
@@ -1056,5 +1055,77 @@ describe('lifecycle: reading multiple items', () => {
         }),
       },
     );
+  });
+});
+
+describe('lifecycle: reading multiple items with full edge config cache', () => {
+  beforeAll(() => {
+    fetchMock.resetMocks();
+  });
+
+  const controller = new Controller(connection, {
+    enableDevelopmentCache: false,
+  });
+
+  it('should MISS the cache initially', async () => {
+    setTimestampOfLatestUpdate(1000);
+    fetchMock.mockResponseOnce(
+      JSON.stringify({ key1: 'value1', key2: 'value2' }),
+      {
+        headers: {
+          'x-edge-config-digest': 'digest1',
+          'x-edge-config-updated-at': '1000',
+          etag: '"digest1"',
+          'content-type': 'application/json',
+        },
+      },
+    );
+
+    await expect(controller.getMultiple(['key1'])).resolves.toEqual({
+      value: { key1: 'value1', key2: 'value2' },
+      digest: 'digest1',
+      cache: 'MISS',
+      exists: true,
+      updatedAt: 1000,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should load the full edge config', async () => {
+    fetchMock.mockResponseOnce(
+      JSON.stringify({ key1: 'value1', key2: 'value2' }),
+      {
+        headers: {
+          'x-edge-config-digest': 'digest1',
+          'x-edge-config-updated-at': '1000',
+          etag: '"digest1"',
+          'content-type': 'application/json',
+        },
+      },
+    );
+
+    await expect(controller.getAll()).resolves.toEqual({
+      value: { key1: 'value1', key2: 'value2' },
+      digest: 'digest1',
+      cache: 'MISS',
+      updatedAt: 1000,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('should now be possible to read key2 with a cache HIT', async () => {
+    await expect(controller.getMultiple(['key2'])).resolves.toEqual({
+      value: { key2: 'value2' },
+      digest: 'digest1',
+      cache: 'HIT',
+      exists: true,
+      updatedAt: 1000,
+    });
+  });
+
+  it('should not fire off any background refreshes after the cache HIT', () => {
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

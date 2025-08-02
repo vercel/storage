@@ -125,20 +125,28 @@ export interface EdgeConfigFunctionsOptions {
 
 export interface EdgeConfigClientOptions {
   /**
-   * Configure for how long the SDK will return a stale value in case a fresh value could not be fetched.
+   * Configure the threshold (in seconds) for how long the SDK will return a
+   * stale value in case a fresh value could not be fetched before throwing an
+   * error.
+   *
+   * Unlike regular stale-if-error behavior where the SDK will return a stale
+   * value for a certain amount of time, this threshold configures the difference,
+   * in seconds, between when an update was made until the SDK will throw an error.
    *
    * @default One week
    */
   staleIfError?: 604800;
 
   /**
-   * Configure the threshold for how long the SDK allows stale values to be
-   * served after they become outdated. The SDK will switch from refreshing
-   * in the background to performing a blocking fetch when this threshold is
-   * exceeded.
+   * Configure the threshold (in seconds) for how long the SDK allows stale
+   * values to be served after they become outdated. The SDK will switch from
+   * refreshing in the background to performing a blocking fetch when this
+   * threshold is exceeded.
    *
-   * The threshold configures the difference, in seconds, between when an update
-   * was made until the SDK will force fetch the latest value.
+   * Unlike regular stale-if-error behavior where the SDK will return a stale
+   * value for a certain amount of time, this threshold configures the difference,
+   * in seconds, between when an update was made until the SDK will force fetch
+   * the latest value.
    *
    * Background refresh example:
    * If you set this value to 10 seconds, then reads within 10

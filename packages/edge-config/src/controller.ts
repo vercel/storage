@@ -13,7 +13,8 @@ import { ERRORS, isEmptyKey, UnexpectedNetworkError } from './utils';
 import { consumeResponseBody } from './utils/consume-response-body';
 import { createEnhancedFetch } from './utils/enhanced-fetch';
 
-const DEFAULT_STALE_THRESHOLD = 10_000; // 10 seconds
+const DEFAULT_STALE_THRESHOLD = 10; // 10 seconds
+const DEFAULT_STALE_IF_ERROR = 604800; // one week in seconds
 
 let timestampOfLatestUpdate: number | undefined;
 
@@ -48,7 +49,7 @@ function getCacheStatus(
   if (latestUpdate === undefined) return 'MISS';
   if (latestUpdate <= updatedAt) return 'HIT';
   // check if it is within the threshold
-  if (updatedAt >= latestUpdate - maxStale) return 'STALE';
+  if (updatedAt >= latestUpdate - maxStale * 1000) return 'STALE';
   return 'MISS';
 }
 
@@ -71,7 +72,7 @@ export class Controller {
   ) {
     this.connection = connection;
     this.maxStale = options.maxStale ?? DEFAULT_STALE_THRESHOLD;
-    this.staleIfError = options.staleIfError ?? 604800 * 1000 /* one week */;
+    this.staleIfError = options.staleIfError ?? DEFAULT_STALE_IF_ERROR;
     this.cacheMode = options.cache || 'no-store';
     this.enableDevelopmentCache = options.enableDevelopmentCache;
     this.enhancedFetch = createEnhancedFetch();

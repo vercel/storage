@@ -109,7 +109,7 @@ export const createClient = trace(
         { name: 'has', isVerboseTrace: false, attributes: { edgeConfigId } },
       ) as EdgeConfigClient['has'],
       getMultiple: trace(
-        async function getMultiple<T>(
+        async function getMultiple<T extends EdgeConfigItems>(
           keys: (keyof T)[],
           localOptions?: EdgeConfigFunctionsOptions,
         ): Promise<{ value: T; digest: string } | T> {
@@ -120,7 +120,10 @@ export const createClient = trace(
           )
             return {} as T;
 
-          const data = await controller.getMultiple<T>(keys, localOptions);
+          const data = await controller.getMultiple<T>(
+            keys as string[],
+            localOptions,
+          );
           return localOptions?.metadata ? data : data.value;
         },
         {

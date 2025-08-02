@@ -86,6 +86,7 @@ export class Controller {
     digest: string;
     cache: CacheStatus;
     exists: boolean;
+    updatedAt: number;
   }> {
     if (this.enableDevelopmentCache || !timestampOfLatestUpdate) {
       return this.fetchItem<T>(
@@ -141,6 +142,7 @@ export class Controller {
     digest: string;
     cache: CacheStatus;
     exists: boolean;
+    updatedAt: number;
   } | null {
     // only use the cache if we have a timestamp of the latest update
     if (timestampOfLatestUpdate) {
@@ -166,7 +168,7 @@ export class Controller {
               timestampOfLatestUpdate,
               localOptions,
               false,
-            ).catch(() => null),
+            ).catch(),
           );
 
           return { ...cached, cache: 'STALE' };
@@ -442,10 +444,11 @@ export class Controller {
     keys: string[],
     localOptions?: EdgeConfigFunctionsOptions,
   ): Promise<{
-    value: T | undefined;
+    value: T;
     digest: string;
     cache: CacheStatus;
     exists: boolean;
+    updatedAt: number;
   }> {
     if (!Array.isArray(keys)) {
       throw new Error('@vercel/edge-config: keys must be an array');
@@ -464,6 +467,7 @@ export class Controller {
         digest: '',
         cache: 'HIT',
         exists: false,
+        updatedAt: -1,
       };
     }
 
@@ -486,44 +490,64 @@ export class Controller {
     if (
       canUseItemCache &&
       (!this.edgeConfigCache ||
-        this.edgeConfigCache.updatedAt < firstItem.updatedAt) &&
-      ['STALE', 'HIT'].includes(
-        getCacheStatus(
-          timestampOfLatestUpdate,
-          firstItem.updatedAt,
-          this.maxStale,
-        ),
-      )
+        this.edgeConfigCache.updatedAt < firstItem.updatedAt)
     ) {
-      return {
-        value: filteredKeys.reduce<Partial<T>>((acc, key, index) => {
-          const item = items[index];
-          acc[key as keyof T] = item?.value as T[keyof T];
-          return acc;
-        }, {}) as T,
-        digest: firstItem.digest,
-        cache: 'HIT',
-        exists: true,
-      };
+      const cacheStatus = getCacheStatus(
+        timestampOfLatestUpdate,
+        firstItem.updatedAt,
+        this.maxStale,
+      );
+
+      if (cacheStatus === 'HIT' || cacheStatus === 'STALE') {
+        if (cacheStatus === 'STALE') {
+          // TODO refresh individual items only?
+          waitUntil(
+            this.fetchFullConfig(timestampOfLatestUpdate, localOptions).catch(),
+          );
+        }
+
+        return {
+          value: filteredKeys.reduce<Partial<T>>((acc, key, index) => {
+            const item = items[index];
+            acc[key as keyof T] = item?.value as T[keyof T];
+            return acc;
+          }, {}) as T,
+          digest: firstItem.digest,
+          cache: cacheStatus,
+          exists: true,
+          updatedAt: firstItem.updatedAt,
+        };
+      }
     }
 
     // if the edge config cache is filled we can fall back to using it
-    if (
-      this.edgeConfigCache &&
-      ['STALE', 'HIT'].includes(
-        getCacheStatus(
-          timestampOfLatestUpdate,
-          this.edgeConfigCache.updatedAt,
-          this.maxStale,
-        ),
-      )
-    ) {
-      return {
-        value: pick(this.edgeConfigCache.items, filteredKeys) as T,
-        digest: this.edgeConfigCache.digest,
-        cache: 'HIT',
-        exists: true,
-      };
+    if (this.edgeConfigCache) {
+      const cacheStatus = getCacheStatus(
+        timestampOfLatestUpdate,
+        this.edgeConfigCache.updatedAt,
+        this.maxStale,
+      );
+
+      if (cacheStatus === 'HIT' || cacheStatus === 'STALE') {
+        if (cacheStatus === 'STALE') {
+          // TODO refresh individual items only?
+          waitUntil(
+            this.fetchFullConfig(timestampOfLatestUpdate, localOptions).catch(),
+          );
+        }
+
+        return {
+          value: pick(this.edgeConfigCache.items, filteredKeys) as T,
+          digest: this.edgeConfigCache.digest,
+          cache: getCacheStatus(
+            timestampOfLatestUpdate,
+            this.edgeConfigCache.updatedAt,
+            this.maxStale,
+          ),
+          exists: true,
+          updatedAt: this.edgeConfigCache.updatedAt,
+        };
+      }
     }
 
     const search = new URLSearchParams(
@@ -557,6 +581,17 @@ export class Controller {
         const value = (await (
           res.status === 304 && cachedRes ? cachedRes : res
         ).json()) as T;
+
+        // fill the itemCache with the new values
+        for (const key of filteredKeys) {
+          this.itemCache.set(key, {
+            value: value[key as keyof T],
+            updatedAt,
+            digest,
+            exists: value[key as keyof T] !== undefined,
+          });
+        }
+
         return { value, digest, updatedAt, cache: 'MISS', exists: true };
       }
       await consumeResponseBody(res);

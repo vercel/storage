@@ -958,95 +958,99 @@ describe('lifecycle: reading multiple items', () => {
     });
   });
 
-  // it('should not fire off any background refreshes after the cache HIT', () => {
-  //   expect(fetchMock).toHaveBeenCalledTimes(1);
-  // });
+  it('should not fire off any background refreshes after the cache HIT', () => {
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 
-  // it('should serve a stale value if the timestamp has changed but is within the threshold', async () => {
-  //   setTimestampOfLatestUpdate(7000);
-  //   fetchMock.mockResponseOnce(JSON.stringify('value2'), {
-  //     headers: {
-  //       'x-edge-config-digest': 'digest2',
-  //       'x-edge-config-updated-at': '7000',
-  //       etag: '"digest2"',
-  //       'content-type': 'application/json',
-  //     },
-  //   });
+  it('should serve a stale value if the timestamp has changed but is within the threshold', async () => {
+    setTimestampOfLatestUpdate(7000);
+    fetchMock.mockResponseOnce(
+      JSON.stringify({ key1: 'valueA', key2: 'valueB' }),
+      {
+        headers: {
+          'x-edge-config-digest': 'digest2',
+          'x-edge-config-updated-at': '7000',
+          etag: '"digest2"',
+          'content-type': 'application/json',
+        },
+      },
+    );
 
-  //   await expect(controller.get('key1')).resolves.toEqual({
-  //     value: 'value1',
-  //     digest: 'digest1',
-  //     cache: 'STALE',
-  //     exists: true,
-  //     updatedAt: 1000,
-  //   });
-  // });
+    await expect(controller.getMultiple(['key1', 'key2'])).resolves.toEqual({
+      value: { key1: 'value1', key2: 'value2' },
+      digest: 'digest1',
+      cache: 'STALE',
+      exists: true,
+      updatedAt: 1000,
+    });
+  });
 
-  // it('should trigger a background refresh after the STALE value', () => {
-  //   expect(fetchMock).toHaveBeenCalledTimes(2);
-  //   expect(fetchMock).toHaveBeenLastCalledWith(
-  //     'https://edge-config.vercel.com/item/key1?version=1',
-  //     {
-  //       method: 'GET',
-  //       cache: 'no-store',
-  //       headers: new Headers({
-  //         Authorization: 'Bearer fake-edge-config-token',
-  //         // 'If-None-Match': '"digest1"',
-  //         'x-edge-config-min-updated-at': '7000',
-  //         'x-edge-config-sdk': '@vercel/edge-config@1.4.0',
-  //         'x-edge-config-vercel-env': 'test',
-  //       }),
-  //     },
-  //   );
-  // });
+  it('should trigger a background refresh after the STALE value', () => {
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      'https://edge-config.vercel.com/items?version=1',
+      {
+        cache: 'no-store',
+        headers: new Headers({
+          Authorization: 'Bearer fake-edge-config-token',
+          // 'If-None-Match': '"digest1"',
+          'x-edge-config-min-updated-at': '7000',
+          'x-edge-config-sdk': '@vercel/edge-config@1.4.0',
+          'x-edge-config-vercel-env': 'test',
+        }),
+      },
+    );
+  });
 
-  // it('should serve the new value from cache after the background refresh completes', async () => {
-  //   await expect(controller.get('key1')).resolves.toEqual({
-  //     value: 'value2',
-  //     digest: 'digest2',
-  //     cache: 'HIT',
-  //     exists: true,
-  //     updatedAt: 7000,
-  //   });
-  // });
+  it('should serve the new value from cache after the background refresh completes', async () => {
+    await expect(controller.getMultiple(['key1', 'key2'])).resolves.toEqual({
+      value: { key1: 'valueA', key2: 'valueB' },
+      digest: 'digest2',
+      cache: 'HIT',
+      exists: true,
+      updatedAt: 7000,
+    });
+  });
 
-  // it('should not fire off any subsequent background refreshes', () => {
-  //   expect(fetchMock).toHaveBeenCalledTimes(2);
-  // });
+  it('should not fire off any subsequent background refreshes', () => {
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
 
-  // it('should refresh when the stale threshold is exceeded', async () => {
-  //   setTimestampOfLatestUpdate(17001);
-  //   fetchMock.mockResponseOnce(JSON.stringify('value3'), {
-  //     headers: {
-  //       'x-edge-config-digest': 'digest3',
-  //       'x-edge-config-updated-at': '17001',
-  //     },
-  //   });
+  it('should refresh when the stale threshold is exceeded', async () => {
+    setTimestampOfLatestUpdate(17001);
+    fetchMock.mockResponseOnce(
+      JSON.stringify({ key1: 'valueC', key2: 'valueD' }),
+      {
+        headers: {
+          'x-edge-config-digest': 'digest3',
+          'x-edge-config-updated-at': '17001',
+        },
+      },
+    );
 
-  //   await expect(controller.get('key1')).resolves.toEqual({
-  //     value: 'value3',
-  //     digest: 'digest3',
-  //     cache: 'MISS',
-  //     exists: true,
-  //     updatedAt: 17001,
-  //   });
-  // });
+    await expect(controller.getMultiple(['key1', 'key2'])).resolves.toEqual({
+      value: { key1: 'valueC', key2: 'valueD' },
+      digest: 'digest3',
+      cache: 'MISS',
+      exists: true,
+      updatedAt: 17001,
+    });
+  });
 
-  // it('should have done a blocking refresh after the stale threshold was exceeded', () => {
-  //   expect(fetchMock).toHaveBeenCalledTimes(3);
-  //   expect(fetchMock).toHaveBeenLastCalledWith(
-  //     'https://edge-config.vercel.com/item/key1?version=1',
-  //     {
-  //       method: 'GET',
-  //       cache: 'no-store',
-  //       headers: new Headers({
-  //         Authorization: 'Bearer fake-edge-config-token',
-  //         // 'If-None-Match': '"digest1"',
-  //         'x-edge-config-min-updated-at': '17001',
-  //         'x-edge-config-sdk': '@vercel/edge-config@1.4.0',
-  //         'x-edge-config-vercel-env': 'test',
-  //       }),
-  //     },
-  //   );
-  // });
+  it('should have done a blocking refresh after the stale threshold was exceeded', () => {
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      'https://edge-config.vercel.com/items?version=1&key=key1&key=key2',
+      {
+        cache: 'no-store',
+        headers: new Headers({
+          Authorization: 'Bearer fake-edge-config-token',
+          // 'If-None-Match': '"digest1"',
+          'x-edge-config-min-updated-at': '17001',
+          'x-edge-config-sdk': '@vercel/edge-config@1.4.0',
+          'x-edge-config-vercel-env': 'test',
+        }),
+      },
+    );
+  });
 });

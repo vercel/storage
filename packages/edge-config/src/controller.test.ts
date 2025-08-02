@@ -900,6 +900,10 @@ describe('lifecycle: mixing get, has and getAll', () => {
   });
 });
 
+// TODO missing tests for hitting the full edge config cache
+// TODO missing tests for when individual items have different updatedAt timestamps
+// TODO missing tests for when the edge config cache is stale but the individual items are not
+// TODO missing tests for when items are stale but the full cache is not
 describe('lifecycle: reading multiple items', () => {
   beforeAll(() => {
     fetchMock.resetMocks();

@@ -38,7 +38,7 @@ export const createClient = trace(
        * Allows a stored response that is stale for N seconds to be served
        * in case of an error.
        */
-      staleIfError: 604800,
+      staleIfError: true,
       /**
        * Allows a stored response that is stale for N seconds to be served
        * while a background refresh is performed to get the latest value.

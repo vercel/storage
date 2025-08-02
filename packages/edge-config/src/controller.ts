@@ -14,7 +14,7 @@ import { consumeResponseBody } from './utils/consume-response-body';
 import { createEnhancedFetch } from './utils/enhanced-fetch';
 
 const DEFAULT_STALE_THRESHOLD = 10; // 10 seconds
-const DEFAULT_STALE_IF_ERROR = 604800; // one week in seconds
+// const DEFAULT_STALE_IF_ERROR = 604800; // one week in seconds
 
 let timestampOfLatestUpdate: number | undefined;
 
@@ -61,7 +61,7 @@ export class Controller {
   private maxStale: number;
   private cacheMode: 'no-store' | 'force-cache';
   private enableDevelopmentCache: boolean;
-  private staleIfError: number;
+  private staleIfError: boolean;
 
   // create an instance per controller so the caches are isolated
   private enhancedFetch: ReturnType<typeof createEnhancedFetch>;
@@ -72,7 +72,7 @@ export class Controller {
   ) {
     this.connection = connection;
     this.maxStale = options.maxStale ?? DEFAULT_STALE_THRESHOLD;
-    this.staleIfError = options.staleIfError ?? DEFAULT_STALE_IF_ERROR;
+    this.staleIfError = options.staleIfError ?? true;
     this.cacheMode = options.cache || 'no-store';
     this.enableDevelopmentCache = options.enableDevelopmentCache;
     this.enhancedFetch = createEnhancedFetch();
@@ -93,10 +93,20 @@ export class Controller {
         key,
         timestampOfLatestUpdate,
         localOptions,
+        true,
       );
     }
 
-    return this.handleCachedRequest<T>(key, 'GET', localOptions);
+    const cached = this.readCache<T>(key, 'GET', localOptions);
+    if (cached) return cached;
+
+    return this.fetchItem<T>(
+      'GET',
+      key,
+      timestampOfLatestUpdate,
+      localOptions,
+      true,
+    );
   }
 
   /**
@@ -120,18 +130,18 @@ export class Controller {
   }
 
   /**
-   * Generic handler for cached requests that implements the common cache logic
+   * Checks the cache and kicks off a background refresh if needed.
    */
-  private async handleCachedRequest<T extends EdgeConfigValue>(
+  private readCache<T extends EdgeConfigValue>(
     key: string,
     method: 'GET' | 'HEAD',
     localOptions: EdgeConfigFunctionsOptions | undefined,
-  ): Promise<{
+  ): {
     value: T | undefined;
     digest: string;
     cache: CacheStatus;
     exists: boolean;
-  }> {
+  } | null {
     // only use the cache if we have a timestamp of the latest update
     if (timestampOfLatestUpdate) {
       const cached = this.getCachedItem<T>(key, method);
@@ -155,6 +165,7 @@ export class Controller {
               key,
               timestampOfLatestUpdate,
               localOptions,
+              false,
             ).catch(() => null),
           );
 
@@ -164,14 +175,7 @@ export class Controller {
     }
 
     // MISS
-    const result = await this.fetchItem<T>(
-      method,
-      key,
-      timestampOfLatestUpdate,
-      localOptions,
-    );
-
-    return result;
+    return null;
   }
 
   /**
@@ -276,6 +280,7 @@ export class Controller {
     key: string,
     minUpdatedAt: number | undefined,
     localOptions?: EdgeConfigFunctionsOptions,
+    staleIfError?: boolean,
   ): Promise<{
     value: T | undefined;
     digest: string;
@@ -300,7 +305,20 @@ export class Controller {
       const digest = res.headers.get('x-edge-config-digest');
       const updatedAt = parseTs(res.headers.get('x-edge-config-updated-at'));
 
-      if (res.status === 500) throw new UnexpectedNetworkError(res);
+      if (
+        res.status === 500 ||
+        res.status === 502 ||
+        res.status === 503 ||
+        res.status === 504
+      ) {
+        if (staleIfError) {
+          const cached = this.getCachedItem<T>(key, method);
+          if (cached) return { ...cached, cache: 'STALE' };
+        }
+
+        throw new UnexpectedNetworkError(res);
+      }
+
       if (!digest || !updatedAt) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
 
       if (res.ok || (res.status === 304 && cachedRes)) {
@@ -380,10 +398,25 @@ export class Controller {
     localOptions?: EdgeConfigFunctionsOptions,
   ): Promise<{ exists: boolean; digest: string; cache: CacheStatus }> {
     if (this.enableDevelopmentCache || !timestampOfLatestUpdate) {
-      return this.fetchItem('HEAD', key, timestampOfLatestUpdate, localOptions);
+      return this.fetchItem(
+        'HEAD',
+        key,
+        timestampOfLatestUpdate,
+        localOptions,
+        true,
+      );
     }
 
-    return this.handleCachedRequest<EdgeConfigValue>(key, 'HEAD', localOptions);
+    const cached = this.readCache<EdgeConfigValue>(key, 'HEAD', localOptions);
+    if (cached) return cached;
+
+    return this.fetchItem(
+      'HEAD',
+      key,
+      timestampOfLatestUpdate,
+      localOptions,
+      true,
+    );
   }
 
   public async digest(
@@ -420,25 +453,29 @@ export class Controller {
       return { value: {} as T, digest: '' };
     }
 
+    // TODO getMultiple is not caching yet
+
     const search = new URLSearchParams(
       keys
         .filter((key) => typeof key === 'string' && !isEmptyKey(key))
         .map((key) => ['key', key] as [string, string]),
     ).toString();
 
-    return fetch(
+    return this.enhancedFetch(
       `${this.connection.baseUrl}/items?version=${this.connection.version}&${search}`,
       {
         headers: this.getHeaders(localOptions, timestampOfLatestUpdate),
         cache: this.cacheMode,
       },
-    ).then<{ value: T; digest: string }>(async (res) => {
-      if (res.ok) {
+    ).then<{ value: T; digest: string }>(async ([res, cachedRes]) => {
+      if (res.ok || (res.status === 304 && cachedRes)) {
         const digest = res.headers.get('x-edge-config-digest');
         if (!digest) {
           throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
         }
-        const value = (await res.json()) as T;
+        const value = (await (
+          res.status === 304 && cachedRes ? cachedRes : res
+        ).json()) as T;
         return { value, digest };
       }
       await consumeResponseBody(res);

@@ -224,7 +224,7 @@ describe('stale-if-error semantics', () => {
     it('should reuse the cached/stale response', async () => {
       fetchMock.mockResponseOnce(JSON.stringify('bar'), {
         headers: {
-          ETag: 'a',
+          ETag: '"a"',
           'x-edge-config-digest': 'fake',
           'x-edge-config-updated-at': '1000',
           'content-type': 'application/json',
@@ -243,11 +243,11 @@ describe('stale-if-error semantics', () => {
       expect(fetchMock).toHaveBeenCalledWith(
         `${modifiedBaseUrl}/item/foo?version=1`,
         {
+          method: 'GET',
           headers: new Headers({
             Authorization: 'Bearer token-2',
             'x-edge-config-vercel-env': 'test',
             'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
-            'cache-control': 'stale-if-error=604800',
           }),
           cache: 'no-store',
         },
@@ -255,12 +255,12 @@ describe('stale-if-error semantics', () => {
       expect(fetchMock).toHaveBeenCalledWith(
         `${modifiedBaseUrl}/item/foo?version=1`,
         {
+          method: 'GET',
           headers: new Headers({
             Authorization: 'Bearer token-2',
             'x-edge-config-vercel-env': 'test',
             'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
-            'cache-control': 'stale-if-error=604800',
-            'If-None-Match': 'a',
+            'If-None-Match': '"a"',
           }),
           cache: 'no-store',
         },
@@ -271,7 +271,12 @@ describe('stale-if-error semantics', () => {
   describe('when reading the same item twice but the second read throws a network error', () => {
     it('should reuse the cached/stale response', async () => {
       fetchMock.mockResponseOnce(JSON.stringify('bar'), {
-        headers: { ETag: 'a' },
+        headers: {
+          ETag: '"a"',
+          'x-edge-config-digest': 'fake',
+          'x-edge-config-updated-at': '1000',
+          'content-type': 'application/json',
+        },
       });
 
       await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
@@ -287,10 +292,10 @@ describe('stale-if-error semantics', () => {
         `${modifiedBaseUrl}/item/foo?version=1`,
         {
           headers: new Headers({
+            method: 'GET',
             Authorization: 'Bearer token-2',
             'x-edge-config-vercel-env': 'test',
             'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
-            'cache-control': 'stale-if-error=604800',
           }),
           cache: 'no-store',
         },
@@ -302,8 +307,7 @@ describe('stale-if-error semantics', () => {
             Authorization: 'Bearer token-2',
             'x-edge-config-vercel-env': 'test',
             'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
-            'cache-control': 'stale-if-error=604800',
-            'If-None-Match': 'a',
+            'If-None-Match': '"a"',
           }),
           cache: 'no-store',
         },

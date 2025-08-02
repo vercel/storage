@@ -135,7 +135,7 @@ export interface EdgeConfigClientOptions {
    *
    * @default One week
    */
-  staleIfError?: 604800;
+  staleIfError?: boolean;
 
   /**
    * Configure the threshold (in seconds) for how long the SDK allows stale

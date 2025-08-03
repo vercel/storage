@@ -1306,3 +1306,104 @@ describe('lifecycle: reading multiple items with different updatedAt timestamps'
     expect(fetchMock).toHaveBeenCalledTimes(6);
   });
 });
+
+describe('lifecycle: reading multiple items when edge config cache is stale but individual items are not', () => {
+  beforeAll(() => {
+    fetchMock.resetMocks();
+  });
+
+  const controller = new Controller(connection, {
+    enableDevelopmentCache: false,
+  });
+
+  it('should fetch the full edge config initially', async () => {
+    setTimestampOfLatestUpdate(1000);
+    fetchMock.mockResponseOnce(
+      JSON.stringify({ key1: 'value1', key2: 'value2', key3: 'value3' }),
+      {
+        headers: {
+          'x-edge-config-digest': 'digest1',
+          'x-edge-config-updated-at': '1000',
+          etag: '"digest1"',
+          'content-type': 'application/json',
+        },
+      },
+    );
+
+    await expect(controller.getAll()).resolves.toEqual({
+      value: { key1: 'value1', key2: 'value2', key3: 'value3' },
+      digest: 'digest1',
+      cache: 'MISS',
+      updatedAt: 1000,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should fetch individual items', async () => {
+    setTimestampOfLatestUpdate(12000);
+    fetchMock.mockResponseOnce(
+      JSON.stringify({ key1: 'value1a', key2: 'value2a', key3: 'value3a' }),
+      {
+        headers: {
+          'x-edge-config-digest': 'digest1',
+          'x-edge-config-updated-at': '12000',
+          etag: '"digest1"',
+          'content-type': 'application/json',
+        },
+      },
+    );
+
+    await expect(
+      controller.getMultiple(['key1', 'key2', 'key3']),
+    ).resolves.toEqual({
+      value: { key1: 'value1a', key2: 'value2a', key3: 'value3a' },
+      digest: 'digest1',
+      cache: 'MISS',
+      exists: true,
+      updatedAt: 12000,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('should HIT the item cache if the timestamp has not changed', async () => {
+    await expect(
+      controller.getMultiple(['key1', 'key2', 'key3']),
+    ).resolves.toEqual({
+      value: { key1: 'value1a', key2: 'value2a', key3: 'value3a' },
+      digest: 'digest1',
+      cache: 'HIT',
+      updatedAt: 12000,
+      exists: true,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('should serve STALE values from the item cache if the timestamp has changed but is within the threshold', async () => {
+    fetchMock.mockResponseOnce(
+      JSON.stringify({ key1: 'value1b', key2: 'value2b', key3: 'value3b' }),
+      {
+        headers: {
+          'x-edge-config-digest': 'digest1',
+          'x-edge-config-updated-at': '13000',
+          etag: '"digest1"',
+          'content-type': 'application/json',
+        },
+      },
+    );
+
+    setTimestampOfLatestUpdate(13000);
+    await expect(
+      controller.getMultiple(['key1', 'key2', 'key3']),
+    ).resolves.toEqual({
+      value: { key1: 'value1a', key2: 'value2a', key3: 'value3a' },
+      cache: 'STALE',
+      updatedAt: 12000,
+      exists: true,
+      digest: 'digest1',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+});

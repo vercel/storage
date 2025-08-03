@@ -447,7 +447,6 @@ export class Controller {
     value: T;
     digest: string;
     cache: CacheStatus;
-    exists: boolean;
     updatedAt: number;
   }> {
     if (!Array.isArray(keys)) {
@@ -466,7 +465,6 @@ export class Controller {
         value: {} as T,
         digest: '',
         cache: 'HIT',
-        exists: false,
         updatedAt: -1,
       };
     }
@@ -514,7 +512,6 @@ export class Controller {
           }, {}) as T,
           digest: firstItem.digest,
           cache: cacheStatus,
-          exists: true,
           updatedAt: firstItem.updatedAt,
         };
       }
@@ -544,7 +541,6 @@ export class Controller {
             this.edgeConfigCache.updatedAt,
             this.maxStale,
           ),
-          exists: true,
           updatedAt: this.edgeConfigCache.updatedAt,
         };
       }
@@ -564,7 +560,6 @@ export class Controller {
       value: T;
       digest: string;
       cache: CacheStatus;
-      exists: boolean;
       updatedAt: number;
     }>(async ([res, cachedRes]) => {
       const digest = res.headers.get('x-edge-config-digest');
@@ -592,7 +587,7 @@ export class Controller {
           });
         }
 
-        return { value, digest, updatedAt, cache: 'MISS', exists: true };
+        return { value, digest, updatedAt, cache: 'MISS' };
       }
       await consumeResponseBody(res);
 

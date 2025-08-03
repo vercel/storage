@@ -929,7 +929,6 @@ describe('lifecycle: reading multiple items without full edge config cache', () 
       value: { key1: 'value1', key2: 'value2' },
       digest: 'digest1',
       cache: 'MISS',
-      exists: true,
       updatedAt: 1000,
     });
   });
@@ -955,7 +954,6 @@ describe('lifecycle: reading multiple items without full edge config cache', () 
       value: { key1: 'value1', key2: 'value2' },
       digest: 'digest1',
       cache: 'HIT',
-      exists: true,
       updatedAt: 1000,
     });
   });
@@ -982,7 +980,6 @@ describe('lifecycle: reading multiple items without full edge config cache', () 
       value: { key1: 'value1', key2: 'value2' },
       digest: 'digest1',
       cache: 'STALE',
-      exists: true,
       updatedAt: 1000,
     });
   });
@@ -1009,7 +1006,6 @@ describe('lifecycle: reading multiple items without full edge config cache', () 
       value: { key1: 'valueA', key2: 'valueB' },
       digest: 'digest2',
       cache: 'HIT',
-      exists: true,
       updatedAt: 7000,
     });
   });
@@ -1034,7 +1030,6 @@ describe('lifecycle: reading multiple items without full edge config cache', () 
       value: { key1: 'valueC', key2: 'valueD' },
       digest: 'digest3',
       cache: 'MISS',
-      exists: true,
       updatedAt: 17001,
     });
   });
@@ -1084,7 +1079,6 @@ describe('lifecycle: reading multiple items with full edge config cache', () => 
       value: { key1: 'value1', key2: 'value2' },
       digest: 'digest1',
       cache: 'MISS',
-      exists: true,
       updatedAt: 1000,
     });
 
@@ -1119,7 +1113,6 @@ describe('lifecycle: reading multiple items with full edge config cache', () => 
       value: { key2: 'value2' },
       digest: 'digest1',
       cache: 'HIT',
-      exists: true,
       updatedAt: 1000,
     });
   });
@@ -1197,7 +1190,6 @@ describe('lifecycle: reading multiple items with different updatedAt timestamps'
       value: { key1: 'value1a', key2: 'value2a' },
       digest: 'digest3',
       cache: 'MISS',
-      exists: true,
       updatedAt: 3000,
     });
 
@@ -1224,7 +1216,6 @@ describe('lifecycle: reading multiple items with different updatedAt timestamps'
       value: { key1: 'value1a', key2: 'value2a' },
       digest: 'digest3',
       cache: 'HIT',
-      exists: true,
       updatedAt: 3000,
     });
 
@@ -1250,7 +1241,6 @@ describe('lifecycle: reading multiple items with different updatedAt timestamps'
       value: { key1: 'valueA', key2: 'valueB' },
       digest: 'digest4',
       cache: 'MISS',
-      exists: true,
       updatedAt: 15000,
     });
 
@@ -1299,7 +1289,6 @@ describe('lifecycle: reading multiple items with different updatedAt timestamps'
       value: { key1: 'valueX', key2: 'valueY', key3: 'valueZ' },
       digest: 'digest6',
       cache: 'MISS',
-      exists: true,
       updatedAt: 16000,
     });
 
@@ -1360,7 +1349,6 @@ describe('lifecycle: reading multiple items when edge config cache is stale but 
       value: { key1: 'value1a', key2: 'value2a', key3: 'value3a' },
       digest: 'digest1',
       cache: 'MISS',
-      exists: true,
       updatedAt: 12000,
     });
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -1374,7 +1362,6 @@ describe('lifecycle: reading multiple items when edge config cache is stale but 
       digest: 'digest1',
       cache: 'HIT',
       updatedAt: 12000,
-      exists: true,
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -1400,7 +1387,6 @@ describe('lifecycle: reading multiple items when edge config cache is stale but 
       value: { key1: 'value1a', key2: 'value2a', key3: 'value3a' },
       cache: 'STALE',
       updatedAt: 12000,
-      exists: true,
       digest: 'digest1',
     });
 

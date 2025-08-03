@@ -900,8 +900,6 @@ describe('lifecycle: mixing get, has and getAll', () => {
   });
 });
 
-// TODO missing tests for when the edge config cache is stale but the individual items are not
-// TODO missing tests for when items are stale but the full cache is not
 describe('lifecycle: reading multiple items without full edge config cache', () => {
   beforeAll(() => {
     fetchMock.resetMocks();
@@ -1391,5 +1389,147 @@ describe('lifecycle: reading multiple items when edge config cache is stale but 
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe('lifecycle: reading multiple items when the item cache is stale but the edge config cache is not', () => {
+  beforeAll(() => {
+    fetchMock.resetMocks();
+  });
+
+  const controller = new Controller(connection, {
+    enableDevelopmentCache: false,
+  });
+
+  it('should fetch multiple items', async () => {
+    setTimestampOfLatestUpdate(1000);
+    fetchMock.mockResponseOnce(
+      JSON.stringify({ key1: 'value1', key2: 'value2' }),
+      {
+        headers: {
+          'x-edge-config-digest': 'digest1',
+          'x-edge-config-updated-at': '1000',
+          etag: '"digest1"',
+          'content-type': 'application/json',
+        },
+      },
+    );
+
+    await expect(controller.getMultiple(['key1', 'key2'])).resolves.toEqual({
+      value: { key1: 'value1', key2: 'value2' },
+      digest: 'digest1',
+      cache: 'MISS',
+      updatedAt: 1000,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should fetch the full edge config even if there are fresh items in the item cache', async () => {
+    fetchMock.mockResponseOnce(
+      JSON.stringify({ key1: 'value1', key2: 'value2', key3: 'value3' }),
+      {
+        headers: {
+          'x-edge-config-digest': 'digest1',
+          'x-edge-config-updated-at': '1000',
+          etag: '"digest1"',
+          'content-type': 'application/json',
+        },
+      },
+    );
+
+    await expect(controller.getAll()).resolves.toEqual({
+      value: { key1: 'value1', key2: 'value2', key3: 'value3' },
+      digest: 'digest1',
+      cache: 'MISS',
+      updatedAt: 1000,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('should HIT the cache if the timestamp has not changed when reading individual items', async () => {
+    await expect(
+      controller.getMultiple(['key1', 'key2', 'key3']),
+    ).resolves.toEqual({
+      value: { key1: 'value1', key2: 'value2', key3: 'value3' },
+      digest: 'digest1',
+      cache: 'HIT',
+      updatedAt: 1000,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('should HIT the cache if the timestamp has not changed when reading the full config', async () => {
+    await expect(controller.getAll()).resolves.toEqual({
+      value: { key1: 'value1', key2: 'value2', key3: 'value3' },
+      digest: 'digest1',
+      cache: 'HIT',
+      updatedAt: 1000,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('should serve STALE values when the edge config changes', async () => {
+    setTimestampOfLatestUpdate(2000);
+    fetchMock.mockResponseOnce(
+      JSON.stringify({ key1: 'value1b', key2: 'value2b', key3: 'value3b' }),
+      {
+        headers: {
+          'x-edge-config-digest': 'digestB',
+          'x-edge-config-updated-at': '2000',
+          etag: '"digest1"',
+          'content-type': 'application/json',
+        },
+      },
+    );
+
+    await expect(controller.getAll()).resolves.toEqual({
+      value: { key1: 'value1', key2: 'value2', key3: 'value3' },
+      digest: 'digest1',
+      cache: 'STALE',
+      updatedAt: 1000,
+    });
+
+    // background refresh
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('should hit the cache on subsequent reads', async () => {
+    await expect(controller.getAll()).resolves.toEqual({
+      value: { key1: 'value1b', key2: 'value2b', key3: 'value3b' },
+      digest: 'digestB',
+      cache: 'HIT',
+      updatedAt: 2000,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('should serve STALE values from the edge config cache', async () => {
+    setTimestampOfLatestUpdate(3000);
+    fetchMock.mockResponseOnce(
+      JSON.stringify({ key1: 'value1c', key2: 'value2c', key3: 'value3c' }),
+      {
+        headers: {
+          'x-edge-config-digest': 'digestC',
+          'x-edge-config-updated-at': '3000',
+          etag: '"digestC"',
+          'content-type': 'application/json',
+        },
+      },
+    );
+
+    await expect(
+      controller.getMultiple(['key1', 'key2', 'key3']),
+    ).resolves.toEqual({
+      value: { key1: 'value1b', key2: 'value2b', key3: 'value3b' },
+      digest: 'digestB',
+      cache: 'STALE',
+      updatedAt: 2000,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 });

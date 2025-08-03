@@ -1,6 +1,13 @@
 import fetchMock from 'jest-fetch-mock';
 import { Controller, setTimestampOfLatestUpdate } from './controller';
 import type { Connection } from './types';
+import { mockableImport } from './utils/mockable-import';
+
+jest.mock('./utils/mockable-import', () => ({
+  mockableImport: jest.fn(() => {
+    throw new Error('not implemented');
+  }),
+}));
 
 const connection: Connection = {
   baseUrl: 'https://edge-config.vercel.com',
@@ -523,7 +530,7 @@ describe('bypassing dedupe when the timestamp changes', () => {
     enableDevelopmentCache: false,
   });
 
-  it('should only fetch once given the same request', async () => {
+  it('should fetch twice when the timestamp changes', async () => {
     setTimestampOfLatestUpdate(1000);
     const read1 = Promise.withResolvers<Response>();
     const read2 = Promise.withResolvers<Response>();
@@ -1531,5 +1538,39 @@ describe('lifecycle: reading multiple items when the item cache is stale but the
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+});
+
+describe('preloading', () => {
+  beforeAll(() => {
+    (mockableImport as jest.Mock).mockReset();
+    fetchMock.resetMocks();
+  });
+
+  const controller = new Controller(connection, {
+    enableDevelopmentCache: false,
+  });
+
+  it('should use the preloaded value', async () => {
+    (mockableImport as jest.Mock).mockImplementationOnce(() => {
+      return Promise.resolve({
+        default: {
+          items: { key1: 'value-preloaded' },
+          updatedAt: 1000,
+          digest: 'digest-preloaded',
+        },
+      });
+    });
+
+    setTimestampOfLatestUpdate(1000);
+    await expect(controller.get('key1')).resolves.toEqual({
+      value: 'value-preloaded',
+      digest: 'digest-preloaded',
+      cache: 'HIT',
+      exists: true,
+      updatedAt: 1000,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(0);
+    expect(mockableImport).toHaveBeenCalledTimes(1);
   });
 });

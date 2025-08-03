@@ -12,6 +12,7 @@ import type {
 import { ERRORS, isEmptyKey, pick, UnexpectedNetworkError } from './utils';
 import { consumeResponseBody } from './utils/consume-response-body';
 import { createEnhancedFetch } from './utils/enhanced-fetch';
+import { mockableImport } from './utils/mockable-import';
 
 const DEFAULT_STALE_THRESHOLD = 10; // 10 seconds
 // const DEFAULT_STALE_IF_ERROR = 604800; // one week in seconds
@@ -54,14 +55,13 @@ function getCacheStatus(
 }
 
 export class Controller {
-  private edgeConfigCache: (EmbeddedEdgeConfig & { updatedAt: number }) | null =
-    null;
+  private edgeConfigCache: EmbeddedEdgeConfig | null = null;
   private itemCache = new Map<string, CacheEntry>();
   private connection: Connection;
   private maxStale: number;
   private cacheMode: 'no-store' | 'force-cache';
   private enableDevelopmentCache: boolean;
-  private staleIfError: boolean;
+  private preloaded: 'init' | 'loading' | 'loaded' = 'init';
 
   // create an instance per controller so the caches are isolated
   private enhancedFetch: ReturnType<typeof createEnhancedFetch>;
@@ -72,10 +72,33 @@ export class Controller {
   ) {
     this.connection = connection;
     this.maxStale = options.maxStale ?? DEFAULT_STALE_THRESHOLD;
-    this.staleIfError = options.staleIfError ?? true;
     this.cacheMode = options.cache || 'no-store';
     this.enableDevelopmentCache = options.enableDevelopmentCache;
     this.enhancedFetch = createEnhancedFetch();
+  }
+
+  private async preload(): Promise<void> {
+    if (this.preloaded !== 'init') return;
+    if (this.connection.type !== 'vercel') return;
+    // the folder won't exist in development, only when deployed
+    if (process.env.NODE_ENV === 'development') return;
+
+    this.preloaded = 'loading';
+
+    try {
+      await mockableImport<{ default: EmbeddedEdgeConfig }>(
+        `/tmp/edge-config/${this.connection.id}.json`,
+      )
+        .then((mod) => {
+          this.edgeConfigCache = mod.default;
+        })
+        .catch()
+        .finally(() => {
+          this.preloaded = 'loaded';
+        });
+    } catch {
+      /* do nothing */
+    }
   }
 
   public async get<T extends EdgeConfigValue>(
@@ -88,26 +111,18 @@ export class Controller {
     exists: boolean;
     updatedAt: number;
   }> {
-    if (this.enableDevelopmentCache || !timestampOfLatestUpdate) {
-      return this.fetchItem<T>(
-        'GET',
-        key,
-        timestampOfLatestUpdate,
-        localOptions,
-        true,
-      );
+    // hold a reference to the timestamp to avoid race conditions
+    const ts = timestampOfLatestUpdate;
+    if (this.enableDevelopmentCache || !ts) {
+      return this.fetchItem<T>('GET', key, ts, localOptions, true);
     }
 
-    const cached = this.readCache<T>(key, 'GET', localOptions);
+    await this.preload();
+
+    const cached = this.readCache<T>(key, 'GET', ts, localOptions);
     if (cached) return cached;
 
-    return this.fetchItem<T>(
-      'GET',
-      key,
-      timestampOfLatestUpdate,
-      localOptions,
-      true,
-    );
+    return this.fetchItem<T>('GET', key, ts, localOptions, true);
   }
 
   /**
@@ -136,6 +151,7 @@ export class Controller {
   private readCache<T extends EdgeConfigValue>(
     key: string,
     method: 'GET' | 'HEAD',
+    timestamp: number | undefined,
     localOptions: EdgeConfigFunctionsOptions | undefined,
   ): {
     value: T | undefined;
@@ -145,12 +161,12 @@ export class Controller {
     updatedAt: number;
   } | null {
     // only use the cache if we have a timestamp of the latest update
-    if (timestampOfLatestUpdate) {
+    if (timestamp) {
       const cached = this.getCachedItem<T>(key, method);
 
       if (cached) {
         const cacheStatus = getCacheStatus(
-          timestampOfLatestUpdate,
+          timestamp,
           cached.updatedAt,
           this.maxStale,
         );
@@ -165,7 +181,7 @@ export class Controller {
             this.fetchItem<T>(
               method,
               key,
-              timestampOfLatestUpdate,
+              timestamp,
               localOptions,
               false,
             ).catch(),
@@ -399,35 +415,32 @@ export class Controller {
     key: string,
     localOptions?: EdgeConfigFunctionsOptions,
   ): Promise<{ exists: boolean; digest: string; cache: CacheStatus }> {
-    if (this.enableDevelopmentCache || !timestampOfLatestUpdate) {
-      return this.fetchItem(
-        'HEAD',
-        key,
-        timestampOfLatestUpdate,
-        localOptions,
-        true,
-      );
+    const ts = timestampOfLatestUpdate;
+    if (this.enableDevelopmentCache || !ts) {
+      return this.fetchItem('HEAD', key, ts, localOptions, true);
     }
 
-    const cached = this.readCache<EdgeConfigValue>(key, 'HEAD', localOptions);
+    await this.preload();
+
+    const cached = this.readCache<EdgeConfigValue>(
+      key,
+      'HEAD',
+      ts,
+      localOptions,
+    );
     if (cached) return cached;
 
-    return this.fetchItem(
-      'HEAD',
-      key,
-      timestampOfLatestUpdate,
-      localOptions,
-      true,
-    );
+    return this.fetchItem('HEAD', key, ts, localOptions, true);
   }
 
   public async digest(
     localOptions?: Pick<EdgeConfigFunctionsOptions, 'consistentRead'>,
   ): Promise<string> {
+    const ts = timestampOfLatestUpdate;
     return fetch(
       `${this.connection.baseUrl}/digest?version=${this.connection.version}`,
       {
-        headers: this.getHeaders(localOptions, timestampOfLatestUpdate),
+        headers: this.getHeaders(localOptions, ts),
         cache: this.cacheMode,
       },
     ).then<string>(async (res) => {
@@ -449,6 +462,7 @@ export class Controller {
     cache: CacheStatus;
     updatedAt: number;
   }> {
+    const ts = timestampOfLatestUpdate;
     if (!Array.isArray(keys)) {
       throw new Error('@vercel/edge-config: keys must be an array');
     }
@@ -468,6 +482,8 @@ export class Controller {
         updatedAt: -1,
       };
     }
+
+    await this.preload();
 
     const items = filteredKeys.map((key) => this.getCachedItem(key, 'GET'));
     const firstItem = items[0];
@@ -491,7 +507,7 @@ export class Controller {
         this.edgeConfigCache.updatedAt < firstItem.updatedAt)
     ) {
       const cacheStatus = getCacheStatus(
-        timestampOfLatestUpdate,
+        ts,
         firstItem.updatedAt,
         this.maxStale,
       );
@@ -499,9 +515,7 @@ export class Controller {
       if (cacheStatus === 'HIT' || cacheStatus === 'STALE') {
         if (cacheStatus === 'STALE') {
           // TODO refresh individual items only?
-          waitUntil(
-            this.fetchFullConfig(timestampOfLatestUpdate, localOptions).catch(),
-          );
+          waitUntil(this.fetchFullConfig(ts, localOptions).catch());
         }
 
         return {
@@ -520,7 +534,7 @@ export class Controller {
     // if the edge config cache is filled we can fall back to using it
     if (this.edgeConfigCache) {
       const cacheStatus = getCacheStatus(
-        timestampOfLatestUpdate,
+        ts,
         this.edgeConfigCache.updatedAt,
         this.maxStale,
       );
@@ -528,16 +542,14 @@ export class Controller {
       if (cacheStatus === 'HIT' || cacheStatus === 'STALE') {
         if (cacheStatus === 'STALE') {
           // TODO refresh individual items only?
-          waitUntil(
-            this.fetchFullConfig(timestampOfLatestUpdate, localOptions).catch(),
-          );
+          waitUntil(this.fetchFullConfig(ts, localOptions).catch());
         }
 
         return {
           value: pick(this.edgeConfigCache.items, filteredKeys) as T,
           digest: this.edgeConfigCache.digest,
           cache: getCacheStatus(
-            timestampOfLatestUpdate,
+            ts,
             this.edgeConfigCache.updatedAt,
             this.maxStale,
           ),
@@ -553,7 +565,7 @@ export class Controller {
     return this.enhancedFetch(
       `${this.connection.baseUrl}/items?version=${this.connection.version}&${search}`,
       {
-        headers: this.getHeaders(localOptions, timestampOfLatestUpdate),
+        headers: this.getHeaders(localOptions, ts),
         cache: this.cacheMode,
       },
     ).then<{
@@ -609,10 +621,13 @@ export class Controller {
     cache: CacheStatus;
     updatedAt: number;
   }> {
-    // if we have the items and they
-    if (timestampOfLatestUpdate && this.edgeConfigCache) {
+    const ts = timestampOfLatestUpdate;
+    // TODO development mode?
+    await this.preload();
+
+    if (ts && this.edgeConfigCache) {
       const cacheStatus = getCacheStatus(
-        timestampOfLatestUpdate,
+        ts,
         this.edgeConfigCache.updatedAt,
         this.maxStale,
       );
@@ -629,9 +644,7 @@ export class Controller {
 
       if (cacheStatus === 'STALE') {
         // background refresh
-        waitUntil(
-          this.fetchFullConfig(timestampOfLatestUpdate, localOptions).catch(),
-        );
+        waitUntil(this.fetchFullConfig(ts, localOptions).catch());
         return {
           value: this.edgeConfigCache.items as T,
           digest: this.edgeConfigCache.digest,
@@ -641,7 +654,7 @@ export class Controller {
       }
     }
 
-    return this.fetchFullConfig<T>(timestampOfLatestUpdate, localOptions);
+    return this.fetchFullConfig<T>(ts, localOptions);
   }
 
   private getHeaders(

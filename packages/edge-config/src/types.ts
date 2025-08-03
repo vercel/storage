@@ -1,6 +1,7 @@
 export interface EmbeddedEdgeConfig {
   digest: string;
   items: Record<string, EdgeConfigValue>;
+  updatedAt: number;
 }
 
 /**

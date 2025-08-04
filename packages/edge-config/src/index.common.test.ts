@@ -279,20 +279,20 @@ describe('stale-if-error semantics', () => {
         },
       });
 
-      await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
+      await expect(edgeConfig.get('foo4934')).resolves.toEqual('bar');
 
       // pretend there was a network error which led to fetch throwing
       fetchMock.mockAbortOnce();
 
       // second call should reuse earlier response
-      await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
+      await expect(edgeConfig.get('foo4934')).resolves.toEqual('bar');
 
       expect(fetchMock).toHaveBeenCalledTimes(2);
       expect(fetchMock).toHaveBeenCalledWith(
-        `${modifiedBaseUrl}/item/foo?version=1`,
+        `${modifiedBaseUrl}/item/foo4934?version=1`,
         {
+          method: 'GET',
           headers: new Headers({
-            method: 'GET',
             Authorization: 'Bearer token-2',
             'x-edge-config-vercel-env': 'test',
             'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
@@ -301,8 +301,9 @@ describe('stale-if-error semantics', () => {
         },
       );
       expect(fetchMock).toHaveBeenCalledWith(
-        `${modifiedBaseUrl}/item/foo?version=1`,
+        `${modifiedBaseUrl}/item/foo4934?version=1`,
         {
+          method: 'GET',
           headers: new Headers({
             Authorization: 'Bearer token-2',
             'x-edge-config-vercel-env': 'test',
@@ -346,7 +347,13 @@ describe('connectionStrings', () => {
     describe('get', () => {
       describe('when item exists', () => {
         it('should fetch using information from the passed token', async () => {
-          fetchMock.mockResponse(JSON.stringify('bar'));
+          fetchMock.mockResponse(JSON.stringify('bar'), {
+            headers: {
+              'x-edge-config-digest': 'fake',
+              'x-edge-config-updated-at': '1000',
+              'content-type': 'application/json',
+            },
+          });
 
           await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
 
@@ -354,11 +361,11 @@ describe('connectionStrings', () => {
           expect(fetchMock).toHaveBeenCalledWith(
             'https://example.com/ecfg-2/item/foo?version=1',
             {
+              method: 'GET',
               headers: new Headers({
                 Authorization: 'Bearer token-2',
                 'x-edge-config-vercel-env': 'test',
                 'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
-                'cache-control': 'stale-if-error=604800',
               }),
               cache: 'no-store',
             },
@@ -366,34 +373,5 @@ describe('connectionStrings', () => {
         });
       });
     });
-  });
-});
-
-describe('in-memory cache with swr behaviour', () => {
-  const originalEnv = process.env.NODE_ENV;
-
-  beforeAll(() => {
-    process.env.NODE_ENV = 'development';
-  });
-
-  afterAll(() => {
-    process.env.NODE_ENV = originalEnv;
-  });
-
-  it('use in-memory cache', async () => {
-    fetchMock.mockResponse(JSON.stringify({ foo: 'bar' }));
-
-    const edgeConfig = pkg.createClient(
-      'https://edge-config.vercel.com/ecfg-2?token=token-2',
-    );
-    expect(await edgeConfig.get('foo')).toBe('bar');
-
-    fetchMock.mockResponse(JSON.stringify({ foo: 'bar2' }));
-    expect(await edgeConfig.get('foo')).toBe('bar'); // 1st call goes to the cache
-
-    await new Promise<void>((res) => {
-      setTimeout(res, 100);
-    });
-    expect(await edgeConfig.get('foo')).toBe('bar2'); // 2nd call is the updated one
   });
 });

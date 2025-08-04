@@ -326,106 +326,127 @@ export class Controller {
         headers: this.getHeaders(localOptions, minUpdatedAt),
         cache: this.cacheMode,
       },
-    ).then<{
-      value: T | undefined;
-      digest: string;
-      cache: CacheStatus;
-      exists: boolean;
-      updatedAt: number;
-    }>(async ([res, cachedRes]) => {
-      // on 304s we currently don't get the cached headers back from proxy,
-      // so we need to check the original response headers
-      const digest = (cachedRes || res).headers.get('x-edge-config-digest');
-      const updatedAt = parseTs(
-        (cachedRes || res).headers.get('x-edge-config-updated-at'),
-      );
-
-      if (
-        res.status === 500 ||
-        res.status === 502 ||
-        res.status === 503 ||
-        res.status === 504
-      ) {
-        if (staleIfError) {
-          const cached = this.getCachedItem<T>(key, method);
-          if (cached) return { ...cached, cache: 'STALE' };
-        }
-
-        throw new UnexpectedNetworkError(res);
+    ).then<
+      {
+        value: T | undefined;
+        digest: string;
+        cache: CacheStatus;
+        exists: boolean;
+        updatedAt: number;
+      },
+      {
+        value: T | undefined;
+        digest: string;
+        cache: CacheStatus;
+        exists: boolean;
+        updatedAt: number;
       }
+    >(
+      async ([res, cachedRes]) => {
+        // on 304s we currently don't get the cached headers back from proxy,
+        // so we need to check the original response headers
+        const digest = (cachedRes || res).headers.get('x-edge-config-digest');
+        const updatedAt = parseTs(
+          (cachedRes || res).headers.get('x-edge-config-updated-at'),
+        );
 
-      if (!digest || !updatedAt) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-
-      if (res.ok || (res.status === 304 && cachedRes)) {
-        // avoid undici memory leaks by consuming response bodies
-        if (method === 'HEAD') {
-          waitUntil(
-            Promise.all([
-              consumeResponseBody(res),
-              cachedRes ? consumeResponseBody(cachedRes) : null,
-            ]),
-          );
-        } else if (res.status === 304) {
-          waitUntil(consumeResponseBody(res));
-        }
-
-        let value: T | undefined;
-        if (method === 'GET') {
-          value = (await (
-            res.status === 304 && cachedRes ? cachedRes : res
-          ).json()) as T;
-        }
-
-        if (updatedAt) {
-          const existing = this.itemCache.get(key);
-          if (!existing || existing.updatedAt < updatedAt) {
-            this.itemCache.set(key, {
-              value,
-              updatedAt,
-              digest,
-              exists:
-                method === 'GET' ? value !== undefined : res.status !== 404,
-            });
+        if (
+          res.status === 500 ||
+          res.status === 502 ||
+          res.status === 503 ||
+          res.status === 504
+        ) {
+          if (staleIfError) {
+            const cached = this.getCachedItem<T>(key, method);
+            if (cached) return { ...cached, cache: 'STALE' };
           }
+
+          throw new UnexpectedNetworkError(res);
         }
-        return {
-          value,
-          digest,
-          cache: 'MISS',
-          exists: res.status !== 404,
-          updatedAt,
-        };
-      }
 
-      await Promise.all([
-        consumeResponseBody(res),
-        cachedRes ? consumeResponseBody(cachedRes) : null,
-      ]);
+        if (!digest || !updatedAt)
+          throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
 
-      if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
-      if (res.status === 404) {
-        if (digest && updatedAt) {
-          const existing = this.itemCache.get(key);
-          if (!existing || existing.updatedAt < updatedAt) {
-            this.itemCache.set(key, {
-              value: undefined,
-              updatedAt,
-              digest,
-              exists: false,
-            });
+        if (res.ok || (res.status === 304 && cachedRes)) {
+          // avoid undici memory leaks by consuming response bodies
+          if (method === 'HEAD') {
+            waitUntil(
+              Promise.all([
+                consumeResponseBody(res),
+                cachedRes ? consumeResponseBody(cachedRes) : null,
+              ]),
+            );
+          } else if (res.status === 304) {
+            waitUntil(consumeResponseBody(res));
+          }
+
+          let value: T | undefined;
+          if (method === 'GET') {
+            value = (await (
+              res.status === 304 && cachedRes ? cachedRes : res
+            ).json()) as T;
+          }
+
+          if (updatedAt) {
+            const existing = this.itemCache.get(key);
+            if (!existing || existing.updatedAt < updatedAt) {
+              this.itemCache.set(key, {
+                value,
+                updatedAt,
+                digest,
+                exists:
+                  method === 'GET' ? value !== undefined : res.status !== 404,
+              });
+            }
           }
           return {
-            value: undefined,
+            value,
             digest,
             cache: 'MISS',
-            exists: false,
+            exists: res.status !== 404,
             updatedAt,
           };
         }
-        throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-      }
-      throw new UnexpectedNetworkError(res);
-    });
+
+        await Promise.all([
+          consumeResponseBody(res),
+          cachedRes ? consumeResponseBody(cachedRes) : null,
+        ]);
+
+        if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
+        if (res.status === 404) {
+          if (digest && updatedAt) {
+            const existing = this.itemCache.get(key);
+            if (!existing || existing.updatedAt < updatedAt) {
+              this.itemCache.set(key, {
+                value: undefined,
+                updatedAt,
+                digest,
+                exists: false,
+              });
+            }
+            return {
+              value: undefined,
+              digest,
+              cache: 'MISS',
+              exists: false,
+              updatedAt,
+            };
+          }
+          throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
+        }
+        throw new UnexpectedNetworkError(res);
+      },
+      (reason) => {
+        // catch when the fetch call itself throws an error, and handle similar
+        // to receiving a 5xx response
+        if (staleIfError) {
+          const cached = this.getCachedItem<T>(key, method);
+          if (cached) return Promise.resolve({ ...cached, cache: 'STALE' });
+        }
+        throw reason;
+      },
+    );
   }
 
   public async has(

@@ -145,11 +145,11 @@ describe('default Edge Config', () => {
       it('should throw a Network error', async () => {
         fetchMock.mockReject(new Error('Unexpected fetch error'));
 
-        await expect(get('foo')).rejects.toThrow('Unexpected fetch error');
+        await expect(get('foo256')).rejects.toThrow('Unexpected fetch error');
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(
-          `${baseUrl}/item/foo?version=1`,
+          `${baseUrl}/item/foo256?version=1`,
           {
             method: 'GET',
             headers: new Headers({
@@ -167,13 +167,13 @@ describe('default Edge Config', () => {
       it('should throw a Unexpected error on 500', async () => {
         fetchMock.mockResponse('', { status: 500 });
 
-        await expect(get('foo')).rejects.toThrow(
+        await expect(get('foo500')).rejects.toThrow(
           '@vercel/edge-config: Unexpected error due to response with status code 500',
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(
-          `${baseUrl}/item/foo?version=1`,
+          `${baseUrl}/item/foo500?version=1`,
           {
             method: 'GET',
             headers: new Headers({

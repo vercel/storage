@@ -75,10 +75,7 @@ export const createClient = trace(
 
     const edgeConfigId = connection.id;
 
-    const methods: Pick<
-      EdgeConfigClient,
-      'get' | 'has' | 'getMultiple' | 'getAll'
-    > = {
+    const methods: Pick<EdgeConfigClient, 'get' | 'has' | 'mget' | 'all'> = {
       get: trace(
         async function get<T extends EdgeConfigValue = EdgeConfigValue>(
           key: string,
@@ -108,8 +105,8 @@ export const createClient = trace(
         },
         { name: 'has', isVerboseTrace: false, attributes: { edgeConfigId } },
       ) as EdgeConfigClient['has'],
-      getMultiple: trace(
-        async function getMultiple<T extends EdgeConfigItems>(
+      mget: trace(
+        async function mget<T extends EdgeConfigItems>(
           keys: (keyof T)[],
           localOptions?: EdgeConfigFunctionsOptions,
         ): Promise<{ value: T; digest: string } | T> {
@@ -120,26 +117,23 @@ export const createClient = trace(
           )
             return {} as T;
 
-          const data = await controller.getMultiple<T>(
-            keys as string[],
-            localOptions,
-          );
+          const data = await controller.mget<T>(keys as string[], localOptions);
           return localOptions?.metadata ? data : data.value;
         },
         {
-          name: 'getMultiple',
+          name: 'mget',
           isVerboseTrace: false,
           attributes: { edgeConfigId },
         },
       ),
-      getAll: trace(
-        async function getAll<T extends EdgeConfigItems = EdgeConfigItems>(
+      all: trace(
+        async function all<T extends EdgeConfigItems = EdgeConfigItems>(
           localOptions?: EdgeConfigFunctionsOptions,
         ): Promise<{ value: T; digest: string } | T> {
-          const data = await controller.getAll<T>(localOptions);
+          const data = await controller.all<T>(localOptions);
           return localOptions?.metadata ? data : data.value;
         },
-        { name: 'getAll', isVerboseTrace: false, attributes: { edgeConfigId } },
+        { name: 'all', isVerboseTrace: false, attributes: { edgeConfigId } },
       ),
     };
 
@@ -180,28 +174,28 @@ export const get: EdgeConfigClient['get'] = (...args) => {
  * Reads all items from the default Edge Config.
  *
  * This is a convenience method which reads the default Edge Config.
- * It is conceptually similar to `createClient(process.env.EDGE_CONFIG).getAll()`.
+ * It is conceptually similar to `createClient(process.env.EDGE_CONFIG).all()`.
  *
- * @see {@link EdgeConfigClient.getAll}
+ * @see {@link EdgeConfigClient.all}
  */
-export const getAll: EdgeConfigClient['getAll'] = (...args) => {
+export const all: EdgeConfigClient['all'] = (...args) => {
   init();
-  return defaultEdgeConfigClient.getAll(...args);
+  return defaultEdgeConfigClient.all(...args);
 };
 
 /**
  * Reads multiple items from the default Edge Config.
  *
  * This is a convenience method which reads the default Edge Config.
- * It is conceptually similar to `createClient(process.env.EDGE_CONFIG).getMultiple()`.
+ * It is conceptually similar to `createClient(process.env.EDGE_CONFIG).mget()`.
  *
- * @see {@link EdgeConfigClient.getMultiple}
+ * @see {@link EdgeConfigClient.mget}
  * @param keys - the keys to read
  * @returns the values stored under the given keys, or undefined
  */
-export const getMultiple: EdgeConfigClient['getMultiple'] = (...args) => {
+export const mget: EdgeConfigClient['mget'] = (...args) => {
   init();
-  return defaultEdgeConfigClient.getMultiple(...args);
+  return defaultEdgeConfigClient.mget(...args);
 };
 
 /**

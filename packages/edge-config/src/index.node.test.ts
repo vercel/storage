@@ -1,6 +1,6 @@
 import fetchMock from 'jest-fetch-mock';
 import { version as pkgVersion } from '../package.json';
-import { get, has, getAll, getMultiple } from './index';
+import { get, has, all, mget } from './index';
 
 const sdkVersion = typeof pkgVersion === 'string' ? pkgVersion : '';
 const baseUrl = 'https://edge-config.vercel.com/ecfg-1';
@@ -188,7 +188,7 @@ describe('default Edge Config', () => {
     });
   });
 
-  describe('getAll()', () => {
+  describe('all()', () => {
     it('should return all items', async () => {
       fetchMock.mockResponse(JSON.stringify({ foo: 'foo1' }), {
         headers: {
@@ -198,7 +198,7 @@ describe('default Edge Config', () => {
         },
       });
 
-      await expect(getAll()).resolves.toEqual({ foo: 'foo1' });
+      await expect(all()).resolves.toEqual({ foo: 'foo1' });
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
       expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items?version=1`, {
@@ -212,7 +212,7 @@ describe('default Edge Config', () => {
     });
   });
 
-  describe('getMultiple(keys)', () => {
+  describe('mget(keys)', () => {
     describe('when called with keys', () => {
       it('should return the selected items', async () => {
         fetchMock.mockResponse(JSON.stringify({ foo: 'foo1', bar: 'bar1' }), {
@@ -223,7 +223,7 @@ describe('default Edge Config', () => {
           },
         });
 
-        await expect(getMultiple(['foo', 'bar'])).resolves.toEqual({
+        await expect(mget(['foo', 'bar'])).resolves.toEqual({
           foo: 'foo1',
           bar: 'bar1',
         });
@@ -245,7 +245,7 @@ describe('default Edge Config', () => {
 
     describe('when called with an empty string key', () => {
       it('should return the selected items', async () => {
-        await expect(getMultiple([''])).resolves.toEqual({});
+        await expect(mget([''])).resolves.toEqual({});
         expect(fetchMock).toHaveBeenCalledTimes(0);
       });
     });
@@ -259,7 +259,7 @@ describe('default Edge Config', () => {
             'content-type': 'application/json',
           },
         });
-        await expect(getMultiple(['foo', ''])).resolves.toEqual({
+        await expect(mget(['foo', ''])).resolves.toEqual({
           foo: 'foo1',
         });
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -278,7 +278,7 @@ describe('default Edge Config', () => {
           { status: 404, headers: { 'content-type': 'application/json' } },
         );
 
-        await expect(getMultiple(['foo', 'bar'])).rejects.toThrow(
+        await expect(mget(['foo', 'bar'])).rejects.toThrow(
           '@vercel/edge-config: Edge Config not found',
         );
 
@@ -301,7 +301,7 @@ describe('default Edge Config', () => {
       it('should throw a Network error', async () => {
         fetchMock.mockReject(new Error('Unexpected fetch error'));
 
-        await expect(getAll()).rejects.toThrow('Unexpected fetch error');
+        await expect(all()).rejects.toThrow('Unexpected fetch error');
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items?version=1`, {
@@ -319,7 +319,7 @@ describe('default Edge Config', () => {
       it('should throw a Unexpected error on 500', async () => {
         fetchMock.mockResponse('', { status: 500 });
 
-        await expect(getAll()).rejects.toThrow(
+        await expect(all()).rejects.toThrow(
           '@vercel/edge-config: Unexpected error due to response with status code 500',
         );
 

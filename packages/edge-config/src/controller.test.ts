@@ -187,7 +187,7 @@ describe('lifecycle: reading the full config', () => {
       },
     });
 
-    await expect(controller.getAll()).resolves.toEqual({
+    await expect(controller.all()).resolves.toEqual({
       value: { key1: 'value1' },
       digest: 'digest1',
       cache: 'MISS',
@@ -212,7 +212,7 @@ describe('lifecycle: reading the full config', () => {
   });
 
   it('should HIT the cache if the timestamp has not changed', async () => {
-    await expect(controller.getAll()).resolves.toEqual({
+    await expect(controller.all()).resolves.toEqual({
       value: { key1: 'value1' },
       digest: 'digest1',
       cache: 'HIT',
@@ -235,7 +235,7 @@ describe('lifecycle: reading the full config', () => {
       },
     });
 
-    await expect(controller.getAll()).resolves.toEqual({
+    await expect(controller.all()).resolves.toEqual({
       value: { key1: 'value1' },
       digest: 'digest1',
       cache: 'STALE',
@@ -261,7 +261,7 @@ describe('lifecycle: reading the full config', () => {
   });
 
   it('should serve the new value from cache after the background refresh completes', async () => {
-    await expect(controller.getAll()).resolves.toEqual({
+    await expect(controller.all()).resolves.toEqual({
       value: { key1: 'value2' },
       digest: 'digest2',
       cache: 'HIT',
@@ -282,7 +282,7 @@ describe('lifecycle: reading the full config', () => {
       },
     });
 
-    await expect(controller.getAll()).resolves.toEqual({
+    await expect(controller.all()).resolves.toEqual({
       value: { key1: 'value3' },
       digest: 'digest3',
       cache: 'MISS',
@@ -784,7 +784,7 @@ describe('development cache: has', () => {
   });
 });
 
-describe('lifecycle: mixing get, has and getAll', () => {
+describe('lifecycle: mixing get, has and all', () => {
   beforeAll(() => {
     fetchMock.resetMocks();
   });
@@ -930,7 +930,7 @@ describe('lifecycle: reading multiple items without full edge config cache', () 
       },
     );
 
-    await expect(controller.getMultiple(['key1', 'key2'])).resolves.toEqual({
+    await expect(controller.mget(['key1', 'key2'])).resolves.toEqual({
       value: { key1: 'value1', key2: 'value2' },
       digest: 'digest1',
       cache: 'MISS',
@@ -955,7 +955,7 @@ describe('lifecycle: reading multiple items without full edge config cache', () 
   });
 
   it('should HIT the cache if the timestamp has not changed', async () => {
-    await expect(controller.getMultiple(['key1', 'key2'])).resolves.toEqual({
+    await expect(controller.mget(['key1', 'key2'])).resolves.toEqual({
       value: { key1: 'value1', key2: 'value2' },
       digest: 'digest1',
       cache: 'HIT',
@@ -981,7 +981,7 @@ describe('lifecycle: reading multiple items without full edge config cache', () 
       },
     );
 
-    await expect(controller.getMultiple(['key1', 'key2'])).resolves.toEqual({
+    await expect(controller.mget(['key1', 'key2'])).resolves.toEqual({
       value: { key1: 'value1', key2: 'value2' },
       digest: 'digest1',
       cache: 'STALE',
@@ -1007,7 +1007,7 @@ describe('lifecycle: reading multiple items without full edge config cache', () 
   });
 
   it('should serve the new value from cache after the background refresh completes', async () => {
-    await expect(controller.getMultiple(['key1', 'key2'])).resolves.toEqual({
+    await expect(controller.mget(['key1', 'key2'])).resolves.toEqual({
       value: { key1: 'valueA', key2: 'valueB' },
       digest: 'digest2',
       cache: 'HIT',
@@ -1031,7 +1031,7 @@ describe('lifecycle: reading multiple items without full edge config cache', () 
       },
     );
 
-    await expect(controller.getMultiple(['key1', 'key2'])).resolves.toEqual({
+    await expect(controller.mget(['key1', 'key2'])).resolves.toEqual({
       value: { key1: 'valueC', key2: 'valueD' },
       digest: 'digest3',
       cache: 'MISS',
@@ -1080,7 +1080,7 @@ describe('lifecycle: reading multiple items with full edge config cache', () => 
       },
     );
 
-    await expect(controller.getMultiple(['key1'])).resolves.toEqual({
+    await expect(controller.mget(['key1'])).resolves.toEqual({
       value: { key1: 'value1', key2: 'value2' },
       digest: 'digest1',
       cache: 'MISS',
@@ -1103,7 +1103,7 @@ describe('lifecycle: reading multiple items with full edge config cache', () => 
       },
     );
 
-    await expect(controller.getAll()).resolves.toEqual({
+    await expect(controller.all()).resolves.toEqual({
       value: { key1: 'value1', key2: 'value2' },
       digest: 'digest1',
       cache: 'MISS',
@@ -1114,7 +1114,7 @@ describe('lifecycle: reading multiple items with full edge config cache', () => 
   });
 
   it('should now be possible to read key2 with a cache HIT', async () => {
-    await expect(controller.getMultiple(['key2'])).resolves.toEqual({
+    await expect(controller.mget(['key2'])).resolves.toEqual({
       value: { key2: 'value2' },
       digest: 'digest1',
       cache: 'HIT',
@@ -1191,7 +1191,7 @@ describe('lifecycle: reading multiple items with different updatedAt timestamps'
       },
     );
 
-    await expect(controller.getMultiple(['key1', 'key2'])).resolves.toEqual({
+    await expect(controller.mget(['key1', 'key2'])).resolves.toEqual({
       value: { key1: 'value1a', key2: 'value2a' },
       digest: 'digest3',
       cache: 'MISS',
@@ -1217,7 +1217,7 @@ describe('lifecycle: reading multiple items with different updatedAt timestamps'
 
   it('should update item cache with new unified timestamp after fetching multiple items', async () => {
     // Now both items should have the same timestamp (3000)
-    await expect(controller.getMultiple(['key1', 'key2'])).resolves.toEqual({
+    await expect(controller.mget(['key1', 'key2'])).resolves.toEqual({
       value: { key1: 'value1a', key2: 'value2a' },
       digest: 'digest3',
       cache: 'HIT',
@@ -1242,7 +1242,7 @@ describe('lifecycle: reading multiple items with different updatedAt timestamps'
       },
     );
 
-    await expect(controller.getMultiple(['key1', 'key2'])).resolves.toEqual({
+    await expect(controller.mget(['key1', 'key2'])).resolves.toEqual({
       value: { key1: 'valueA', key2: 'valueB' },
       digest: 'digest4',
       cache: 'MISS',
@@ -1288,9 +1288,7 @@ describe('lifecycle: reading multiple items with different updatedAt timestamps'
       },
     );
 
-    await expect(
-      controller.getMultiple(['key1', 'key2', 'key3']),
-    ).resolves.toEqual({
+    await expect(controller.mget(['key1', 'key2', 'key3'])).resolves.toEqual({
       value: { key1: 'valueX', key2: 'valueY', key3: 'valueZ' },
       digest: 'digest6',
       cache: 'MISS',
@@ -1324,7 +1322,7 @@ describe('lifecycle: reading multiple items when edge config cache is stale but 
       },
     );
 
-    await expect(controller.getAll()).resolves.toEqual({
+    await expect(controller.all()).resolves.toEqual({
       value: { key1: 'value1', key2: 'value2', key3: 'value3' },
       digest: 'digest1',
       cache: 'MISS',
@@ -1348,9 +1346,7 @@ describe('lifecycle: reading multiple items when edge config cache is stale but 
       },
     );
 
-    await expect(
-      controller.getMultiple(['key1', 'key2', 'key3']),
-    ).resolves.toEqual({
+    await expect(controller.mget(['key1', 'key2', 'key3'])).resolves.toEqual({
       value: { key1: 'value1a', key2: 'value2a', key3: 'value3a' },
       digest: 'digest1',
       cache: 'MISS',
@@ -1360,9 +1356,7 @@ describe('lifecycle: reading multiple items when edge config cache is stale but 
   });
 
   it('should HIT the item cache if the timestamp has not changed', async () => {
-    await expect(
-      controller.getMultiple(['key1', 'key2', 'key3']),
-    ).resolves.toEqual({
+    await expect(controller.mget(['key1', 'key2', 'key3'])).resolves.toEqual({
       value: { key1: 'value1a', key2: 'value2a', key3: 'value3a' },
       digest: 'digest1',
       cache: 'HIT',
@@ -1386,9 +1380,7 @@ describe('lifecycle: reading multiple items when edge config cache is stale but 
     );
 
     setTimestampOfLatestUpdate(13000);
-    await expect(
-      controller.getMultiple(['key1', 'key2', 'key3']),
-    ).resolves.toEqual({
+    await expect(controller.mget(['key1', 'key2', 'key3'])).resolves.toEqual({
       value: { key1: 'value1a', key2: 'value2a', key3: 'value3a' },
       cache: 'STALE',
       updatedAt: 12000,
@@ -1422,7 +1414,7 @@ describe('lifecycle: reading multiple items when the item cache is stale but the
       },
     );
 
-    await expect(controller.getMultiple(['key1', 'key2'])).resolves.toEqual({
+    await expect(controller.mget(['key1', 'key2'])).resolves.toEqual({
       value: { key1: 'value1', key2: 'value2' },
       digest: 'digest1',
       cache: 'MISS',
@@ -1445,7 +1437,7 @@ describe('lifecycle: reading multiple items when the item cache is stale but the
       },
     );
 
-    await expect(controller.getAll()).resolves.toEqual({
+    await expect(controller.all()).resolves.toEqual({
       value: { key1: 'value1', key2: 'value2', key3: 'value3' },
       digest: 'digest1',
       cache: 'MISS',
@@ -1456,9 +1448,7 @@ describe('lifecycle: reading multiple items when the item cache is stale but the
   });
 
   it('should HIT the cache if the timestamp has not changed when reading individual items', async () => {
-    await expect(
-      controller.getMultiple(['key1', 'key2', 'key3']),
-    ).resolves.toEqual({
+    await expect(controller.mget(['key1', 'key2', 'key3'])).resolves.toEqual({
       value: { key1: 'value1', key2: 'value2', key3: 'value3' },
       digest: 'digest1',
       cache: 'HIT',
@@ -1469,7 +1459,7 @@ describe('lifecycle: reading multiple items when the item cache is stale but the
   });
 
   it('should HIT the cache if the timestamp has not changed when reading the full config', async () => {
-    await expect(controller.getAll()).resolves.toEqual({
+    await expect(controller.all()).resolves.toEqual({
       value: { key1: 'value1', key2: 'value2', key3: 'value3' },
       digest: 'digest1',
       cache: 'HIT',
@@ -1493,7 +1483,7 @@ describe('lifecycle: reading multiple items when the item cache is stale but the
       },
     );
 
-    await expect(controller.getAll()).resolves.toEqual({
+    await expect(controller.all()).resolves.toEqual({
       value: { key1: 'value1', key2: 'value2', key3: 'value3' },
       digest: 'digest1',
       cache: 'STALE',
@@ -1505,7 +1495,7 @@ describe('lifecycle: reading multiple items when the item cache is stale but the
   });
 
   it('should hit the cache on subsequent reads', async () => {
-    await expect(controller.getAll()).resolves.toEqual({
+    await expect(controller.all()).resolves.toEqual({
       value: { key1: 'value1b', key2: 'value2b', key3: 'value3b' },
       digest: 'digestB',
       cache: 'HIT',
@@ -1528,9 +1518,7 @@ describe('lifecycle: reading multiple items when the item cache is stale but the
       },
     );
 
-    await expect(
-      controller.getMultiple(['key1', 'key2', 'key3']),
-    ).resolves.toEqual({
+    await expect(controller.mget(['key1', 'key2', 'key3'])).resolves.toEqual({
       value: { key1: 'value1b', key2: 'value2b', key3: 'value3b' },
       digest: 'digestB',
       cache: 'STALE',

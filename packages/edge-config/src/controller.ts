@@ -453,7 +453,7 @@ export class Controller {
     });
   }
 
-  public async getMultiple<T extends EdgeConfigItems>(
+  public async mget<T extends EdgeConfigItems>(
     keys: string[],
     localOptions?: EdgeConfigFunctionsOptions,
   ): Promise<{
@@ -613,7 +613,7 @@ export class Controller {
     });
   }
 
-  public async getAll<T extends EdgeConfigItems>(
+  public async all<T extends EdgeConfigItems>(
     localOptions?: EdgeConfigFunctionsOptions,
   ): Promise<{
     value: T;

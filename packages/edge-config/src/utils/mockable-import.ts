@@ -1,3 +1,3 @@
-export function mockableImport<M>(path: string): Promise<M> {
-  return import(path) as Promise<M>;
+export function readLocalEdgeConfig<M>(id: string): Promise<M> {
+  return import(`/tmp/edge-config/${id}.json`) as Promise<M>;
 }

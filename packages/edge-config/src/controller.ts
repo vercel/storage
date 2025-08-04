@@ -12,7 +12,7 @@ import type {
 import { ERRORS, isEmptyKey, pick, UnexpectedNetworkError } from './utils';
 import { consumeResponseBody } from './utils/consume-response-body';
 import { createEnhancedFetch } from './utils/enhanced-fetch';
-import { mockableImport } from './utils/mockable-import';
+import { readLocalEdgeConfig } from './utils/mockable-import';
 
 const DEFAULT_STALE_THRESHOLD = 10; // 10 seconds
 // const DEFAULT_STALE_IF_ERROR = 604800; // one week in seconds
@@ -95,8 +95,8 @@ export class Controller {
     this.preloaded = 'loading';
 
     try {
-      await mockableImport<{ default: EmbeddedEdgeConfig }>(
-        `/tmp/edge-config/${this.connection.id}.json`,
+      await readLocalEdgeConfig<{ default: EmbeddedEdgeConfig }>(
+        this.connection.id,
       )
         .then((mod) => {
           this.edgeConfigCache = mod.default;

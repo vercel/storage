@@ -257,8 +257,12 @@ export class Controller {
       },
     ).then<{ value: T; digest: string; cache: CacheStatus; updatedAt: number }>(
       async ([res, cachedRes]) => {
-        const digest = res.headers.get('x-edge-config-digest');
-        const updatedAt = parseTs(res.headers.get('x-edge-config-updated-at'));
+        // on 304s we currently don't get the cached headers back from proxy,
+        // so we need to check the original response headers
+        const digest = (cachedRes ?? res).headers.get('x-edge-config-digest');
+        const updatedAt = parseTs(
+          (cachedRes ?? res).headers.get('x-edge-config-updated-at'),
+        );
 
         if (res.status === 500) throw new UnexpectedNetworkError(res);
 
@@ -320,8 +324,12 @@ export class Controller {
       exists: boolean;
       updatedAt: number;
     }>(async ([res, cachedRes]) => {
-      const digest = res.headers.get('x-edge-config-digest');
-      const updatedAt = parseTs(res.headers.get('x-edge-config-updated-at'));
+      // on 304s we currently don't get the cached headers back from proxy,
+      // so we need to check the original response headers
+      const digest = (cachedRes || res).headers.get('x-edge-config-digest');
+      const updatedAt = parseTs(
+        (cachedRes || res).headers.get('x-edge-config-updated-at'),
+      );
 
       if (
         res.status === 500 ||
@@ -574,8 +582,12 @@ export class Controller {
       cache: CacheStatus;
       updatedAt: number;
     }>(async ([res, cachedRes]) => {
-      const digest = res.headers.get('x-edge-config-digest');
-      const updatedAt = parseTs(res.headers.get('x-edge-config-updated-at'));
+      // on 304s we currently don't get the cached headers back from proxy,
+      // so we need to check the original response headers
+      const digest = (cachedRes || res).headers.get('x-edge-config-digest');
+      const updatedAt = parseTs(
+        (cachedRes || res).headers.get('x-edge-config-updated-at'),
+      );
 
       if (!updatedAt || !digest) {
         throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);

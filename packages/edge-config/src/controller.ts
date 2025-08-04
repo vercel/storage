@@ -17,7 +17,22 @@ import { mockableImport } from './utils/mockable-import';
 const DEFAULT_STALE_THRESHOLD = 10; // 10 seconds
 // const DEFAULT_STALE_IF_ERROR = 604800; // one week in seconds
 
-let timestampOfLatestUpdate: number | undefined;
+const privateEdgeConfigSymbol = Symbol.for('privateEdgeConfig');
+
+/**
+ * Will return an embedded Edge Config object from memory,
+ * but only when the `privateEdgeConfigSymbol` is in global scope.
+ */
+function getUpdatedAt(connection: Connection): number | null {
+  const privateEdgeConfig = Reflect.get(globalThis, privateEdgeConfigSymbol) as
+    | { getUpdatedAt: (id: string) => number | null }
+    | undefined;
+
+  return typeof privateEdgeConfig === 'object' &&
+    typeof privateEdgeConfig.getUpdatedAt === 'function'
+    ? privateEdgeConfig.getUpdatedAt(connection.id)
+    : null;
+}
 
 /**
  * Unified cache entry that stores both the value and existence information
@@ -29,12 +44,6 @@ interface CacheEntry<T = EdgeConfigValue> {
   exists: boolean;
 }
 
-export function setTimestampOfLatestUpdate(
-  timestamp: number | undefined,
-): void {
-  timestampOfLatestUpdate = timestamp;
-}
-
 function parseTs(updatedAt: string | null): number | null {
   if (!updatedAt) return null;
   const parsed = Number.parseInt(updatedAt, 10);
@@ -43,11 +52,11 @@ function parseTs(updatedAt: string | null): number | null {
 }
 
 function getCacheStatus(
-  latestUpdate: number | undefined,
+  latestUpdate: number | null,
   updatedAt: number,
   maxStale: number,
 ): CacheStatus {
-  if (latestUpdate === undefined) return 'MISS';
+  if (latestUpdate === null) return 'MISS';
   if (latestUpdate <= updatedAt) return 'HIT';
   // check if it is within the threshold
   if (updatedAt >= latestUpdate - maxStale * 1000) return 'STALE';
@@ -112,7 +121,7 @@ export class Controller {
     updatedAt: number;
   }> {
     // hold a reference to the timestamp to avoid race conditions
-    const ts = timestampOfLatestUpdate;
+    const ts = getUpdatedAt(this.connection);
     if (this.enableDevelopmentCache || !ts) {
       return this.fetchItem<T>('GET', key, ts, localOptions, true);
     }
@@ -241,7 +250,7 @@ export class Controller {
   }
 
   private async fetchFullConfig<T extends Record<string, EdgeConfigValue>>(
-    minUpdatedAt: number | undefined,
+    minUpdatedAt: number | null,
     localOptions?: EdgeConfigFunctionsOptions,
   ): Promise<{
     value: T;
@@ -300,7 +309,7 @@ export class Controller {
   private async fetchItem<T extends EdgeConfigValue>(
     method: 'GET' | 'HEAD',
     key: string,
-    minUpdatedAt: number | undefined,
+    minUpdatedAt: number | null,
     localOptions?: EdgeConfigFunctionsOptions,
     staleIfError?: boolean,
   ): Promise<{
@@ -423,7 +432,7 @@ export class Controller {
     key: string,
     localOptions?: EdgeConfigFunctionsOptions,
   ): Promise<{ exists: boolean; digest: string; cache: CacheStatus }> {
-    const ts = timestampOfLatestUpdate;
+    const ts = getUpdatedAt(this.connection);
     if (this.enableDevelopmentCache || !ts) {
       return this.fetchItem('HEAD', key, ts, localOptions, true);
     }
@@ -444,7 +453,7 @@ export class Controller {
   public async digest(
     localOptions?: Pick<EdgeConfigFunctionsOptions, 'consistentRead'>,
   ): Promise<string> {
-    const ts = timestampOfLatestUpdate;
+    const ts = getUpdatedAt(this.connection);
     return fetch(
       `${this.connection.baseUrl}/digest?version=${this.connection.version}`,
       {
@@ -470,7 +479,7 @@ export class Controller {
     cache: CacheStatus;
     updatedAt: number;
   }> {
-    const ts = timestampOfLatestUpdate;
+    const ts = getUpdatedAt(this.connection);
     if (!Array.isArray(keys)) {
       throw new Error('@vercel/edge-config: keys must be an array');
     }
@@ -633,7 +642,7 @@ export class Controller {
     cache: CacheStatus;
     updatedAt: number;
   }> {
-    const ts = timestampOfLatestUpdate;
+    const ts = getUpdatedAt(this.connection);
     // TODO development mode?
     await this.preload();
 
@@ -671,7 +680,7 @@ export class Controller {
 
   private getHeaders(
     localOptions: EdgeConfigFunctionsOptions | undefined,
-    minUpdatedAt: number | undefined,
+    minUpdatedAt: number | null,
   ): Headers {
     const headers: Record<string, string> = {
       Authorization: `Bearer ${this.connection.token}`,

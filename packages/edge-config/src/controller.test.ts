@@ -1,5 +1,5 @@
 import fetchMock from 'jest-fetch-mock';
-import { Controller, setTimestampOfLatestUpdate } from './controller';
+import { Controller } from './controller';
 import type { Connection } from './types';
 import { mockableImport } from './utils/mockable-import';
 
@@ -16,6 +16,23 @@ const connection: Connection = {
   version: '1',
   type: 'vercel',
 };
+
+// Helper function to mock the privateEdgeConfigSymbol in globalThis
+function setTimestampOfLatestUpdate(
+  timestamp: number | null | undefined,
+): void {
+  const privateEdgeConfigSymbol = Symbol.for('privateEdgeConfig');
+
+  if (timestamp === null || timestamp === undefined) {
+    Reflect.set(globalThis, privateEdgeConfigSymbol, {
+      getUpdatedAt: (_id: string) => null,
+    });
+  } else {
+    Reflect.set(globalThis, privateEdgeConfigSymbol, {
+      getUpdatedAt: (_id: string) => timestamp,
+    });
+  }
+}
 
 // the "it" tests in the lifecycle are run sequentially, so their order matters
 describe('lifecycle: reading a single item', () => {

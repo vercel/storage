@@ -59,7 +59,8 @@ function getCacheStatus(
   if (latestUpdate === null) return 'MISS';
   if (latestUpdate <= updatedAt) return 'HIT';
   // check if it is within the threshold
-  if (updatedAt >= latestUpdate - maxStale * 1000) return 'STALE';
+  if (latestUpdate >= Date.now() - maxStale * 1000) return 'STALE';
+  // if (updatedAt >= latestUpdate - maxStale * 1000) return 'STALE';
   return 'MISS';
 }
 
@@ -99,6 +100,13 @@ export class Controller {
         this.connection.id,
       )
         .then((mod) => {
+          const hasNewerEntry =
+            this.edgeConfigCache &&
+            this.edgeConfigCache.updatedAt > mod.default.updatedAt;
+
+          // skip updating the local cache if there is a newer cache entry already
+          if (hasNewerEntry) return;
+
           this.edgeConfigCache = mod.default;
         })
         .catch()

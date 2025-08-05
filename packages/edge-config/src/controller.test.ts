@@ -1,7 +1,12 @@
 import fetchMock from 'jest-fetch-mock';
+import { version } from '../package.json';
 import { Controller } from './controller';
 import type { Connection } from './types';
 import { readLocalEdgeConfig } from './utils/mockable-import';
+
+const packageVersion = `@vercel/edge-config@${version}`;
+
+jest.useFakeTimers();
 
 jest.mock('./utils/mockable-import', () => ({
   readLocalEdgeConfig: jest.fn(() => {
@@ -45,6 +50,7 @@ describe('lifecycle: reading a single item', () => {
   });
 
   it('should MISS the cache initially', async () => {
+    jest.setSystemTime(1000);
     setTimestampOfLatestUpdate(1000);
     fetchMock.mockResponseOnce(JSON.stringify('value1'), {
       headers: {
@@ -74,7 +80,7 @@ describe('lifecycle: reading a single item', () => {
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
           'x-edge-config-min-updated-at': '1000',
-          'x-edge-config-sdk': '@vercel/edge-config@2.0.0-beta.2',
+          'x-edge-config-sdk': packageVersion,
           'x-edge-config-vercel-env': 'test',
         }),
       },
@@ -82,6 +88,7 @@ describe('lifecycle: reading a single item', () => {
   });
 
   it('should HIT the cache if the timestamp has not changed', async () => {
+    jest.setSystemTime(1100);
     await expect(controller.get('key1')).resolves.toEqual({
       value: 'value1',
       digest: 'digest1',
@@ -96,6 +103,7 @@ describe('lifecycle: reading a single item', () => {
   });
 
   it('should serve a stale value if the timestamp has changed but is within the threshold', async () => {
+    jest.setSystemTime(7100);
     setTimestampOfLatestUpdate(7000);
     fetchMock.mockResponseOnce(JSON.stringify('value2'), {
       headers: {
@@ -126,7 +134,7 @@ describe('lifecycle: reading a single item', () => {
           Authorization: 'Bearer fake-edge-config-token',
           // 'If-None-Match': '"digest1"',
           'x-edge-config-min-updated-at': '7000',
-          'x-edge-config-sdk': '@vercel/edge-config@2.0.0-beta.2',
+          'x-edge-config-sdk': packageVersion,
           'x-edge-config-vercel-env': 'test',
         }),
       },
@@ -148,11 +156,12 @@ describe('lifecycle: reading a single item', () => {
   });
 
   it('should refresh when the stale threshold is exceeded', async () => {
-    setTimestampOfLatestUpdate(17001);
+    jest.setSystemTime(18001);
+    setTimestampOfLatestUpdate(8000);
     fetchMock.mockResponseOnce(JSON.stringify('value3'), {
       headers: {
         'x-edge-config-digest': 'digest3',
-        'x-edge-config-updated-at': '17001',
+        'x-edge-config-updated-at': '8000',
       },
     });
 
@@ -161,7 +170,7 @@ describe('lifecycle: reading a single item', () => {
       digest: 'digest3',
       cache: 'MISS',
       exists: true,
-      updatedAt: 17001,
+      updatedAt: 8000,
     });
   });
 
@@ -175,8 +184,8 @@ describe('lifecycle: reading a single item', () => {
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
           // 'If-None-Match': '"digest1"',
-          'x-edge-config-min-updated-at': '17001',
-          'x-edge-config-sdk': '@vercel/edge-config@2.0.0-beta.2',
+          'x-edge-config-min-updated-at': '8000',
+          'x-edge-config-sdk': packageVersion,
           'x-edge-config-vercel-env': 'test',
         }),
       },
@@ -194,6 +203,7 @@ describe('lifecycle: reading the full config', () => {
   });
 
   it('should MISS the cache initially', async () => {
+    jest.setSystemTime(1100);
     setTimestampOfLatestUpdate(1000);
     fetchMock.mockResponseOnce(JSON.stringify({ key1: 'value1' }), {
       headers: {
@@ -221,7 +231,7 @@ describe('lifecycle: reading the full config', () => {
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
           'x-edge-config-min-updated-at': '1000',
-          'x-edge-config-sdk': '@vercel/edge-config@2.0.0-beta.2',
+          'x-edge-config-sdk': packageVersion,
           'x-edge-config-vercel-env': 'test',
         }),
       },
@@ -229,6 +239,7 @@ describe('lifecycle: reading the full config', () => {
   });
 
   it('should HIT the cache if the timestamp has not changed', async () => {
+    jest.setSystemTime(20000);
     await expect(controller.all()).resolves.toEqual({
       value: { key1: 'value1' },
       digest: 'digest1',
@@ -242,11 +253,13 @@ describe('lifecycle: reading the full config', () => {
   });
 
   it('should serve a stale value if the timestamp has changed but is within the threshold', async () => {
-    setTimestampOfLatestUpdate(7000);
+    // latest update was less than 10 seconds ago, so we can serve stale value
+    jest.setSystemTime(27000);
+    setTimestampOfLatestUpdate(20000);
     fetchMock.mockResponseOnce(JSON.stringify({ key1: 'value2' }), {
       headers: {
         'x-edge-config-digest': 'digest2',
-        'x-edge-config-updated-at': '7000',
+        'x-edge-config-updated-at': '20000',
         etag: '"digest2"',
         'content-type': 'application/json',
       },
@@ -269,8 +282,8 @@ describe('lifecycle: reading the full config', () => {
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
           // 'If-None-Match': '"digest1"',
-          'x-edge-config-min-updated-at': '7000',
-          'x-edge-config-sdk': '@vercel/edge-config@2.0.0-beta.2',
+          'x-edge-config-min-updated-at': '20000',
+          'x-edge-config-sdk': packageVersion,
           'x-edge-config-vercel-env': 'test',
         }),
       },
@@ -282,7 +295,7 @@ describe('lifecycle: reading the full config', () => {
       value: { key1: 'value2' },
       digest: 'digest2',
       cache: 'HIT',
-      updatedAt: 7000,
+      updatedAt: 20000,
     });
   });
 
@@ -291,11 +304,12 @@ describe('lifecycle: reading the full config', () => {
   });
 
   it('should refresh when the stale threshold is exceeded', async () => {
-    setTimestampOfLatestUpdate(17001);
+    jest.setSystemTime(30002);
+    setTimestampOfLatestUpdate(20001);
     fetchMock.mockResponseOnce(JSON.stringify({ key1: 'value3' }), {
       headers: {
         'x-edge-config-digest': 'digest3',
-        'x-edge-config-updated-at': '17001',
+        'x-edge-config-updated-at': '20001',
       },
     });
 
@@ -303,7 +317,7 @@ describe('lifecycle: reading the full config', () => {
       value: { key1: 'value3' },
       digest: 'digest3',
       cache: 'MISS',
-      updatedAt: 17001,
+      updatedAt: 20001,
     });
   });
 
@@ -316,8 +330,8 @@ describe('lifecycle: reading the full config', () => {
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
           // 'If-None-Match': '"digest1"',
-          'x-edge-config-min-updated-at': '17001',
-          'x-edge-config-sdk': '@vercel/edge-config@2.0.0-beta.2',
+          'x-edge-config-min-updated-at': '20001',
+          'x-edge-config-sdk': packageVersion,
           'x-edge-config-vercel-env': 'test',
         }),
       },
@@ -335,6 +349,7 @@ describe('lifecycle: checking existence of a single item', () => {
   });
 
   it('should MISS the cache initially', async () => {
+    jest.setSystemTime(1100);
     setTimestampOfLatestUpdate(1000);
     fetchMock.mockResponseOnce('', {
       headers: {
@@ -363,7 +378,7 @@ describe('lifecycle: checking existence of a single item', () => {
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
           'x-edge-config-min-updated-at': '1000',
-          'x-edge-config-sdk': '@vercel/edge-config@2.0.0-beta.2',
+          'x-edge-config-sdk': packageVersion,
           'x-edge-config-vercel-env': 'test',
         }),
       },
@@ -371,6 +386,7 @@ describe('lifecycle: checking existence of a single item', () => {
   });
 
   it('should HIT the cache if the timestamp has not changed', async () => {
+    jest.setSystemTime(20000);
     await expect(controller.has('key1')).resolves.toEqual({
       exists: true,
       digest: 'digest1',
@@ -383,13 +399,16 @@ describe('lifecycle: checking existence of a single item', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('should serve a stale exitence value if the timestamp has changed but is within the threshold', async () => {
-    setTimestampOfLatestUpdate(7000);
+  it('should serve a stale value if the timestamp has changed but is within the threshold', async () => {
+    jest.setSystemTime(27000);
+    setTimestampOfLatestUpdate(20000);
+
+    // pretend key1 does not exist anymore so we can check has() uses the stale value
     fetchMock.mockResponseOnce('', {
       status: 404,
       headers: {
         'x-edge-config-digest': 'digest2',
-        'x-edge-config-updated-at': '7000',
+        'x-edge-config-updated-at': '20000',
         etag: '"digest2"',
         'content-type': 'application/json',
       },
@@ -412,8 +431,8 @@ describe('lifecycle: checking existence of a single item', () => {
         cache: 'no-store',
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
-          'x-edge-config-min-updated-at': '7000',
-          'x-edge-config-sdk': '@vercel/edge-config@2.0.0-beta.2',
+          'x-edge-config-min-updated-at': '20000',
+          'x-edge-config-sdk': packageVersion,
           'x-edge-config-vercel-env': 'test',
         }),
       },
@@ -425,7 +444,8 @@ describe('lifecycle: checking existence of a single item', () => {
       exists: false,
       digest: 'digest2',
       cache: 'HIT',
-      updatedAt: 7000,
+      updatedAt: 20000,
+      value: undefined,
     });
   });
 
@@ -434,11 +454,12 @@ describe('lifecycle: checking existence of a single item', () => {
   });
 
   it('should refresh when the stale threshold is exceeded', async () => {
-    setTimestampOfLatestUpdate(17001);
+    jest.setSystemTime(40000);
+    setTimestampOfLatestUpdate(21000);
     fetchMock.mockResponseOnce('', {
       headers: {
         'x-edge-config-digest': 'digest3',
-        'x-edge-config-updated-at': '17001',
+        'x-edge-config-updated-at': '21000',
       },
     });
 
@@ -446,7 +467,7 @@ describe('lifecycle: checking existence of a single item', () => {
       exists: true,
       digest: 'digest3',
       cache: 'MISS',
-      updatedAt: 17001,
+      updatedAt: 21000,
     });
   });
 
@@ -460,8 +481,8 @@ describe('lifecycle: checking existence of a single item', () => {
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
           // 'If-None-Match': '"digest1"',
-          'x-edge-config-min-updated-at': '17001',
-          'x-edge-config-sdk': '@vercel/edge-config@2.0.0-beta.2',
+          'x-edge-config-min-updated-at': '21000',
+          'x-edge-config-sdk': packageVersion,
           'x-edge-config-vercel-env': 'test',
         }),
       },
@@ -691,7 +712,7 @@ describe('development cache: get', () => {
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
           'If-None-Match': '"digest2"',
-          'x-edge-config-sdk': '@vercel/edge-config@2.0.0-beta.2',
+          'x-edge-config-sdk': packageVersion,
           'x-edge-config-vercel-env': 'test',
         }),
       },
@@ -728,7 +749,7 @@ describe('development cache: get', () => {
           Authorization: 'Bearer fake-edge-config-token',
           // we query with the older etag we had in memory
           'If-None-Match': '"digest2"',
-          'x-edge-config-sdk': '@vercel/edge-config@2.0.0-beta.2',
+          'x-edge-config-sdk': packageVersion,
           'x-edge-config-vercel-env': 'test',
         }),
       },
@@ -934,6 +955,7 @@ describe('lifecycle: reading multiple items without full edge config cache', () 
   });
 
   it('should MISS the cache initially', async () => {
+    jest.setSystemTime(1100);
     setTimestampOfLatestUpdate(1000);
     fetchMock.mockResponseOnce(
       JSON.stringify({ key1: 'value1', key2: 'value2' }),
@@ -964,7 +986,7 @@ describe('lifecycle: reading multiple items without full edge config cache', () 
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
           'x-edge-config-min-updated-at': '1000',
-          'x-edge-config-sdk': '@vercel/edge-config@2.0.0-beta.2',
+          'x-edge-config-sdk': packageVersion,
           'x-edge-config-vercel-env': 'test',
         }),
       },
@@ -972,6 +994,7 @@ describe('lifecycle: reading multiple items without full edge config cache', () 
   });
 
   it('should HIT the cache if the timestamp has not changed', async () => {
+    jest.setSystemTime(1200);
     await expect(controller.mget(['key1', 'key2'])).resolves.toEqual({
       value: { key1: 'value1', key2: 'value2' },
       digest: 'digest1',
@@ -985,13 +1008,14 @@ describe('lifecycle: reading multiple items without full edge config cache', () 
   });
 
   it('should serve a stale value if the timestamp has changed but is within the threshold', async () => {
-    setTimestampOfLatestUpdate(7000);
+    jest.setSystemTime(20000);
+    setTimestampOfLatestUpdate(15000);
     fetchMock.mockResponseOnce(
       JSON.stringify({ key1: 'valueA', key2: 'valueB' }),
       {
         headers: {
           'x-edge-config-digest': 'digest2',
-          'x-edge-config-updated-at': '7000',
+          'x-edge-config-updated-at': '15000',
           etag: '"digest2"',
           'content-type': 'application/json',
         },
@@ -1015,8 +1039,8 @@ describe('lifecycle: reading multiple items without full edge config cache', () 
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
           // 'If-None-Match': '"digest1"',
-          'x-edge-config-min-updated-at': '7000',
-          'x-edge-config-sdk': '@vercel/edge-config@2.0.0-beta.2',
+          'x-edge-config-min-updated-at': '15000',
+          'x-edge-config-sdk': packageVersion,
           'x-edge-config-vercel-env': 'test',
         }),
       },
@@ -1028,7 +1052,7 @@ describe('lifecycle: reading multiple items without full edge config cache', () 
       value: { key1: 'valueA', key2: 'valueB' },
       digest: 'digest2',
       cache: 'HIT',
-      updatedAt: 7000,
+      updatedAt: 15000,
     });
   });
 
@@ -1037,13 +1061,14 @@ describe('lifecycle: reading multiple items without full edge config cache', () 
   });
 
   it('should refresh when the stale threshold is exceeded', async () => {
-    setTimestampOfLatestUpdate(17001);
+    jest.setSystemTime(40000);
+    setTimestampOfLatestUpdate(29000);
     fetchMock.mockResponseOnce(
       JSON.stringify({ key1: 'valueC', key2: 'valueD' }),
       {
         headers: {
           'x-edge-config-digest': 'digest3',
-          'x-edge-config-updated-at': '17001',
+          'x-edge-config-updated-at': '29000',
         },
       },
     );
@@ -1052,7 +1077,7 @@ describe('lifecycle: reading multiple items without full edge config cache', () 
       value: { key1: 'valueC', key2: 'valueD' },
       digest: 'digest3',
       cache: 'MISS',
-      updatedAt: 17001,
+      updatedAt: 29000,
     });
   });
 
@@ -1065,8 +1090,8 @@ describe('lifecycle: reading multiple items without full edge config cache', () 
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
           // 'If-None-Match': '"digest1"',
-          'x-edge-config-min-updated-at': '17001',
-          'x-edge-config-sdk': '@vercel/edge-config@2.0.0-beta.2',
+          'x-edge-config-min-updated-at': '29000',
+          'x-edge-config-sdk': packageVersion,
           'x-edge-config-vercel-env': 'test',
         }),
       },
@@ -1224,7 +1249,7 @@ describe('lifecycle: reading multiple items with different updatedAt timestamps'
         headers: new Headers({
           Authorization: 'Bearer fake-edge-config-token',
           'x-edge-config-min-updated-at': '3000',
-          'x-edge-config-sdk': '@vercel/edge-config@2.0.0-beta.2',
+          'x-edge-config-sdk': packageVersion,
           'x-edge-config-vercel-env': 'test',
         }),
       },
@@ -1326,6 +1351,7 @@ describe('lifecycle: reading multiple items when edge config cache is stale but 
   });
 
   it('should fetch the full edge config initially', async () => {
+    jest.setSystemTime(1100);
     setTimestampOfLatestUpdate(1000);
     fetchMock.mockResponseOnce(
       JSON.stringify({ key1: 'value1', key2: 'value2', key3: 'value3' }),
@@ -1350,13 +1376,14 @@ describe('lifecycle: reading multiple items when edge config cache is stale but 
   });
 
   it('should fetch individual items', async () => {
-    setTimestampOfLatestUpdate(12000);
+    jest.setSystemTime(20000);
+    setTimestampOfLatestUpdate(5000);
     fetchMock.mockResponseOnce(
       JSON.stringify({ key1: 'value1a', key2: 'value2a', key3: 'value3a' }),
       {
         headers: {
-          'x-edge-config-digest': 'digest1',
-          'x-edge-config-updated-at': '12000',
+          'x-edge-config-digest': 'digest2',
+          'x-edge-config-updated-at': '5000',
           etag: '"digest1"',
           'content-type': 'application/json',
         },
@@ -1365,9 +1392,9 @@ describe('lifecycle: reading multiple items when edge config cache is stale but 
 
     await expect(controller.mget(['key1', 'key2', 'key3'])).resolves.toEqual({
       value: { key1: 'value1a', key2: 'value2a', key3: 'value3a' },
-      digest: 'digest1',
+      digest: 'digest2',
       cache: 'MISS',
-      updatedAt: 12000,
+      updatedAt: 5000,
     });
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
@@ -1375,36 +1402,61 @@ describe('lifecycle: reading multiple items when edge config cache is stale but 
   it('should HIT the item cache if the timestamp has not changed', async () => {
     await expect(controller.mget(['key1', 'key2', 'key3'])).resolves.toEqual({
       value: { key1: 'value1a', key2: 'value2a', key3: 'value3a' },
-      digest: 'digest1',
+      digest: 'digest2',
       cache: 'HIT',
-      updatedAt: 12000,
+      updatedAt: 5000,
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('should serve STALE values from the item cache if the timestamp has changed but is within the threshold', async () => {
+    jest.setSystemTime(31000);
+    setTimestampOfLatestUpdate(30000);
     fetchMock.mockResponseOnce(
       JSON.stringify({ key1: 'value1b', key2: 'value2b', key3: 'value3b' }),
       {
         headers: {
-          'x-edge-config-digest': 'digest1',
-          'x-edge-config-updated-at': '13000',
-          etag: '"digest1"',
+          'x-edge-config-digest': 'digest3',
+          'x-edge-config-updated-at': '30000',
+          etag: '"digest3"',
           'content-type': 'application/json',
         },
       },
     );
 
-    setTimestampOfLatestUpdate(13000);
     await expect(controller.mget(['key1', 'key2', 'key3'])).resolves.toEqual({
       value: { key1: 'value1a', key2: 'value2a', key3: 'value3a' },
       cache: 'STALE',
-      updatedAt: 12000,
-      digest: 'digest1',
+      updatedAt: 5000,
+      digest: 'digest2',
     });
+  });
 
+  it('should trigger a full background refresh after the STALE value', () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      'https://edge-config.vercel.com/items?version=1',
+      {
+        cache: 'no-store',
+        headers: new Headers({
+          Authorization: 'Bearer fake-edge-config-token',
+          'x-edge-config-min-updated-at': '30000',
+          'x-edge-config-sdk': packageVersion,
+          'x-edge-config-vercel-env': 'test',
+        }),
+      },
+    );
+  });
+
+  it('should hit the cache if no more updates were made', async () => {
+    jest.setSystemTime(32000);
+    await expect(controller.mget(['key1', 'key2', 'key3'])).resolves.toEqual({
+      value: { key1: 'value1b', key2: 'value2b', key3: 'value3b' },
+      cache: 'HIT',
+      updatedAt: 30000,
+      digest: 'digest3',
+    });
   });
 });
 
@@ -1418,6 +1470,7 @@ describe('lifecycle: reading multiple items when the item cache is stale but the
   });
 
   it('should fetch multiple items', async () => {
+    jest.setSystemTime(1100);
     setTimestampOfLatestUpdate(1000);
     fetchMock.mockResponseOnce(
       JSON.stringify({ key1: 'value1', key2: 'value2' }),
@@ -1487,14 +1540,15 @@ describe('lifecycle: reading multiple items when the item cache is stale but the
   });
 
   it('should serve STALE values when the edge config changes', async () => {
-    setTimestampOfLatestUpdate(2000);
+    jest.setSystemTime(25000);
+    setTimestampOfLatestUpdate(20000);
     fetchMock.mockResponseOnce(
       JSON.stringify({ key1: 'value1b', key2: 'value2b', key3: 'value3b' }),
       {
         headers: {
-          'x-edge-config-digest': 'digestB',
-          'x-edge-config-updated-at': '2000',
-          etag: '"digest1"',
+          'x-edge-config-digest': 'digest2',
+          'x-edge-config-updated-at': '20000',
+          etag: '"digest2"',
           'content-type': 'application/json',
         },
       },
@@ -1514,22 +1568,23 @@ describe('lifecycle: reading multiple items when the item cache is stale but the
   it('should hit the cache on subsequent reads', async () => {
     await expect(controller.all()).resolves.toEqual({
       value: { key1: 'value1b', key2: 'value2b', key3: 'value3b' },
-      digest: 'digestB',
+      digest: 'digest2',
       cache: 'HIT',
-      updatedAt: 2000,
+      updatedAt: 20000,
     });
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it('should serve STALE values from the edge config cache', async () => {
-    setTimestampOfLatestUpdate(3000);
+    jest.setSystemTime(24000);
+    setTimestampOfLatestUpdate(23000);
     fetchMock.mockResponseOnce(
       JSON.stringify({ key1: 'value1c', key2: 'value2c', key3: 'value3c' }),
       {
         headers: {
-          'x-edge-config-digest': 'digestC',
-          'x-edge-config-updated-at': '3000',
-          etag: '"digestC"',
+          'x-edge-config-digest': 'digest3',
+          'x-edge-config-updated-at': '23000',
+          etag: '"digest3"',
           'content-type': 'application/json',
         },
       },
@@ -1537,9 +1592,9 @@ describe('lifecycle: reading multiple items when the item cache is stale but the
 
     await expect(controller.mget(['key1', 'key2', 'key3'])).resolves.toEqual({
       value: { key1: 'value1b', key2: 'value2b', key3: 'value3b' },
-      digest: 'digestB',
+      digest: 'digest2',
       cache: 'STALE',
-      updatedAt: 2000,
+      updatedAt: 20000,
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(4);
@@ -1567,6 +1622,7 @@ describe('preloading', () => {
       });
     });
 
+    jest.setSystemTime(1100);
     setTimestampOfLatestUpdate(1000);
     await expect(controller.get('key1')).resolves.toEqual({
       value: 'value-preloaded',

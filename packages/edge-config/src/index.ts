@@ -6,6 +6,7 @@ import type {
   EmbeddedEdgeConfig,
   EdgeConfigFunctionsOptions,
   EdgeConfigClientOptions,
+  CacheStatus,
 } from './types';
 import { trace } from './utils/tracing';
 import { Controller } from './controller';
@@ -80,13 +81,19 @@ export const createClient = trace(
         async function get<T extends EdgeConfigValue = EdgeConfigValue>(
           key: string,
           localOptions?: EdgeConfigFunctionsOptions,
-        ): Promise<T | undefined | { value: T | undefined; digest: string }> {
+        ): Promise<
+          | T
+          | undefined
+          | { value: T | undefined; digest: string; cache: CacheStatus }
+        > {
           assertIsKey(key);
           if (isEmptyKey(key)) {
             throw new Error('@vercel/edge-config: Can not read empty key');
           }
           const data = await controller.get<T>(key, localOptions);
-          return localOptions?.metadata ? data : data.value;
+          return localOptions?.metadata
+            ? { value: data.value, digest: data.digest, cache: data.cache }
+            : data.value;
         },
         { name: 'get', isVerboseTrace: false, attributes: { edgeConfigId } },
       ),
@@ -94,14 +101,22 @@ export const createClient = trace(
         async function has(
           key: string,
           localOptions?: EdgeConfigFunctionsOptions,
-        ): Promise<boolean | { exists: boolean; digest: string }> {
+        ): Promise<
+          boolean | { exists: boolean; digest: string; cache: CacheStatus }
+        > {
           assertIsKey(key);
           if (isEmptyKey(key)) {
             throw new Error('@vercel/edge-config: Can not read empty key');
           }
 
           const data = await controller.has(key, localOptions);
-          return localOptions?.metadata ? data : data.exists;
+          return localOptions?.metadata
+            ? {
+                exists: data.exists,
+                digest: data.digest,
+                cache: data.cache,
+              }
+            : data.exists;
         },
         { name: 'has', isVerboseTrace: false, attributes: { edgeConfigId } },
       ) as EdgeConfigClient['has'],
@@ -109,7 +124,7 @@ export const createClient = trace(
         async function mget<T extends EdgeConfigItems>(
           keys: (keyof T)[],
           localOptions?: EdgeConfigFunctionsOptions,
-        ): Promise<{ value: T; digest: string } | T> {
+        ): Promise<{ value: T; digest: string; cache: CacheStatus } | T> {
           // bypass when called without valid keys and without needing metadata
           if (
             keys.every((k) => typeof k === 'string' && k.trim().length === 0) &&
@@ -118,7 +133,13 @@ export const createClient = trace(
             return {} as T;
 
           const data = await controller.mget<T>(keys as string[], localOptions);
-          return localOptions?.metadata ? data : data.value;
+          return localOptions?.metadata
+            ? {
+                value: data.value,
+                digest: data.digest,
+                cache: data.cache,
+              }
+            : data.value;
         },
         {
           name: 'mget',
@@ -129,9 +150,15 @@ export const createClient = trace(
       all: trace(
         async function all<T extends EdgeConfigItems = EdgeConfigItems>(
           localOptions?: EdgeConfigFunctionsOptions,
-        ): Promise<{ value: T; digest: string } | T> {
+        ): Promise<{ value: T; digest: string; cache: CacheStatus } | T> {
           const data = await controller.all<T>(localOptions);
-          return localOptions?.metadata ? data : data.value;
+          return localOptions?.metadata
+            ? {
+                value: data.value,
+                digest: data.digest,
+                cache: data.cache,
+              }
+            : data.value;
         },
         { name: 'all', isVerboseTrace: false, attributes: { edgeConfigId } },
       ),

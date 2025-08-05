@@ -43,7 +43,7 @@ export interface EdgeConfigClient {
     <T = EdgeConfigValue>(
       key: string,
       options: EdgeConfigFunctionsOptions & { metadata: true },
-    ): Promise<{ value: T | undefined; digest: string }>;
+    ): Promise<{ value: T | undefined; digest: string; cache: CacheStatus }>;
     <T = EdgeConfigValue>(
       key: string,
       options?: EdgeConfigFunctionsOptions,
@@ -61,7 +61,7 @@ export interface EdgeConfigClient {
     <T = EdgeConfigItems>(
       keys: (keyof T)[],
       options: EdgeConfigFunctionsOptions & { metadata: true },
-    ): Promise<{ value: T; digest: string }>;
+    ): Promise<{ value: T; digest: string; cache: CacheStatus }>;
     <T = EdgeConfigItems>(
       keys: (keyof T)[],
       options?: EdgeConfigFunctionsOptions,
@@ -78,7 +78,7 @@ export interface EdgeConfigClient {
   all: {
     <T = EdgeConfigItems>(
       options: EdgeConfigFunctionsOptions & { metadata: true },
-    ): Promise<{ value: T; digest: string }>;
+    ): Promise<{ value: T; digest: string; cache: CacheStatus }>;
     <T = EdgeConfigItems>(options?: EdgeConfigFunctionsOptions): Promise<T>;
   };
 
@@ -92,7 +92,7 @@ export interface EdgeConfigClient {
     (
       key: string,
       options: EdgeConfigFunctionsOptions & { metadata: true },
-    ): Promise<{ exists: boolean; digest: string }>;
+    ): Promise<{ exists: boolean; digest: string; cache: CacheStatus }>;
     (key: string, options?: EdgeConfigFunctionsOptions): Promise<boolean>;
   };
 }

@@ -19,6 +19,14 @@ const DEFAULT_STALE_THRESHOLD = 10; // 10 seconds
 
 const privateEdgeConfigSymbol = Symbol.for('privateEdgeConfig');
 
+function after(fn: () => Promise<unknown>): void {
+  waitUntil(
+    new Promise((resolve) => {
+      setTimeout(resolve, 0);
+    }).then(() => fn()),
+  );
+}
+
 /**
  * Will return an embedded Edge Config object from memory,
  * but only when the `privateEdgeConfigSymbol` is in global scope.
@@ -209,7 +217,7 @@ export class Controller {
         // we're outdated, but we can still serve the STALE value
         if (cacheStatus === 'STALE') {
           // background refresh
-          waitUntil(
+          after(() =>
             this.fetchItem<T>(
               method,
               key,
@@ -393,14 +401,14 @@ export class Controller {
         if (res.ok || (res.status === 304 && cachedRes)) {
           // avoid undici memory leaks by consuming response bodies
           if (method === 'HEAD') {
-            waitUntil(
+            after(() =>
               Promise.all([
                 consumeResponseBody(res),
                 cachedRes ? consumeResponseBody(cachedRes) : null,
               ]),
             );
           } else if (res.status === 304) {
-            waitUntil(consumeResponseBody(res));
+            after(() => consumeResponseBody(res));
           }
 
           let value: T | undefined;
@@ -576,7 +584,7 @@ export class Controller {
       if (cacheStatus === 'HIT' || cacheStatus === 'STALE') {
         if (cacheStatus === 'STALE') {
           // TODO refresh individual items only?
-          waitUntil(this.fetchFullConfig(ts, localOptions).catch());
+          after(() => this.fetchFullConfig(ts, localOptions).catch());
         }
 
         return {
@@ -603,7 +611,7 @@ export class Controller {
       if (cacheStatus === 'HIT' || cacheStatus === 'STALE') {
         if (cacheStatus === 'STALE') {
           // TODO refresh individual items only?
-          waitUntil(this.fetchFullConfig(ts, localOptions).catch());
+          after(() => this.fetchFullConfig(ts, localOptions).catch());
         }
 
         return {
@@ -709,7 +717,7 @@ export class Controller {
 
       if (cacheStatus === 'STALE') {
         // background refresh
-        waitUntil(this.fetchFullConfig(ts, localOptions).catch());
+        after(() => this.fetchFullConfig(ts, localOptions).catch());
         return {
           value: this.edgeConfigCache.items as T,
           digest: this.edgeConfigCache.digest,

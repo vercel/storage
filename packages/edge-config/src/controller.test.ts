@@ -1602,16 +1602,61 @@ describe('lifecycle: reading multiple items when the item cache is stale but the
 });
 
 describe('preloading', () => {
-  beforeAll(() => {
+  beforeEach(() => {
     (readLocalEdgeConfig as jest.Mock).mockReset();
     fetchMock.resetMocks();
   });
 
-  const controller = new Controller(connection, {
-    enableDevelopmentCache: false,
+  it('should use the preloaded value is up to date', async () => {
+    const controller = new Controller(connection, {
+      enableDevelopmentCache: false,
+    });
+
+    // most recent update was only 1s ago, so we can serve the preloaded value
+    // as we are within the maxStale threshold
+    jest.setSystemTime(21000);
+    setTimestampOfLatestUpdate(20000);
+
+    (readLocalEdgeConfig as jest.Mock).mockImplementationOnce(() => {
+      return Promise.resolve({
+        default: {
+          items: { key1: 'value-preloaded' },
+          updatedAt: 20000,
+          digest: 'digest-preloaded',
+        },
+      });
+    });
+
+    await expect(controller.get('key1')).resolves.toEqual({
+      value: 'value-preloaded',
+      digest: 'digest-preloaded',
+      cache: 'HIT',
+      exists: true,
+      updatedAt: 20000,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(0);
+    expect(readLocalEdgeConfig).toHaveBeenCalledTimes(1);
   });
 
-  it('should use the preloaded value', async () => {
+  it('should use the preloaded value if stale within the maxStale threshold', async () => {
+    const controller = new Controller(connection, {
+      enableDevelopmentCache: false,
+    });
+
+    // most recent update was only 1s ago, so we can serve the preloaded value
+    // as we are within the maxStale threshold
+    jest.setSystemTime(21000);
+    setTimestampOfLatestUpdate(20000);
+
+    fetchMock.mockResponseOnce(JSON.stringify('value2'), {
+      headers: {
+        'x-edge-config-digest': 'digest2',
+        'x-edge-config-updated-at': '20000',
+        etag: '"digest2"',
+        'content-type': 'application/json',
+      },
+    });
+
     (readLocalEdgeConfig as jest.Mock).mockImplementationOnce(() => {
       return Promise.resolve({
         default: {
@@ -1622,16 +1667,56 @@ describe('preloading', () => {
       });
     });
 
-    jest.setSystemTime(1100);
-    setTimestampOfLatestUpdate(1000);
     await expect(controller.get('key1')).resolves.toEqual({
       value: 'value-preloaded',
       digest: 'digest-preloaded',
-      cache: 'HIT',
+      cache: 'STALE',
       exists: true,
       updatedAt: 1000,
     });
-    expect(fetchMock).toHaveBeenCalledTimes(0);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(readLocalEdgeConfig).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not use the preloaded value if the cache is expired', async () => {
+    // most recent update was 11s ago, so we need to fetch fresh data
+    // as we are outside the maxStale threshold
+    jest.setSystemTime(31000);
+    setTimestampOfLatestUpdate(20000);
+
+    const controller = new Controller(connection, {
+      enableDevelopmentCache: false,
+    });
+
+    (readLocalEdgeConfig as jest.Mock).mockImplementationOnce(() => {
+      return Promise.resolve({
+        default: {
+          items: { keyA: 'value1' },
+          // more than 10s old, with a newer update available that's only 1s old
+          updatedAt: 1000,
+          digest: 'digest1',
+        },
+      });
+    });
+
+    fetchMock.mockResponseOnce(JSON.stringify('value2'), {
+      headers: {
+        'x-edge-config-digest': 'digest2',
+        'x-edge-config-updated-at': '20000',
+        etag: '"digest2"',
+        'content-type': 'application/json',
+      },
+    });
+
+    await expect(controller.get('keyA')).resolves.toEqual({
+      value: 'value2',
+      digest: 'digest2',
+      cache: 'MISS',
+      exists: true,
+      updatedAt: 20000,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(readLocalEdgeConfig).toHaveBeenCalledTimes(1);
   });
 });

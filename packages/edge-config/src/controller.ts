@@ -52,15 +52,26 @@ function parseTs(updatedAt: string | null): number | null {
 }
 
 function getCacheStatus(
+  /** Timestamp of the latest update to Edge Config */
   latestUpdate: number | null,
+  /** Timestamp of the cache value we are looking at */
   updatedAt: number,
+  /** Maximum propagation delay we are willing to tolerate. After this we will fetch fresh data. */
   maxStale: number,
 ): CacheStatus {
   if (latestUpdate === null) return 'MISS';
   if (latestUpdate <= updatedAt) return 'HIT';
-  // check if it is within the threshold
-  if (latestUpdate >= Date.now() - maxStale * 1000) return 'STALE';
-  // if (updatedAt >= latestUpdate - maxStale * 1000) return 'STALE';
+
+  // Our cached value is outdated (updatedAt < latestUpdate)
+  // Check if the latest update happened within the maxStale threshold
+  const now = Date.now();
+  const maxStaleMs = maxStale * 1000;
+
+  // If the latest update was within the maxStale window, we can serve STALE content
+  // (meaning we can serve the cached value while refreshing in background)
+  if (now - latestUpdate <= maxStaleMs) return 'STALE';
+
+  // The latest update was too long ago, we need to fetch fresh data
   return 'MISS';
 }
 
@@ -181,12 +192,16 @@ export class Controller {
     if (timestamp) {
       const cached = this.getCachedItem<T>(key, method);
 
+      // console.log('cached', cached);
+
       if (cached) {
         const cacheStatus = getCacheStatus(
           timestamp,
           cached.updatedAt,
           this.maxStale,
         );
+
+        // console.log('cacheStatus', cacheStatus, timestamp, cached.updatedAt);
 
         // HIT
         if (cacheStatus === 'HIT') return { ...cached, cache: 'HIT' };

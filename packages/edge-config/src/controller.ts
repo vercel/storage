@@ -77,6 +77,9 @@ function getCacheStatus(
 
   // If the latest update was within the maxStale window, we can serve STALE content
   // (meaning we can serve the cached value while refreshing in background)
+  //
+  // but this is problematic if we hit a new instance which will have a different
+  // very old inlined edge config
   if (now - latestUpdate <= maxStaleMs) return 'STALE';
 
   // The latest update was too long ago, we need to fetch fresh data

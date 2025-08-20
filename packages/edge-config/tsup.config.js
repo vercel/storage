@@ -15,7 +15,7 @@ export default defineConfig([
   },
   {
     entry: ['src/cli.ts'],
-    format: ['cjs'],
+    format: ['esm'],
     splitting: true,
     sourcemap: true,
     minify: false,

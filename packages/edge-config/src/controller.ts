@@ -110,33 +110,33 @@ export class Controller {
   }
 
   private async preload(): Promise<void> {
-    if (this.preloaded !== 'init') return;
+    // if (this.preloaded !== 'init') return;
     if (this.connection.type !== 'vercel') return;
     // the folder won't exist in development, only when deployed
-    if (process.env.NODE_ENV === 'development') return;
+    // if (process.env.NODE_ENV === 'development') return;
 
     this.preloaded = 'loading';
 
     try {
-      await readLocalEdgeConfig<{ default: EmbeddedEdgeConfig }>(
+      const mod = await readLocalEdgeConfig<{ default: EmbeddedEdgeConfig }>(
         this.connection.id,
-      )
-        .then((mod) => {
-          const hasNewerEntry =
-            this.edgeConfigCache &&
-            this.edgeConfigCache.updatedAt > mod.default.updatedAt;
+      );
 
-          // skip updating the local cache if there is a newer cache entry already
-          if (hasNewerEntry) return;
+      console.log('read', mod.default);
 
-          this.edgeConfigCache = mod.default;
-        })
-        .catch()
-        .finally(() => {
-          this.preloaded = 'loaded';
-        });
-    } catch {
+      const hasNewerEntry =
+        this.edgeConfigCache &&
+        this.edgeConfigCache.updatedAt > mod.default.updatedAt;
+
+      // skip updating the local cache if there is a newer cache entry already
+      if (hasNewerEntry) return;
+
+      this.edgeConfigCache = mod.default;
+    } catch (e) {
+      console.log('caught', e);
       /* do nothing */
+    } finally {
+      this.preloaded = 'loaded';
     }
   }
 
@@ -151,10 +151,12 @@ export class Controller {
     updatedAt: number;
   }> {
     // hold a reference to the timestamp to avoid race conditions
-    const ts = getUpdatedAt(this.connection);
-    if (this.enableDevelopmentCache || !ts) {
-      return this.fetchItem<T>('GET', key, ts, localOptions, true);
-    }
+    // const ts = getUpdatedAt(this.connection);
+    // if (this.enableDevelopmentCache || !ts) {
+    //   return this.fetchItem<T>('GET', key, ts, localOptions, true);
+    // }
+
+    const ts = 1754511966797;
 
     await this.preload();
 

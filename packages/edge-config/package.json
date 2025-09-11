@@ -1,6 +1,6 @@
 {
   "name": "@vercel/edge-config",
-  "version": "2.0.0-beta.7",
+  "version": "2.0.0-beta.790",
   "description": "Ultra-low latency data at the edge",
   "homepage": "https://vercel.com",
   "repository": {
@@ -12,8 +12,11 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
-    "import": "./dist/index.js",
-    "require": "./dist/index.cjs"
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./stores/*": "./stores/*"
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -21,7 +24,8 @@
     "edge-config": "./dist/cli.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "stores"
   ],
   "scripts": {
     "build": "tsup",

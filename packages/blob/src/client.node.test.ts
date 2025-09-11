@@ -86,7 +86,6 @@ describe('client uploads', () => {
           type: 'blob.generate-client-token',
           payload: {
             pathname: 'newfile.txt',
-            callbackUrl: 'https://example.com',
             multipart: false,
             clientPayload: null,
           },
@@ -95,6 +94,7 @@ describe('client uploads', () => {
           await Promise.resolve();
           return Promise.resolve({
             tokenPayload: pathname,
+            callbackUrl: 'https://example.com',
           });
         },
         onUploadCompleted: async (body) => {
@@ -149,6 +149,7 @@ describe('client uploads', () => {
             await Promise.resolve();
             return {
               tokenPayload: pathname,
+              callbackUrl: 'https://example.com/upload-completed',
             };
           },
           onUploadCompleted: spy,
@@ -176,7 +177,6 @@ describe('client uploads', () => {
           type: 'blob.generate-client-token',
           payload: {
             pathname: 'newfile.txt',
-            callbackUrl: 'https://example.com',
             clientPayload: 'custom-metadata-from-client',
             multipart: false,
           },
@@ -185,6 +185,7 @@ describe('client uploads', () => {
           await Promise.resolve();
           return Promise.resolve({
             addRandomSuffix: false,
+            callbackUrl: 'https://example.com',
           });
         },
         onUploadCompleted: async (body) => {
@@ -229,7 +230,6 @@ describe('client uploads', () => {
           type: 'blob.generate-client-token',
           payload: {
             pathname: 'newfile.txt',
-            callbackUrl: 'https://example.com',
             clientPayload: 'custom-metadata-from-client-we-expect',
             multipart: false,
           },
@@ -241,12 +241,130 @@ describe('client uploads', () => {
           await Promise.resolve();
           return Promise.resolve({
             addRandomSuffix: false,
+            callbackUrl: 'https://example.com',
           });
         },
         onUploadCompleted: async () => {
           await Promise.resolve();
         },
       });
+    });
+
+    it('ignores client callbackUrl when server provides one', async () => {
+      const token =
+        'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
+      const serverCallbackUrl =
+        'https://server-controlled.example.com/callback';
+      const maliciousClientCallbackUrl = 'https://malicious.com/steal-data';
+
+      // Client tries to set a malicious callback URL by including it in payload
+      const payloadWithCallbackUrl = {
+        type: 'blob.generate-client-token' as const,
+        payload: {
+          pathname: 'test.txt',
+          clientPayload: null,
+          multipart: false,
+          // Client tries to inject a malicious callback URL - this should be ignored
+          callbackUrl: maliciousClientCallbackUrl,
+        }, // Cast to any to bypass TypeScript (simulating raw API call)
+      };
+
+      const jsonResponse = await handleUpload({
+        token,
+        request: {
+          headers: { 'x-vercel-signature': '123' },
+        } as unknown as IncomingMessage,
+        body: payloadWithCallbackUrl,
+        onBeforeGenerateToken: async () => {
+          // Server controls the callback URL
+          return Promise.resolve({
+            callbackUrl: serverCallbackUrl,
+          });
+        },
+        onUploadCompleted: async () => {
+          await Promise.resolve();
+        },
+      });
+
+      // Verify token was generated successfully
+      expect(jsonResponse.type).toEqual('blob.generate-client-token');
+
+      expect(
+        jsonResponse.type === 'blob.generate-client-token' &&
+          jsonResponse.clientToken,
+      ).toBeTruthy();
+
+      // Decode the token to verify it uses the server-controlled callback URL
+      const decodedPayload = getPayloadFromClientToken(
+        (jsonResponse.type === 'blob.generate-client-token' &&
+          jsonResponse.clientToken) ||
+          '',
+      );
+      expect(decodedPayload.onUploadCompleted?.callbackUrl).toEqual(
+        serverCallbackUrl,
+      );
+
+      // Ensure the client's malicious URL is nowhere to be found
+      expect(JSON.stringify(decodedPayload)).not.toContain(
+        maliciousClientCallbackUrl,
+      );
+    });
+
+    it("ignores client callbackUrl even if server doesn't provide one", async () => {
+      const token =
+        'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
+      const maliciousClientCallbackUrl =
+        'https://malicious-site.com/steal-data';
+
+      // Simulate a curl request trying to inject callbackUrl into the payload
+      const maliciousPayload = {
+        type: 'blob.generate-client-token' as const,
+        payload: {
+          pathname: 'test.txt',
+          clientPayload: null,
+          multipart: false,
+          // Even manually adding this should be completely ignored
+          callbackUrl: maliciousClientCallbackUrl,
+        },
+      };
+
+      const jsonResponse = await handleUpload({
+        token,
+        request: {
+          headers: { 'x-vercel-signature': '123' },
+        } as unknown as IncomingMessage,
+        body: maliciousPayload,
+        onBeforeGenerateToken: async () => {
+          // Server doesn't provide any callback URL
+          return Promise.resolve({
+            addRandomSuffix: false,
+          });
+        },
+        onUploadCompleted: async () => {
+          await Promise.resolve();
+        },
+      });
+
+      // Verify token was generated successfully
+      expect(jsonResponse.type).toEqual('blob.generate-client-token');
+
+      expect(
+        jsonResponse.type === 'blob.generate-client-token' &&
+          jsonResponse.clientToken,
+      ).toBeTruthy();
+
+      // Decode the token to verify NO callback URL is set (server didn't provide one)
+      const decodedPayload = getPayloadFromClientToken(
+        (jsonResponse.type === 'blob.generate-client-token' &&
+          jsonResponse.clientToken) ||
+          '',
+      );
+      expect(decodedPayload.onUploadCompleted).toBeUndefined();
+
+      // Ensure the malicious URL is nowhere to be found
+      expect(JSON.stringify(decodedPayload)).not.toContain(
+        maliciousClientCallbackUrl,
+      );
     });
   });
 });

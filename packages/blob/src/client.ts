@@ -384,7 +384,7 @@ function hexToArrayByte(input: string): Buffer {
   const view = new Uint8Array(input.length / 2);
 
   for (let i = 0; i < input.length; i += 2) {
-    view[i / 2] = parseInt(input.substring(i, i + 2), 16);
+    view[i / 2] = Number.parseInt(input.substring(i, i + 2), 16);
   }
 
   return Buffer.from(view);
@@ -446,11 +446,6 @@ interface GenerateClientTokenEvent {
      * The destination path for the blob.
      */
     pathname: string;
-
-    /**
-     * URL where upload completion callbacks will be sent.
-     */
-    callbackUrl: string;
 
     /**
      * Whether the upload will use multipart uploading.
@@ -517,7 +512,7 @@ export interface HandleUploadOptions {
    * @param clientPayload - A string payload specified on the client when calling upload()
    * @param multipart - A boolean specifying whether the file is a multipart upload
    *
-   * @returns An object with configuration options for the client token
+   * @returns An object with configuration options for the client token including the optional callbackUrl
    */
   onBeforeGenerateToken: (
     pathname: string,
@@ -532,7 +527,7 @@ export interface HandleUploadOptions {
       | 'addRandomSuffix'
       | 'allowOverwrite'
       | 'cacheControlMaxAge'
-    > & { tokenPayload?: string | null }
+    > & { tokenPayload?: string | null; callbackUrl?: string }
   >;
 
   /**
@@ -583,13 +578,14 @@ export async function handleUpload({
   const type = body.type;
   switch (type) {
     case 'blob.generate-client-token': {
-      const { pathname, callbackUrl, clientPayload, multipart } = body.payload;
+      const { pathname, clientPayload, multipart } = body.payload;
       const payload = await onBeforeGenerateToken(
         pathname,
         clientPayload,
         multipart,
       );
       const tokenPayload = payload.tokenPayload ?? clientPayload;
+      const { callbackUrl, ...tokenOptions } = payload;
 
       // one hour
       const oneHourInSeconds = 60 * 60;
@@ -601,13 +597,15 @@ export async function handleUpload({
       return {
         type,
         clientToken: await generateClientTokenFromReadWriteToken({
-          ...payload,
+          ...tokenOptions,
           token: resolvedToken,
           pathname,
-          onUploadCompleted: {
-            callbackUrl,
-            tokenPayload,
-          },
+          onUploadCompleted: callbackUrl
+            ? {
+                callbackUrl,
+                tokenPayload,
+              }
+            : undefined,
           validUntil,
         }),
       };
@@ -661,7 +659,6 @@ async function retrieveClientToken(options: {
     type: EventTypes.generateClientToken,
     payload: {
       pathname,
-      callbackUrl: url,
       clientPayload: options.clientPayload,
       multipart: options.multipart,
     },

@@ -1,5 +1,5 @@
 import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { validateUploadToken } from './validate-upload-token';
 
 async function auth(
@@ -23,15 +23,9 @@ async function auth(
 }
 
 export async function handleUploadHandler(
-  request: Request,
+  request: NextRequest,
 ): Promise<NextResponse> {
   const body = (await request.json()) as HandleUploadBody;
-
-  // Log all headers received
-  console.log('Request headers:');
-  request.headers.forEach((value, key) => {
-    console.log(`${key}: ${value}`);
-  });
 
   try {
     const jsonResponse = await handleUpload({
@@ -53,6 +47,7 @@ export async function handleUploadHandler(
 
         return {
           addRandomSuffix: true,
+          callbackUrl: getCallbackUrl(request),
           tokenPayload: JSON.stringify({
             userId: user?.id,
             customHeader,
@@ -78,4 +73,17 @@ export async function handleUploadHandler(
       { status: message === 'Not authorized' ? 401 : 400 },
     );
   }
+}
+
+function getCallbackUrl(request: NextRequest): string {
+  if (process.env.VERCEL_ENV === 'production') {
+    return `${process.env.VERCEL_PROJECT_PRODUCTION_URL}${request.nextUrl.pathname}`;
+  }
+
+  if (process.env.VERCEL_ENV === 'preview') {
+    return `${process.env.VERCEL_BRANCH_URL}${request.nextUrl.pathname}`;
+  }
+
+  // For local development, use ngrok or similar tunneling service and update this URL
+  return `https://localhost:3000${request.nextUrl.pathname}`;
 }

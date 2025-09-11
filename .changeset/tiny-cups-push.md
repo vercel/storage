@@ -2,7 +2,8 @@
 '@vercel/blob': major
 ---
 
-BREAKING CHANGE:
+**BREAKING CHANGE:**
+
 To continue receiving onUploadCompleted callback once a file is uploaded with Client Uploads, you need to provide the callbackUrl at the onBeforeGenerateToken step when using handleUpload.
 
 **Before:**

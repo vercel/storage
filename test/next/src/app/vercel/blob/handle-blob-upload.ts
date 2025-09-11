@@ -1,5 +1,5 @@
 import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { validateUploadToken } from './validate-upload-token';
 
 async function auth(
@@ -23,9 +23,15 @@ async function auth(
 }
 
 export async function handleUploadHandler(
-  request: NextRequest,
+  request: Request,
 ): Promise<NextResponse> {
   const body = (await request.json()) as HandleUploadBody;
+
+  // Log all headers received
+  console.log('Request headers:');
+  request.headers.forEach((value, key) => {
+    console.log(`${key}: ${value}`);
+  });
 
   try {
     const jsonResponse = await handleUpload({

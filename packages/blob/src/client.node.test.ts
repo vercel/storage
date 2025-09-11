@@ -672,7 +672,7 @@ describe('client uploads', () => {
         ...originalEnv,
         VERCEL: '1',
         VERCEL_ENV: 'production',
-        VERCEL_URL: 'https://myapp.vercel.app',
+        VERCEL_PROJECT_PRODUCTION_URL: 'https://myapp.vercel.app',
       };
 
       const token =
@@ -768,7 +768,7 @@ describe('client uploads', () => {
         ...originalEnv,
         VERCEL: '1',
         VERCEL_ENV: 'production',
-        VERCEL_URL: 'https://myapp.vercel.app',
+        VERCEL_PROJECT_PRODUCTION_URL: 'https://myapp.vercel.app',
       };
 
       const token =

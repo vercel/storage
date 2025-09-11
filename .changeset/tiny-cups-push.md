@@ -4,7 +4,12 @@
 
 **BREAKING CHANGE:**
 
-To continue receiving onUploadCompleted callback once a file is uploaded with Client Uploads, you need to provide the callbackUrl at the onBeforeGenerateToken step when using handleUpload.
+To continue receiving onUploadCompleted callback once a file is uploaded with Client Uploads when **not hosted on Vercel**, you need to provide the callbackUrl at the onBeforeGenerateToken step when using handleUpload.
+
+**When hosted on Vercel:**
+No code changes required. The callback URL is automatically inferred from Vercel environment variables.
+
+**When not hosted on Vercel:**
 
 **Before:**
 
@@ -19,9 +24,18 @@ await handleUpload({ body, request,
 
 ```ts
 await handleUpload({ body, request,
-  onBeforeGenerateToken: async (pathname) => { callbackUrl: 'https://example.com/api/upload' },
+  onBeforeGenerateToken: async (pathname) => { 
+    return { callbackUrl: 'https://example.com/api/upload' };
+  },
   onUploadCompleted: async ({ blob, tokenPayload }) => { /* code */ },
 });
+```
+
+**For local development:**
+Set the `VERCEL_BLOB_CALLBACK_URL` environment variable to your tunnel URL:
+
+```bash
+VERCEL_BLOB_CALLBACK_URL=https://abc123.ngrok-free.app
 ```
 
 See the updated documentation at https://vercel.com/docs/vercel-blob/client-upload to know more.

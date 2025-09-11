@@ -536,7 +536,7 @@ export interface HandleUploadOptions {
    *
    * @param body - Contains information about the completed upload including the blob details
    */
-  onUploadCompleted: (body: UploadCompletedEvent['payload']) => Promise<void>;
+  onUploadCompleted?: (body: UploadCompletedEvent['payload']) => Promise<void>;
 
   /**
    * A string specifying the read-write token to use when making requests.
@@ -559,7 +559,7 @@ export interface HandleUploadOptions {
  *   - request - (Required) An IncomingMessage or Request object to be used to determine the action to take.
  *   - body - (Required) The request body containing upload information.
  *   - onBeforeGenerateToken - (Required) Function called before generating the client token for uploads.
- *   - onUploadCompleted - (Required) Function called by Vercel Blob when the client upload finishes.
+ *   - onUploadCompleted - (Optional) Function called by Vercel Blob when the client upload finishes.
  *   - token - (Optional) A string specifying the read-write token to use when making requests. Defaults to process.env.BLOB_READ_WRITE_TOKEN.
  * @returns A promise that resolves to either a client token generation result or an upload completion result
  */
@@ -585,7 +585,21 @@ export async function handleUpload({
         multipart,
       );
       const tokenPayload = payload.tokenPayload ?? clientPayload;
-      const { callbackUrl, ...tokenOptions } = payload;
+      const { callbackUrl: providedCallbackUrl, ...tokenOptions } = payload;
+      let callbackUrl = providedCallbackUrl;
+
+      // If onUploadCompleted is provided but no callbackUrl was provided, try to infer it from environment
+      if (onUploadCompleted && !callbackUrl) {
+        callbackUrl = getCallbackUrl(request);
+      }
+
+      // If no onUploadCompleted but callbackUrl was provided, warn about it
+      if (!onUploadCompleted && callbackUrl) {
+        // eslint-disable-next-line no-console -- Warning is important for developers to understand configuration issues
+        console.warn(
+          'callbackUrl was provided but onUploadCompleted is not defined. The callback will not be handled.',
+        );
+      }
 
       // one hour
       const oneHourInSeconds = 60 * 60;
@@ -631,7 +645,10 @@ export async function handleUpload({
       if (!isVerified) {
         throw new BlobError('Invalid callback signature');
       }
-      await onUploadCompleted(body.payload);
+
+      if (onUploadCompleted) {
+        await onUploadCompleted(body.payload);
+      }
       return { type, response: 'ok' };
     }
     default:
@@ -811,6 +828,70 @@ export interface GenerateClientTokenOptions extends BlobCommandOptions {
    * @defaultvalue 30 * 24 * 60 * 60 (1 Month)
    */
   cacheControlMaxAge?: number;
+}
+
+/**
+ * @internal Helper function to determine the callback URL for client uploads
+ * when onUploadCompleted is provided but no callbackUrl was specified
+ */
+function getCallbackUrl(request: RequestType): string | undefined {
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- request.url is guaranteed to be defined in web server context
+  const reqUrl = getPathFromRequestUrl(request.url!);
+
+  if (!reqUrl) {
+    // eslint-disable-next-line no-console -- Warning is important for developers to understand configuration requirements
+    console.warn(
+      'onUploadCompleted provided but no callbackUrl could be determined. Please provide a callbackUrl in onBeforeGenerateToken or set the VERCEL_BLOB_CALLBACK_URL environment variable.',
+    );
+    return undefined;
+  }
+
+  // Check if we have VERCEL_BLOB_CALLBACK_URL env var (works on or off Vercel)
+  if (process.env.VERCEL_BLOB_CALLBACK_URL) {
+    return `${process.env.VERCEL_BLOB_CALLBACK_URL}${reqUrl}`;
+  }
+
+  // Not hosted on Vercel and no VERCEL_BLOB_CALLBACK_URL
+  if (process.env.VERCEL !== '1') {
+    // eslint-disable-next-line no-console -- Warning is important for developers to understand configuration requirements
+    console.warn(
+      'onUploadCompleted provided but no callbackUrl could be determined. Please provide a callbackUrl in onBeforeGenerateToken or set the VERCEL_BLOB_CALLBACK_URL environment variable.',
+    );
+    return undefined;
+  }
+
+  // If hosted on Vercel, generate default callbackUrl
+
+  if (process.env.VERCEL_ENV === 'preview') {
+    if (process.env.VERCEL_BRANCH_URL) {
+      return `${process.env.VERCEL_BRANCH_URL}${reqUrl}`;
+    }
+    if (process.env.VERCEL_URL) {
+      return `${process.env.VERCEL_URL}${reqUrl}`;
+    }
+  }
+
+  if (
+    process.env.VERCEL_ENV === 'production' &&
+    process.env.VERCEL_PROJECT_PRODUCTION_URL
+  ) {
+    return `${process.env.VERCEL_PROJECT_PRODUCTION_URL}${reqUrl}`;
+  }
+
+  return undefined;
+}
+
+/**
+ * @internal Helper function to safely extract pathname and query string from request URL
+ * Handles both full URLs (http://localhost:3000/api/upload?test=1) and relative paths (/api/upload?test=1)
+ */
+function getPathFromRequestUrl(url: string): string | null {
+  const parsedUrl = URL.parse(url, 'https://dummy.com');
+  if (parsedUrl) {
+    return parsedUrl.pathname + parsedUrl.search;
+  }
+
+  return null;
 }
 
 export { createFolder } from './create-folder';

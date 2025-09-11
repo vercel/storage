@@ -47,7 +47,6 @@ export async function handleUploadHandler(
 
         return {
           addRandomSuffix: true,
-          callbackUrl: getCallbackUrl(request),
           tokenPayload: JSON.stringify({
             userId: user?.id,
             customHeader,
@@ -73,17 +72,4 @@ export async function handleUploadHandler(
       { status: message === 'Not authorized' ? 401 : 400 },
     );
   }
-}
-
-function getCallbackUrl(request: NextRequest): string {
-  if (process.env.VERCEL_ENV === 'production') {
-    return `${process.env.VERCEL_PROJECT_PRODUCTION_URL}${request.nextUrl.pathname}`;
-  }
-
-  if (process.env.VERCEL_ENV === 'preview') {
-    return `${process.env.VERCEL_BRANCH_URL}${request.nextUrl.pathname}`;
-  }
-
-  // For local development, use ngrok or similar tunneling service and update this URL
-  return `https://localhost:3000${request.nextUrl.pathname}`;
 }

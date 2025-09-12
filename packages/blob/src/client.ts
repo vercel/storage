@@ -886,12 +886,13 @@ function getCallbackUrl(request: RequestType): string | undefined {
  * Handles both full URLs (http://localhost:3000/api/upload?test=1) and relative paths (/api/upload?test=1)
  */
 function getPathFromRequestUrl(url: string): string | null {
-  const parsedUrl = URL.parse(url, 'https://dummy.com');
-  if (parsedUrl) {
+  try {
+    // Using dummy.com as base URL to handle relative paths
+    const parsedUrl = new URL(url, 'https://dummy.com');
     return parsedUrl.pathname + parsedUrl.search;
+  } catch {
+    return null;
   }
-
-  return null;
 }
 
 export { createFolder } from './create-folder';

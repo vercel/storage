@@ -864,10 +864,10 @@ function getCallbackUrl(request: RequestType): string | undefined {
 
   if (process.env.VERCEL_ENV === 'preview') {
     if (process.env.VERCEL_BRANCH_URL) {
-      return `${process.env.VERCEL_BRANCH_URL}${reqUrl}`;
+      return `https://${process.env.VERCEL_BRANCH_URL}${reqUrl}`;
     }
     if (process.env.VERCEL_URL) {
-      return `${process.env.VERCEL_URL}${reqUrl}`;
+      return `https://${process.env.VERCEL_URL}${reqUrl}`;
     }
   }
 
@@ -875,7 +875,7 @@ function getCallbackUrl(request: RequestType): string | undefined {
     process.env.VERCEL_ENV === 'production' &&
     process.env.VERCEL_PROJECT_PRODUCTION_URL
   ) {
-    return `${process.env.VERCEL_PROJECT_PRODUCTION_URL}${reqUrl}`;
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}${reqUrl}`;
   }
 
   return undefined;

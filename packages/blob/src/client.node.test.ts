@@ -401,7 +401,7 @@ describe('client uploads', () => {
         ...originalEnv,
         VERCEL: '1',
         VERCEL_ENV: 'preview',
-        VERCEL_BRANCH_URL: 'https://branch-abc-123.vercel.app',
+        VERCEL_BRANCH_URL: 'branch-abc-123.vercel.app',
       };
 
       const token =
@@ -449,7 +449,7 @@ describe('client uploads', () => {
       const originalEnv = process.env;
       process.env = {
         ...originalEnv,
-        VERCEL_BLOB_CALLBACK_URL: 'https://custom-callback.example.com/webhook',
+        VERCEL_BLOB_CALLBACK_URL: 'https://custom-callback.example.com',
       };
 
       const token =
@@ -487,7 +487,7 @@ describe('client uploads', () => {
       );
 
       expect(decodedPayload.onUploadCompleted?.callbackUrl).toBe(
-        'https://custom-callback.example.com/webhook/api/upload',
+        'https://custom-callback.example.com/api/upload',
       );
 
       process.env = originalEnv;
@@ -622,7 +622,7 @@ describe('client uploads', () => {
         ...originalEnv,
         VERCEL: '1',
         VERCEL_ENV: 'preview',
-        VERCEL_BRANCH_URL: 'https://branch-abc-123.vercel.app',
+        VERCEL_BRANCH_URL: 'branch-abc-123.vercel.app',
       };
 
       const token =
@@ -672,7 +672,7 @@ describe('client uploads', () => {
         ...originalEnv,
         VERCEL: '1',
         VERCEL_ENV: 'production',
-        VERCEL_PROJECT_PRODUCTION_URL: 'https://myapp.vercel.app',
+        VERCEL_PROJECT_PRODUCTION_URL: 'myapp.vercel.app',
       };
 
       const token =
@@ -768,7 +768,7 @@ describe('client uploads', () => {
         ...originalEnv,
         VERCEL: '1',
         VERCEL_ENV: 'production',
-        VERCEL_PROJECT_PRODUCTION_URL: 'https://myapp.vercel.app',
+        VERCEL_PROJECT_PRODUCTION_URL: 'myapp.vercel.app',
       };
 
       const token =
@@ -816,7 +816,7 @@ describe('client uploads', () => {
         ...originalEnv,
         VERCEL: '1',
         VERCEL_ENV: 'preview',
-        VERCEL_URL: 'https://myapp-git-feature-user.vercel.app',
+        VERCEL_URL: 'myapp-git-feature-user.vercel.app',
         // VERCEL_BRANCH_URL is not set
       };
 

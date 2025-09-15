@@ -836,9 +836,9 @@ export interface GenerateClientTokenOptions extends BlobCommandOptions {
  */
 function getCallbackUrl(request: RequestType): string | undefined {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- request.url is guaranteed to be defined in web server context
-  const reqUrl = getPathFromRequestUrl(request.url!);
+  const reqPath = getPathFromRequestUrl(request.url!);
 
-  if (!reqUrl) {
+  if (!reqPath) {
     // eslint-disable-next-line no-console -- Warning is important for developers to understand configuration requirements
     console.warn(
       'onUploadCompleted provided but no callbackUrl could be determined. Please provide a callbackUrl in onBeforeGenerateToken or set the VERCEL_BLOB_CALLBACK_URL environment variable.',
@@ -848,7 +848,7 @@ function getCallbackUrl(request: RequestType): string | undefined {
 
   // Check if we have VERCEL_BLOB_CALLBACK_URL env var (works on or off Vercel)
   if (process.env.VERCEL_BLOB_CALLBACK_URL) {
-    return `${process.env.VERCEL_BLOB_CALLBACK_URL}${reqUrl}`;
+    return `${process.env.VERCEL_BLOB_CALLBACK_URL}${reqPath}`;
   }
 
   // Not hosted on Vercel and no VERCEL_BLOB_CALLBACK_URL
@@ -864,10 +864,10 @@ function getCallbackUrl(request: RequestType): string | undefined {
 
   if (process.env.VERCEL_ENV === 'preview') {
     if (process.env.VERCEL_BRANCH_URL) {
-      return `https://${process.env.VERCEL_BRANCH_URL}${reqUrl}`;
+      return `https://${process.env.VERCEL_BRANCH_URL}${reqPath}`;
     }
     if (process.env.VERCEL_URL) {
-      return `https://${process.env.VERCEL_URL}${reqUrl}`;
+      return `https://${process.env.VERCEL_URL}${reqPath}`;
     }
   }
 
@@ -875,7 +875,7 @@ function getCallbackUrl(request: RequestType): string | undefined {
     process.env.VERCEL_ENV === 'production' &&
     process.env.VERCEL_PROJECT_PRODUCTION_URL
   ) {
-    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}${reqUrl}`;
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}${reqPath}`;
   }
 
   return undefined;

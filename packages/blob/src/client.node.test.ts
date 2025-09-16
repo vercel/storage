@@ -86,7 +86,6 @@ describe('client uploads', () => {
           type: 'blob.generate-client-token',
           payload: {
             pathname: 'newfile.txt',
-            callbackUrl: 'https://example.com',
             multipart: false,
             clientPayload: null,
           },
@@ -95,6 +94,7 @@ describe('client uploads', () => {
           await Promise.resolve();
           return Promise.resolve({
             tokenPayload: pathname,
+            callbackUrl: 'https://example.com',
           });
         },
         onUploadCompleted: async (body) => {
@@ -149,6 +149,7 @@ describe('client uploads', () => {
             await Promise.resolve();
             return {
               tokenPayload: pathname,
+              callbackUrl: 'https://example.com/upload-completed',
             };
           },
           onUploadCompleted: spy,
@@ -176,7 +177,6 @@ describe('client uploads', () => {
           type: 'blob.generate-client-token',
           payload: {
             pathname: 'newfile.txt',
-            callbackUrl: 'https://example.com',
             clientPayload: 'custom-metadata-from-client',
             multipart: false,
           },
@@ -185,6 +185,7 @@ describe('client uploads', () => {
           await Promise.resolve();
           return Promise.resolve({
             addRandomSuffix: false,
+            callbackUrl: 'https://example.com',
           });
         },
         onUploadCompleted: async (body) => {
@@ -229,7 +230,6 @@ describe('client uploads', () => {
           type: 'blob.generate-client-token',
           payload: {
             pathname: 'newfile.txt',
-            callbackUrl: 'https://example.com',
             clientPayload: 'custom-metadata-from-client-we-expect',
             multipart: false,
           },
@@ -241,12 +241,622 @@ describe('client uploads', () => {
           await Promise.resolve();
           return Promise.resolve({
             addRandomSuffix: false,
+            callbackUrl: 'https://example.com',
           });
         },
         onUploadCompleted: async () => {
           await Promise.resolve();
         },
       });
+    });
+
+    it('ignores client callbackUrl when server provides one', async () => {
+      const token =
+        'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
+      const serverCallbackUrl =
+        'https://server-controlled.example.com/callback';
+      const maliciousClientCallbackUrl = 'https://malicious.com/steal-data';
+
+      // Client tries to set a malicious callback URL by including it in payload
+      const payloadWithCallbackUrl = {
+        type: 'blob.generate-client-token' as const,
+        payload: {
+          pathname: 'test.txt',
+          clientPayload: null,
+          multipart: false,
+          // Client tries to inject a malicious callback URL - this should be ignored
+          callbackUrl: maliciousClientCallbackUrl,
+        }, // Cast to any to bypass TypeScript (simulating raw API call)
+      };
+
+      const jsonResponse = await handleUpload({
+        token,
+        request: {
+          headers: { 'x-vercel-signature': '123' },
+        } as unknown as IncomingMessage,
+        body: payloadWithCallbackUrl,
+        onBeforeGenerateToken: async () => {
+          // Server controls the callback URL
+          return Promise.resolve({
+            callbackUrl: serverCallbackUrl,
+          });
+        },
+        onUploadCompleted: async () => {
+          await Promise.resolve();
+        },
+      });
+
+      // Verify token was generated successfully
+      expect(jsonResponse.type).toEqual('blob.generate-client-token');
+
+      expect(
+        jsonResponse.type === 'blob.generate-client-token' &&
+          jsonResponse.clientToken,
+      ).toBeTruthy();
+
+      // Decode the token to verify it uses the server-controlled callback URL
+      const decodedPayload = getPayloadFromClientToken(
+        (jsonResponse.type === 'blob.generate-client-token' &&
+          jsonResponse.clientToken) ||
+          '',
+      );
+      expect(decodedPayload.onUploadCompleted?.callbackUrl).toEqual(
+        serverCallbackUrl,
+      );
+
+      // Ensure the client's malicious URL is nowhere to be found
+      expect(JSON.stringify(decodedPayload)).not.toContain(
+        maliciousClientCallbackUrl,
+      );
+    });
+
+    it("ignores client callbackUrl even if server doesn't provide one", async () => {
+      const token =
+        'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
+      const maliciousClientCallbackUrl =
+        'https://malicious-site.com/steal-data';
+
+      // Simulate a curl request trying to inject callbackUrl into the payload
+      const maliciousPayload = {
+        type: 'blob.generate-client-token' as const,
+        payload: {
+          pathname: 'test.txt',
+          clientPayload: null,
+          multipart: false,
+          // Even manually adding this should be completely ignored
+          callbackUrl: maliciousClientCallbackUrl,
+        },
+      };
+
+      const jsonResponse = await handleUpload({
+        token,
+        request: {
+          headers: { 'x-vercel-signature': '123' },
+        } as unknown as IncomingMessage,
+        body: maliciousPayload,
+        onBeforeGenerateToken: async () => {
+          // Server doesn't provide any callback URL
+          return Promise.resolve({
+            addRandomSuffix: false,
+          });
+        },
+        onUploadCompleted: async () => {
+          await Promise.resolve();
+        },
+      });
+
+      // Verify token was generated successfully
+      expect(jsonResponse.type).toEqual('blob.generate-client-token');
+
+      expect(
+        jsonResponse.type === 'blob.generate-client-token' &&
+          jsonResponse.clientToken,
+      ).toBeTruthy();
+
+      // Decode the token to verify NO callback URL is set (server didn't provide one)
+      const decodedPayload = getPayloadFromClientToken(
+        (jsonResponse.type === 'blob.generate-client-token' &&
+          jsonResponse.clientToken) ||
+          '',
+      );
+      expect(decodedPayload.onUploadCompleted).toBeUndefined();
+
+      // Ensure the malicious URL is nowhere to be found
+      expect(JSON.stringify(decodedPayload)).not.toContain(
+        maliciousClientCallbackUrl,
+      );
+    });
+
+    it('should make onUploadCompleted optional', async () => {
+      const token =
+        'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
+
+      const jsonResponse = await handleUpload({
+        token,
+        request: {
+          headers: { 'x-vercel-signature': '123' },
+        } as unknown as IncomingMessage,
+        body: {
+          type: 'blob.generate-client-token',
+          payload: {
+            pathname: 'newfile.txt',
+            multipart: false,
+            clientPayload: null,
+          },
+        },
+        onBeforeGenerateToken: async () => {
+          return Promise.resolve({
+            addRandomSuffix: false,
+          });
+        },
+        // onUploadCompleted is not provided
+      });
+
+      expect(jsonResponse.type).toEqual('blob.generate-client-token');
+    });
+
+    it('should generate automatic callbackUrl when on Vercel and onUploadCompleted provided', async () => {
+      const originalEnv = process.env;
+      process.env = {
+        ...originalEnv,
+        VERCEL: '1',
+        VERCEL_ENV: 'preview',
+        VERCEL_BRANCH_URL: 'branch-abc-123.vercel.app',
+      };
+
+      const token =
+        'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
+
+      const jsonResponse = await handleUpload({
+        token,
+        request: {
+          url: '/api/upload',
+        } as unknown as Request,
+        body: {
+          type: 'blob.generate-client-token',
+          payload: {
+            pathname: 'newfile.txt',
+            multipart: false,
+            clientPayload: null,
+          },
+        },
+        onBeforeGenerateToken: async () => {
+          return Promise.resolve({
+            addRandomSuffix: false,
+          });
+        },
+        onUploadCompleted: async () => {
+          await Promise.resolve();
+        },
+      });
+
+      expect(jsonResponse.type).toEqual('blob.generate-client-token');
+
+      const decodedPayload = getPayloadFromClientToken(
+        (jsonResponse.type === 'blob.generate-client-token' &&
+          jsonResponse.clientToken) ||
+          '',
+      );
+
+      expect(decodedPayload.onUploadCompleted?.callbackUrl).toBe(
+        'https://branch-abc-123.vercel.app/api/upload',
+      );
+
+      process.env = originalEnv;
+    });
+
+    it('should use VERCEL_BLOB_CALLBACK_URL when provided', async () => {
+      const originalEnv = process.env;
+      process.env = {
+        ...originalEnv,
+        VERCEL_BLOB_CALLBACK_URL: 'https://custom-callback.example.com',
+      };
+
+      const token =
+        'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
+
+      const jsonResponse = await handleUpload({
+        token,
+        request: {
+          url: '/api/upload',
+        } as unknown as Request,
+        body: {
+          type: 'blob.generate-client-token',
+          payload: {
+            pathname: 'newfile.txt',
+            multipart: false,
+            clientPayload: null,
+          },
+        },
+        onBeforeGenerateToken: async () => {
+          return Promise.resolve({
+            addRandomSuffix: false,
+          });
+        },
+        onUploadCompleted: async () => {
+          await Promise.resolve();
+        },
+      });
+
+      expect(jsonResponse.type).toEqual('blob.generate-client-token');
+
+      const decodedPayload = getPayloadFromClientToken(
+        (jsonResponse.type === 'blob.generate-client-token' &&
+          jsonResponse.clientToken) ||
+          '',
+      );
+
+      expect(decodedPayload.onUploadCompleted?.callbackUrl).toBe(
+        'https://custom-callback.example.com/api/upload',
+      );
+
+      process.env = originalEnv;
+    });
+
+    it('should warn when callbackUrl provided but onUploadCompleted not defined', async () => {
+      // eslint-disable-next-line no-console -- Testing console behavior
+      const originalConsoleWarn = console.warn;
+      const mockConsoleWarn = jest.fn();
+      // eslint-disable-next-line no-console -- Testing console behavior
+      console.warn = mockConsoleWarn;
+
+      const token =
+        'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
+
+      await handleUpload({
+        token,
+        request: {
+          headers: { 'x-vercel-signature': '123' },
+        } as unknown as IncomingMessage,
+        body: {
+          type: 'blob.generate-client-token',
+          payload: {
+            pathname: 'newfile.txt',
+            multipart: false,
+            clientPayload: null,
+          },
+        },
+        onBeforeGenerateToken: async () => {
+          return Promise.resolve({
+            addRandomSuffix: false,
+            callbackUrl: 'https://example.com/callback',
+          });
+        },
+        // onUploadCompleted is not provided
+      });
+
+      expect(mockConsoleWarn).toHaveBeenCalledWith(
+        'callbackUrl was provided but onUploadCompleted is not defined. The callback will not be handled.',
+      );
+
+      // eslint-disable-next-line no-console -- Testing console behavior
+      console.warn = originalConsoleWarn;
+    });
+
+    it('should warn when onUploadCompleted provided but no callbackUrl can be determined', async () => {
+      const originalEnv = process.env;
+      // eslint-disable-next-line no-console -- Testing console behavior
+      const originalConsoleWarn = console.warn;
+      const mockConsoleWarn = jest.fn();
+      // eslint-disable-next-line no-console -- Testing console behavior
+      console.warn = mockConsoleWarn;
+
+      // Remove all Vercel-related environment variables
+      process.env = {
+        NODE_ENV: 'test',
+      };
+
+      const token =
+        'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
+
+      await handleUpload({
+        token,
+        request: {
+          headers: { 'x-vercel-signature': '123' },
+        } as unknown as IncomingMessage,
+        body: {
+          type: 'blob.generate-client-token',
+          payload: {
+            pathname: 'newfile.txt',
+            multipart: false,
+            clientPayload: null,
+          },
+        },
+        onBeforeGenerateToken: async () => {
+          return Promise.resolve({
+            addRandomSuffix: false,
+          });
+        },
+        onUploadCompleted: async () => {
+          await Promise.resolve();
+        },
+      });
+
+      expect(mockConsoleWarn).toHaveBeenCalledWith(
+        'onUploadCompleted provided but no callbackUrl could be determined. Please provide a callbackUrl in onBeforeGenerateToken or set the VERCEL_BLOB_CALLBACK_URL environment variable.',
+      );
+
+      process.env = originalEnv;
+      // eslint-disable-next-line no-console -- Testing console behavior
+      console.warn = originalConsoleWarn;
+    });
+
+    it('should handle blob.upload-completed without onUploadCompleted', async () => {
+      const token = 'vercel_blob_client_123456789_TEST_TOKEN';
+
+      expect(
+        await handleUpload({
+          token,
+          request: {
+            headers: {
+              // The next signature was generated via signPayload, export it when necessary
+              'x-vercel-signature':
+                'a4eac582498d4548d701eb8ff3e754f33f078e75298b9a1a0cdbac128981b28d',
+            },
+          } as unknown as IncomingMessage,
+          body: {
+            type: 'blob.upload-completed',
+            payload: {
+              blob: { pathname: 'newfile.txt' } as PutBlobResult,
+              tokenPayload: 'custom-metadata',
+            },
+          },
+          onBeforeGenerateToken: async (pathname) => {
+            await Promise.resolve();
+            return {
+              tokenPayload: pathname,
+              callbackUrl: 'https://example.com/upload-completed',
+            };
+          },
+          // onUploadCompleted is not provided
+        }),
+      ).toEqual({
+        response: 'ok',
+        type: 'blob.upload-completed',
+      });
+    });
+
+    it('should generate correct callbackUrl with full URL in request', async () => {
+      const originalEnv = process.env;
+      process.env = {
+        ...originalEnv,
+        VERCEL: '1',
+        VERCEL_ENV: 'preview',
+        VERCEL_BRANCH_URL: 'branch-abc-123.vercel.app',
+      };
+
+      const token =
+        'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
+
+      const jsonResponse = await handleUpload({
+        token,
+        request: {
+          url: 'http://localhost:3000/api/upload?test=1',
+        } as unknown as Request,
+        body: {
+          type: 'blob.generate-client-token',
+          payload: {
+            pathname: 'newfile.txt',
+            multipart: false,
+            clientPayload: null,
+          },
+        },
+        onBeforeGenerateToken: async () => {
+          return Promise.resolve({
+            addRandomSuffix: false,
+          });
+        },
+        onUploadCompleted: async () => {
+          await Promise.resolve();
+        },
+      });
+
+      expect(jsonResponse.type).toEqual('blob.generate-client-token');
+
+      const decodedPayload = getPayloadFromClientToken(
+        (jsonResponse.type === 'blob.generate-client-token' &&
+          jsonResponse.clientToken) ||
+          '',
+      );
+
+      expect(decodedPayload.onUploadCompleted?.callbackUrl).toBe(
+        'https://branch-abc-123.vercel.app/api/upload?test=1',
+      );
+
+      process.env = originalEnv;
+    });
+
+    it('should generate correct callbackUrl with relative URL in request', async () => {
+      const originalEnv = process.env;
+      process.env = {
+        ...originalEnv,
+        VERCEL: '1',
+        VERCEL_ENV: 'production',
+        VERCEL_PROJECT_PRODUCTION_URL: 'myapp.vercel.app',
+      };
+
+      const token =
+        'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
+
+      const jsonResponse = await handleUpload({
+        token,
+        request: {
+          url: '/api/upload?example=test',
+        } as unknown as Request,
+        body: {
+          type: 'blob.generate-client-token',
+          payload: {
+            pathname: 'newfile.txt',
+            multipart: false,
+            clientPayload: null,
+          },
+        },
+        onBeforeGenerateToken: async () => {
+          return Promise.resolve({
+            addRandomSuffix: false,
+          });
+        },
+        onUploadCompleted: async () => {
+          await Promise.resolve();
+        },
+      });
+
+      expect(jsonResponse.type).toEqual('blob.generate-client-token');
+
+      const decodedPayload = getPayloadFromClientToken(
+        (jsonResponse.type === 'blob.generate-client-token' &&
+          jsonResponse.clientToken) ||
+          '',
+      );
+
+      expect(decodedPayload.onUploadCompleted?.callbackUrl).toBe(
+        'https://myapp.vercel.app/api/upload?example=test',
+      );
+
+      process.env = originalEnv;
+    });
+
+    it('should use VERCEL_BLOB_CALLBACK_URL with query params preserved', async () => {
+      const originalEnv = process.env;
+      process.env = {
+        ...originalEnv,
+        VERCEL_BLOB_CALLBACK_URL: 'https://webhook.example.com',
+      };
+
+      const token =
+        'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
+
+      const jsonResponse = await handleUpload({
+        token,
+        request: {
+          url: '/api/upload?userId=123&type=avatar',
+        } as unknown as Request,
+        body: {
+          type: 'blob.generate-client-token',
+          payload: {
+            pathname: 'newfile.txt',
+            multipart: false,
+            clientPayload: null,
+          },
+        },
+        onBeforeGenerateToken: async () => {
+          return Promise.resolve({
+            addRandomSuffix: false,
+          });
+        },
+        onUploadCompleted: async () => {
+          await Promise.resolve();
+        },
+      });
+
+      const decodedPayload = getPayloadFromClientToken(
+        (jsonResponse.type === 'blob.generate-client-token' &&
+          jsonResponse.clientToken) ||
+          '',
+      );
+
+      expect(decodedPayload.onUploadCompleted?.callbackUrl).toBe(
+        'https://webhook.example.com/api/upload?userId=123&type=avatar',
+      );
+
+      process.env = originalEnv;
+    });
+
+    it('should generate callbackUrl for production environment on Vercel', async () => {
+      const originalEnv = process.env;
+      process.env = {
+        ...originalEnv,
+        VERCEL: '1',
+        VERCEL_ENV: 'production',
+        VERCEL_PROJECT_PRODUCTION_URL: 'myapp.vercel.app',
+      };
+
+      const token =
+        'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
+
+      const jsonResponse = await handleUpload({
+        token,
+        request: {
+          url: '/api/blob/upload',
+        } as unknown as Request,
+        body: {
+          type: 'blob.generate-client-token',
+          payload: {
+            pathname: 'newfile.txt',
+            multipart: false,
+            clientPayload: null,
+          },
+        },
+        onBeforeGenerateToken: async () => {
+          return Promise.resolve({
+            addRandomSuffix: false,
+          });
+        },
+        onUploadCompleted: async () => {
+          await Promise.resolve();
+        },
+      });
+
+      const decodedPayload = getPayloadFromClientToken(
+        (jsonResponse.type === 'blob.generate-client-token' &&
+          jsonResponse.clientToken) ||
+          '',
+      );
+
+      expect(decodedPayload.onUploadCompleted?.callbackUrl).toBe(
+        'https://myapp.vercel.app/api/blob/upload',
+      );
+
+      process.env = originalEnv;
+    });
+
+    it('should fallback to VERCEL_URL when VERCEL_BRANCH_URL is missing in preview', async () => {
+      const originalEnv = process.env;
+      process.env = {
+        ...originalEnv,
+        VERCEL: '1',
+        VERCEL_ENV: 'preview',
+        VERCEL_URL: 'myapp-git-feature-user.vercel.app',
+        // VERCEL_BRANCH_URL is not set
+      };
+
+      const token =
+        'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
+
+      const jsonResponse = await handleUpload({
+        token,
+        request: {
+          url: '/api/upload',
+        } as unknown as Request,
+        body: {
+          type: 'blob.generate-client-token',
+          payload: {
+            pathname: 'newfile.txt',
+            multipart: false,
+            clientPayload: null,
+          },
+        },
+        onBeforeGenerateToken: async () => {
+          return Promise.resolve({
+            addRandomSuffix: false,
+          });
+        },
+        onUploadCompleted: async () => {
+          await Promise.resolve();
+        },
+      });
+
+      const decodedPayload = getPayloadFromClientToken(
+        (jsonResponse.type === 'blob.generate-client-token' &&
+          jsonResponse.clientToken) ||
+          '',
+      );
+
+      expect(decodedPayload.onUploadCompleted?.callbackUrl).toBe(
+        'https://myapp-git-feature-user.vercel.app/api/upload',
+      );
+
+      process.env = originalEnv;
     });
   });
 });

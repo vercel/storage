@@ -1,6 +1,6 @@
 {
   "name": "@vercel/blob",
-  "version": "1.1.1",
+  "version": "2.0.0",
   "description": "The Vercel Blob JavaScript API client",
   "homepage": "https://vercel.com/storage/blob",
   "repository": {
@@ -81,6 +81,6 @@
     "tsup": "8.4.0"
   },
   "engines": {
-    "node": ">=16.14"
+    "node": ">=20.0.0"
   }
 }

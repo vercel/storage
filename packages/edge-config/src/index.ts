@@ -61,17 +61,16 @@ export const createClient = trace(
       );
 
     /**
-     * While in development we use SWR-like behavior for the api client to
-     * reduce latency.
+     * While in development, stream updates from the Edge Config.
      */
-    const shouldUseDevelopmentCache =
-      !options.disableDevelopmentCache &&
+    const shouldUseDevelopmentStream =
+      !options.disableDevelopmentStream &&
       process.env.NODE_ENV === 'development' &&
-      process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
+      process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_STREAM !== '1';
 
     const controller = new Controller(connection, {
       ...options,
-      enableDevelopmentCache: shouldUseDevelopmentCache,
+      enableDevelopmentStream: shouldUseDevelopmentStream,
     });
 
     const edgeConfigId = connection.id;

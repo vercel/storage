@@ -169,15 +169,9 @@ export interface EdgeConfigClientOptions {
   maxStale?: number;
 
   /**
-   * In development, a stale-while-revalidate cache is employed as the default caching strategy.
-   *
-   * This cache aims to deliver speedy Edge Config reads during development, though it comes
-   * at the cost of delayed visibility for updates to Edge Config. Typically, you may need to
-   * refresh twice to observe these changes as the stale value is replaced.
-   *
-   * This cache is not used in preview or production deployments as superior optimisations are applied there.
+   * In development, a stream is employed as the default streaming strategy.
    */
-  disableDevelopmentCache?: boolean;
+  disableDevelopmentStream?: boolean;
 
   /**
    * Sets a `cache` option on the `fetch` call made by Edge Config.

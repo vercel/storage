@@ -29,7 +29,7 @@ function after(fn: () => Promise<unknown>): void {
 }
 
 /**
- * Will return an embedded Edge Config object from memory,
+ * Will return the latest version of an Edge Config,
  * but only when the `privateEdgeConfigSymbol` is in global scope.
  */
 function getUpdatedAt(connection: Connection): number | null {
@@ -93,7 +93,7 @@ export class Controller {
   private connection: Connection;
   private maxStale: number;
   private cacheMode: 'no-store' | 'force-cache';
-  private enableDevelopmentCache: boolean;
+  private enableDevelopmentStream: boolean;
   private preloaded: 'init' | 'loading' | 'loaded' = 'init';
   private stream: EventSourceClient | null = null;
 
@@ -102,25 +102,70 @@ export class Controller {
 
   constructor(
     connection: Connection,
-    options: EdgeConfigClientOptions & { enableDevelopmentCache: boolean },
+    options: EdgeConfigClientOptions & {
+      enableDevelopmentStream: boolean;
+    },
   ) {
     this.connection = connection;
     this.maxStale = options.maxStale ?? DEFAULT_STALE_THRESHOLD;
     this.cacheMode = options.cache || 'no-store';
-    this.enableDevelopmentCache = options.enableDevelopmentCache;
+    this.enableDevelopmentStream = options.enableDevelopmentStream;
     this.enhancedFetch = createEnhancedFetch();
 
-    if (options.enableDevelopmentCache && this.connection.type === 'vercel') {
-      this.stream = createEventSource({
-        url: `https://api.vercel.com/v1/edge-config/${this.connection.id}/stream`,
-        headers: {
-          'x-edge-config-token': this.connection.token,
-        },
-        onMessage(event, ...rest) {
-          console.log('event', event, ...rest);
-        },
+    if (options.enableDevelopmentStream && this.connection.type === 'vercel') {
+      void this.initStream().catch((error) => {
+        // eslint-disable-next-line no-console -- intentional error logging
+        console.error('@vercel/edge-config: Stream error', error);
       });
     }
+  }
+
+  private async initStream(): Promise<void> {
+    this.stream = createEventSource({
+      url: `https://api.vercel.com/v1/edge-config/${this.connection.id}/stream`,
+      headers: {
+        Authorization: `Bearer ${this.connection.token}`,
+
+        // send the version we have in cache, so the stream endpoint only
+        // sends us a newer version if it exists
+        ...(this.edgeConfigCache?.updatedAt
+          ? {
+              'x-edge-config-updated-at': String(
+                this.edgeConfigCache.updatedAt,
+              ),
+            }
+          : {}),
+      },
+    });
+
+    for await (const { data, event } of this.stream) {
+      if (event === 'info' && data === 'token_invalidated') {
+        this.stream.close();
+        return;
+      }
+
+      if (event === 'embed') {
+        let edgeConfig: EmbeddedEdgeConfig | undefined;
+        try {
+          edgeConfig = JSON.parse(data) as EmbeddedEdgeConfig;
+        } catch (e) {
+          // eslint-disable-next-line no-console -- intentional error logging
+          console.error(
+            '@vercel/edge-config: Error parsing streamed edge config',
+            e,
+          );
+          continue;
+        }
+
+        this.updateEdgeConfigCache(
+          edgeConfig.items,
+          edgeConfig.updatedAt,
+          edgeConfig.digest,
+        );
+      }
+    }
+
+    this.stream.close();
   }
 
   private async preload(): Promise<void> {
@@ -164,13 +209,24 @@ export class Controller {
     exists: boolean;
     updatedAt: number;
   }> {
-    // hold a reference to the timestamp to avoid race conditions
-    // const ts = getUpdatedAt(this.connection);
-    // if (this.enableDevelopmentCache || !ts) {
-    //   return this.fetchItem<T>('GET', key, ts, localOptions, true);
-    // }
+    if (this.stream && this.edgeConfigCache) {
+      const cached = this.readCache<T>(
+        key,
+        'GET',
+        this.edgeConfigCache.updatedAt,
+        localOptions,
+      );
+      if (cached) return cached;
+    }
 
-    const ts = 1754511966797;
+    // TODO what does does the logic need to look like here if we have the dev stream
+    // hold a reference to the timestamp to avoid race conditions
+    const ts = getUpdatedAt(this.connection);
+    if (!ts) {
+      return this.fetchItem<T>('GET', key, ts, localOptions, true);
+    }
+
+    // const ts = this.edgeConfigCache?.updatedAt;
 
     await this.preload();
 
@@ -206,7 +262,7 @@ export class Controller {
   private readCache<T extends EdgeConfigValue>(
     key: string,
     method: 'GET' | 'HEAD',
-    timestamp: number | undefined,
+    timestamp: number | undefined | null,
     localOptions: EdgeConfigFunctionsOptions | undefined,
   ): {
     value: T | undefined;
@@ -503,8 +559,18 @@ export class Controller {
     key: string,
     localOptions?: EdgeConfigFunctionsOptions,
   ): Promise<{ exists: boolean; digest: string; cache: CacheStatus }> {
+    if (this.stream && this.edgeConfigCache?.updatedAt) {
+      const cached = this.readCache<EdgeConfigValue>(
+        key,
+        'HEAD',
+        this.edgeConfigCache.updatedAt,
+        localOptions,
+      );
+      if (cached) return cached;
+    }
+
     const ts = getUpdatedAt(this.connection);
-    if (this.enableDevelopmentCache || !ts) {
+    if (!ts) {
       return this.fetchItem('HEAD', key, ts, localOptions, true);
     }
 
@@ -524,6 +590,11 @@ export class Controller {
   public async digest(
     localOptions?: Pick<EdgeConfigFunctionsOptions, 'consistentRead'>,
   ): Promise<string> {
+    if (this.stream && this.edgeConfigCache) {
+      const cached = this.edgeConfigCache.digest;
+      if (cached) return cached;
+    }
+
     const ts = getUpdatedAt(this.connection);
     return fetch(
       `${this.connection.baseUrl}/digest?version=${this.connection.version}`,
@@ -550,7 +621,6 @@ export class Controller {
     cache: CacheStatus;
     updatedAt: number;
   }> {
-    const ts = getUpdatedAt(this.connection);
     if (!Array.isArray(keys)) {
       throw new Error('@vercel/edge-config: keys must be an array');
     }
@@ -558,6 +628,21 @@ export class Controller {
     const filteredKeys = keys.filter(
       (key) => typeof key === 'string' && !isEmptyKey(key),
     );
+
+    if (this.stream && this.edgeConfigCache) {
+      return {
+        value: filteredKeys.reduce<Partial<T>>((acc, key, index) => {
+          const item = items[index];
+          acc[key as keyof T] = item?.value as T[keyof T];
+          return acc;
+        }, {}) as T,
+        digest: this.edgeConfigCache.digest,
+        cache: 'HIT',
+        updatedAt: this.edgeConfigCache.updatedAt,
+      };
+    }
+
+    const ts = getUpdatedAt(this.connection);
 
     // Return early if there are no keys to be read.
     // This is only possible if the digest is not required, or if we have a

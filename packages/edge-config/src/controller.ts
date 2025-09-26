@@ -1,5 +1,7 @@
 import { waitUntil } from '@vercel/functions';
+import { createEventSource, type EventSourceClient } from 'eventsource-client';
 import { name as sdkName, version as sdkVersion } from '../package.json';
+import { readLocalEdgeConfig } from './utils/mockable-import';
 import type {
   EdgeConfigValue,
   EmbeddedEdgeConfig,
@@ -12,7 +14,6 @@ import type {
 import { ERRORS, isEmptyKey, pick, UnexpectedNetworkError } from './utils';
 import { consumeResponseBody } from './utils/consume-response-body';
 import { createEnhancedFetch } from './utils/fetch-with-cached-response';
-import { readLocalEdgeConfig } from './utils/mockable-import';
 
 const DEFAULT_STALE_THRESHOLD = 10; // 10 seconds
 // const DEFAULT_STALE_IF_ERROR = 604800; // one week in seconds
@@ -94,6 +95,7 @@ export class Controller {
   private cacheMode: 'no-store' | 'force-cache';
   private enableDevelopmentCache: boolean;
   private preloaded: 'init' | 'loading' | 'loaded' = 'init';
+  private stream: EventSourceClient | null = null;
 
   // create an instance per controller so the caches are isolated
   private enhancedFetch: ReturnType<typeof createEnhancedFetch>;
@@ -107,6 +109,18 @@ export class Controller {
     this.cacheMode = options.cache || 'no-store';
     this.enableDevelopmentCache = options.enableDevelopmentCache;
     this.enhancedFetch = createEnhancedFetch();
+
+    if (options.enableDevelopmentCache && this.connection.type === 'vercel') {
+      this.stream = createEventSource({
+        url: `https://api.vercel.com/v1/edge-config/${this.connection.id}/stream`,
+        headers: {
+          'x-edge-config-token': this.connection.token,
+        },
+        onMessage(event, ...rest) {
+          console.log('event', event, ...rest);
+        },
+      });
+    }
   }
 
   private async preload(): Promise<void> {
@@ -122,7 +136,7 @@ export class Controller {
         this.connection.id,
       );
 
-      console.log('read', mod.default);
+      if (!mod) return;
 
       const hasNewerEntry =
         this.edgeConfigCache &&
@@ -133,8 +147,8 @@ export class Controller {
 
       this.edgeConfigCache = mod.default;
     } catch (e) {
-      console.log('caught', e);
-      /* do nothing */
+      // eslint-disable-next-line no-console -- intentional error logging
+      console.error('@vercel/edge-config: Error reading local edge config', e);
     } finally {
       this.preloaded = 'loaded';
     }

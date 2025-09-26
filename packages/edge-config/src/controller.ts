@@ -11,7 +11,7 @@ import type {
 } from './types';
 import { ERRORS, isEmptyKey, pick, UnexpectedNetworkError } from './utils';
 import { consumeResponseBody } from './utils/consume-response-body';
-import { createEnhancedFetch } from './utils/enhanced-fetch';
+import { createEnhancedFetch } from './utils/fetch-with-cached-response';
 import { readLocalEdgeConfig } from './utils/mockable-import';
 
 const DEFAULT_STALE_THRESHOLD = 10; // 10 seconds

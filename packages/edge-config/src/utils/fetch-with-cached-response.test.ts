@@ -1,5 +1,5 @@
 import fetchMock from 'jest-fetch-mock';
-import { createEnhancedFetch } from './enhanced-fetch';
+import { createEnhancedFetch } from './fetch-with-cached-response';
 
 describe('enhancedFetch', () => {
   let enhancedFetch: ReturnType<typeof createEnhancedFetch>;

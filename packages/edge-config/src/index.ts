@@ -20,6 +20,7 @@ import type {
 } from './types';
 import { fetchWithCachedResponse } from './utils/fetch-with-cached-response';
 import { trace } from './utils/tracing';
+import { withIOBoundary } from './utils/io-boundary';
 
 export { setTracerProvider } from './utils/tracing';
 
@@ -342,189 +343,209 @@ export const createClient = trace(
     );
 
     const api: Omit<EdgeConfigClient, 'connection'> = {
-      get: trace(
-        async function get<T = EdgeConfigValue>(
-          key: string,
-          localOptions?: EdgeConfigFunctionsOptions,
-        ): Promise<T | undefined> {
-          const localEdgeConfig =
-            (await getInMemoryEdgeConfig(localOptions)) ||
-            (await getLocalEdgeConfig(connection, localOptions));
+      get: withIOBoundary(
+        trace(
+          async function get<T = EdgeConfigValue>(
+            key: string,
+            localOptions?: EdgeConfigFunctionsOptions,
+          ): Promise<T | undefined> {
+            const localEdgeConfig =
+              (await getInMemoryEdgeConfig(localOptions)) ||
+              (await getLocalEdgeConfig(connection, localOptions));
 
-          assertIsKey(key);
-          if (isEmptyKey(key)) return undefined;
+            assertIsKey(key);
+            if (isEmptyKey(key)) return undefined;
 
-          if (localEdgeConfig) {
-            // We need to return a clone of the value so users can't modify
-            // our original value, and so the reference changes.
-            //
-            // This makes it consistent with the real API.
-            return Promise.resolve(localEdgeConfig.items[key] as T);
-          }
-
-          const localHeaders = new Headers(headers);
-          if (localOptions?.consistentRead)
-            addConsistentReadHeader(localHeaders);
-
-          return fetchWithCachedResponse(
-            `${baseUrl}/item/${key}?version=${version}`,
-            {
-              headers: localHeaders,
-              cache: fetchCache,
-            },
-          ).then<T | undefined, undefined>(async (res) => {
-            if (res.ok) return res.json();
-            await consumeResponseBody(res);
-
-            if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
-            if (res.status === 404) {
-              // if the x-edge-config-digest header is present, it means
-              // the edge config exists, but the item does not
-              if (res.headers.has('x-edge-config-digest')) return undefined;
-              // if the x-edge-config-digest header is not present, it means
-              // the edge config itself does not exist
-              throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-            }
-            if (res.cachedResponseBody !== undefined)
-              return res.cachedResponseBody as T;
-            throw new UnexpectedNetworkError(res);
-          });
-        },
-        { name: 'get', isVerboseTrace: false, attributes: { edgeConfigId } },
-      ),
-      has: trace(
-        async function has(
-          key,
-          localOptions?: EdgeConfigFunctionsOptions,
-        ): Promise<boolean> {
-          const localEdgeConfig =
-            (await getInMemoryEdgeConfig(localOptions)) ||
-            (await getLocalEdgeConfig(connection, localOptions));
-
-          assertIsKey(key);
-          if (isEmptyKey(key)) return false;
-
-          if (localEdgeConfig) {
-            return Promise.resolve(hasOwnProperty(localEdgeConfig.items, key));
-          }
-
-          const localHeaders = new Headers(headers);
-          if (localOptions?.consistentRead)
-            addConsistentReadHeader(localHeaders);
-
-          // this is a HEAD request anyhow, no need for fetchWithCachedResponse
-          return fetch(`${baseUrl}/item/${key}?version=${version}`, {
-            method: 'HEAD',
-            headers: localHeaders,
-            cache: fetchCache,
-          }).then((res) => {
-            if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
-            if (res.status === 404) {
-              // if the x-edge-config-digest header is present, it means
-              // the edge config exists, but the item does not
-              if (res.headers.has('x-edge-config-digest')) return false;
-              // if the x-edge-config-digest header is not present, it means
-              // the edge config itself does not exist
-              throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-            }
-            if (res.ok) return true;
-            throw new UnexpectedNetworkError(res);
-          });
-        },
-        { name: 'has', isVerboseTrace: false, attributes: { edgeConfigId } },
-      ),
-      getAll: trace(
-        async function getAll<T = EdgeConfigItems>(
-          keys?: (keyof T)[],
-          localOptions?: EdgeConfigFunctionsOptions,
-        ): Promise<T> {
-          const localEdgeConfig =
-            (await getInMemoryEdgeConfig(localOptions)) ||
-            (await getLocalEdgeConfig(connection, localOptions));
-
-          if (localEdgeConfig) {
-            if (keys === undefined) {
-              return Promise.resolve(localEdgeConfig.items as T);
+            if (localEdgeConfig) {
+              // We need to return a clone of the value so users can't modify
+              // our original value, and so the reference changes.
+              //
+              // This makes it consistent with the real API.
+              return Promise.resolve(localEdgeConfig.items[key] as T);
             }
 
-            assertIsKeys(keys);
-            return Promise.resolve(pick(localEdgeConfig.items, keys) as T);
-          }
+            const localHeaders = new Headers(headers);
+            if (localOptions?.consistentRead)
+              addConsistentReadHeader(localHeaders);
 
-          if (Array.isArray(keys)) assertIsKeys(keys);
+            return fetchWithCachedResponse(
+              `${baseUrl}/item/${key}?version=${version}`,
+              {
+                headers: localHeaders,
+                cache: fetchCache,
+              },
+            ).then<T | undefined, undefined>(async (res) => {
+              if (res.ok) return res.json();
+              await consumeResponseBody(res);
 
-          const search = Array.isArray(keys)
-            ? new URLSearchParams(
-                keys
-                  .filter((key) => typeof key === 'string' && !isEmptyKey(key))
-                  .map((key) => ['key', key] as [string, string]),
-              ).toString()
-            : null;
-
-          // empty search keys array was given,
-          // so skip the request and return an empty object
-          if (search === '') return Promise.resolve({} as T);
-
-          const localHeaders = new Headers(headers);
-          if (localOptions?.consistentRead)
-            addConsistentReadHeader(localHeaders);
-
-          return fetchWithCachedResponse(
-            `${baseUrl}/items?version=${version}${
-              search === null ? '' : `&${search}`
-            }`,
-            {
-              headers: localHeaders,
-              cache: fetchCache,
-            },
-          ).then<T>(async (res) => {
-            if (res.ok) return res.json();
-            await consumeResponseBody(res);
-
-            if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
-            // the /items endpoint never returns 404, so if we get a 404
-            // it means the edge config itself did not exist
-            if (res.status === 404)
-              throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-            if (res.cachedResponseBody !== undefined)
-              return res.cachedResponseBody as T;
-            throw new UnexpectedNetworkError(res);
-          });
-        },
-        { name: 'getAll', isVerboseTrace: false, attributes: { edgeConfigId } },
+              if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
+              if (res.status === 404) {
+                // if the x-edge-config-digest header is present, it means
+                // the edge config exists, but the item does not
+                if (res.headers.has('x-edge-config-digest')) return undefined;
+                // if the x-edge-config-digest header is not present, it means
+                // the edge config itself does not exist
+                throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
+              }
+              if (res.cachedResponseBody !== undefined)
+                return res.cachedResponseBody as T;
+              throw new UnexpectedNetworkError(res);
+            });
+          },
+          { name: 'get', isVerboseTrace: false, attributes: { edgeConfigId } },
+        ),
       ),
-      digest: trace(
-        async function digest(
-          localOptions?: EdgeConfigFunctionsOptions,
-        ): Promise<string> {
-          const localEdgeConfig =
-            (await getInMemoryEdgeConfig(localOptions)) ||
-            (await getLocalEdgeConfig(connection, localOptions));
+      has: withIOBoundary(
+        trace(
+          async function has(
+            key,
+            localOptions?: EdgeConfigFunctionsOptions,
+          ): Promise<boolean> {
+            const localEdgeConfig =
+              (await getInMemoryEdgeConfig(localOptions)) ||
+              (await getLocalEdgeConfig(connection, localOptions));
 
-          if (localEdgeConfig) {
-            return Promise.resolve(localEdgeConfig.digest);
-          }
+            assertIsKey(key);
+            if (isEmptyKey(key)) return false;
 
-          const localHeaders = new Headers(headers);
-          if (localOptions?.consistentRead)
-            addConsistentReadHeader(localHeaders);
+            if (localEdgeConfig) {
+              return Promise.resolve(
+                hasOwnProperty(localEdgeConfig.items, key),
+              );
+            }
 
-          return fetchWithCachedResponse(
-            `${baseUrl}/digest?version=${version}`,
-            {
+            const localHeaders = new Headers(headers);
+            if (localOptions?.consistentRead)
+              addConsistentReadHeader(localHeaders);
+
+            // this is a HEAD request anyhow, no need for fetchWithCachedResponse
+            return fetch(`${baseUrl}/item/${key}?version=${version}`, {
+              method: 'HEAD',
               headers: localHeaders,
               cache: fetchCache,
-            },
-          ).then(async (res) => {
-            if (res.ok) return res.json() as Promise<string>;
-            await consumeResponseBody(res);
+            }).then((res) => {
+              if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
+              if (res.status === 404) {
+                // if the x-edge-config-digest header is present, it means
+                // the edge config exists, but the item does not
+                if (res.headers.has('x-edge-config-digest')) return false;
+                // if the x-edge-config-digest header is not present, it means
+                // the edge config itself does not exist
+                throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
+              }
+              if (res.ok) return true;
+              throw new UnexpectedNetworkError(res);
+            });
+          },
+          { name: 'has', isVerboseTrace: false, attributes: { edgeConfigId } },
+        ),
+      ),
+      getAll: withIOBoundary(
+        trace(
+          async function getAll<T = EdgeConfigItems>(
+            keys?: (keyof T)[],
+            localOptions?: EdgeConfigFunctionsOptions,
+          ): Promise<T> {
+            const localEdgeConfig =
+              (await getInMemoryEdgeConfig(localOptions)) ||
+              (await getLocalEdgeConfig(connection, localOptions));
 
-            if (res.cachedResponseBody !== undefined)
-              return res.cachedResponseBody as string;
-            throw new UnexpectedNetworkError(res);
-          });
-        },
-        { name: 'digest', isVerboseTrace: false, attributes: { edgeConfigId } },
+            if (localEdgeConfig) {
+              if (keys === undefined) {
+                return Promise.resolve(localEdgeConfig.items as T);
+              }
+
+              assertIsKeys(keys);
+              return Promise.resolve(pick(localEdgeConfig.items, keys) as T);
+            }
+
+            if (Array.isArray(keys)) assertIsKeys(keys);
+
+            const search = Array.isArray(keys)
+              ? new URLSearchParams(
+                  keys
+                    .filter(
+                      (key) => typeof key === 'string' && !isEmptyKey(key),
+                    )
+                    .map((key) => ['key', key] as [string, string]),
+                ).toString()
+              : null;
+
+            // empty search keys array was given,
+            // so skip the request and return an empty object
+            if (search === '') return Promise.resolve({} as T);
+
+            const localHeaders = new Headers(headers);
+            if (localOptions?.consistentRead)
+              addConsistentReadHeader(localHeaders);
+
+            return fetchWithCachedResponse(
+              `${baseUrl}/items?version=${version}${
+                search === null ? '' : `&${search}`
+              }`,
+              {
+                headers: localHeaders,
+                cache: fetchCache,
+              },
+            ).then<T>(async (res) => {
+              if (res.ok) return res.json();
+              await consumeResponseBody(res);
+
+              if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
+              // the /items endpoint never returns 404, so if we get a 404
+              // it means the edge config itself did not exist
+              if (res.status === 404)
+                throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
+              if (res.cachedResponseBody !== undefined)
+                return res.cachedResponseBody as T;
+              throw new UnexpectedNetworkError(res);
+            });
+          },
+          {
+            name: 'getAll',
+            isVerboseTrace: false,
+            attributes: { edgeConfigId },
+          },
+        ),
+      ),
+      digest: withIOBoundary(
+        trace(
+          async function digest(
+            localOptions?: EdgeConfigFunctionsOptions,
+          ): Promise<string> {
+            const localEdgeConfig =
+              (await getInMemoryEdgeConfig(localOptions)) ||
+              (await getLocalEdgeConfig(connection, localOptions));
+
+            if (localEdgeConfig) {
+              return Promise.resolve(localEdgeConfig.digest);
+            }
+
+            const localHeaders = new Headers(headers);
+            if (localOptions?.consistentRead)
+              addConsistentReadHeader(localHeaders);
+
+            return fetchWithCachedResponse(
+              `${baseUrl}/digest?version=${version}`,
+              {
+                headers: localHeaders,
+                cache: fetchCache,
+              },
+            ).then(async (res) => {
+              if (res.ok) return res.json() as Promise<string>;
+              await consumeResponseBody(res);
+
+              if (res.cachedResponseBody !== undefined)
+                return res.cachedResponseBody as string;
+              throw new UnexpectedNetworkError(res);
+            });
+          },
+          {
+            name: 'digest',
+            isVerboseTrace: false,
+            attributes: { edgeConfigId },
+          },
+        ),
       ),
     };
 

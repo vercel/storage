@@ -33,7 +33,11 @@ function after(fn: () => Promise<unknown>): void {
   );
 }
 
-function getUpdatedAt(connection: Connection): number | null {
+/**
+ * Reads the updatedAt timestamp of the most recent Edge Config update,
+ * so we can compare that to what we have in cache.
+ */
+function getMostRecentUpdateTimestamp(connection: Connection): number | null {
   const privateEdgeConfig = Reflect.get(globalThis, privateEdgeConfigSymbol) as
     | { getUpdatedAt: (id: string) => number | null }
     | undefined;
@@ -399,7 +403,7 @@ class NetworkClient {
   async fetchDigest(
     localOptions?: Pick<EdgeConfigFunctionsOptions, 'consistentRead'>,
   ): Promise<string> {
-    const ts = getUpdatedAt(this.connection);
+    const ts = getMostRecentUpdateTimestamp(this.connection);
     const res = await fetch(
       `${this.connection.baseUrl}/digest?version=${this.connection.version}`,
       {
@@ -420,7 +424,7 @@ export class Controller {
   private streamManager: StreamManager | null = null;
   private connection: Connection;
   private maxStale: number;
-  private preloaded: 'init' | 'loading' | 'loaded' = 'init';
+  private preloadPromise: Promise<void> | null = null;
 
   constructor(
     connection: Connection,
@@ -448,68 +452,45 @@ export class Controller {
   private async preload(): Promise<void> {
     if (this.connection.type !== 'vercel') return;
 
-    this.preloaded = 'loading';
+    // Return existing promise if already loading
+    if (this.preloadPromise) return this.preloadPromise;
 
-    try {
-      const mod = await readLocalEdgeConfig<{ default: EmbeddedEdgeConfig }>(
-        this.connection.id,
-      );
+    // Create and store the promise to prevent concurrent calls
+    this.preloadPromise = (async () => {
+      try {
+        const mod = await readLocalEdgeConfig<{ default: EmbeddedEdgeConfig }>(
+          this.connection.id,
+        );
 
-      if (!mod) return;
+        if (!mod) return;
 
-      const edgeConfig = this.cacheManager.getEdgeConfig();
-      const hasNewerEntry =
-        edgeConfig && edgeConfig.updatedAt > mod.default.updatedAt;
+        const edgeConfig = this.cacheManager.getEdgeConfig();
+        const hasNewerEntry =
+          edgeConfig && edgeConfig.updatedAt > mod.default.updatedAt;
 
-      if (hasNewerEntry) return;
+        if (hasNewerEntry) return;
 
-      this.cacheManager.setEdgeConfig(mod.default);
-    } catch (e) {
-      // eslint-disable-next-line no-console -- intentional error logging
-      console.error('@vercel/edge-config: Error reading local edge config', e);
-    } finally {
-      this.preloaded = 'loaded';
-    }
-  }
+        this.cacheManager.setEdgeConfig(mod.default);
+      } catch (e) {
+        // eslint-disable-next-line no-console -- intentional error logging
+        console.error(
+          '@vercel/edge-config: Error reading local edge config',
+          e,
+        );
+      }
+    })();
 
-  public async get<T extends EdgeConfigValue>(
-    key: string,
-    localOptions?: EdgeConfigFunctionsOptions,
-  ): Promise<{
-    value: T | undefined;
-    digest: string;
-    cache: CacheStatus;
-    exists: boolean;
-    updatedAt: number;
-  }> {
-    const edgeConfig = this.cacheManager.getEdgeConfig();
-    if (this.streamManager && edgeConfig) {
-      const cached = this.readCache<T>(
-        key,
-        'GET',
-        edgeConfig.updatedAt,
-        localOptions,
-      );
-      if (cached) return cached;
-    }
-
-    const ts = getUpdatedAt(this.connection);
-    if (!ts) {
-      return this.fetchAndCacheItem<T>('GET', key, ts, localOptions, true);
-    }
-
-    await this.preload();
-
-    const cached = this.readCache<T>(key, 'GET', ts, localOptions);
-    if (cached) return cached;
-
-    return this.fetchAndCacheItem<T>('GET', key, ts, localOptions, true);
+    return this.preloadPromise;
   }
 
   private readCache<T extends EdgeConfigValue>(
-    key: string,
     method: 'GET' | 'HEAD',
-    timestamp: number | undefined | null,
+    key: string,
+    /**
+     * The timestamp of the most recent update.
+     * Read from the headers through the bridge.
+     */
+    mostRecentUpdateTs: number | undefined | null,
     localOptions: EdgeConfigFunctionsOptions | undefined,
   ): {
     value: T | undefined;
@@ -518,13 +499,32 @@ export class Controller {
     exists: boolean;
     updatedAt: number;
   } | null {
-    if (!timestamp) return null;
+    // TODO we can only trust this if there is no ts, or if there is a ts and an updatedAt info
+    if (this.streamManager) {
+      const item = this.cacheManager.getItem<T>(key, method);
+      // no need to fall back to anything else if there is a stream manager,
+      if (!item) return null;
+
+      // Only use if no timestamp was given, or if we already have this or a newer entry.
+      // This prevents us from
+      if (!mostRecentUpdateTs || item.updatedAt >= mostRecentUpdateTs) {
+        return {
+          value: item.value,
+          digest: item.digest,
+          cache: 'HIT',
+          exists: item.exists,
+          updatedAt: item.updatedAt,
+        };
+      }
+    }
+
+    if (!mostRecentUpdateTs) return null;
 
     const cached = this.cacheManager.getItem<T>(key, method);
     if (!cached) return null;
 
     const cacheStatus = getCacheStatus(
-      timestamp,
+      mostRecentUpdateTs,
       cached.updatedAt,
       this.maxStale,
     );
@@ -536,7 +536,7 @@ export class Controller {
         this.fetchAndCacheItem<T>(
           method,
           key,
-          timestamp,
+          mostRecentUpdateTs,
           localOptions,
           false,
         ).catch(),
@@ -547,7 +547,9 @@ export class Controller {
     return null;
   }
 
-  private async fetchFullConfig<T extends Record<string, EdgeConfigValue>>(
+  private async fetchAndCacheFullConfig<
+    T extends Record<string, EdgeConfigValue>,
+  >(
     minUpdatedAt: number | null,
     localOptions?: EdgeConfigFunctionsOptions,
   ): Promise<{
@@ -610,48 +612,38 @@ export class Controller {
     }
   }
 
-  public async has(
+  public async get<T extends EdgeConfigValue>(
     key: string,
     localOptions?: EdgeConfigFunctionsOptions,
-  ): Promise<{ exists: boolean; digest: string; cache: CacheStatus }> {
-    const edgeConfig = this.cacheManager.getEdgeConfig();
-    if (this.streamManager && edgeConfig?.updatedAt) {
-      const cached = this.readCache<EdgeConfigValue>(
-        key,
-        'HEAD',
-        edgeConfig.updatedAt,
-        localOptions,
-      );
-      if (cached) return cached;
-    }
-
-    const ts = getUpdatedAt(this.connection);
-    if (!ts) {
-      return this.fetchAndCacheItem('HEAD', key, ts, localOptions, true);
-    }
-
+  ): Promise<{
+    value: T | undefined;
+    digest: string;
+    cache: CacheStatus;
+    exists: boolean;
+    updatedAt: number;
+  }> {
     await this.preload();
-
-    const cached = this.readCache<EdgeConfigValue>(
-      key,
-      'HEAD',
-      ts,
-      localOptions,
-    );
+    const ts = getMostRecentUpdateTimestamp(this.connection);
+    const cached = this.readCache<T>('GET', key, ts, localOptions);
     if (cached) return cached;
-
-    return this.fetchAndCacheItem('HEAD', key, ts, localOptions, true);
+    return this.fetchAndCacheItem<T>('GET', key, ts, localOptions, true);
   }
 
-  public async digest(
-    localOptions?: Pick<EdgeConfigFunctionsOptions, 'consistentRead'>,
-  ): Promise<string> {
-    const edgeConfig = this.cacheManager.getEdgeConfig();
-    if (this.streamManager && edgeConfig) {
-      return edgeConfig.digest;
-    }
-
-    return this.networkClient.fetchDigest(localOptions);
+  public async has<T extends EdgeConfigValue>(
+    key: string,
+    localOptions?: EdgeConfigFunctionsOptions,
+  ): Promise<{
+    value: T | undefined;
+    exists: boolean;
+    digest: string;
+    cache: CacheStatus;
+    updatedAt: number;
+  }> {
+    await this.preload();
+    const ts = getMostRecentUpdateTimestamp(this.connection);
+    const cached = this.readCache<T>('HEAD', key, ts, localOptions);
+    if (cached) return cached;
+    return this.fetchAndCacheItem<T>('HEAD', key, ts, localOptions, true);
   }
 
   public async mget<T extends EdgeConfigItems>(
@@ -681,7 +673,7 @@ export class Controller {
       };
     }
 
-    const ts = getUpdatedAt(this.connection);
+    const ts = getMostRecentUpdateTimestamp(this.connection);
 
     if (!localOptions?.metadata && filteredKeys.length === 0) {
       return {
@@ -723,7 +715,7 @@ export class Controller {
 
       if (cacheStatus === 'HIT' || cacheStatus === 'STALE') {
         if (cacheStatus === 'STALE') {
-          after(() => this.fetchFullConfig(ts, localOptions).catch());
+          after(() => this.fetchAndCacheFullConfig(ts, localOptions).catch());
         }
 
         return {
@@ -749,7 +741,7 @@ export class Controller {
 
       if (cacheStatus === 'HIT' || cacheStatus === 'STALE') {
         if (cacheStatus === 'STALE') {
-          after(() => this.fetchFullConfig(ts, localOptions).catch());
+          after(() => this.fetchAndCacheFullConfig(ts, localOptions).catch());
         }
 
         return {
@@ -788,8 +780,8 @@ export class Controller {
     cache: CacheStatus;
     updatedAt: number;
   }> {
-    const ts = getUpdatedAt(this.connection);
     await this.preload();
+    const ts = getMostRecentUpdateTimestamp(this.connection);
 
     const edgeConfig = this.cacheManager.getEdgeConfig();
     if (ts && edgeConfig) {
@@ -809,7 +801,7 @@ export class Controller {
       }
 
       if (cacheStatus === 'STALE') {
-        after(() => this.fetchFullConfig(ts, localOptions).catch());
+        after(() => this.fetchAndCacheFullConfig(ts, localOptions).catch());
         return {
           value: edgeConfig.items as T,
           digest: edgeConfig.digest,
@@ -819,6 +811,6 @@ export class Controller {
       }
     }
 
-    return this.fetchFullConfig<T>(ts, localOptions);
+    return this.fetchAndCacheFullConfig<T>(ts, localOptions);
   }
 }

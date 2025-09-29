@@ -436,13 +436,16 @@ describe('connectionStrings', () => {
 
 describe('in-memory cache with swr behaviour', () => {
   const originalEnv = process.env.NODE_ENV;
+  const originalDisableStream = process.env.EDGE_CONFIG_DISABLE_STREAM;
 
   beforeAll(() => {
     process.env.NODE_ENV = 'development';
+    process.env.EDGE_CONFIG_DISABLE_STREAM = '1';
   });
 
   afterAll(() => {
     process.env.NODE_ENV = originalEnv;
+    process.env.EDGE_CONFIG_DISABLE_STREAM = originalDisableStream;
   });
 
   it('use in-memory cache', async () => {

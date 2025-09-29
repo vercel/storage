@@ -1,23 +1,10 @@
 import type { Connection } from '../types';
 import { trace } from './tracing';
 
-export const ERRORS = {
-  UNAUTHORIZED: '@vercel/edge-config: Unauthorized',
-  EDGE_CONFIG_NOT_FOUND: '@vercel/edge-config: Edge Config not found',
-};
-
-export class UnexpectedNetworkError extends Error {
-  constructor(res: Response) {
-    super(
-      `@vercel/edge-config: Unexpected error due to response with status code ${res.status}`,
-    );
-  }
-}
-
 /**
  * Checks if an object has a property
  */
-export function hasOwnProperty<X, Y extends PropertyKey>(
+export function hasOwn<X, Y extends PropertyKey>(
   obj: X,
   prop: Y,
 ): obj is X & Record<Y, unknown> {
@@ -26,9 +13,9 @@ export function hasOwnProperty<X, Y extends PropertyKey>(
 
 export function pick<T, K extends keyof T>(obj: T, keys: K[]): Pick<T, K> {
   const ret: Partial<T> = {};
-  keys.forEach((key) => {
+  for (const key of keys) {
     ret[key] = obj[key];
-  });
+  }
   return ret as Pick<T, K>;
 }
 

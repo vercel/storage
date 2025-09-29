@@ -1,27 +1,18 @@
-import { readFile } from '@vercel/edge-config-fs';
-import { name as sdkName, version as sdkVersion } from '../package.json';
-import {
-  assertIsKey,
-  assertIsKeys,
-  isEmptyKey,
-  ERRORS,
-  UnexpectedNetworkError,
-  hasOwnProperty,
-  parseConnectionString,
-  pick,
-} from './utils';
+import { assertIsKey, isEmptyKey, parseConnectionString } from './utils';
 import type {
-  Connection,
   EdgeConfigClient,
   EdgeConfigItems,
   EdgeConfigValue,
   EmbeddedEdgeConfig,
   EdgeConfigFunctionsOptions,
+  EdgeConfigClientOptions,
+  CacheStatus,
 } from './types';
-import { fetchWithCachedResponse } from './utils/fetch-with-cached-response';
 import { trace } from './utils/tracing';
+import { Controller } from './controller';
 
 export { setTracerProvider } from './utils/tracing';
+export { ERRORS, UnexpectedNetworkError } from './utils/errors';
 
 export {
   parseConnectionString,
@@ -30,253 +21,6 @@ export {
   type EdgeConfigValue,
   type EmbeddedEdgeConfig,
 };
-
-const jsonParseCache = new Map<string, unknown>();
-
-const readFileTraced = trace(readFile, { name: 'readFile' });
-const jsonParseTraced = trace(JSON.parse, { name: 'JSON.parse' });
-
-const privateEdgeConfigSymbol = Symbol.for('privateEdgeConfig');
-
-const cachedJsonParseTraced = trace(
-  (edgeConfigId: string, content: string) => {
-    const cached = jsonParseCache.get(edgeConfigId);
-    if (cached) return cached;
-
-    const parsed = jsonParseTraced(content) as unknown;
-
-    // freeze the object to avoid mutations of the return value of a "get" call
-    // from affecting the return value of future "get" calls
-    jsonParseCache.set(edgeConfigId, Object.freeze(parsed));
-    return parsed;
-  },
-  { name: 'cached JSON.parse' },
-);
-
-/**
- * Reads an Edge Config from the local file system.
- * This is used at runtime on serverless functions.
- */
-const getFileSystemEdgeConfig = trace(
-  async function getFileSystemEdgeConfig(
-    connection: Connection,
-  ): Promise<EmbeddedEdgeConfig | null> {
-    // can't optimize non-vercel hosted edge configs
-    if (connection.type !== 'vercel') return null;
-    // can't use fs optimizations outside of lambda
-    if (!process.env.AWS_LAMBDA_FUNCTION_NAME) return null;
-
-    try {
-      const content = await readFileTraced(
-        `/opt/edge-config/${connection.id}.json`,
-        'utf-8',
-      );
-
-      return cachedJsonParseTraced(
-        connection.id,
-        content,
-      ) as EmbeddedEdgeConfig;
-    } catch {
-      return null;
-    }
-  },
-  {
-    name: 'getFileSystemEdgeConfig',
-  },
-);
-
-/**
- * Will return an embedded Edge Config object from memory,
- * but only when the `privateEdgeConfigSymbol` is in global scope.
- */
-const getPrivateEdgeConfig = trace(
-  async function getPrivateEdgeConfig(
-    connection: Connection,
-  ): Promise<EmbeddedEdgeConfig | null> {
-    const privateEdgeConfig = Reflect.get(
-      globalThis,
-      privateEdgeConfigSymbol,
-    ) as
-      | {
-          get: (id: string) => Promise<EmbeddedEdgeConfig | null>;
-        }
-      | undefined;
-
-    if (
-      typeof privateEdgeConfig === 'object' &&
-      typeof privateEdgeConfig.get === 'function'
-    ) {
-      return privateEdgeConfig.get(connection.id);
-    }
-
-    return null;
-  },
-  {
-    name: 'getPrivateEdgeConfig',
-  },
-);
-
-/**
- * Returns a function to retrieve the entire Edge Config.
- * It'll keep the fetched Edge Config in memory, making subsequent calls fast,
- * while revalidating in the background.
- */
-function createGetInMemoryEdgeConfig(
-  shouldUseDevelopmentCache: boolean,
-  connection: Connection,
-  headers: Record<string, string>,
-  fetchCache: EdgeConfigClientOptions['cache'],
-): (
-  localOptions?: EdgeConfigFunctionsOptions,
-) => Promise<EmbeddedEdgeConfig | null> {
-  // Functions as cache to keep track of the Edge Config.
-  let embeddedEdgeConfigPromise: Promise<EmbeddedEdgeConfig | null> | null =
-    null;
-
-  // Promise that points to the most recent request.
-  // It'll ensure that subsequent calls won't make another fetch call,
-  // while one is still on-going.
-  // Will overwrite `embeddedEdgeConfigPromise` only when resolved.
-  let latestRequest: Promise<EmbeddedEdgeConfig | null> | null = null;
-
-  return trace(
-    (localOptions) => {
-      if (localOptions?.consistentRead || !shouldUseDevelopmentCache)
-        return Promise.resolve(null);
-
-      if (!latestRequest) {
-        latestRequest = fetchWithCachedResponse(
-          `${connection.baseUrl}/items?version=${connection.version}`,
-          {
-            headers: new Headers(headers),
-            cache: fetchCache,
-          },
-        ).then(async (res) => {
-          const digest = res.headers.get('x-edge-config-digest');
-          let body: EdgeConfigValue | undefined;
-
-          // We ignore all errors here and just proceed.
-          if (!res.ok) {
-            await consumeResponseBody(res);
-            body = res.cachedResponseBody as EdgeConfigValue | undefined;
-            if (!body) return null;
-          } else {
-            body = (await res.json()) as EdgeConfigItems;
-          }
-
-          return { digest, items: body } as EmbeddedEdgeConfig;
-        });
-
-        // Once the request is resolved, we set the proper config to the promise
-        // such that the next call will return the resolved value.
-        latestRequest.then(
-          (resolved) => {
-            embeddedEdgeConfigPromise = Promise.resolve(resolved);
-            latestRequest = null;
-          },
-          // Attach a `.catch` handler to this promise so that if it does throw,
-          // we don't get an unhandled promise rejection event. We unset the
-          // `latestRequest` so that the next call will make a new request.
-          () => {
-            embeddedEdgeConfigPromise = null;
-            latestRequest = null;
-          },
-        );
-      }
-
-      if (!embeddedEdgeConfigPromise) {
-        // If the `embeddedEdgeConfigPromise` is `null`, it means that there's
-        // no previous request, so we'll set the `latestRequest` to the current
-        // request.
-        embeddedEdgeConfigPromise = latestRequest;
-      }
-
-      return embeddedEdgeConfigPromise;
-    },
-    {
-      name: 'getInMemoryEdgeConfig',
-    },
-  );
-}
-
-/**
- * Uses `MAX_SAFE_INTEGER` as minimum updated at timestamp to force
- * a request to the origin.
- */
-function addConsistentReadHeader(headers: Headers): void {
-  headers.set('x-edge-config-min-updated-at', `${Number.MAX_SAFE_INTEGER}`);
-}
-
-/**
- * Reads the Edge Config from a local provider, if available,
- * to avoid Network requests.
- */
-async function getLocalEdgeConfig(
-  connection: Connection,
-  options?: EdgeConfigFunctionsOptions,
-): Promise<EmbeddedEdgeConfig | null> {
-  if (options?.consistentRead) return null;
-
-  const edgeConfig =
-    (await getPrivateEdgeConfig(connection)) ||
-    (await getFileSystemEdgeConfig(connection));
-
-  return edgeConfig;
-}
-
-/**
- * This function reads the respone body
- *
- * Reading the response body serves two purposes
- *
- * 1) In Node.js it avoids memory leaks
- *
- * See https://github.com/nodejs/undici/blob/v5.21.2/README.md#garbage-collection
- * See https://github.com/node-fetch/node-fetch/issues/83
- *
- * 2) In Cloudflare it avoids running into a deadlock. They have a maximum number
- * of concurrent fetches (which is documented). Concurrency counts until the
- * body of a response is read. It is not uncommon to never read a response body
- * (e.g. if you only care about the status code). This can lead to deadlock as
- * fetches appear to never resolve.
- *
- * See https://developers.cloudflare.com/workers/platform/limits/#simultaneous-open-connections
- */
-async function consumeResponseBody(res: Response): Promise<void> {
-  await res.arrayBuffer();
-}
-
-interface EdgeConfigClientOptions {
-  /**
-   * The stale-if-error response directive indicates that the cache can reuse a
-   * stale response when an upstream server generates an error, or when the error
-   * is generated locally - for example due to a connection error.
-   *
-   * Any response with a status code of 500, 502, 503, or 504 is considered an error.
-   *
-   * Pass a negative number, 0, or false to turn disable stale-if-error semantics.
-   *
-   * The time is supplied in seconds. Defaults to one week (`604800`).
-   */
-  staleIfError?: number | false;
-  /**
-   * In development, a stale-while-revalidate cache is employed as the default caching strategy.
-   *
-   * This cache aims to deliver speedy Edge Config reads during development, though it comes
-   * at the cost of delayed visibility for updates to Edge Config. Typically, you may need to
-   * refresh twice to observe these changes as the stale value is replaced.
-   *
-   * This cache is not used in preview or production deployments as superior optimisations are applied there.
-   */
-  disableDevelopmentCache?: boolean;
-
-  /**
-   * Sets a `cache` option on the `fetch` call made by Edge Config.
-   *
-   * Unlike Next.js, this defaults to `no-store`, as you most likely want to use Edge Config dynamically.
-   */
-  cache?: 'no-store' | 'force-cache';
-}
 
 /**
  * Create an Edge Config client.
@@ -292,7 +36,18 @@ export const createClient = trace(
   function createClient(
     connectionString: string | undefined,
     options: EdgeConfigClientOptions = {
-      staleIfError: 604800 /* one week */,
+      /**
+       * Allows a stored response that is stale for N seconds to be served
+       * in case of an error.
+       */
+      staleIfError: true,
+      /**
+       * Allows a stored response that is stale for N seconds to be served
+       * while a background refresh is performed to get the latest value.
+       *
+       * If the threshold is exceeded a blocking read will be performed.
+       */
+      maxStale: 60,
       cache: 'no-store',
     },
   ): EdgeConfigClient {
@@ -306,229 +61,110 @@ export const createClient = trace(
         '@vercel/edge-config: Invalid connection string provided',
       );
 
-    const edgeConfigId = connection.id;
-    const baseUrl = connection.baseUrl;
-    const version = connection.version; // version of the edge config read access api we talk to
-    const headers: Record<string, string> = {
-      Authorization: `Bearer ${connection.token}`,
-    };
-
-    // eslint-disable-next-line @typescript-eslint/prefer-optional-chain -- [@vercel/style-guide@5 migration]
-    if (typeof process !== 'undefined' && process.env.VERCEL_ENV)
-      headers['x-edge-config-vercel-env'] = process.env.VERCEL_ENV;
-
-    if (typeof sdkName === 'string' && typeof sdkVersion === 'string')
-      headers['x-edge-config-sdk'] = `${sdkName}@${sdkVersion}`;
-
-    if (typeof options.staleIfError === 'number' && options.staleIfError > 0)
-      headers['cache-control'] = `stale-if-error=${options.staleIfError}`;
-
-    const fetchCache = options.cache || 'no-store';
-
     /**
-     * While in development we use SWR-like behavior for the api client to
-     * reduce latency.
+     * While in development, stream updates from the Edge Config.
      */
-    const shouldUseDevelopmentCache =
-      !options.disableDevelopmentCache &&
+    const shouldUseDevelopmentStream =
+      !options.disableDevelopmentStream &&
       process.env.NODE_ENV === 'development' &&
-      process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
+      process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_STREAM !== '1';
 
-    const getInMemoryEdgeConfig = createGetInMemoryEdgeConfig(
-      shouldUseDevelopmentCache,
-      connection,
-      headers,
-      fetchCache,
-    );
+    const controller = new Controller(connection, {
+      ...options,
+      enableStream: shouldUseDevelopmentStream,
+    });
 
-    const api: Omit<EdgeConfigClient, 'connection'> = {
+    const edgeConfigId = connection.id;
+
+    const methods: Pick<EdgeConfigClient, 'get' | 'has' | 'mget' | 'all'> = {
       get: trace(
-        async function get<T = EdgeConfigValue>(
+        async function get<T extends EdgeConfigValue = EdgeConfigValue>(
           key: string,
           localOptions?: EdgeConfigFunctionsOptions,
-        ): Promise<T | undefined> {
-          const localEdgeConfig =
-            (await getInMemoryEdgeConfig(localOptions)) ||
-            (await getLocalEdgeConfig(connection, localOptions));
-
+        ): Promise<
+          | T
+          | undefined
+          | { value: T | undefined; digest: string; cache: CacheStatus }
+        > {
           assertIsKey(key);
-          if (isEmptyKey(key)) return undefined;
-
-          if (localEdgeConfig) {
-            // We need to return a clone of the value so users can't modify
-            // our original value, and so the reference changes.
-            //
-            // This makes it consistent with the real API.
-            return Promise.resolve(localEdgeConfig.items[key] as T);
+          if (isEmptyKey(key)) {
+            throw new Error('@vercel/edge-config: Can not read empty key');
           }
-
-          const localHeaders = new Headers(headers);
-          if (localOptions?.consistentRead)
-            addConsistentReadHeader(localHeaders);
-
-          return fetchWithCachedResponse(
-            `${baseUrl}/item/${key}?version=${version}`,
-            {
-              headers: localHeaders,
-              cache: fetchCache,
-            },
-          ).then<T | undefined, undefined>(async (res) => {
-            if (res.ok) return res.json();
-            await consumeResponseBody(res);
-
-            if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
-            if (res.status === 404) {
-              // if the x-edge-config-digest header is present, it means
-              // the edge config exists, but the item does not
-              if (res.headers.has('x-edge-config-digest')) return undefined;
-              // if the x-edge-config-digest header is not present, it means
-              // the edge config itself does not exist
-              throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-            }
-            if (res.cachedResponseBody !== undefined)
-              return res.cachedResponseBody as T;
-            throw new UnexpectedNetworkError(res);
-          });
+          const data = await controller.get<T>(key, localOptions);
+          return localOptions?.metadata
+            ? { value: data.value, digest: data.digest, cache: data.cache }
+            : data.value;
         },
         { name: 'get', isVerboseTrace: false, attributes: { edgeConfigId } },
       ),
       has: trace(
         async function has(
-          key,
+          key: string,
           localOptions?: EdgeConfigFunctionsOptions,
-        ): Promise<boolean> {
-          const localEdgeConfig =
-            (await getInMemoryEdgeConfig(localOptions)) ||
-            (await getLocalEdgeConfig(connection, localOptions));
-
+        ): Promise<
+          boolean | { exists: boolean; digest: string; cache: CacheStatus }
+        > {
           assertIsKey(key);
-          if (isEmptyKey(key)) return false;
-
-          if (localEdgeConfig) {
-            return Promise.resolve(hasOwnProperty(localEdgeConfig.items, key));
+          if (isEmptyKey(key)) {
+            throw new Error('@vercel/edge-config: Can not read empty key');
           }
 
-          const localHeaders = new Headers(headers);
-          if (localOptions?.consistentRead)
-            addConsistentReadHeader(localHeaders);
-
-          // this is a HEAD request anyhow, no need for fetchWithCachedResponse
-          return fetch(`${baseUrl}/item/${key}?version=${version}`, {
-            method: 'HEAD',
-            headers: localHeaders,
-            cache: fetchCache,
-          }).then((res) => {
-            if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
-            if (res.status === 404) {
-              // if the x-edge-config-digest header is present, it means
-              // the edge config exists, but the item does not
-              if (res.headers.has('x-edge-config-digest')) return false;
-              // if the x-edge-config-digest header is not present, it means
-              // the edge config itself does not exist
-              throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-            }
-            if (res.ok) return true;
-            throw new UnexpectedNetworkError(res);
-          });
+          const data = await controller.has(key, localOptions);
+          return localOptions?.metadata
+            ? {
+                exists: data.exists,
+                digest: data.digest,
+                cache: data.cache,
+              }
+            : data.exists;
         },
         { name: 'has', isVerboseTrace: false, attributes: { edgeConfigId } },
-      ),
-      getAll: trace(
-        async function getAll<T = EdgeConfigItems>(
-          keys?: (keyof T)[],
+      ) as EdgeConfigClient['has'],
+      mget: trace(
+        async function mget<T extends EdgeConfigItems>(
+          keys: (keyof T)[],
           localOptions?: EdgeConfigFunctionsOptions,
-        ): Promise<T> {
-          const localEdgeConfig =
-            (await getInMemoryEdgeConfig(localOptions)) ||
-            (await getLocalEdgeConfig(connection, localOptions));
+        ): Promise<{ value: T; digest: string; cache: CacheStatus } | T> {
+          // bypass when called without valid keys and without needing metadata
+          if (
+            keys.every((k) => typeof k === 'string' && k.trim().length === 0) &&
+            !localOptions?.metadata
+          )
+            return {} as T;
 
-          if (localEdgeConfig) {
-            if (keys === undefined) {
-              return Promise.resolve(localEdgeConfig.items as T);
-            }
-
-            assertIsKeys(keys);
-            return Promise.resolve(pick(localEdgeConfig.items, keys) as T);
-          }
-
-          if (Array.isArray(keys)) assertIsKeys(keys);
-
-          const search = Array.isArray(keys)
-            ? new URLSearchParams(
-                keys
-                  .filter((key) => typeof key === 'string' && !isEmptyKey(key))
-                  .map((key) => ['key', key] as [string, string]),
-              ).toString()
-            : null;
-
-          // empty search keys array was given,
-          // so skip the request and return an empty object
-          if (search === '') return Promise.resolve({} as T);
-
-          const localHeaders = new Headers(headers);
-          if (localOptions?.consistentRead)
-            addConsistentReadHeader(localHeaders);
-
-          return fetchWithCachedResponse(
-            `${baseUrl}/items?version=${version}${
-              search === null ? '' : `&${search}`
-            }`,
-            {
-              headers: localHeaders,
-              cache: fetchCache,
-            },
-          ).then<T>(async (res) => {
-            if (res.ok) return res.json();
-            await consumeResponseBody(res);
-
-            if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
-            // the /items endpoint never returns 404, so if we get a 404
-            // it means the edge config itself did not exist
-            if (res.status === 404)
-              throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-            if (res.cachedResponseBody !== undefined)
-              return res.cachedResponseBody as T;
-            throw new UnexpectedNetworkError(res);
-          });
+          const data = await controller.mget<T>(keys as string[], localOptions);
+          return localOptions?.metadata
+            ? {
+                value: data.value,
+                digest: data.digest,
+                cache: data.cache,
+              }
+            : data.value;
         },
-        { name: 'getAll', isVerboseTrace: false, attributes: { edgeConfigId } },
+        {
+          name: 'mget',
+          isVerboseTrace: false,
+          attributes: { edgeConfigId },
+        },
       ),
-      digest: trace(
-        async function digest(
+      all: trace(
+        async function all<T extends EdgeConfigItems = EdgeConfigItems>(
           localOptions?: EdgeConfigFunctionsOptions,
-        ): Promise<string> {
-          const localEdgeConfig =
-            (await getInMemoryEdgeConfig(localOptions)) ||
-            (await getLocalEdgeConfig(connection, localOptions));
-
-          if (localEdgeConfig) {
-            return Promise.resolve(localEdgeConfig.digest);
-          }
-
-          const localHeaders = new Headers(headers);
-          if (localOptions?.consistentRead)
-            addConsistentReadHeader(localHeaders);
-
-          return fetchWithCachedResponse(
-            `${baseUrl}/digest?version=${version}`,
-            {
-              headers: localHeaders,
-              cache: fetchCache,
-            },
-          ).then(async (res) => {
-            if (res.ok) return res.json() as Promise<string>;
-            await consumeResponseBody(res);
-
-            if (res.cachedResponseBody !== undefined)
-              return res.cachedResponseBody as string;
-            throw new UnexpectedNetworkError(res);
-          });
+        ): Promise<{ value: T; digest: string; cache: CacheStatus } | T> {
+          const data = await controller.all<T>(localOptions);
+          return localOptions?.metadata
+            ? {
+                value: data.value,
+                digest: data.digest,
+                cache: data.cache,
+              }
+            : data.value;
         },
-        { name: 'digest', isVerboseTrace: false, attributes: { edgeConfigId } },
+        { name: 'all', isVerboseTrace: false, attributes: { edgeConfigId } },
       ),
     };
 
-    return { ...api, connection };
+    return { ...methods, connection };
   },
   {
     name: 'createClient',
@@ -562,18 +198,31 @@ export const get: EdgeConfigClient['get'] = (...args) => {
 };
 
 /**
- * Reads multiple or all values.
+ * Reads all items from the default Edge Config.
  *
  * This is a convenience method which reads the default Edge Config.
- * It is conceptually similar to `createClient(process.env.EDGE_CONFIG).getAll()`.
+ * It is conceptually similar to `createClient(process.env.EDGE_CONFIG).all()`.
  *
- * @see {@link EdgeConfigClient.getAll}
- * @param keys - the keys to read
- * @returns the value stored under the given key, or undefined
+ * @see {@link EdgeConfigClient.all}
  */
-export const getAll: EdgeConfigClient['getAll'] = (...args) => {
+export const all: EdgeConfigClient['all'] = (...args) => {
   init();
-  return defaultEdgeConfigClient.getAll(...args);
+  return defaultEdgeConfigClient.all(...args);
+};
+
+/**
+ * Reads multiple items from the default Edge Config.
+ *
+ * This is a convenience method which reads the default Edge Config.
+ * It is conceptually similar to `createClient(process.env.EDGE_CONFIG).mget()`.
+ *
+ * @see {@link EdgeConfigClient.mget}
+ * @param keys - the keys to read
+ * @returns the values stored under the given keys, or undefined
+ */
+export const mget: EdgeConfigClient['mget'] = (...args) => {
+  init();
+  return defaultEdgeConfigClient.mget(...args);
 };
 
 /**
@@ -586,24 +235,10 @@ export const getAll: EdgeConfigClient['getAll'] = (...args) => {
  * @param key - the key to check
  * @returns true if the given key exists in the Edge Config.
  */
-export const has: EdgeConfigClient['has'] = (...args) => {
+export const has = ((...args: Parameters<EdgeConfigClient['has']>) => {
   init();
   return defaultEdgeConfigClient.has(...args);
-};
-
-/**
- * Get the digest of the Edge Config.
- *
- * This is a convenience method which reads the default Edge Config.
- * It is conceptually similar to `createClient(process.env.EDGE_CONFIG).digest()`.
- *
- * @see {@link EdgeConfigClient.digest}
- * @returns The digest of the Edge Config.
- */
-export const digest: EdgeConfigClient['digest'] = (...args) => {
-  init();
-  return defaultEdgeConfigClient.digest(...args);
-};
+}) as EdgeConfigClient['has'];
 
 /**
  * Safely clones a read-only Edge Config object and makes it mutable.

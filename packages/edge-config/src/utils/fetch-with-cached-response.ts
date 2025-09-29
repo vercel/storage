@@ -11,14 +11,18 @@ function getDedupeCacheKey(url: string, init?: RequestInit): string {
       ? init.headers
       : new Headers(init?.headers);
 
-  return JSON.stringify({
+  // should be faster than JSON.stringify
+  return [
     url,
-    method: init?.method,
-    authorization: h.get('Authorization'),
-    minUpdatedAt: h.get('x-edge-config-min-updated-at'),
-  });
+    init?.method?.toUpperCase() ?? 'GET',
+    h.get('Authorization') ?? '',
+    h.get('x-edge-config-min-updated-at') ?? '',
+  ].join('\n');
 }
 
+/**
+ * Like `fetch`, but with an http etag cache and deduplication.
+ */
 export function createEnhancedFetch(): (
   url: string,
   options?: RequestInit,

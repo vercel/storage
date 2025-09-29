@@ -1,6 +1,6 @@
 import fetchMock from 'jest-fetch-mock';
 import { version } from '../package.json';
-import { Controller } from './controller';
+import { Controller } from './controller2';
 import type { Connection } from './types';
 import { readLocalEdgeConfig } from './utils/mockable-import';
 

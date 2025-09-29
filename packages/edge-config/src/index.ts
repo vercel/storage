@@ -12,6 +12,7 @@ import { trace } from './utils/tracing';
 import { Controller } from './controller';
 
 export { setTracerProvider } from './utils/tracing';
+export { ERRORS, UnexpectedNetworkError } from './utils/errors';
 
 export {
   parseConnectionString,
@@ -70,7 +71,7 @@ export const createClient = trace(
 
     const controller = new Controller(connection, {
       ...options,
-      enableDevelopmentStream: shouldUseDevelopmentStream,
+      enableStream: shouldUseDevelopmentStream,
     });
 
     const edgeConfigId = connection.id;

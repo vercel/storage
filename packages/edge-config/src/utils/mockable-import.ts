@@ -3,7 +3,9 @@
  *
  * We currently use webpackIgnore to avoid bundling the local edge config.
  */
-export async function readLocalEdgeConfig<M>(id: string): Promise<M | null> {
+export async function readBuildEmbeddedEdgeConfig<M>(
+  id: string,
+): Promise<M | null> {
   try {
     return (await import(
       /* webpackIgnore: true */ `@vercel/edge-config/stores/${id}.json`

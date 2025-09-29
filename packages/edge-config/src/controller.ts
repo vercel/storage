@@ -1,7 +1,3 @@
-import { waitUntil } from '@vercel/functions';
-import { createEventSource, type EventSourceClient } from 'eventsource-client';
-import { name as sdkName, version as sdkVersion } from '../package.json';
-import { readLocalEdgeConfig } from './utils/mockable-import';
 import type {
   EdgeConfigValue,
   EmbeddedEdgeConfig,
@@ -11,48 +7,23 @@ import type {
   CacheStatus,
   EdgeConfigItems,
 } from './types';
-import { ERRORS, isEmptyKey, pick, UnexpectedNetworkError } from './utils';
-import { consumeResponseBody } from './utils/consume-response-body';
-import { createEnhancedFetch } from './utils/fetch-with-cached-response';
+import { isEmptyKey, pick } from './utils';
+import {
+  getBuildEmbeddedEdgeConfig,
+  getLayeredEdgeConfig,
+} from './utils/readers';
+import { after } from './utils/after';
+import { StreamManager } from './utils/stream-manager';
+import { getMostRecentUpdateTimestamp } from './utils/timestamps';
+import { NetworkClient } from './utils/network-client';
 
 const DEFAULT_STALE_THRESHOLD = 10;
-const privateEdgeConfigSymbol = Symbol.for('privateEdgeConfig');
 
 interface CacheEntry<T = EdgeConfigValue> {
   value: T | undefined;
   updatedAt: number;
   digest: string;
   exists: boolean;
-}
-
-function after(fn: () => Promise<unknown>): void {
-  waitUntil(
-    new Promise((resolve) => {
-      setTimeout(resolve, 0);
-    }).then(() => fn()),
-  );
-}
-
-/**
- * Reads the updatedAt timestamp of the most recent Edge Config update,
- * so we can compare that to what we have in cache.
- */
-function getMostRecentUpdateTimestamp(connection: Connection): number | null {
-  const privateEdgeConfig = Reflect.get(globalThis, privateEdgeConfigSymbol) as
-    | { getUpdatedAt: (id: string) => number | null }
-    | undefined;
-
-  return typeof privateEdgeConfig === 'object' &&
-    typeof privateEdgeConfig.getUpdatedAt === 'function'
-    ? privateEdgeConfig.getUpdatedAt(connection.id)
-    : null;
-}
-
-function parseTs(updatedAt: string | null): number | null {
-  if (!updatedAt) return null;
-  const parsed = Number.parseInt(updatedAt, 10);
-  if (Number.isNaN(parsed)) return null;
-  return parsed;
 }
 
 function getCacheStatus(
@@ -136,301 +107,17 @@ class CacheManager {
   }
 }
 
-class StreamManager {
-  private stream: EventSourceClient | null = null;
-  private cacheManager: CacheManager;
-  private connection: Connection;
-
-  constructor(cacheManager: CacheManager, connection: Connection) {
-    this.cacheManager = cacheManager;
-    this.connection = connection;
-  }
-
-  async init(): Promise<void> {
-    const currentEdgeConfig = this.cacheManager.getEdgeConfig();
-
-    this.stream = createEventSource({
-      url: `https://api.vercel.com/v1/edge-config/${this.connection.id}/stream`,
-      headers: {
-        Authorization: `Bearer ${this.connection.token}`,
-        ...(currentEdgeConfig?.updatedAt
-          ? { 'x-edge-config-updated-at': String(currentEdgeConfig.updatedAt) }
-          : {}),
-      },
-    });
-
-    for await (const { data, event } of this.stream) {
-      if (event === 'info' && data === 'token_invalidated') {
-        this.stream.close();
-        return;
-      }
-
-      if (event === 'embed') {
-        try {
-          const parsedEdgeConfig = JSON.parse(data) as EmbeddedEdgeConfig;
-          this.cacheManager.setEdgeConfig(parsedEdgeConfig);
-        } catch (e) {
-          // eslint-disable-next-line no-console -- intentional error logging
-          console.error(
-            '@vercel/edge-config: Error parsing streamed edge config',
-            e,
-          );
-        }
-      }
-    }
-
-    this.stream.close();
-  }
-
-  close(): void {
-    this.stream?.close();
-  }
-}
-
-class NetworkClient {
-  private enhancedFetch: ReturnType<typeof createEnhancedFetch>;
-  private connection: Connection;
-  private cacheMode: 'no-store' | 'force-cache';
-
-  constructor(connection: Connection, cacheMode: 'no-store' | 'force-cache') {
-    this.connection = connection;
-    this.cacheMode = cacheMode;
-    this.enhancedFetch = createEnhancedFetch();
-  }
-
-  private getHeaders(
-    localOptions: EdgeConfigFunctionsOptions | undefined,
-    minUpdatedAt: number | null,
-  ): Headers {
-    const headers: Record<string, string> = {
-      Authorization: `Bearer ${this.connection.token}`,
-    };
-    const localHeaders = new Headers(headers);
-
-    if (localOptions?.consistentRead || minUpdatedAt) {
-      localHeaders.set(
-        'x-edge-config-min-updated-at',
-        `${localOptions?.consistentRead ? Number.MAX_SAFE_INTEGER : minUpdatedAt}`,
-      );
-    }
-
-    if (process.env.VERCEL_ENV) {
-      localHeaders.set('x-edge-config-vercel-env', process.env.VERCEL_ENV);
-    }
-
-    if (typeof sdkName === 'string' && typeof sdkVersion === 'string') {
-      localHeaders.set('x-edge-config-sdk', `${sdkName}@${sdkVersion}`);
-    }
-
-    return localHeaders;
-  }
-
-  async fetchItem<T extends EdgeConfigValue>(
-    method: 'GET' | 'HEAD',
-    key: string,
-    minUpdatedAt: number | null,
-    localOptions?: EdgeConfigFunctionsOptions,
-  ): Promise<{
-    value: T | undefined;
-    digest: string;
-    exists: boolean;
-    updatedAt: number;
-  }> {
-    const [res, cachedRes] = await this.enhancedFetch(
-      `${this.connection.baseUrl}/item/${key}?version=${this.connection.version}`,
-      {
-        method,
-        headers: this.getHeaders(localOptions, minUpdatedAt),
-        cache: this.cacheMode,
-      },
-    );
-
-    const digest = (cachedRes || res).headers.get('x-edge-config-digest');
-    const updatedAt = parseTs(
-      (cachedRes || res).headers.get('x-edge-config-updated-at'),
-    );
-
-    if (
-      res.status === 500 ||
-      res.status === 502 ||
-      res.status === 503 ||
-      res.status === 504
-    ) {
-      await Promise.all([
-        consumeResponseBody(res),
-        cachedRes ? consumeResponseBody(cachedRes) : null,
-      ]);
-      throw new UnexpectedNetworkError(res);
-    }
-
-    if (!digest || !updatedAt) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-
-    if (res.ok || (res.status === 304 && cachedRes)) {
-      if (method === 'HEAD') {
-        after(() =>
-          Promise.all([
-            consumeResponseBody(res),
-            cachedRes ? consumeResponseBody(cachedRes) : null,
-          ]),
-        );
-      } else if (res.status === 304) {
-        after(() => consumeResponseBody(res));
-      }
-
-      let value: T | undefined;
-      if (method === 'GET') {
-        value = (await (
-          res.status === 304 && cachedRes ? cachedRes : res
-        ).json()) as T;
-      }
-
-      return {
-        value,
-        digest,
-        exists: res.status !== 404,
-        updatedAt,
-      };
-    }
-
-    await Promise.all([
-      consumeResponseBody(res),
-      cachedRes ? consumeResponseBody(cachedRes) : null,
-    ]);
-
-    if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
-    if (res.status === 404) {
-      if (digest && updatedAt) {
-        return {
-          value: undefined,
-          digest,
-          exists: false,
-          updatedAt,
-        };
-      }
-      throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-    }
-    throw new UnexpectedNetworkError(res);
-  }
-
-  async fetchFullConfig<ItemsType extends Record<string, EdgeConfigValue>>(
-    minUpdatedAt: number | null,
-    localOptions?: EdgeConfigFunctionsOptions,
-  ): Promise<EmbeddedEdgeConfig> {
-    const [res, cachedRes] = await this.enhancedFetch(
-      `${this.connection.baseUrl}/items?version=${this.connection.version}`,
-      {
-        headers: this.getHeaders(localOptions, minUpdatedAt),
-        cache: this.cacheMode,
-      },
-    );
-
-    const digest = (cachedRes ?? res).headers.get('x-edge-config-digest');
-    const updatedAt = parseTs(
-      (cachedRes ?? res).headers.get('x-edge-config-updated-at'),
-    );
-
-    if (res.status === 500) throw new UnexpectedNetworkError(res);
-
-    if (!updatedAt || !digest) {
-      throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-    }
-
-    if (res.status === 401) {
-      await consumeResponseBody(res);
-      throw new Error(ERRORS.UNAUTHORIZED);
-    }
-
-    if (res.ok || (res.status === 304 && cachedRes)) {
-      const value = (await (
-        res.status === 304 && cachedRes ? cachedRes : res
-      ).json()) as ItemsType;
-
-      if (res.status === 304) await consumeResponseBody(res);
-
-      return { items: value, digest, updatedAt };
-    }
-
-    throw new UnexpectedNetworkError(res);
-  }
-
-  async fetchMultipleItems<ItemsType extends EdgeConfigItems>(
-    keys: string[],
-    minUpdatedAt: number | null,
-    localOptions?: EdgeConfigFunctionsOptions,
-  ): Promise<{
-    value: ItemsType;
-    digest: string;
-    updatedAt: number;
-  }> {
-    const search = new URLSearchParams(
-      keys.map((key) => ['key', key] as [string, string]),
-    ).toString();
-
-    const [res, cachedRes] = await this.enhancedFetch(
-      `${this.connection.baseUrl}/items?version=${this.connection.version}&${search}`,
-      {
-        headers: this.getHeaders(localOptions, minUpdatedAt),
-        cache: this.cacheMode,
-      },
-    );
-
-    const digest = (cachedRes || res).headers.get('x-edge-config-digest');
-    const updatedAt = parseTs(
-      (cachedRes || res).headers.get('x-edge-config-updated-at'),
-    );
-
-    if (!updatedAt || !digest) {
-      throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-    }
-
-    if (res.ok || (res.status === 304 && cachedRes)) {
-      if (!digest) {
-        throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-      }
-      const value = (await (
-        res.status === 304 && cachedRes ? cachedRes : res
-      ).json()) as ItemsType;
-
-      return { value, digest, updatedAt };
-    }
-    await consumeResponseBody(res);
-
-    if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
-    if (res.status === 404) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-    throw new UnexpectedNetworkError(res);
-  }
-
-  async fetchDigest(
-    localOptions?: Pick<EdgeConfigFunctionsOptions, 'consistentRead'>,
-  ): Promise<string> {
-    const ts = getMostRecentUpdateTimestamp(this.connection);
-    const res = await fetch(
-      `${this.connection.baseUrl}/digest?version=${this.connection.version}`,
-      {
-        headers: this.getHeaders(localOptions, ts),
-        cache: this.cacheMode,
-      },
-    );
-
-    if (res.ok) return res.json() as Promise<string>;
-    await consumeResponseBody(res);
-    throw new UnexpectedNetworkError(res);
-  }
-}
-
 export class Controller {
   private cacheManager: CacheManager;
   private networkClient: NetworkClient;
   private streamManager: StreamManager | null = null;
   private connection: Connection;
   private maxStale: number;
-  private preloadPromise: Promise<void> | null = null;
+  private preloadPromise: Promise<EmbeddedEdgeConfig | null> | null = null;
 
   constructor(
     connection: Connection,
-    options: EdgeConfigClientOptions & {
-      enableDevelopmentStream: boolean;
-    },
+    options: EdgeConfigClientOptions & { enableStream: boolean },
   ) {
     this.connection = connection;
     this.maxStale = options.maxStale ?? DEFAULT_STALE_THRESHOLD;
@@ -440,44 +127,53 @@ export class Controller {
       options.cache || 'no-store',
     );
 
-    if (options.enableDevelopmentStream && connection.type === 'vercel') {
-      this.streamManager = new StreamManager(this.cacheManager, connection);
-      void this.streamManager.init().catch((error) => {
-        // eslint-disable-next-line no-console -- intentional error logging
-        console.error('@vercel/edge-config: Stream error', error);
+    if (options.enableStream && connection.type === 'vercel') {
+      this.streamManager = new StreamManager(connection, (edgeConfig) => {
+        this.cacheManager.setEdgeConfig(edgeConfig);
       });
+      void this.streamManager
+        .init(this.preload(), () => this.cacheManager.getEdgeConfig())
+        .catch((error) => {
+          // eslint-disable-next-line no-console -- intentional error logging
+          console.error('@vercel/edge-config: Stream error', error);
+        });
     }
   }
 
-  private async preload(): Promise<void> {
-    if (this.connection.type !== 'vercel') return;
+  /**
+   * Preloads the Edge Config from the build time embed or from the layer.
+   *
+   * Races the load of the embedded and layered Edge Configs, and also
+   * refreshes in the background in case there was a race winner.
+   *
+   * We basically try to return a valid result (ts) as early as possible, while
+   * also making sure we update to the later version if there is one.
+   */
+  private async preload(): Promise<EmbeddedEdgeConfig | null> {
+    if (this.connection.type !== 'vercel') return null;
 
     // Return existing promise if already loading
     if (this.preloadPromise) return this.preloadPromise;
 
     // Create and store the promise to prevent concurrent calls
     this.preloadPromise = (async () => {
-      try {
-        const mod = await readLocalEdgeConfig<{ default: EmbeddedEdgeConfig }>(
-          this.connection.id,
-        );
-
-        if (!mod) return;
-
-        const edgeConfig = this.cacheManager.getEdgeConfig();
-        const hasNewerEntry =
-          edgeConfig && edgeConfig.updatedAt > mod.default.updatedAt;
-
-        if (hasNewerEntry) return;
-
-        this.cacheManager.setEdgeConfig(mod.default);
-      } catch (e) {
-        // eslint-disable-next-line no-console -- intentional error logging
-        console.error(
-          '@vercel/edge-config: Error reading local edge config',
-          e,
-        );
+      // The layered Edge Config is always going to be newer than the embedded one,
+      // so we check it first and only fall back to the embedded one.
+      const layeredEdgeConfig = await getLayeredEdgeConfig(this.connection.id);
+      if (layeredEdgeConfig) {
+        this.cacheManager.setEdgeConfig(layeredEdgeConfig);
+        return layeredEdgeConfig;
       }
+
+      const buildEdgeConfig = await getBuildEmbeddedEdgeConfig(
+        this.connection.id,
+      );
+      if (buildEdgeConfig) {
+        this.cacheManager.setEdgeConfig(buildEdgeConfig);
+        return buildEdgeConfig;
+      }
+
+      return null;
     })();
 
     return this.preloadPromise;

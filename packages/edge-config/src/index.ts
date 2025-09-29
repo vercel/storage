@@ -1,4 +1,9 @@
 import { readFile } from '@vercel/edge-config-fs';
+import {
+  createEventSource,
+  type EventSourceClient,
+  type FetchLike,
+} from 'eventsource-client';
 import { name as sdkName, version as sdkVersion } from '../package.json';
 import {
   assertIsKey,
@@ -246,6 +251,87 @@ async function consumeResponseBody(res: Response): Promise<void> {
   await res.arrayBuffer();
 }
 
+class StreamManager {
+  private stream: EventSourceClient;
+  private connection: Connection;
+  /**
+   * Callback with either the Edge Config or null when the Edge Config
+   * does not exist or the token is invalid.
+   */
+  private onEdgeConfig: (edgeConfig: EmbeddedEdgeConfig | null) => void;
+
+  constructor(
+    connection: Connection,
+    onEdgeConfig: (edgeConfig: EmbeddedEdgeConfig | null) => void,
+  ) {
+    this.connection = connection;
+    this.onEdgeConfig = onEdgeConfig;
+
+    // TODO we can remove the custom fetch once eventstream-client supports
+    // seeing the status code. We only need this to be able to stop retrying
+    // on 401, 403, 404.
+    const fetchKeepResponse = (): FetchLike & {
+      status?: number;
+      statusText?: string;
+    } => {
+      const f: FetchLike & { status?: number; statusText?: string } = async (
+        url,
+        fetchInit,
+      ) => {
+        f.status = undefined;
+        f.statusText = undefined;
+        const response = await fetch(url, fetchInit);
+        f.status = response.status;
+        f.statusText = response.statusText;
+        return response;
+      };
+      return f;
+    };
+
+    const customFetch = fetchKeepResponse();
+
+    this.stream = createEventSource({
+      url: `https://api.vercel.com/v1/edge-config/${this.connection.id}/stream`,
+      headers: { Authorization: `Bearer ${this.connection.token}` },
+      fetch: customFetch,
+      onDisconnect: () => {
+        if (!customFetch.status || customFetch.status >= 400) {
+          this.onEdgeConfig(null);
+          this.stream.close();
+        }
+      },
+    });
+  }
+
+  async listen(): Promise<void> {
+    for await (const { data, event } of this.stream) {
+      if (event === 'info' && data === 'token_invalidated') {
+        this.stream.close();
+        return;
+      }
+
+      if (event === 'embed') {
+        try {
+          const parsedEdgeConfig = JSON.parse(data) as EmbeddedEdgeConfig;
+          this.onEdgeConfig(parsedEdgeConfig);
+        } catch (e) {
+          // eslint-disable-next-line no-console -- intentional error logging
+          console.error(
+            '@vercel/edge-config: Error parsing streamed edge config',
+            e,
+          );
+        }
+      }
+    }
+
+    this.stream.close();
+  }
+
+  close(): void {
+    this.stream.close();
+  }
+}
+
 interface EdgeConfigClientOptions {
   /**
    * The stale-if-error response directive indicates that the cache can reuse a
@@ -269,6 +355,11 @@ interface EdgeConfigClientOptions {
    * This cache is not used in preview or production deployments as superior optimisations are applied there.
    */
   disableDevelopmentCache?: boolean;
+
+  /**
+   * Disables the streaming of the Edge Config.
+   */
+  disableStream?: boolean;
 
   /**
    * Sets a `cache` option on the `fetch` call made by Edge Config.
@@ -334,6 +425,11 @@ export const createClient = trace(
       process.env.NODE_ENV === 'development' &&
       process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
 
+    const shouldUseStream =
+      !options.disableStream &&
+      process.env.NODE_ENV === 'development' &&
+      process.env.EDGE_CONFIG_DISABLE_STREAM !== '1';
+
     const getInMemoryEdgeConfig = createGetInMemoryEdgeConfig(
       shouldUseDevelopmentCache,
       connection,
@@ -341,12 +437,39 @@ export const createClient = trace(
       fetchCache,
     );
 
+    let streamManager: StreamManager | null = null;
+    let resolveStreamReady: (value: boolean) => void;
+    const canUseStream = new Promise<boolean>((resolve) => {
+      resolveStreamReady = resolve;
+    });
+    let streamedEdgeConfig: EmbeddedEdgeConfig | null = null;
+    if (shouldUseStream) {
+      streamManager = new StreamManager(connection, (edgeConfig) => {
+        if (edgeConfig) {
+          resolveStreamReady(true);
+          streamedEdgeConfig = edgeConfig;
+        } else {
+          // when token was invalid etc
+          resolveStreamReady(false);
+        }
+      });
+      void streamManager.listen().catch(() => {
+        // reset streamedEdgeConfig so it does not get used when there was an
+        // unexpected error with the stream
+        streamedEdgeConfig = null;
+      });
+    }
+
     const api: Omit<EdgeConfigClient, 'connection'> = {
       get: trace(
         async function get<T = EdgeConfigValue>(
           key: string,
           localOptions?: EdgeConfigFunctionsOptions,
         ): Promise<T | undefined> {
+          if (streamManager && (await canUseStream) && streamedEdgeConfig) {
+            return streamedEdgeConfig.items[key] as T;
+          }
+
           const localEdgeConfig =
             (await getInMemoryEdgeConfig(localOptions)) ||
             (await getLocalEdgeConfig(connection, localOptions));
@@ -397,6 +520,10 @@ export const createClient = trace(
           key,
           localOptions?: EdgeConfigFunctionsOptions,
         ): Promise<boolean> {
+          if (streamManager && (await canUseStream) && streamedEdgeConfig) {
+            return hasOwnProperty(streamedEdgeConfig.items, key);
+          }
+
           const localEdgeConfig =
             (await getInMemoryEdgeConfig(localOptions)) ||
             (await getLocalEdgeConfig(connection, localOptions));
@@ -438,6 +565,15 @@ export const createClient = trace(
           keys?: (keyof T)[],
           localOptions?: EdgeConfigFunctionsOptions,
         ): Promise<T> {
+          if (streamManager && (await canUseStream) && streamedEdgeConfig) {
+            if (keys === undefined) {
+              return streamedEdgeConfig.items as T;
+            }
+
+            assertIsKeys(keys);
+            return pick(streamedEdgeConfig.items, keys) as T;
+          }
+
           const localEdgeConfig =
             (await getInMemoryEdgeConfig(localOptions)) ||
             (await getLocalEdgeConfig(connection, localOptions));
@@ -497,6 +633,10 @@ export const createClient = trace(
         async function digest(
           localOptions?: EdgeConfigFunctionsOptions,
         ): Promise<string> {
+          if (streamManager && (await canUseStream) && streamedEdgeConfig) {
+            return streamedEdgeConfig.digest;
+          }
+
           const localEdgeConfig =
             (await getInMemoryEdgeConfig(localOptions)) ||
             (await getLocalEdgeConfig(connection, localOptions));

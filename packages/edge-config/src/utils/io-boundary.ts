@@ -26,13 +26,8 @@ export function withIOBoundary<
   F extends (...args: any[]) => Promise<any>,
 >(fn: F): F {
   async function bounded(this: unknown, ...args: unknown[]): Promise<unknown> {
-    const boundary = getCurrentBoundary();
-    try {
-      /* eslint-disable @typescript-eslint/no-unsafe-return -- we're wrapping */
-      return await fn.call(this, ...args);
-    } finally {
-      await boundary;
-    }
+    await getCurrentBoundary();
+    return fn.call(this, ...args);
   }
 
   try {

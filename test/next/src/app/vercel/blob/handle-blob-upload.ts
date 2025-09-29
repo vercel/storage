@@ -59,15 +59,6 @@ export async function handleUploadHandler(
           }),
         };
       },
-      // eslint-disable-next-line @typescript-eslint/require-await -- [@vercel/style-guide@5 migration]
-      onUploadCompleted: async ({ blob, tokenPayload }) => {
-        console.log('Upload completed', blob, tokenPayload);
-        try {
-          //   await db.update({ avatar: blob.url, userId: tokenPayload.userId });
-        } catch (error) {
-          throw new Error('Could not update user');
-        }
-      },
     });
 
     return NextResponse.json(jsonResponse);

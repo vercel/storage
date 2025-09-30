@@ -10,3 +10,6 @@ npm-debug.log
 .turbo
 .DS_Store
 .vscode
+.claude
+
+packages/edge-config/DEVELOPMENT.md

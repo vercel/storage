@@ -1,15 +1,15 @@
 import fetchMock from 'jest-fetch-mock';
 import { version } from '../package.json';
-import { Controller } from './controller2';
+import { Controller } from './controller';
 import type { Connection } from './types';
-import { readLocalEdgeConfig } from './utils/mockable-import';
+import { readBuildEmbeddedEdgeConfig } from './utils/mockable-import';
 
 const packageVersion = `@vercel/edge-config@${version}`;
 
 jest.useFakeTimers();
 
 jest.mock('./utils/mockable-import', () => ({
-  readLocalEdgeConfig: jest.fn(() => {
+  readBuildEmbeddedEdgeConfig: jest.fn(() => {
     throw new Error('not implemented');
   }),
 }));
@@ -1603,7 +1603,7 @@ describe('lifecycle: reading multiple items when the item cache is stale but the
 
 describe('preloading', () => {
   beforeEach(() => {
-    (readLocalEdgeConfig as jest.Mock).mockReset();
+    (readBuildEmbeddedEdgeConfig as jest.Mock).mockReset();
     fetchMock.resetMocks();
   });
 
@@ -1617,7 +1617,7 @@ describe('preloading', () => {
     jest.setSystemTime(21000);
     setTimestampOfLatestUpdate(20000);
 
-    (readLocalEdgeConfig as jest.Mock).mockImplementationOnce(() => {
+    (readBuildEmbeddedEdgeConfig as jest.Mock).mockImplementationOnce(() => {
       return Promise.resolve({
         default: {
           items: { key1: 'value-preloaded' },
@@ -1635,7 +1635,7 @@ describe('preloading', () => {
       updatedAt: 20000,
     });
     expect(fetchMock).toHaveBeenCalledTimes(0);
-    expect(readLocalEdgeConfig).toHaveBeenCalledTimes(1);
+    expect(readBuildEmbeddedEdgeConfig).toHaveBeenCalledTimes(1);
   });
 
   it('should use the preloaded value if stale within the maxStale threshold', async () => {
@@ -1657,7 +1657,7 @@ describe('preloading', () => {
       },
     });
 
-    (readLocalEdgeConfig as jest.Mock).mockImplementationOnce(() => {
+    (readBuildEmbeddedEdgeConfig as jest.Mock).mockImplementationOnce(() => {
       return Promise.resolve({
         default: {
           items: { key1: 'value-preloaded' },
@@ -1675,7 +1675,7 @@ describe('preloading', () => {
       updatedAt: 1000,
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(readLocalEdgeConfig).toHaveBeenCalledTimes(1);
+    expect(readBuildEmbeddedEdgeConfig).toHaveBeenCalledTimes(1);
   });
 
   it('should not use the preloaded value if the cache is expired', async () => {
@@ -1688,7 +1688,7 @@ describe('preloading', () => {
       enableDevelopmentStream: false,
     });
 
-    (readLocalEdgeConfig as jest.Mock).mockImplementationOnce(() => {
+    (readBuildEmbeddedEdgeConfig as jest.Mock).mockImplementationOnce(() => {
       return Promise.resolve({
         default: {
           items: { keyA: 'value1' },
@@ -1717,6 +1717,6 @@ describe('preloading', () => {
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(readLocalEdgeConfig).toHaveBeenCalledTimes(1);
+    expect(readBuildEmbeddedEdgeConfig).toHaveBeenCalledTimes(1);
   });
 });

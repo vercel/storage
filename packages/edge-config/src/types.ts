@@ -57,7 +57,7 @@ export interface EdgeConfigClient {
    * @param keys - the keys to read
    * @returns Returns entries matching the given keys.
    */
-  mget: {
+  getMany: {
     <T = EdgeConfigItems>(
       keys: (keyof T)[],
       options: EdgeConfigFunctionsOptions & { metadata: true },
@@ -75,7 +75,7 @@ export interface EdgeConfigClient {
    *
    * @returns Returns all entries.
    */
-  all: {
+  getAll: {
     <T = EdgeConfigItems>(
       options: EdgeConfigFunctionsOptions & { metadata: true },
     ): Promise<{ value: T; digest: string; cache: CacheStatus }>;

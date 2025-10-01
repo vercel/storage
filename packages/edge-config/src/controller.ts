@@ -274,7 +274,7 @@ export class Controller {
     return this.fetchAndCacheItem<T>('HEAD', key, ts, localOptions, true);
   }
 
-  public async mget<T extends EdgeConfigItems>(
+  public async getMany<T extends EdgeConfigItems>(
     keys: string[],
     localOptions?: EdgeConfigFunctionsOptions,
   ): Promise<{
@@ -401,7 +401,7 @@ export class Controller {
     return { ...result, cache: 'MISS' };
   }
 
-  public async all<T extends EdgeConfigItems>(
+  public async getAll<T extends EdgeConfigItems>(
     localOptions?: EdgeConfigFunctionsOptions,
   ): Promise<{
     value: T;

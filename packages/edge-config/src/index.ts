@@ -259,6 +259,11 @@ class StreamManager {
    * does not exist or the token is invalid.
    */
   private onEdgeConfig: (edgeConfig: EmbeddedEdgeConfig | null) => void;
+  private resolveStreamUsable?: (value: boolean) => void;
+
+  private primedPromise: Promise<boolean> = new Promise<boolean>((resolve) => {
+    this.resolveStreamUsable = resolve;
+  });
 
   constructor(
     connection: Connection,
@@ -296,7 +301,7 @@ class StreamManager {
       fetch: customFetch,
       onDisconnect: () => {
         if (!customFetch.status || customFetch.status >= 400) {
-          this.onEdgeConfig(null);
+          this.resolveStreamUsable?.(false);
           this.stream.close();
         }
       },
@@ -305,9 +310,14 @@ class StreamManager {
 
   async listen(): Promise<void> {
     for await (const { data, event } of this.stream) {
-      if (event === 'info' && data === 'token_invalidated') {
+      if (event === 'status' && data === 'token_invalidated') {
         this.stream.close();
         return;
+      }
+
+      if (event === 'status' && data === 'primed') {
+        this.resolveStreamUsable?.(true);
+        continue;
       }
 
       if (event === 'embed') {
@@ -325,6 +335,14 @@ class StreamManager {
     }
 
     this.stream.close();
+  }
+
+  primed(): Promise<boolean> {
+    return this.primedPromise;
+  }
+
+  readyState(): 'open' | 'connecting' | 'closed' {
+    return this.stream.readyState;
   }
 
   close(): void {
@@ -438,21 +456,13 @@ export const createClient = trace(
     );
 
     let streamManager: StreamManager | null = null;
-    let resolveStreamReady: (value: boolean) => void;
-    const canUseStream = new Promise<boolean>((resolve) => {
-      resolveStreamReady = resolve;
-    });
+
     let streamedEdgeConfig: EmbeddedEdgeConfig | null = null;
     if (shouldUseStream) {
       streamManager = new StreamManager(connection, (edgeConfig) => {
-        if (edgeConfig) {
-          resolveStreamReady(true);
-          streamedEdgeConfig = edgeConfig;
-        } else {
-          // when token was invalid etc
-          resolveStreamReady(false);
-        }
+        streamedEdgeConfig = edgeConfig;
       });
+
       void streamManager.listen().catch(() => {
         // reset streamedEdgeConfig so it does not get used when there was an
         // unexpected error with the stream
@@ -466,7 +476,12 @@ export const createClient = trace(
           key: string,
           localOptions?: EdgeConfigFunctionsOptions,
         ): Promise<T | undefined> {
-          if (streamManager && (await canUseStream) && streamedEdgeConfig) {
+          if (
+            streamManager &&
+            streamedEdgeConfig &&
+            streamManager.readyState() !== 'closed' &&
+            (await streamManager.primed())
+          ) {
             return streamedEdgeConfig.items[key] as T;
           }
 
@@ -520,7 +535,12 @@ export const createClient = trace(
           key,
           localOptions?: EdgeConfigFunctionsOptions,
         ): Promise<boolean> {
-          if (streamManager && (await canUseStream) && streamedEdgeConfig) {
+          if (
+            streamManager &&
+            streamedEdgeConfig &&
+            streamManager.readyState() !== 'closed' &&
+            (await streamManager.primed())
+          ) {
             return hasOwnProperty(streamedEdgeConfig.items, key);
           }
 
@@ -565,7 +585,12 @@ export const createClient = trace(
           keys?: (keyof T)[],
           localOptions?: EdgeConfigFunctionsOptions,
         ): Promise<T> {
-          if (streamManager && (await canUseStream) && streamedEdgeConfig) {
+          if (
+            streamManager &&
+            streamedEdgeConfig &&
+            streamManager.readyState() !== 'closed' &&
+            (await streamManager.primed())
+          ) {
             if (keys === undefined) {
               return streamedEdgeConfig.items as T;
             }
@@ -633,7 +658,12 @@ export const createClient = trace(
         async function digest(
           localOptions?: EdgeConfigFunctionsOptions,
         ): Promise<string> {
-          if (streamManager && (await canUseStream) && streamedEdgeConfig) {
+          if (
+            streamManager &&
+            streamedEdgeConfig &&
+            streamManager.readyState() !== 'closed' &&
+            (await streamManager.primed())
+          ) {
             return streamedEdgeConfig.digest;
           }
 

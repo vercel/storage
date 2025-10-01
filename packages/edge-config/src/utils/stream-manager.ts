@@ -7,20 +7,17 @@ import type { EmbeddedEdgeConfig, Connection } from '../types';
 import { pickNewestEdgeConfig } from './pick-newest-edge-config';
 
 export class StreamManager {
-  private stream: EventSourceClient | null = null;
-  private connection: Connection;
-  private onEdgeConfig: (edgeConfig: EmbeddedEdgeConfig | null) => void;
-  private onStreamAvailable: (available: boolean) => void;
+  private stream?: EventSourceClient;
+  private resolveStreamUsable?: (value: boolean) => void;
+  private primedPromise: Promise<boolean> = new Promise<boolean>((resolve) => {
+    this.resolveStreamUsable = resolve;
+  });
 
   constructor(
-    connection: Connection,
-    onEdgeConfig: (edgeConfig: EmbeddedEdgeConfig | null) => void,
-    onStreamAvailable: (available: boolean) => void,
-  ) {
-    this.connection = connection;
-    this.onEdgeConfig = onEdgeConfig;
-    this.onStreamAvailable = onStreamAvailable;
-  }
+    // the "private" keyword also auto-assigns to the instance
+    private connection: Connection,
+    private onEdgeConfig: (edgeConfig: EmbeddedEdgeConfig | null) => void,
+  ) {}
 
   async init(
     preloadPromise: Promise<EmbeddedEdgeConfig | null>,
@@ -66,22 +63,23 @@ export class StreamManager {
           : {}),
       },
       fetch: customFetch,
-      onConnect: () => {
-        this.onStreamAvailable(true);
-      },
       onDisconnect: () => {
         if (!customFetch.status || customFetch.status >= 400) {
-          this.onStreamAvailable(false);
-          this.onEdgeConfig(null);
+          this.resolveStreamUsable?.(false);
           this.stream?.close();
         }
       },
     });
 
     for await (const { data, event } of this.stream) {
-      if (event === 'info' && data === 'token_invalidated') {
+      if (event === 'status' && data === 'token_invalidated') {
         this.stream.close();
         return;
+      }
+
+      if (event === 'status' && data === 'primed') {
+        this.resolveStreamUsable?.(true);
+        continue;
       }
 
       if (event === 'embed') {
@@ -99,6 +97,14 @@ export class StreamManager {
     }
 
     this.stream.close();
+  }
+
+  primed(): Promise<boolean> {
+    return this.primedPromise;
+  }
+
+  readyState(): 'unstarted' | 'open' | 'connecting' | 'closed' {
+    return this.stream?.readyState ?? 'unstarted';
   }
 
   close(): void {

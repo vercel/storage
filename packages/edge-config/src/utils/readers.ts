@@ -19,8 +19,7 @@ export async function getBuildEmbeddedEdgeConfig(
     }>(edgeConfigId);
     return mod ? mod.default : null;
   } catch (e) {
-    // eslint-disable-next-line no-console -- intentional error logging
-    console.error('@vercel/edge-config: Error reading local edge config', e);
+    // console.error('@vercel/edge-config: Error reading local edge config', e);
     return null;
   }
 }

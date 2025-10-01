@@ -16,7 +16,7 @@ export class StreamManager {
   constructor(
     // the "private" keyword also auto-assigns to the instance
     private connection: Connection,
-    private onEdgeConfig: (edgeConfig: EmbeddedEdgeConfig | null) => void,
+    private onEdgeConfig: (edgeConfig: EmbeddedEdgeConfig) => void,
   ) {}
 
   async init(

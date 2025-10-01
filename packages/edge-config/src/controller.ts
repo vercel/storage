@@ -42,7 +42,6 @@ export class Controller {
   private connection: Connection;
   private maxStale: number;
   private preloadPromise: Promise<EmbeddedEdgeConfig | null> | null = null;
-  private streamAvailable = Promise.withResolvers<boolean>();
 
   constructor(
     connection: Connection,
@@ -57,27 +56,15 @@ export class Controller {
     );
 
     if (options.enableStream && connection.type === 'vercel') {
-      this.streamManager = new StreamManager(
-        connection,
-        (edgeConfig) => {
-          if (edgeConfig) this.cacheManager.setEdgeConfig(edgeConfig);
-        },
-        (available) => {
-          // TODO available state can change after init
-          // TODO server needs to emit either the edge config or a signal that
-          // it is not necessary to send the edge config, so we know when
-          // we are fully connected and ready
-          this.streamAvailable.resolve(available);
-        },
-      );
+      this.streamManager = new StreamManager(connection, (edgeConfig) => {
+        this.cacheManager.setEdgeConfig(edgeConfig);
+      });
       void this.streamManager
         .init(this.preload(), () => this.cacheManager.getEdgeConfig())
         .catch((error) => {
           // eslint-disable-next-line no-console -- intentional error logging
           console.error('@vercel/edge-config: Stream error', error);
         });
-    } else {
-      this.streamAvailable.resolve(false);
     }
   }
 
@@ -260,7 +247,7 @@ export class Controller {
     updatedAt: number;
   }> {
     await this.preload();
-    await this.streamAvailable.promise;
+    await this.streamManager?.primed();
 
     const ts = getMostRecentUpdateTimestamp(this.connection);
     const cached = this.readCache<T>('GET', key, ts, localOptions);
@@ -279,7 +266,7 @@ export class Controller {
     updatedAt: number;
   }> {
     await this.preload();
-    await this.streamAvailable.promise;
+    await this.streamManager?.primed();
 
     const ts = getMostRecentUpdateTimestamp(this.connection);
     const cached = this.readCache<T>('HEAD', key, ts, localOptions);
@@ -326,7 +313,7 @@ export class Controller {
     }
 
     await this.preload();
-    await this.streamAvailable.promise;
+    await this.streamManager?.primed();
 
     const items = filteredKeys.map((key) =>
       this.cacheManager.getItem(key, 'GET'),
@@ -423,7 +410,7 @@ export class Controller {
     updatedAt: number;
   }> {
     await this.preload();
-    await this.streamAvailable.promise;
+    await this.streamManager?.primed();
     const ts = getMostRecentUpdateTimestamp(this.connection);
 
     const edgeConfig = this.cacheManager.getEdgeConfig();

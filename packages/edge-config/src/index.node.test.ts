@@ -8,6 +8,7 @@ const baseUrl = 'https://edge-config.vercel.com/ecfg-1';
 // eslint-disable-next-line jest/require-top-level-describe -- [@vercel/style-guide@5 migration]
 beforeEach(() => {
   fetchMock.resetMocks();
+  process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_STREAM = '1';
 });
 
 describe('default Edge Config', () => {

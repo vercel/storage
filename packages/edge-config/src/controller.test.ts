@@ -43,10 +43,11 @@ function setTimestampOfLatestUpdate(
 describe('lifecycle: reading a single item', () => {
   beforeAll(() => {
     fetchMock.resetMocks();
+    process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_STREAM = '1';
   });
 
   const controller = new Controller(connection, {
-    enableDevelopmentStream: false,
+    enableStream: false,
   });
 
   it('should MISS the cache initially', async () => {
@@ -199,7 +200,7 @@ describe('lifecycle: reading the full config', () => {
   });
 
   const controller = new Controller(connection, {
-    enableDevelopmentStream: false,
+    enableStream: false,
   });
 
   it('should MISS the cache initially', async () => {
@@ -345,7 +346,7 @@ describe('lifecycle: checking existence of a single item', () => {
   });
 
   const controller = new Controller(connection, {
-    enableDevelopmentStream: false,
+    enableStream: false,
   });
 
   it('should MISS the cache initially', async () => {
@@ -495,7 +496,7 @@ describe('deduping within a version', () => {
     fetchMock.resetMocks();
   });
   const controller = new Controller(connection, {
-    enableDevelopmentStream: false,
+    enableStream: false,
   });
 
   // let promisedValue1: ReturnType<typeof controller.get>;
@@ -565,7 +566,7 @@ describe('bypassing dedupe when the timestamp changes', () => {
     fetchMock.resetMocks();
   });
   const controller = new Controller(connection, {
-    enableDevelopmentStream: false,
+    enableStream: false,
   });
 
   it('should fetch twice when the timestamp changes', async () => {
@@ -621,7 +622,7 @@ describe('bypassing dedupe when the timestamp changes', () => {
 
 describe('development cache: get', () => {
   const controller = new Controller(connection, {
-    enableDevelopmentStream: true,
+    enableStream: true,
   });
   beforeAll(() => {
     fetchMock.resetMocks();
@@ -761,7 +762,7 @@ describe('development cache: get', () => {
 
 describe('development cache: has', () => {
   const controller = new Controller(connection, {
-    enableDevelopmentStream: true,
+    enableStream: true,
   });
   beforeAll(() => {
     fetchMock.resetMocks();
@@ -828,7 +829,7 @@ describe('lifecycle: mixing get, has and all', () => {
   });
 
   const controller = new Controller(connection, {
-    enableDevelopmentStream: false,
+    enableStream: false,
   });
 
   it('get(key1) should MISS the cache initially', async () => {
@@ -951,7 +952,7 @@ describe('lifecycle: reading multiple items without full edge config cache', () 
   });
 
   const controller = new Controller(connection, {
-    enableDevelopmentStream: false,
+    enableStream: false,
   });
 
   it('should MISS the cache initially', async () => {
@@ -1105,7 +1106,7 @@ describe('lifecycle: reading multiple items with full edge config cache', () => 
   });
 
   const controller = new Controller(connection, {
-    enableDevelopmentStream: false,
+    enableStream: false,
   });
 
   it('should MISS the cache initially', async () => {
@@ -1175,7 +1176,7 @@ describe('lifecycle: reading multiple items with different updatedAt timestamps'
   });
 
   const controller = new Controller(connection, {
-    enableDevelopmentStream: false,
+    enableStream: false,
   });
 
   it('should MISS the cache initially and populate item cache with different timestamps', async () => {
@@ -1347,7 +1348,7 @@ describe('lifecycle: reading multiple items when edge config cache is stale but 
   });
 
   const controller = new Controller(connection, {
-    enableDevelopmentStream: false,
+    enableStream: false,
   });
 
   it('should fetch the full edge config initially', async () => {
@@ -1466,7 +1467,7 @@ describe('lifecycle: reading multiple items when the item cache is stale but the
   });
 
   const controller = new Controller(connection, {
-    enableDevelopmentStream: false,
+    enableStream: false,
   });
 
   it('should fetch multiple items', async () => {
@@ -1609,7 +1610,7 @@ describe('preloading', () => {
 
   it('should use the preloaded value is up to date', async () => {
     const controller = new Controller(connection, {
-      enableDevelopmentStream: false,
+      enableStream: false,
     });
 
     // most recent update was only 1s ago, so we can serve the preloaded value
@@ -1640,7 +1641,7 @@ describe('preloading', () => {
 
   it('should use the preloaded value if stale within the maxStale threshold', async () => {
     const controller = new Controller(connection, {
-      enableDevelopmentStream: false,
+      enableStream: false,
     });
 
     // most recent update was only 1s ago, so we can serve the preloaded value
@@ -1685,7 +1686,7 @@ describe('preloading', () => {
     setTimestampOfLatestUpdate(20000);
 
     const controller = new Controller(connection, {
-      enableDevelopmentStream: false,
+      enableStream: false,
     });
 
     (readBuildEmbeddedEdgeConfig as jest.Mock).mockImplementationOnce(() => {

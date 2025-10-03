@@ -250,6 +250,17 @@ export class Controller {
     await this.streamManager?.primed();
 
     const ts = getMostRecentUpdateTimestamp(this.connection);
+
+    // preload
+    // if stream
+    //   - wait until stream is primed, or opt out of streaming
+    //   - use streamed value
+    // if ts, check cache status [check per-item and full cache]
+    //   - on cache HIT, use cached value
+    //   - on cache STALE, use cached value and refresh in background
+    //   - on cache MISS, use network value (blocking fetch)
+    // if no ts, use 10s cache (or swr?)
+
     const cached = this.readCache<T>('GET', key, ts, localOptions);
     if (cached) return cached;
     return this.fetchAndCacheItem<T>('GET', key, ts, localOptions, true);

@@ -52,7 +52,8 @@
   },
   "dependencies": {
     "@vercel/functions": "^2.2.5",
-    "eventsource-client": "1.2.0"
+    "eventsource-client": "1.2.0",
+    "lru-cache": "11.2.2"
   },
   "devDependencies": {
     "@changesets/cli": "2.28.1",

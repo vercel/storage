@@ -1,27 +1,10 @@
+import type { Connection } from './utils/connection';
+
 export interface EmbeddedEdgeConfig {
   digest: string;
   items: Record<string, EdgeConfigValue>;
   updatedAt: number;
 }
-
-/**
- * The parsed info contained in a connection string.
- */
-export type Connection =
-  | {
-      baseUrl: string;
-      id: string;
-      token: string;
-      version: string;
-      type: 'vercel';
-    }
-  | {
-      baseUrl: string;
-      id: string;
-      token: string;
-      version: string;
-      type: 'external';
-    };
 
 /**
  * An Edge Config Client.

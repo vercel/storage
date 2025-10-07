@@ -3,8 +3,8 @@ import {
   type EventSourceClient,
   type FetchLike,
 } from 'eventsource-client';
-import type { EmbeddedEdgeConfig, Connection } from '../types';
-import { pickNewestEdgeConfig } from './pick-newest-edge-config';
+import type { EmbeddedEdgeConfig } from '../types';
+import type { Connection } from './connection';
 
 export class StreamManager {
   private stream?: EventSourceClient;
@@ -19,18 +19,7 @@ export class StreamManager {
     private onEdgeConfig: (edgeConfig: EmbeddedEdgeConfig) => void,
   ) {}
 
-  async init(
-    preloadPromise: Promise<EmbeddedEdgeConfig | null>,
-    getEdgeConfig: () => EmbeddedEdgeConfig | null,
-  ): Promise<void> {
-    const preloadedEdgeConfig = await preloadPromise;
-    const instanceEdgeConfig = getEdgeConfig();
-
-    const edgeConfig = pickNewestEdgeConfig([
-      preloadedEdgeConfig,
-      instanceEdgeConfig,
-    ]);
-
+  async init(updatedAt?: number): Promise<void> {
     // TODO we can remove the custom fetch once eventstream-client supports
     // seeing the status code. We only need this to be able to stop retrying
     // on 401, 403, 404.
@@ -58,9 +47,7 @@ export class StreamManager {
       url: `https://api.vercel.com/v1/edge-config/${this.connection.id}/stream`,
       headers: {
         Authorization: `Bearer ${this.connection.token}`,
-        ...(edgeConfig?.updatedAt
-          ? { 'x-edge-config-updated-at': String(edgeConfig.updatedAt) }
-          : {}),
+        ...(updatedAt ? { 'x-edge-config-updated-at': String(updatedAt) } : {}),
       },
       fetch: customFetch,
       onDisconnect: () => {

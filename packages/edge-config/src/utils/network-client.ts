@@ -1,6 +1,5 @@
 import { name as sdkName, version as sdkVersion } from '../../package.json';
 import type {
-  Connection,
   EdgeConfigFunctionsOptions,
   EdgeConfigItems,
   EdgeConfigValue,
@@ -8,9 +7,10 @@ import type {
 } from '../types';
 import { consumeResponseBody } from './consume-response-body';
 import { createEnhancedFetch } from './fetch-with-cached-response';
-import { getMostRecentUpdateTimestamp, parseTs } from './timestamps';
+import { parseTs } from './timestamps';
 import { after } from './after';
 import { ERRORS, UnexpectedNetworkError } from './errors';
+import type { Connection } from './connection';
 
 export class NetworkClient {
   private enhancedFetch: ReturnType<typeof createEnhancedFetch>;
@@ -53,7 +53,6 @@ export class NetworkClient {
   async fetchItem<T extends EdgeConfigValue>(
     method: 'GET' | 'HEAD',
     key: string,
-    minUpdatedAt: number | null,
     localOptions?: EdgeConfigFunctionsOptions,
   ): Promise<{
     value: T | undefined;
@@ -61,6 +60,8 @@ export class NetworkClient {
     exists: boolean;
     updatedAt: number;
   }> {
+    const minUpdatedAt = this.connection.getMostRecentUpdateTimestamp();
+
     const [res, cachedRes] = await this.enhancedFetch(
       `${this.connection.baseUrl}/item/${key}?version=${this.connection.version}`,
       {
@@ -138,9 +139,9 @@ export class NetworkClient {
   }
 
   async fetchFullConfig<ItemsType extends Record<string, EdgeConfigValue>>(
-    minUpdatedAt: number | null,
     localOptions?: EdgeConfigFunctionsOptions,
   ): Promise<EmbeddedEdgeConfig> {
+    const minUpdatedAt = this.connection.getMostRecentUpdateTimestamp();
     const [res, cachedRes] = await this.enhancedFetch(
       `${this.connection.baseUrl}/items?version=${this.connection.version}`,
       {
@@ -180,13 +181,13 @@ export class NetworkClient {
 
   async fetchMultipleItems<ItemsType extends EdgeConfigItems>(
     keys: string[],
-    minUpdatedAt: number | null,
     localOptions?: EdgeConfigFunctionsOptions,
   ): Promise<{
     value: ItemsType;
     digest: string;
     updatedAt: number;
   }> {
+    const minUpdatedAt = this.connection.getMostRecentUpdateTimestamp();
     const search = new URLSearchParams(
       keys.map((key) => ['key', key] as [string, string]),
     ).toString();
@@ -228,7 +229,7 @@ export class NetworkClient {
   async fetchDigest(
     localOptions?: Pick<EdgeConfigFunctionsOptions, 'consistentRead'>,
   ): Promise<string> {
-    const ts = getMostRecentUpdateTimestamp(this.connection);
+    const ts = this.connection.getMostRecentUpdateTimestamp();
     const res = await fetch(
       `${this.connection.baseUrl}/digest?version=${this.connection.version}`,
       {

@@ -2,7 +2,6 @@ import type {
   EdgeConfigValue,
   EmbeddedEdgeConfig,
   EdgeConfigFunctionsOptions,
-  Connection,
   EdgeConfigClientOptions,
   CacheStatus,
   EdgeConfigItems,
@@ -14,9 +13,9 @@ import {
 } from './utils/readers';
 import { after } from './utils/after';
 import { StreamManager } from './utils/stream-manager';
-import { getMostRecentUpdateTimestamp } from './utils/timestamps';
 import { NetworkClient } from './utils/network-client';
 import { CacheManager } from './utils/cache-manager';
+import type { Connection } from './utils/connection';
 
 const DEFAULT_STALE_THRESHOLD = 10;
 
@@ -157,13 +156,7 @@ export class Controller {
 
     if (cacheStatus === 'STALE') {
       after(() =>
-        this.fetchAndCacheItem<T>(
-          method,
-          key,
-          mostRecentUpdateTs,
-          localOptions,
-          false,
-        ).catch(),
+        this.fetchAndCacheItem<T>(method, key, localOptions, false).catch(),
       );
       return { ...cached, cache: 'STALE' };
     }
@@ -174,7 +167,6 @@ export class Controller {
   private async fetchAndCacheFullConfig<
     T extends Record<string, EdgeConfigValue>,
   >(
-    minUpdatedAt: number | null,
     localOptions?: EdgeConfigFunctionsOptions,
   ): Promise<{
     value: T;
@@ -182,10 +174,7 @@ export class Controller {
     cache: CacheStatus;
     updatedAt: number;
   }> {
-    const result = await this.networkClient.fetchFullConfig<T>(
-      minUpdatedAt,
-      localOptions,
-    );
+    const result = await this.networkClient.fetchFullConfig<T>(localOptions);
 
     this.cacheManager.setEdgeConfig(result);
 
@@ -200,7 +189,6 @@ export class Controller {
   private async fetchAndCacheItem<T extends EdgeConfigValue>(
     method: 'GET' | 'HEAD',
     key: string,
-    minUpdatedAt: number | null,
     localOptions?: EdgeConfigFunctionsOptions,
     staleIfError?: boolean,
   ): Promise<{
@@ -214,7 +202,6 @@ export class Controller {
       const result = await this.networkClient.fetchItem<T>(
         method,
         key,
-        minUpdatedAt,
         localOptions,
       );
 
@@ -249,7 +236,7 @@ export class Controller {
     await this.preload();
     await this.streamManager?.primed();
 
-    const ts = getMostRecentUpdateTimestamp(this.connection);
+    const ts = this.connection.getMostRecentUpdateTimestamp();
 
     // preload
     // if stream
@@ -263,7 +250,7 @@ export class Controller {
 
     const cached = this.readCache<T>('GET', key, ts, localOptions);
     if (cached) return cached;
-    return this.fetchAndCacheItem<T>('GET', key, ts, localOptions, true);
+    return this.fetchAndCacheItem<T>('GET', key, localOptions, true);
   }
 
   public async has<T extends EdgeConfigValue>(
@@ -279,10 +266,10 @@ export class Controller {
     await this.preload();
     await this.streamManager?.primed();
 
-    const ts = getMostRecentUpdateTimestamp(this.connection);
+    const ts = this.connection.getMostRecentUpdateTimestamp();
     const cached = this.readCache<T>('HEAD', key, ts, localOptions);
     if (cached) return cached;
-    return this.fetchAndCacheItem<T>('HEAD', key, ts, localOptions, true);
+    return this.fetchAndCacheItem<T>('HEAD', key, localOptions, true);
   }
 
   public async getMany<T extends EdgeConfigItems>(
@@ -312,7 +299,7 @@ export class Controller {
       };
     }
 
-    const ts = getMostRecentUpdateTimestamp(this.connection);
+    const ts = this.connection.getMostRecentUpdateTimestamp();
 
     if (!localOptions?.metadata && filteredKeys.length === 0) {
       return {
@@ -355,7 +342,7 @@ export class Controller {
 
       if (cacheStatus === 'HIT' || cacheStatus === 'STALE') {
         if (cacheStatus === 'STALE') {
-          after(() => this.fetchAndCacheFullConfig(ts, localOptions).catch());
+          after(() => this.fetchAndCacheFullConfig(localOptions).catch());
         }
 
         return {
@@ -381,7 +368,7 @@ export class Controller {
 
       if (cacheStatus === 'HIT' || cacheStatus === 'STALE') {
         if (cacheStatus === 'STALE') {
-          after(() => this.fetchAndCacheFullConfig(ts, localOptions).catch());
+          after(() => this.fetchAndCacheFullConfig(localOptions).catch());
         }
 
         return {
@@ -395,7 +382,6 @@ export class Controller {
 
     const result = await this.networkClient.fetchMultipleItems<T>(
       filteredKeys,
-      ts,
       localOptions,
     );
 
@@ -422,7 +408,7 @@ export class Controller {
   }> {
     await this.preload();
     await this.streamManager?.primed();
-    const ts = getMostRecentUpdateTimestamp(this.connection);
+    const ts = this.connection.getMostRecentUpdateTimestamp();
 
     const edgeConfig = this.cacheManager.getEdgeConfig();
     if (ts && edgeConfig) {
@@ -442,7 +428,7 @@ export class Controller {
       }
 
       if (cacheStatus === 'STALE') {
-        after(() => this.fetchAndCacheFullConfig(ts, localOptions).catch());
+        after(() => this.fetchAndCacheFullConfig(localOptions).catch());
         return {
           value: edgeConfig.items as T,
           digest: edgeConfig.digest,
@@ -452,6 +438,6 @@ export class Controller {
       }
     }
 
-    return this.fetchAndCacheFullConfig<T>(ts, localOptions);
+    return this.fetchAndCacheFullConfig<T>(localOptions);
   }
 }

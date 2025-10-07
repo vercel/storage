@@ -1,4 +1,5 @@
-import { assertIsKey, isEmptyKey, parseConnectionString } from './utils';
+import { assertIsKey, isEmptyKey } from './utils';
+import { parseConnectionString } from './utils/connection';
 import type {
   EdgeConfigClient,
   EdgeConfigItems,
@@ -10,6 +11,9 @@ import type {
 } from './types';
 import { trace } from './utils/tracing';
 import { Controller } from './controller';
+import { OriginProvider } from './providers/origin';
+import { SimpleCacheProvider } from './providers/simple-cache';
+import { NetworkClient } from './utils/network-client';
 
 export { setTracerProvider } from './utils/tracing';
 export { ERRORS, UnexpectedNetworkError } from './utils/errors';
@@ -75,6 +79,14 @@ export const createClient = trace(
     });
 
     const edgeConfigId = connection.id;
+
+    const networkClient = new NetworkClient(
+      connection,
+      options.cache || 'no-store',
+    );
+
+    const origin = new OriginProvider(networkClient);
+    const provider = new SimpleCacheProvider(origin);
 
     const methods: Pick<
       EdgeConfigClient,

@@ -54,7 +54,7 @@ export function createCreateClient({
         staleIfError: 604800 /* one week */,
         cache: 'no-store',
       },
-    ): deps.EdgeConfigClient {
+    ): EdgeConfigClient {
       if (!connectionString)
         throw new Error('@vercel/edge-config: No connection string provided');
 
@@ -93,7 +93,7 @@ export function createCreateClient({
         process.env.NODE_ENV === 'development' &&
         process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
 
-      const api: Omit<deps.EdgeConfigClient, 'connection'> = {
+      const api: Omit<EdgeConfigClient, 'connection'> = {
         get: trace(
           async function get<T = EdgeConfigValue>(
             key: string,

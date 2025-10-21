@@ -1,29 +1,19 @@
-import { name as sdkName, version as sdkVersion } from '../package.json';
+import { createCreateClient } from './create-create-client';
 import {
-  assertIsKey,
-  assertIsKeys,
-  isEmptyKey,
-  hasOwnProperty,
-  parseConnectionString,
-  pick,
-} from './utils';
+  fetchAllEdgeConfigItem,
+  fetchEdgeConfigHas,
+  fetchEdgeConfigItem,
+  fetchEdgeConfigTrace,
+  getInMemoryEdgeConfig,
+  getLocalEdgeConfig,
+} from './edge-config';
 import type {
   EdgeConfigClient,
   EdgeConfigItems,
   EdgeConfigValue,
   EmbeddedEdgeConfig,
-  EdgeConfigFunctionsOptions,
 } from './types';
-import { trace } from './utils/tracing';
-import {
-  getInMemoryEdgeConfig,
-  getLocalEdgeConfig,
-  fetchEdgeConfigItem,
-  fetchEdgeConfigHas,
-  fetchAllEdgeConfigItem,
-  fetchEdgeConfigTrace,
-  type EdgeConfigClientOptions,
-} from './edge-config';
+import { parseConnectionString } from './utils';
 
 export { setTracerProvider } from './utils/tracing';
 
@@ -45,228 +35,14 @@ export {
  * @param connectionString - A connection string. Usually you'd pass in `process.env.EDGE_CONFIG` here, which contains a connection string.
  * @returns An Edge Config Client instance
  */
-export const createClient = trace(
-  function createClient(
-    connectionString: string | undefined,
-    options: EdgeConfigClientOptions = {
-      staleIfError: 604800 /* one week */,
-      cache: 'no-store',
-    },
-  ): EdgeConfigClient {
-    if (!connectionString)
-      throw new Error('@vercel/edge-config: No connection string provided');
-
-    const connection = parseConnectionString(connectionString);
-
-    if (!connection)
-      throw new Error(
-        '@vercel/edge-config: Invalid connection string provided',
-      );
-
-    const edgeConfigId = connection.id;
-    const baseUrl = connection.baseUrl;
-    const version = connection.version; // version of the edge config read access api we talk to
-    const headers: Record<string, string> = {
-      Authorization: `Bearer ${connection.token}`,
-    };
-
-    // eslint-disable-next-line @typescript-eslint/prefer-optional-chain -- [@vercel/style-guide@5 migration]
-    if (typeof process !== 'undefined' && process.env.VERCEL_ENV)
-      headers['x-edge-config-vercel-env'] = process.env.VERCEL_ENV;
-
-    if (typeof sdkName === 'string' && typeof sdkVersion === 'string')
-      headers['x-edge-config-sdk'] = `${sdkName}@${sdkVersion}`;
-
-    if (typeof options.staleIfError === 'number' && options.staleIfError > 0)
-      headers['cache-control'] = `stale-if-error=${options.staleIfError}`;
-
-    const fetchCache = options.cache || 'no-store';
-
-    /**
-     * While in development we use SWR-like behavior for the api client to
-     * reduce latency.
-     */
-    const shouldUseDevelopmentCache =
-      !options.disableDevelopmentCache &&
-      process.env.NODE_ENV === 'development' &&
-      process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
-
-    const api: Omit<EdgeConfigClient, 'connection'> = {
-      get: trace(
-        async function get<T = EdgeConfigValue>(
-          key: string,
-          localOptions?: EdgeConfigFunctionsOptions,
-        ): Promise<T | undefined> {
-          assertIsKey(key);
-
-          let localEdgeConfig: EmbeddedEdgeConfig | null = null;
-          if (localOptions?.consistentRead) {
-            // fall through to fetching
-          } else if (shouldUseDevelopmentCache) {
-            localEdgeConfig = await getInMemoryEdgeConfig(
-              connectionString,
-              fetchCache,
-              options.staleIfError,
-            );
-          } else {
-            localEdgeConfig = await getLocalEdgeConfig(
-              connection.type,
-              connection.id,
-              fetchCache,
-            );
-          }
-
-          if (localEdgeConfig) {
-            if (isEmptyKey(key)) return undefined;
-            // We need to return a clone of the value so users can't modify
-            // our original value, and so the reference changes.
-            //
-            // This makes it consistent with the real API.
-            return Promise.resolve(localEdgeConfig.items[key] as T);
-          }
-
-          return fetchEdgeConfigItem<T>(
-            baseUrl,
-            key,
-            version,
-            localOptions?.consistentRead,
-            headers,
-            fetchCache,
-          );
-        },
-        { name: 'get', isVerboseTrace: false, attributes: { edgeConfigId } },
-      ),
-      has: trace(
-        async function has(
-          key,
-          localOptions?: EdgeConfigFunctionsOptions,
-        ): Promise<boolean> {
-          assertIsKey(key);
-          if (isEmptyKey(key)) return false;
-
-          let localEdgeConfig: EmbeddedEdgeConfig | null = null;
-
-          if (localOptions?.consistentRead) {
-            // fall through to fetching
-          } else if (shouldUseDevelopmentCache) {
-            localEdgeConfig = await getInMemoryEdgeConfig(
-              connectionString,
-              fetchCache,
-              options.staleIfError,
-            );
-          } else {
-            localEdgeConfig = await getLocalEdgeConfig(
-              connection.type,
-              connection.id,
-              fetchCache,
-            );
-          }
-
-          if (localEdgeConfig) {
-            return Promise.resolve(hasOwnProperty(localEdgeConfig.items, key));
-          }
-
-          return fetchEdgeConfigHas(
-            baseUrl,
-            key,
-            version,
-            localOptions?.consistentRead,
-            headers,
-            fetchCache,
-          );
-        },
-        { name: 'has', isVerboseTrace: false, attributes: { edgeConfigId } },
-      ),
-      getAll: trace(
-        async function getAll<T = EdgeConfigItems>(
-          keys?: (keyof T)[],
-          localOptions?: EdgeConfigFunctionsOptions,
-        ): Promise<T> {
-          if (keys) {
-            assertIsKeys(keys);
-          }
-
-          let localEdgeConfig: EmbeddedEdgeConfig | null = null;
-
-          if (localOptions?.consistentRead) {
-            // fall through to fetching
-          } else if (shouldUseDevelopmentCache) {
-            localEdgeConfig = await getInMemoryEdgeConfig(
-              connectionString,
-              fetchCache,
-              options.staleIfError,
-            );
-          } else {
-            localEdgeConfig = await getLocalEdgeConfig(
-              connection.type,
-              connection.id,
-              fetchCache,
-            );
-          }
-
-          if (localEdgeConfig) {
-            if (keys === undefined) {
-              return Promise.resolve(localEdgeConfig.items as T);
-            }
-
-            return Promise.resolve(pick(localEdgeConfig.items, keys) as T);
-          }
-
-          return fetchAllEdgeConfigItem<T>(
-            baseUrl,
-            keys,
-            version,
-            localOptions?.consistentRead,
-            headers,
-            fetchCache,
-          );
-        },
-        { name: 'getAll', isVerboseTrace: false, attributes: { edgeConfigId } },
-      ),
-      digest: trace(
-        async function digest(
-          localOptions?: EdgeConfigFunctionsOptions,
-        ): Promise<string> {
-          let localEdgeConfig: EmbeddedEdgeConfig | null = null;
-
-          if (localOptions?.consistentRead) {
-            // fall through to fetching
-          } else if (shouldUseDevelopmentCache) {
-            localEdgeConfig = await getInMemoryEdgeConfig(
-              connectionString,
-              fetchCache,
-              options.staleIfError,
-            );
-          } else {
-            localEdgeConfig = await getLocalEdgeConfig(
-              connection.type,
-              connection.id,
-              fetchCache,
-            );
-          }
-
-          if (localEdgeConfig) {
-            return Promise.resolve(localEdgeConfig.digest);
-          }
-
-          return fetchEdgeConfigTrace(
-            baseUrl,
-            version,
-            localOptions?.consistentRead,
-            headers,
-            fetchCache,
-          );
-        },
-        { name: 'digest', isVerboseTrace: false, attributes: { edgeConfigId } },
-      ),
-    };
-
-    return { ...api, connection };
-  },
-  {
-    name: 'createClient',
-  },
-);
+export const createClient = createCreateClient({
+  getInMemoryEdgeConfig,
+  getLocalEdgeConfig,
+  fetchEdgeConfigItem,
+  fetchEdgeConfigHas,
+  fetchAllEdgeConfigItem,
+  fetchEdgeConfigTrace,
+});
 
 let defaultEdgeConfigClient: EdgeConfigClient;
 

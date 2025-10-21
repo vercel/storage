@@ -10,7 +10,6 @@ import type {
 import {
   assertIsKey,
   assertIsKeys,
-  // biome-ignore lint/suspicious/noShadowRestrictedNames: ok
   hasOwnProperty,
   isEmptyKey,
   parseConnectionString,

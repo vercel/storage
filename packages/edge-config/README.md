@@ -1,7 +1,5 @@
 # @vercel/edge-config
 
-![Edge Runtime Compatible](https://img.shields.io/badge/edge--runtime-%E2%9C%94%20compatible-black)
-
 A client that lets you read Edge Config.
 
 ## Installation

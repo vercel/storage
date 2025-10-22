@@ -12,8 +12,14 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
-    "import": "./dist/index.js",
-    "require": "./dist/index.cjs"
+    ".": {
+      "next-js": {
+        "import": "./dist/index.next-js.js",
+        "require": "./dist/index.next-js.cjs"
+      },
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -53,6 +59,7 @@
     "eslint-config-custom": "workspace:*",
     "jest": "29.7.0",
     "jest-fetch-mock": "3.0.3",
+    "next": "16.0.0-canary.15",
     "node-domexception": "2.0.1",
     "prettier": "3.5.2",
     "ts-jest": "29.2.6",
@@ -61,10 +68,14 @@
     "typescript": "5.7.3"
   },
   "peerDependencies": {
-    "@opentelemetry/api": "^1.7.0"
+    "@opentelemetry/api": "^1.7.0",
+    "next": ">=1"
   },
   "peerDependenciesMeta": {
     "@opentelemetry/api": {
+      "optional": true
+    },
+    "next": {
       "optional": true
     }
   },

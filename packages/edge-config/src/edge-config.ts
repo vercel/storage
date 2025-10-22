@@ -1,30 +1,19 @@
 import { readFile } from '@vercel/edge-config-fs';
 import { name as sdkName, version as sdkVersion } from '../package.json';
-import {
-  isEmptyKey,
-  ERRORS,
-  UnexpectedNetworkError,
-  parseConnectionString,
-} from './utils';
 import type {
   Connection,
-  EdgeConfigClient,
   EdgeConfigItems,
   EdgeConfigValue,
   EmbeddedEdgeConfig,
 } from './types';
+import {
+  ERRORS,
+  isEmptyKey,
+  parseConnectionString,
+  UnexpectedNetworkError,
+} from './utils';
 import { fetchWithCachedResponse } from './utils/fetch-with-cached-response';
 import { trace } from './utils/tracing';
-
-export { setTracerProvider } from './utils/tracing';
-
-export {
-  parseConnectionString,
-  type EdgeConfigClient,
-  type EdgeConfigItems,
-  type EdgeConfigValue,
-  type EmbeddedEdgeConfig,
-};
 
 const X_EDGE_CONFIG_SDK_HEADER =
   typeof sdkName === 'string' && typeof sdkVersion === 'string'

@@ -1,3 +1,4 @@
+import { cacheLife } from 'next/cache';
 import { createCreateClient } from './create-create-client';
 import {
   fetchAllEdgeConfigItem,
@@ -25,6 +26,86 @@ export {
   type EmbeddedEdgeConfig,
 };
 
+function setCacheLifeFromFetchCache(
+  fetchCache: undefined | 'force-cache' | 'no-store',
+): void {
+  if (fetchCache === 'force-cache') {
+    cacheLife('default');
+  } else {
+    // Working around a limitation of cacheLife in older Next.js versions
+    // where stale was required to be greater than expire if set concurrently.
+    // Instead we do this over two calls.
+    cacheLife({ revalidate: 0, expire: 0 });
+    cacheLife({ stale: 60 });
+  }
+}
+
+async function getInMemoryEdgeConfigForNext(
+  ...args: Parameters<typeof getInMemoryEdgeConfig>
+): ReturnType<typeof getInMemoryEdgeConfig> {
+  'use cache';
+
+  const fetchCache = args[1];
+  setCacheLifeFromFetchCache(fetchCache);
+
+  return getInMemoryEdgeConfig(...args);
+}
+
+async function getLocalEdgeConfigForNext(
+  ...args: Parameters<typeof getLocalEdgeConfig>
+): ReturnType<typeof getLocalEdgeConfig> {
+  'use cache';
+
+  const [type, id, fetchCache] = args;
+  setCacheLifeFromFetchCache(fetchCache);
+
+  return getLocalEdgeConfig(type, id, fetchCache);
+}
+
+async function fetchEdgeConfigItemForNext<T = EdgeConfigValue>(
+  ...args: Parameters<typeof fetchEdgeConfigItem<T>>
+): ReturnType<typeof fetchEdgeConfigItem<T>> {
+  'use cache';
+
+  const fetchCache = args[5];
+  setCacheLifeFromFetchCache(fetchCache);
+
+  return fetchEdgeConfigItem<T>(...args);
+}
+
+async function fetchEdgeConfigHasForNext(
+  ...args: Parameters<typeof fetchEdgeConfigHas>
+): ReturnType<typeof fetchEdgeConfigHas> {
+  'use cache';
+
+  const fetchCache = args[5];
+  setCacheLifeFromFetchCache(fetchCache);
+
+  return fetchEdgeConfigHas(...args);
+}
+
+async function fetchAllEdgeConfigItemForNext<T = EdgeConfigItems>(
+  ...args: Parameters<typeof fetchAllEdgeConfigItem<T>>
+): ReturnType<typeof fetchAllEdgeConfigItem<T>> {
+  'use cache';
+
+  const fetchCache = args[5];
+  setCacheLifeFromFetchCache(fetchCache);
+
+  return fetchAllEdgeConfigItem<T>(...args);
+}
+
+async function fetchEdgeConfigTraceForNext(
+  ...args: Parameters<typeof fetchEdgeConfigTrace>
+): ReturnType<typeof fetchEdgeConfigTrace> {
+  'use cache';
+
+  const fetchCache = args[4];
+  setCacheLifeFromFetchCache(fetchCache);
+
+  return fetchEdgeConfigTrace(...args);
+}
+
 /**
  * Create an Edge Config client.
  *
@@ -36,12 +117,12 @@ export {
  * @returns An Edge Config Client instance
  */
 export const createClient = createCreateClient({
-  getInMemoryEdgeConfig,
-  getLocalEdgeConfig,
-  fetchEdgeConfigItem,
-  fetchEdgeConfigHas,
-  fetchAllEdgeConfigItem,
-  fetchEdgeConfigTrace,
+  getInMemoryEdgeConfig: getInMemoryEdgeConfigForNext,
+  getLocalEdgeConfig: getLocalEdgeConfigForNext,
+  fetchEdgeConfigItem: fetchEdgeConfigItemForNext,
+  fetchEdgeConfigHas: fetchEdgeConfigHasForNext,
+  fetchAllEdgeConfigItem: fetchAllEdgeConfigItemForNext,
+  fetchEdgeConfigTrace: fetchEdgeConfigTraceForNext,
 });
 
 let defaultEdgeConfigClient: EdgeConfigClient;

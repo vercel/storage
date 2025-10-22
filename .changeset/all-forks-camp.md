@@ -1,6 +1,5 @@
 ---
 '@vercel/edge-config': patch
-'vercel-storage-integration-test-suite-legacy': patch
 ---
 
-New Next.js entrypoint for edge-config
+Add support for Next.js v16 cache components (see [#883](https://github.com/vercel/storage/pull/883))

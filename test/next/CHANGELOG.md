@@ -1,5 +1,12 @@
 # vercel-storage-integration-test-suite
 
+## 0.3.12
+
+### Patch Changes
+
+- Updated dependencies [309509c]
+  - @vercel/edge-config@1.4.2
+
 ## 0.3.11
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 1.4.2
+
+### Patch Changes
+
+- 309509c: Adjust README
+
 ## 1.4.1
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 1.4.1
+
+### Patch Changes
+
+- ab6681b: Add support for Next.js v16 cache components (see [#883](https://github.com/vercel/storage/pull/883))
+
 ## 1.4.0
 
 ### Minor Changes

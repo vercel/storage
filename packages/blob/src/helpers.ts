@@ -2,8 +2,8 @@
 // this is why it's not exported from index/client
 
 import type { Readable } from 'node:stream';
-import type { RequestInit, Response } from 'undici';
 import { isNodeProcess } from 'is-node-process';
+import type { RequestInit, Response } from 'undici';
 import { isNodeJsReadableStream } from './multipart/helpers';
 import type { PutBody } from './put-helpers';
 

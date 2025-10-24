@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 const prefix =
   process.env.GITHUB_PR_NUMBER || crypto.randomBytes(10).toString('hex');

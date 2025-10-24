@@ -8,7 +8,7 @@ try {
   ) {
     debugIsActive = true;
   }
-} catch (error) {
+} catch {
   // noop
 }
 

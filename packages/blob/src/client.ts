@@ -1,20 +1,21 @@
 // eslint-disable-next-line unicorn/prefer-node-protocol -- node:crypto does not resolve correctly in browser and edge runtime
-import * as crypto from 'crypto';
+
 import type { IncomingMessage } from 'node:http';
+import * as crypto from 'crypto';
 // When bundled via a bundler supporting the `browser` field, then
 // the `undici` module will be replaced with https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
 // for browser contexts. See ./undici-browser.js and ./package.json
 import { fetch } from 'undici';
 import type { BlobCommandOptions, WithUploadProgress } from './helpers';
 import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
-import { createPutMethod } from './put';
-import type { PutBlobResult } from './put-helpers';
 import type { CommonCompleteMultipartUploadOptions } from './multipart/complete';
 import { createCompleteMultipartUploadMethod } from './multipart/complete';
 import { createCreateMultipartUploadMethod } from './multipart/create';
-import { createUploadPartMethod } from './multipart/upload';
-import type { CommonMultipartUploadOptions } from './multipart/upload';
 import { createCreateMultipartUploaderMethod } from './multipart/create-uploader';
+import type { CommonMultipartUploadOptions } from './multipart/upload';
+import { createUploadPartMethod } from './multipart/upload';
+import { createPutMethod } from './put';
+import type { PutBlobResult } from './put-helpers';
 
 /**
  * Interface for put, upload and multipart upload operations.
@@ -698,7 +699,7 @@ async function retrieveClientToken(options: {
   try {
     const { clientToken } = (await res.json()) as { clientToken: string };
     return clientToken;
-  } catch (e) {
+  } catch {
     throw new BlobError('Failed to retrieve the client token');
   }
 }
@@ -717,7 +718,7 @@ function toAbsoluteUrl(url: string): string {
 function isAbsoluteUrl(url: string): boolean {
   try {
     return Boolean(new URL(url));
-  } catch (e) {
+  } catch {
     return false;
   }
 }

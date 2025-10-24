@@ -1,4 +1,4 @@
-import type { Tracer, Attributes, TracerProvider } from '@opentelemetry/api';
+import type { Attributes, Tracer, TracerProvider } from '@opentelemetry/api';
 import { name as pkgName, version } from '../../package.json';
 
 // Use a symbol to avoid having global variable that is scoped to this file,

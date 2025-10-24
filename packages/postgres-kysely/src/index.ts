@@ -1,3 +1,6 @@
+import type { Pool } from '@neondatabase/serverless';
+import type { VercelPostgresPoolConfig } from '@vercel/postgres';
+import { createPool } from '@vercel/postgres';
 import type {
   DatabaseConnection,
   Dialect,
@@ -6,14 +9,11 @@ import type {
   KyselyConfig,
 } from 'kysely';
 import {
-  PostgresDialect,
-  PostgresDriver,
   Kysely,
   PostgresAdapter,
+  PostgresDialect,
+  PostgresDriver,
 } from 'kysely';
-import type { Pool } from '@neondatabase/serverless';
-import { createPool } from '@vercel/postgres';
-import type { VercelPostgresPoolConfig } from '@vercel/postgres';
 import { VercelPostgresKyselyError } from './error';
 
 type VercelPostgresDialectConfig = VercelPostgresPoolConfig & {

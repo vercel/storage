@@ -1,6 +1,6 @@
 import type { Response as UndiciResponse } from 'undici';
-import { isReadableStream, type BlobRequest } from './helpers';
 import { debug } from './debug';
+import { type BlobRequest, isReadableStream } from './helpers';
 
 export const hasXhr = typeof XMLHttpRequest !== 'undefined';
 

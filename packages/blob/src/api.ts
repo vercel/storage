@@ -1,7 +1,7 @@
-import type { Response } from 'undici';
 import retry from 'async-retry';
-import isNetworkError from './is-network-error';
+import type { Response } from 'undici';
 import { debug } from './debug';
+import { DOMException } from './dom-exception';
 import type {
   BlobCommandOptions,
   BlobRequestInit,
@@ -13,8 +13,8 @@ import {
   getApiUrl,
   getTokenFromOptionsOrEnv,
 } from './helpers';
+import isNetworkError from './is-network-error';
 import { blobRequest } from './request';
-import { DOMException } from './dom-exception';
 
 // maximum pathname length is:
 // 1024 (provider limit) - 26 chars (vercel  internal suffixes) - 31 chars (blob `-randomId` suffix) = 967

@@ -1,8 +1,8 @@
 /* eslint-disable -- I gave up making TS and ESLint happy here for now */
 
 'use client';
-import { useEffect, useRef, useCallback, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 
 export default function Index() {
   const workerRef = useRef<Worker | null>(null);
@@ -41,7 +41,9 @@ export default function Index() {
         App Router Client Upload using a Web Worker
       </h1>
 
-      <button onClick={handleUpload}>Upload from WebWorker</button>
+      <button type="button" onClick={handleUpload}>
+        Upload from WebWorker
+      </button>
       {blobUrl && (
         <div>
           <p>

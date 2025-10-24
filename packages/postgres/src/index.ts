@@ -1,12 +1,12 @@
 import type { QueryResult, QueryResultRow } from '@neondatabase/serverless';
-import { type VercelPool, createPool } from './create-pool';
+import { createPool, type VercelPool } from './create-pool';
 import type { Primitive } from './sql-template';
 
+export { types } from '@neondatabase/serverless';
 export * from './create-client';
 export * from './create-pool';
-export * from './types';
-export { types } from '@neondatabase/serverless';
 export { postgresConnectionString } from './postgres-connection-string';
+export * from './types';
 
 let pool: VercelPool | undefined;
 

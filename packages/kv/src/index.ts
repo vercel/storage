@@ -1,5 +1,5 @@
+import type { RedisConfigNodejs, ScanCommandOptions } from '@upstash/redis';
 import { Redis } from '@upstash/redis';
-import type { ScanCommandOptions, RedisConfigNodejs } from '@upstash/redis';
 
 let _kv: Redis | null = null;
 process.env.UPSTASH_DISABLE_TELEMETRY = '1';

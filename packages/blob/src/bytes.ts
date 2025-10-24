@@ -24,12 +24,12 @@ const map: ByteUnitMap = {
   mb: 1 << 20,
   // eslint-disable-next-line no-bitwise -- fine
   gb: 1 << 30,
-  tb: Math.pow(1024, 4),
-  pb: Math.pow(1024, 5),
+  tb: 1024 ** 4,
+  pb: 1024 ** 5,
 };
 
 export function bytes(val: string | number): number | null {
-  if (typeof val === 'number' && !isNaN(val)) {
+  if (typeof val === 'number' && !Number.isNaN(val)) {
     return val;
   }
   if (typeof val !== 'string') {
@@ -53,7 +53,7 @@ export function bytes(val: string | number): number | null {
     }
   }
 
-  if (isNaN(floatValue)) {
+  if (Number.isNaN(floatValue)) {
     return null;
   }
 

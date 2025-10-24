@@ -3,17 +3,17 @@ import type {
   QueryResult,
   QueryResultRow,
 } from '@neondatabase/serverless';
-import { Pool, neon } from '@neondatabase/serverless';
-import type { VercelPoolClient, VercelPostgresPoolConfig } from './types';
+import { neon, Pool } from '@neondatabase/serverless';
+import { VercelClient } from './create-client';
+import { VercelPostgresError } from './error';
 import {
   isLocalhostConnectionString,
   isPooledConnectionString,
   postgresConnectionString,
 } from './postgres-connection-string';
-import { VercelPostgresError } from './error';
 import type { Primitive } from './sql-template';
 import { sqlTemplate } from './sql-template';
-import { VercelClient } from './create-client';
+import type { VercelPoolClient, VercelPostgresPoolConfig } from './types';
 
 export class VercelPool extends Pool {
   Client = VercelClient;
@@ -65,7 +65,7 @@ export class VercelPool extends Pool {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- [@vercel/style-guide@5 migration]
       done: (release?: any) => void,
     ) => void,
-    // eslint-disable-next-line @typescript-eslint/no-invalid-void-type -- [@vercel/style-guide@5 migration]
+    // biome-ignore lint/suspicious/noConfusingVoidType: inherited
   ): void | Promise<VercelPoolClient> {
     // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression -- [@vercel/style-guide@5 migration]
     return super.connect(

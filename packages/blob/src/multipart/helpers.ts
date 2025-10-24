@@ -1,8 +1,9 @@
 // eslint-disable-next-line unicorn/prefer-node-protocol -- node:stream does not resolve correctly in browser and edge
-import { Readable } from 'stream';
+
 // eslint-disable-next-line unicorn/prefer-node-protocol -- node:buffer does not resolve correctly in browser and edge
 import type { Buffer } from 'buffer';
 import isBuffer from 'is-buffer';
+import { Readable } from 'stream';
 import type { PutBody } from '../put-helpers';
 
 /**

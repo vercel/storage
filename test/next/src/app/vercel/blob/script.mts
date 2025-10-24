@@ -3,13 +3,13 @@
 // Run from the current directory, with:
 // npx tsx -r dotenv/config script.mts dotenv_config_path=.env.local
 
-import { createReadStream, readFile, readFileSync } from 'node:fs';
+import { createReadStream, readFileSync } from 'node:fs';
 import type { IncomingMessage } from 'node:http';
 import https from 'node:https';
-import { fetch } from 'undici';
+import * as vercelBlob from '@vercel/blob';
 import axios from 'axios';
 import got from 'got';
-import * as vercelBlob from '@vercel/blob';
+import { fetch } from 'undici';
 
 console.log('=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*');
 console.log('VERCEL BLOB SCRIPT DEMO');

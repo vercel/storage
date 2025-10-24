@@ -1,7 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { GetServerSideProps } from 'next';
 import * as vercelBlob from '@vercel/blob';
+import type { GetServerSideProps } from 'next';
 
 export const getServerSideProps: GetServerSideProps = async (req) => {
   const prefix = req.query.prefix as string;

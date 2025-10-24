@@ -6,7 +6,7 @@
     "build": "next build",
     "dev": "next dev",
     "integration-test": "playwright test",
-    "lint": "eslint --max-warnings=0 .",
+    "check": "biome .",
     "start": "next start",
     "type-check": "tsc --noEmit"
   },
@@ -23,8 +23,6 @@
     "autoprefixer": "^10.4.20",
     "axios": "^1.8.1",
     "dotenv": "^16.4.7",
-    "eslint": "^8.56.0",
-    "eslint-config-next": "^15.2.0",
     "got": "^14.4.6",
     "kysely": "^0.27.5",
     "ms": "^2.1.3",

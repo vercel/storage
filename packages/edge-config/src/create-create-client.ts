@@ -10,7 +10,7 @@ import type {
 import {
   assertIsKey,
   assertIsKeys,
-  hasOwnProperty,
+  hasOwn,
   isEmptyKey,
   parseConnectionString,
   pick,
@@ -165,9 +165,7 @@ export function createCreateClient({
             }
 
             if (localEdgeConfig) {
-              return Promise.resolve(
-                hasOwnProperty(localEdgeConfig.items, key),
-              );
+              return Promise.resolve(hasOwn(localEdgeConfig.items, key));
             }
 
             return fetchEdgeConfigHas(

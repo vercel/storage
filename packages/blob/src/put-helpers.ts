@@ -4,10 +4,10 @@ import type { Readable } from 'stream';
 // undici types fetch expects (like Blob is from node:buffer..)
 // import type { Blob } from 'node:buffer';
 import type { File } from 'undici';
+import { MAXIMUM_PATHNAME_LENGTH } from './api';
 import type { ClientCommonCreateBlobOptions } from './client';
 import type { CommonCreateBlobOptions } from './helpers';
 import { BlobError, disallowedPathnameCharacters } from './helpers';
-import { MAXIMUM_PATHNAME_LENGTH } from './api';
 
 export const putOptionHeaderMap = {
   cacheControlMaxAge: 'x-cache-control-max-age',

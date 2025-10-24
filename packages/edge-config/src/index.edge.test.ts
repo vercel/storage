@@ -1,7 +1,7 @@
 import fetchMock from 'jest-fetch-mock';
 import { version as pkgVersion } from '../package.json';
+import { createClient, digest, get, getAll, has } from './index';
 import { cache } from './utils/fetch-with-cached-response';
-import { get, has, digest, getAll, createClient } from './index';
 
 const sdkVersion = typeof pkgVersion === 'string' ? pkgVersion : '';
 const baseUrl = 'https://edge-config.vercel.com/ecfg-1';

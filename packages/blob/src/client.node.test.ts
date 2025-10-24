@@ -1,10 +1,10 @@
 import type { IncomingMessage } from 'node:http';
+import type { PutBlobResult } from '.';
 import {
   generateClientTokenFromReadWriteToken,
   getPayloadFromClientToken,
   handleUpload,
 } from './client';
-import type { PutBlobResult } from '.';
 
 describe('client uploads', () => {
   describe('generateClientTokenFromReadWriteToken', () => {

@@ -64,7 +64,7 @@
     "is-buffer": "^2.0.5",
     "is-node-process": "^1.2.0",
     "throttleit": "^2.1.0",
-    "undici": "^5.28.4"
+    "undici": "^6.0.0"
   },
   "devDependencies": {
     "@edge-runtime/jest-environment": "2.3.10",

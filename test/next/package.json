@@ -6,7 +6,7 @@
     "build": "next build",
     "dev": "next dev",
     "integration-test": "playwright test",
-    "check": "biome .",
+    "check": "biome check",
     "start": "next start",
     "type-check": "tsc --noEmit"
   },

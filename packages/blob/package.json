@@ -67,7 +67,7 @@
     "undici": "^5.28.4"
   },
   "devDependencies": {
-    "@edge-runtime/jest-environment": "2.3.10",
+    "@edge-runtime/jest-environment": "4.0.0",
     "@edge-runtime/types": "2.2.9",
     "@types/async-retry": "1.4.9",
     "@types/jest": "29.5.14",

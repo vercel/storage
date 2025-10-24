@@ -2,10 +2,10 @@ import undici from 'undici';
 import {
   completeMultipartUpload,
   createMultipartUpload,
-  uploadPart,
-  upload,
   createMultipartUploader,
   put,
+  upload,
+  uploadPart,
 } from './client';
 
 describe('client', () => {

@@ -1,5 +1,4 @@
 // TODO: Once Node 16 is no more needed internally, we can remove this file and use the native DOMException type.
-/* eslint-disable -- fine */
 export const DOMException =
   globalThis.DOMException ??
   (() => {

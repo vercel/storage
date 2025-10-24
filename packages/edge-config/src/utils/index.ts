@@ -17,11 +17,12 @@ export class UnexpectedNetworkError extends Error {
 /**
  * Checks if an object has a property
  */
-export function hasOwnProperty<X, Y extends PropertyKey>(
+
+export function hasOwn<X extends object, Y extends PropertyKey>(
   obj: X,
   prop: Y,
 ): obj is X & Record<Y, unknown> {
-  return Object.prototype.hasOwnProperty.call(obj, prop);
+  return Object.hasOwn(obj, prop);
 }
 
 export function pick<T, K extends keyof T>(obj: T, keys: K[]): Pick<T, K> {

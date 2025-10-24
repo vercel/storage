@@ -1,11 +1,9 @@
-/* eslint-disable -- I gave up making TS and ESLint happy here for now */
-
 'use client';
 
-import { type PutBlobResult } from '@vercel/blob';
+import type { PutBlobResult } from '@vercel/blob';
 import { upload } from '@vercel/blob/client';
-import { useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useRef, useState } from 'react';
 
 export default function AppClientUpload(): React.JSX.Element {
   const inputFileRef = useRef<HTMLInputElement>(null);

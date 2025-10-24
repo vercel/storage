@@ -6,7 +6,7 @@
       "dependsOn": ["^build"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
-    "lint": {
+    "check": {
       "dependsOn": ["^build"]
     },
     "type-check": {
@@ -18,7 +18,6 @@
     "publint": {
       "dependsOn": ["^build", "build"]
     },
-    "prettier-check": {},
     "integration-test": {
       "dependsOn": ["^build", "build"]
     }

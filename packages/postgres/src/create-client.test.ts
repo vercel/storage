@@ -1,11 +1,11 @@
-import type { Client } from './types';
+import { createClient } from './create-client';
+import { VercelPostgresError } from './error';
 import {
   MOCKED_DIRECT_CONNECTION_STRING,
   MOCKED_LOCALHOST_CONNECTION_STRING,
   MOCKED_POOLED_CONNECTION_STRING,
 } from './mocks';
-import { createClient } from './create-client';
-import { VercelPostgresError } from './error';
+import type { Client } from './types';
 
 jest.mock('@neondatabase/serverless', () => {
   return {

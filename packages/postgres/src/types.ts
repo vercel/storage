@@ -5,11 +5,12 @@ import type {
   QueryResult,
   QueryResultRow,
 } from '@neondatabase/serverless';
-import { type Primitive } from './sql-template';
+import type { Primitive } from './sql-template';
 
 export type {
-  Pool,
   Client,
+  FieldDef,
+  Pool,
   Query,
   QueryArrayConfig,
   QueryArrayResult,
@@ -18,7 +19,6 @@ export type {
   QueryResult,
   QueryResultBase,
   QueryResultRow,
-  FieldDef,
 } from '@neondatabase/serverless';
 
 type ConfigItemsToOmit = 'user' | 'database' | 'password' | 'host' | 'port';

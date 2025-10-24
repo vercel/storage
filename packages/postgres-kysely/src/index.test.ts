@@ -1,9 +1,9 @@
+import { createKysely } from '.';
 import {
   MOCKED_CLIENT_RESPONSE,
-  MOCKED_POOLED_CONNECTION_STRING,
   MOCKED_POOL_RESPONSE,
+  MOCKED_POOLED_CONNECTION_STRING,
 } from './mocks';
-import { createKysely } from '.';
 
 jest.mock('@vercel/postgres', () => {
   return {

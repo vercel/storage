@@ -1,6 +1,6 @@
 import {
-  MOCKED_POOLED_CONNECTION_STRING,
   MOCKED_DIRECT_CONNECTION_STRING,
+  MOCKED_POOLED_CONNECTION_STRING,
 } from './mocks';
 import {
   isDirectConnectionString,

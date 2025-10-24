@@ -1,5 +1,6 @@
 import type { BodyInit } from 'undici';
 import { fetch } from 'undici';
+import { debug } from './debug';
 import type { BlobRequest } from './helpers';
 import {
   createChunkTransformStream,
@@ -8,7 +9,6 @@ import {
 } from './helpers';
 import { toReadableStream } from './multipart/helpers';
 import type { PutBody } from './put-helpers';
-import { debug } from './debug';
 
 export const hasFetch = typeof fetch === 'function';
 

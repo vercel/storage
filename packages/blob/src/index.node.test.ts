@@ -1,14 +1,14 @@
 import { type Interceptable, MockAgent, setGlobalDispatcher } from 'undici';
 import { BlobRequestAbortedError, BlobServiceNotAvailable } from './api';
 import {
-  list,
-  head,
-  del,
-  put,
+  completeMultipartUpload,
   copy,
   createMultipartUpload,
+  del,
+  head,
+  list,
+  put,
   uploadPart,
-  completeMultipartUpload,
 } from './index';
 
 const BLOB_API_URL_AGENT = 'https://vercel.com';
@@ -54,8 +54,9 @@ describe('blob client', () => {
           return mockedFileMeta;
         });
 
-      await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).resolves
-        .toMatchInlineSnapshot(`
+      await expect(
+        head(`${BLOB_STORE_BASE_URL}/foo-id.txt`),
+      ).resolves.toMatchInlineSnapshot(`
               {
                 "cacheControl": undefined,
                 "contentDisposition": "attachment; filename="foo.txt"",

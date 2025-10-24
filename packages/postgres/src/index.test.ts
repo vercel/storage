@@ -1,9 +1,9 @@
 import {
   createClient,
   createPool,
+  db,
   postgresConnectionString,
   sql,
-  db,
 } from './index';
 
 describe('@vercel/postgres', () => {

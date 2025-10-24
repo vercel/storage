@@ -32,9 +32,8 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch --clean=false",
-    "lint": "eslint \"**/*.ts\"",
+    "check": "biome check",
     "prepublishOnly": "pnpm run build",
-    "prettier-check": "prettier --check .",
     "publint": "npx publint",
     "test": "jest --env @edge-runtime/jest-environment .test.ts && jest --env node .test.ts",
     "type-check": "tsc --noEmit"
@@ -54,8 +53,6 @@
     "@types/jest": "29.5.14",
     "@types/node": "22.10.7",
     "@types/ws": "8.5.13",
-    "eslint": "8.56.0",
-    "eslint-config-custom": "workspace:*",
     "jest": "29.7.0",
     "kysely": "0.27.5",
     "ts-jest": "29.2.5",

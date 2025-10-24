@@ -3,17 +3,17 @@ import type {
   QueryResult,
   QueryResultRow,
 } from '@neondatabase/serverless';
-import { Pool, neon } from '@neondatabase/serverless';
-import type { VercelPoolClient, VercelPostgresPoolConfig } from './types';
+import { neon, Pool } from '@neondatabase/serverless';
+import { VercelClient } from './create-client';
+import { VercelPostgresError } from './error';
 import {
   isLocalhostConnectionString,
   isPooledConnectionString,
   postgresConnectionString,
 } from './postgres-connection-string';
-import { VercelPostgresError } from './error';
 import type { Primitive } from './sql-template';
 import { sqlTemplate } from './sql-template';
-import { VercelClient } from './create-client';
+import type { VercelPoolClient, VercelPostgresPoolConfig } from './types';
 
 export class VercelPool extends Pool {
   Client = VercelClient;
@@ -54,7 +54,7 @@ export class VercelPool extends Pool {
     callback: (
       err: Error,
       client: VercelPoolClient,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- [@vercel/style-guide@5 migration]
+
       done: (release?: any) => void,
     ) => void,
   ): void;
@@ -62,17 +62,16 @@ export class VercelPool extends Pool {
     callback?: (
       err: Error,
       client: VercelPoolClient,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- [@vercel/style-guide@5 migration]
+
       done: (release?: any) => void,
     ) => void,
-    // eslint-disable-next-line @typescript-eslint/no-invalid-void-type -- [@vercel/style-guide@5 migration]
+    // biome-ignore lint/suspicious/noConfusingVoidType: inherited
   ): void | Promise<VercelPoolClient> {
-    // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression -- [@vercel/style-guide@5 migration]
     return super.connect(
       callback as (
         err: Error,
         client: PoolClient,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- [@vercel/style-guide@5 migration]
+
         done: (release?: any) => void,
       ) => void,
     );
@@ -101,13 +100,11 @@ export function createPool(config?: VercelPostgresPoolConfig): VercelPool {
   let max = config?.max;
   if (typeof EdgeRuntime !== 'undefined') {
     if (maxUses && maxUses !== 1) {
-      // eslint-disable-next-line no-console -- [@vercel/style-guide@5 migration]
       console.warn(
         '@vercel/postgres: Overriding `maxUses` to 1 because the EdgeRuntime does not support client reuse.',
       );
     }
     if (max && max !== 10_000) {
-      // eslint-disable-next-line no-console -- [@vercel/style-guide@5 migration]
       console.warn(
         '@vercel/postgres: Overriding `max` to 10,000 because the EdgeRuntime does not support client reuse.',
       );

@@ -1,14 +1,14 @@
 import type { QueryResult, QueryResultRow } from '@neondatabase/serverless';
 import { Client } from '@neondatabase/serverless';
-import type { VercelPostgresClientConfig } from './types';
+import { VercelPostgresError } from './error';
 import {
   isDirectConnectionString,
   isLocalhostConnectionString,
   postgresConnectionString,
 } from './postgres-connection-string';
-import { VercelPostgresError } from './error';
 import type { Primitive } from './sql-template';
 import { sqlTemplate } from './sql-template';
+import type { VercelPostgresClientConfig } from './types';
 
 export class VercelClient extends Client {
   /**

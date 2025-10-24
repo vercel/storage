@@ -230,7 +230,6 @@ export function uploadAllParts({
 
       while (currentBytesInMemory < maxBytesInMemory && !rejected) {
         try {
-          // eslint-disable-next-line no-await-in-loop -- A for loop is fine here.
           const { value, done } = await reader.read();
 
           if (done) {

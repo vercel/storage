@@ -1,5 +1,3 @@
-/* eslint-disable -- I gave up making TS and ESLint happy here for now */
-
 'use client';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';

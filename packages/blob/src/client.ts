@@ -1,5 +1,3 @@
-// eslint-disable-next-line unicorn/prefer-node-protocol -- node:crypto does not resolve correctly in browser and edge runtime
-
 import type { IncomingMessage } from 'node:http';
 import * as crypto from 'crypto';
 // When bundled via a bundler supporting the `browser` field, then
@@ -271,7 +269,6 @@ export type UploadOptions = ClientCommonPutOptions & CommonUploadOptions;
 export const upload = createPutMethod<UploadOptions>({
   allowedOptions: ['contentType'],
   extraChecks(options) {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX.
     if (options.handleUploadUrl === undefined) {
       throw new BlobError(
         "client/`upload` requires the 'handleUploadUrl' parameter",
@@ -322,7 +319,6 @@ async function signPayload(
   payload: string,
   token: string,
 ): Promise<string | undefined> {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Node.js < 20: globalThis.crypto is undefined (in a real script.js, because the REPL has it linked to the crypto module). Node.js >= 20, Browsers and Cloudflare workers: globalThis.crypto is defined and is the Web Crypto API.
   if (!globalThis.crypto) {
     return crypto.createHmac('sha256', token).update(payload).digest('hex');
   }
@@ -350,7 +346,7 @@ async function verifyCallbackSignature({
   // callback signature is signed using the server token
   const secret = token;
   // Browsers, Edge runtime and Node >=20 implement the Web Crypto API
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Node.js < 20: globalThis.crypto is undefined (in a real script.js, because the REPL has it linked to the crypto module). Node.js >= 20, Browsers and Cloudflare workers: globalThis.crypto is defined and is the Web Crypto API.
+
   if (!globalThis.crypto) {
     // Node <20 falls back to the Node.js crypto module
     const digest = crypto
@@ -596,7 +592,6 @@ export async function handleUpload({
 
       // If no onUploadCompleted but callbackUrl was provided, warn about it
       if (!onUploadCompleted && callbackUrl) {
-        // eslint-disable-next-line no-console -- Warning is important for developers to understand configuration issues
         console.warn(
           'callbackUrl was provided but onUploadCompleted is not defined. The callback will not be handled.',
         );
@@ -836,11 +831,9 @@ export interface GenerateClientTokenOptions extends BlobCommandOptions {
  * when onUploadCompleted is provided but no callbackUrl was specified
  */
 function getCallbackUrl(request: RequestType): string | undefined {
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- request.url is guaranteed to be defined in web server context
   const reqPath = getPathFromRequestUrl(request.url!);
 
   if (!reqPath) {
-    // eslint-disable-next-line no-console -- Warning is important for developers to understand configuration requirements
     console.warn(
       'onUploadCompleted provided but no callbackUrl could be determined. Please provide a callbackUrl in onBeforeGenerateToken or set the VERCEL_BLOB_CALLBACK_URL environment variable.',
     );
@@ -854,7 +847,6 @@ function getCallbackUrl(request: RequestType): string | undefined {
 
   // Not hosted on Vercel and no VERCEL_BLOB_CALLBACK_URL
   if (process.env.VERCEL !== '1') {
-    // eslint-disable-next-line no-console -- Warning is important for developers to understand configuration requirements
     console.warn(
       'onUploadCompleted provided but no callbackUrl could be determined. Please provide a callbackUrl in onBeforeGenerateToken or set the VERCEL_BLOB_CALLBACK_URL environment variable.',
     );

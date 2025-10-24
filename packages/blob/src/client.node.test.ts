@@ -110,7 +110,6 @@ describe('client uploads', () => {
       `);
       expect(spy).not.toHaveBeenCalled();
       expect(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any -- Either the test is incomplete, or we're messing up with TS
         getPayloadFromClientToken((jsonResponse as any).clientToken),
       ).toEqual({
         tokenPayload: 'newfile.txt',
@@ -201,7 +200,6 @@ describe('client uploads', () => {
       `);
       expect(spy).not.toHaveBeenCalled();
       expect(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any -- Either the test is incomplete, or we're messing up with TS
         getPayloadFromClientToken((jsonResponse as any).clientToken),
       ).toMatchInlineSnapshot(`
         {
@@ -494,10 +492,9 @@ describe('client uploads', () => {
     });
 
     it('should warn when callbackUrl provided but onUploadCompleted not defined', async () => {
-      // eslint-disable-next-line no-console -- Testing console behavior
       const originalConsoleWarn = console.warn;
       const mockConsoleWarn = jest.fn();
-      // eslint-disable-next-line no-console -- Testing console behavior
+
       console.warn = mockConsoleWarn;
 
       const token =
@@ -529,16 +526,15 @@ describe('client uploads', () => {
         'callbackUrl was provided but onUploadCompleted is not defined. The callback will not be handled.',
       );
 
-      // eslint-disable-next-line no-console -- Testing console behavior
       console.warn = originalConsoleWarn;
     });
 
     it('should warn when onUploadCompleted provided but no callbackUrl can be determined', async () => {
       const originalEnv = process.env;
-      // eslint-disable-next-line no-console -- Testing console behavior
+
       const originalConsoleWarn = console.warn;
       const mockConsoleWarn = jest.fn();
-      // eslint-disable-next-line no-console -- Testing console behavior
+
       console.warn = mockConsoleWarn;
 
       // Remove all Vercel-related environment variables
@@ -577,7 +573,7 @@ describe('client uploads', () => {
       );
 
       process.env = originalEnv;
-      // eslint-disable-next-line no-console -- Testing console behavior
+
       console.warn = originalConsoleWarn;
     });
 

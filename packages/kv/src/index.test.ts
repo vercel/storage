@@ -7,7 +7,7 @@ jest.mock('@upstash/redis', () => ({
     scan: jest
       .fn()
       .mockImplementation(() => Promise.resolve(scanReturnValues.shift())),
-    // eslint-disable-next-line jest/unbound-method -- [@vercel/style-guide@5 migration]
+
     scanIterator: VercelKV.prototype.scanIterator,
   })),
 }));

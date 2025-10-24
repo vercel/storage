@@ -72,7 +72,6 @@ export function createCreateClient({
         Authorization: `Bearer ${connection.token}`,
       };
 
-      // eslint-disable-next-line @typescript-eslint/prefer-optional-chain -- [@vercel/style-guide@5 migration]
       if (typeof process !== 'undefined' && process.env.VERCEL_ENV)
         headers['x-edge-config-vercel-env'] = process.env.VERCEL_ENV;
 

@@ -13,16 +13,15 @@ type ByteUnitMap = {
   readonly [_K in ByteUnit]: number;
 };
 
-// eslint-disable-next-line prefer-named-capture-group -- fine
 const parseRegExp = /^((-|\+)?(\d+(?:\.\d+)?)) *(kb|mb|gb|tb|pb)$/i;
 
 const map: ByteUnitMap = {
   b: 1,
-  // eslint-disable-next-line no-bitwise -- fine
+
   kb: 1 << 10,
-  // eslint-disable-next-line no-bitwise -- fine
+
   mb: 1 << 20,
-  // eslint-disable-next-line no-bitwise -- fine
+
   gb: 1 << 30,
   tb: 1024 ** 4,
   pb: 1024 ** 5,

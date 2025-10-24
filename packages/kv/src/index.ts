@@ -13,7 +13,6 @@ export class VercelKV extends Redis {
     let cursor = '0';
     let keys: string[];
     do {
-      // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
       [cursor, keys] = await this.scan(cursor, options);
       for (const key of keys) {
         yield key;
@@ -31,7 +30,6 @@ export class VercelKV extends Redis {
     let cursor = '0';
     let items: (number | string)[];
     do {
-      // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
       [cursor, items] = await this.hscan(key, cursor, options);
       for (const item of items) {
         yield item;
@@ -49,7 +47,6 @@ export class VercelKV extends Redis {
     let cursor = '0';
     let items: (number | string)[];
     do {
-      // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
       [cursor, items] = await this.sscan(key, cursor, options);
       for (const item of items) {
         yield item;
@@ -67,7 +64,6 @@ export class VercelKV extends Redis {
     let cursor = '0';
     let items: (number | string)[];
     do {
-      // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
       [cursor, items] = await this.zscan(key, cursor, options);
       for (const item of items) {
         yield item;
@@ -86,13 +82,11 @@ export function createClient(config: RedisConfigNodejs): VercelKV {
   });
 }
 
-// eslint-disable-next-line import/no-default-export -- [@vercel/style-guide@5 migration]
 export default new Proxy(
   {},
   {
     get(target, prop, receiver) {
       if (prop === 'then' || prop === 'parse') {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- [@vercel/style-guide@5 migration]
         return Reflect.get(target, prop, receiver);
       }
 
@@ -102,7 +96,7 @@ export default new Proxy(
             '@vercel/kv: Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN',
           );
         }
-        // eslint-disable-next-line no-console -- [@vercel/style-guide@5 migration]
+
         console.warn(
           '\x1b[33m"The default export has been moved to a named export and it will be removed in version 1, change to import { kv }\x1b[0m"',
         );
@@ -113,7 +107,6 @@ export default new Proxy(
         });
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- [@vercel/style-guide@5 migration]
       return Reflect.get(_kv, prop);
     },
   },
@@ -136,7 +129,6 @@ export const kv = new Proxy(
         });
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- [@vercel/style-guide@5 migration]
       return Reflect.get(_kv, prop);
     },
   },

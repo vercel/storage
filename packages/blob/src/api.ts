@@ -209,18 +209,15 @@ async function getBlobError(
       error = new BlobAccessError();
       break;
     case 'content_type_not_allowed':
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TS, be smarter
       error = new BlobContentTypeNotAllowedError(message!);
       break;
     case 'client_token_pathname_mismatch':
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TS, be smarter
       error = new BlobPathnameMismatchError(message!);
       break;
     case 'client_token_expired':
       error = new BlobClientTokenExpiredError();
       break;
     case 'file_too_large':
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TS, be smarter
       error = new BlobFileTooLargeError(message!);
       break;
     case 'not_found':

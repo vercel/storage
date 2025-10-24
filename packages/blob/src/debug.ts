@@ -15,7 +15,6 @@ try {
 // Set process.env.DEBUG = 'blob' to enable debug logging
 export function debug(message: string, ...args: unknown[]): void {
   if (debugIsActive) {
-    // eslint-disable-next-line no-console -- Ok for debugging
     console.debug(`vercel-blob: ${message}`, ...args);
   }
 }

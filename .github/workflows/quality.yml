@@ -32,7 +32,7 @@ jobs:
         run: pnpm install
 
       - name: Run Biome Check
-        run: pnpm biome check
+        run: pnpm check
 
   types:
     name: "TypeScript"

@@ -29,14 +29,22 @@ export {
 function setCacheLifeFromFetchCache(
   fetchCache: undefined | 'force-cache' | 'no-store',
 ): void {
-  if (fetchCache === 'force-cache') {
-    cacheLife('default');
-  } else {
-    // Working around a limitation of cacheLife in older Next.js versions
-    // where stale was required to be greater than expire if set concurrently.
-    // Instead we do this over two calls.
-    cacheLife({ revalidate: 0, expire: 0 });
-    cacheLife({ stale: 60 });
+  try {
+    if (fetchCache === 'force-cache') {
+      cacheLife('default');
+    } else {
+      // Working around a limitation of cacheLife in older Next.js versions
+      // where stale was required to be greater than expire if set concurrently.
+      // Instead we do this over two calls.
+      cacheLife({ revalidate: 0, expire: 0 });
+      cacheLife({ stale: 60 });
+    }
+  } catch {
+    // if we error setting cache life it means we are not in a cache scope
+    // The only time that might happen is if next-js entrypoint is used
+    // in a context that doesn't process the "use cache" directive.
+    // In these contexts we don't really need the cache life to be set because there
+    // is no Cache Component semantics
   }
 }
 

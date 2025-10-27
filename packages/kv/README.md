@@ -1,6 +1,5 @@
 # @vercel/kv
 
-<!-- prettier-ignore -->
 > [!CAUTION]
 > **`@vercel/kv` has moved to [the `@upstash/redis` package from Upstash](https://github.com/upstash/redis-js).** This retains the same first-party billing and integration into Vercel, with the added ability to open your Redis stores directly in Upstash.
 

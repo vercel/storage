@@ -10,7 +10,7 @@ import type {
 import {
   assertIsKey,
   assertIsKeys,
-  hasOwnProperty,
+  hasOwn,
   isEmptyKey,
   parseConnectionString,
   pick,
@@ -72,7 +72,6 @@ export function createCreateClient({
         Authorization: `Bearer ${connection.token}`,
       };
 
-      // eslint-disable-next-line @typescript-eslint/prefer-optional-chain -- [@vercel/style-guide@5 migration]
       if (typeof process !== 'undefined' && process.env.VERCEL_ENV)
         headers['x-edge-config-vercel-env'] = process.env.VERCEL_ENV;
 
@@ -165,9 +164,7 @@ export function createCreateClient({
             }
 
             if (localEdgeConfig) {
-              return Promise.resolve(
-                hasOwnProperty(localEdgeConfig.items, key),
-              );
+              return Promise.resolve(hasOwn(localEdgeConfig.items, key));
             }
 
             return fetchEdgeConfigHas(

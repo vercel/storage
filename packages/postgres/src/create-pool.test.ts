@@ -1,11 +1,11 @@
-import type { Pool } from './types';
+import { createPool } from './create-pool';
+import { VercelPostgresError } from './error';
 import {
   MOCKED_DIRECT_CONNECTION_STRING,
   MOCKED_LOCALHOST_CONNECTION_STRING,
   MOCKED_POOLED_CONNECTION_STRING,
 } from './mocks';
-import { createPool } from './create-pool';
-import { VercelPostgresError } from './error';
+import type { Pool } from './types';
 
 jest.mock('@neondatabase/serverless', () => {
   return {

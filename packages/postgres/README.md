@@ -1,6 +1,5 @@
 # @vercel/postgres
 
-<!-- prettier-ignore -->
 > [!CAUTION]
 > **`@vercel/postgres` has moved to the [`@neondatabase/serverless` package from Neon instead](https://github.com/neondatabase/serverless).** See the [Vercel Postgres to Neon transition guide](https://neon.tech/docs/guides/vercel-postgres-transition-guide).
 

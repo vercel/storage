@@ -1,14 +1,14 @@
 import throttle from 'throttleit';
 import { BlobServiceNotAvailable, requestApi } from '../api';
 import { debug } from '../debug';
-import { BlobError, isPlainObject, bytes } from '../helpers';
 import type {
-  WithUploadProgress,
-  CommonCreateBlobOptions,
   BlobCommandOptions,
+  CommonCreateBlobOptions,
+  WithUploadProgress,
 } from '../helpers';
+import { BlobError, bytes, isPlainObject } from '../helpers';
+import type { CreatePutMethodOptions, PutBody } from '../put-helpers';
 import { createPutHeaders, createPutOptions } from '../put-helpers';
-import type { PutBody, CreatePutMethodOptions } from '../put-helpers';
 import type { Part, PartInput } from './helpers';
 
 /**
@@ -230,7 +230,6 @@ export function uploadAllParts({
 
       while (currentBytesInMemory < maxBytesInMemory && !rejected) {
         try {
-          // eslint-disable-next-line no-await-in-loop -- A for loop is fine here.
           const { value, done } = await reader.read();
 
           if (done) {

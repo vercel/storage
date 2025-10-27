@@ -138,7 +138,6 @@ let defaultEdgeConfigClient: EdgeConfigClient;
 // lazy init fn so the default edge config does not throw in case
 // process.env.EDGE_CONFIG is not defined and its methods are never used.
 function init(): void {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- [@vercel/style-guide@5 migration]
   if (!defaultEdgeConfigClient) {
     defaultEdgeConfigClient = createClient(process.env.EDGE_CONFIG);
   }

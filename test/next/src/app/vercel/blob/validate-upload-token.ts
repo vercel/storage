@@ -12,7 +12,7 @@ export function validateUploadToken(
       : (request.headers.authorization ?? '');
 
   // Validate Bearer token if present
-  if (authHeader && authHeader.startsWith('Bearer ')) {
+  if (authHeader?.startsWith('Bearer ')) {
     const token = authHeader.split(' ')[1];
     // Example validation - in real app, you'd validate against your auth system
     return token === 'your-token-here' || token === 'test-token';

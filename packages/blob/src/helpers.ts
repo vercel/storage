@@ -2,8 +2,8 @@
 // this is why it's not exported from index/client
 
 import type { Readable } from 'node:stream';
-import type { RequestInit, Response } from 'undici';
 import { isNodeProcess } from 'is-node-process';
+import type { RequestInit, Response } from 'undici';
 import { isNodeJsReadableStream } from './multipart/helpers';
 import type { PutBody } from './put-helpers';
 
@@ -148,7 +148,6 @@ export function isPlainObject(value: unknown): boolean {
     return false;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- ok
   const prototype = Object.getPrototypeOf(value);
   return (
     (prototype === null ||
@@ -191,7 +190,6 @@ export const supportsRequestStreams = (() => {
     },
   }).headers.has('Content-Type');
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- could be false
   return duplexAccessed && !hasContentType;
 })();
 
@@ -279,7 +277,6 @@ export const createChunkTransformStream = (
 
 export function isReadableStream(value: PutBody): value is ReadableStream {
   return (
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Not present in Node.js 16
     globalThis.ReadableStream && // TODO: Can be removed once Node.js 16 is no more required internally
     value instanceof ReadableStream
   );

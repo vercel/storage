@@ -1,5 +1,5 @@
 import fetchMock from 'jest-fetch-mock';
-import { fetchWithCachedResponse, cache } from './fetch-with-cached-response';
+import { cache, fetchWithCachedResponse } from './fetch-with-cached-response';
 
 jest.useFakeTimers();
 

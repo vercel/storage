@@ -43,7 +43,6 @@ export function FormDataUpload({
           {blob.url.endsWith('.mp4') ? (
             <div>
               <hr />
-              {/* eslint-disable-next-line jsx-a11y/media-has-caption -- no captions for tests, fine */}
               <video autoPlay controls>
                 <source src={blob.url} type="video/mp4" />
               </video>

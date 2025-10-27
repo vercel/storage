@@ -1,5 +1,5 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
 import { type HandleUploadBody, handleUpload } from '@vercel/blob/client';
+import type { NextApiRequest, NextApiResponse } from 'next';
 import { validateUploadToken } from '@/app/vercel/blob/validate-upload-token';
 
 export const config = {
@@ -20,7 +20,7 @@ export default async function handleBody(
     const jsonResponse = await handleUpload({
       body,
       request,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/require-await -- [@vercel/style-guide@5 migration]
+
       onBeforeGenerateToken: async (pathname) => {
         return {
           addRandomSuffix: true,

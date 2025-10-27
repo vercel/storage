@@ -1,7 +1,7 @@
 import type { Response } from 'undici';
 import { blobFetch, hasFetch, hasFetchWithUploadProgress } from './fetch';
-import { hasXhr, blobXhr } from './xhr';
 import type { BlobRequest } from './helpers';
+import { blobXhr, hasXhr } from './xhr';
 
 export const blobRequest: BlobRequest = async ({
   input,

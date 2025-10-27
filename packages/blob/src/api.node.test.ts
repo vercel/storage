@@ -1,12 +1,12 @@
 import undici from 'undici';
 import {
   BlobAccessError,
+  BlobContentTypeNotAllowedError,
   BlobNotFoundError,
   BlobServiceNotAvailable,
   BlobStoreNotFoundError,
   BlobStoreSuspendedError,
   BlobUnknownError,
-  BlobContentTypeNotAllowedError,
   requestApi,
 } from './api';
 import { BlobError } from './helpers';

@@ -48,7 +48,7 @@ jobs:
       # this allows to use action cache, which is not possible when using deployment_status otherwise
       # see https://github.com/actions/cache/issues/319
       - name: Wait for Vercel Preview
-        uses: patrickedqvist/wait-for-vercel-preview@v1.3.1
+        uses: patrickedqvist/wait-for-vercel-preview@v1.3.2
         id: waitForVercelPreview
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

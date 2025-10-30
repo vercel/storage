@@ -57,7 +57,7 @@
     "jest": "29.7.0",
     "jest-fetch-mock": "3.0.3",
     "next": "16.0.1",
-    "node-domexception": "2.0.1",
+    "node-domexception": "2.0.2",
     "ts-jest": "29.2.6",
     "tsconfig": "workspace:*",
     "tsup": "8.4.0",

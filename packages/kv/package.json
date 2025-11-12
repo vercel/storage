@@ -49,7 +49,7 @@
     "@edge-runtime/jest-environment": "2.3.10",
     "@edge-runtime/types": "2.2.9",
     "@types/jest": "29.5.14",
-    "@types/node": "22.10.7",
+    "@types/node": "22.19.1",
     "husky": "9.1.7",
     "jest": "29.7.0",
     "lint-staged": "15.4.1",

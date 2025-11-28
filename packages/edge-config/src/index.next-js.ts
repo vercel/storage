@@ -5,6 +5,7 @@ import {
   fetchEdgeConfigHas,
   fetchEdgeConfigItem,
   fetchEdgeConfigTrace,
+  getBuildEmbeddedEdgeConfig,
   getInMemoryEdgeConfig,
   getLocalEdgeConfig,
 } from './edge-config';
@@ -46,6 +47,17 @@ function setCacheLifeFromFetchCache(
     // In these contexts we don't really need the cache life to be set because there
     // is no Cache Component semantics
   }
+}
+
+async function getBuildEmbeddedEdgeConfigForNext(
+  ...args: Parameters<typeof getBuildEmbeddedEdgeConfig>
+): ReturnType<typeof getBuildEmbeddedEdgeConfig> {
+  'use cache';
+
+  const [type, id, fetchCache] = args;
+  setCacheLifeFromFetchCache(fetchCache);
+
+  return getBuildEmbeddedEdgeConfig(type, id, fetchCache);
 }
 
 async function getInMemoryEdgeConfigForNext(
@@ -125,6 +137,7 @@ async function fetchEdgeConfigTraceForNext(
  * @returns An Edge Config Client instance
  */
 export const createClient = createCreateClient({
+  getBuildEmbeddedEdgeConfig: getBuildEmbeddedEdgeConfigForNext,
   getInMemoryEdgeConfig: getInMemoryEdgeConfigForNext,
   getLocalEdgeConfig: getLocalEdgeConfigForNext,
   fetchEdgeConfigItem: fetchEdgeConfigItemForNext,

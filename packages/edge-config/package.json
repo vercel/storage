@@ -39,7 +39,7 @@
     "test:edge": "jest --env @edge-runtime/jest-environment .edge.test.ts",
     "test:node": "jest --env node .node.test.ts",
     "type-check": "tsc --noEmit",
-    "postinstall": "scripts/postinstall.mts"
+    "postinstall": "node --experimental-strip-types ./scripts/postinstall.mts"
   },
   "jest": {
     "preset": "ts-jest",

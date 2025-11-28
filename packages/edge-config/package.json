@@ -25,7 +25,8 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "files": [
-    "dist"
+    "dist",
+    "scripts"
   ],
   "scripts": {
     "build": "tsup",
@@ -78,6 +79,6 @@
     }
   },
   "engines": {
-    "node": ">=14.6"
+    "node": ">=22"
   }
 }

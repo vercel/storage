@@ -4,5 +4,5 @@
     "resolveJsonModule": true,
     "target": "ESNext"
   },
-  "include": ["src"]
+  "include": ["src", "scripts"]
 }

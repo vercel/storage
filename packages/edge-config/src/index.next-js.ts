@@ -54,10 +54,10 @@ async function getBuildEmbeddedEdgeConfigForNext(
 ): ReturnType<typeof getBuildEmbeddedEdgeConfig> {
   'use cache';
 
-  const [type, id, fetchCache] = args;
+  const [id, fetchCache] = args;
   setCacheLifeFromFetchCache(fetchCache);
 
-  return getBuildEmbeddedEdgeConfig(type, id, fetchCache);
+  return getBuildEmbeddedEdgeConfig(id, fetchCache);
 }
 
 async function getInMemoryEdgeConfigForNext(

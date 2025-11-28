@@ -107,12 +107,16 @@ const getPrivateEdgeConfig = trace(
 );
 
 export async function getBuildEmbeddedEdgeConfig(
-  connectionType: Connection['type'],
   connectionId: Connection['id'],
   _fetchCache: EdgeConfigClientOptions['cache'],
-): Promise<EmbeddedEdgeConfig | null> {
-  if (connectionType !== 'vercel') return null;
-  return readBuildEmbeddedEdgeConfig<EmbeddedEdgeConfig>(connectionId);
+): Promise<{
+  data: EmbeddedEdgeConfig;
+  updatedAt: number | undefined;
+} | null> {
+  return readBuildEmbeddedEdgeConfig<{
+    data: EmbeddedEdgeConfig;
+    updatedAt: number | undefined;
+  }>(connectionId);
 }
 
 /**

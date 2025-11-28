@@ -22,6 +22,8 @@ type CreateClient = (
   options?: deps.EdgeConfigClientOptions,
 ) => EdgeConfigClient;
 
+const FALLBACK_WARNING = '@vercel/edge-config: Falling back to build embed';
+
 export function createCreateClient({
   getBuildEmbeddedEdgeConfig,
   getInMemoryEdgeConfig,
@@ -94,26 +96,10 @@ export function createCreateClient({
         process.env.NODE_ENV === 'development' &&
         process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
 
-      let buildEmbeddedEdgeConfigPromise:
-        | Promise<null | EmbeddedEdgeConfig>
-        | undefined = undefined;
-
-      function getBuildEmbeddedEdgeConfigPromise() {
-        if (buildEmbeddedEdgeConfigPromise !== undefined)
-          return buildEmbeddedEdgeConfigPromise;
-
-        if (!connection) {
-          buildEmbeddedEdgeConfigPromise = Promise.resolve(null);
-          return buildEmbeddedEdgeConfigPromise;
-        }
-
-        buildEmbeddedEdgeConfigPromise = getBuildEmbeddedEdgeConfig(
-          connection.type,
-          connection.id,
-          fetchCache,
-        );
-        return buildEmbeddedEdgeConfigPromise;
-      }
+      const buildEmbeddedEdgeConfigPromise = (() => {
+        if (!connection || connection.type !== 'vercel') return null;
+        return getBuildEmbeddedEdgeConfig(connection.id, fetchCache);
+      })();
 
       const api: Omit<EdgeConfigClient, 'connection'> = {
         get: trace(
@@ -124,44 +110,50 @@ export function createCreateClient({
             assertIsKey(key);
 
             const buildEmbeddedEdgeConfig =
-              await getBuildEmbeddedEdgeConfigPromise();
+              await buildEmbeddedEdgeConfigPromise;
 
-            console.log('buildEmbeddedEdgeConfig', buildEmbeddedEdgeConfig);
-
-            let localEdgeConfig: EmbeddedEdgeConfig | null = null;
-            if (localOptions?.consistentRead) {
-              // fall through to fetching
-            } else if (shouldUseDevelopmentCache) {
-              localEdgeConfig = await getInMemoryEdgeConfig(
-                connectionString,
-                fetchCache,
-                options.staleIfError,
-              );
-            } else {
-              localEdgeConfig = await getLocalEdgeConfig(
-                connection.type,
-                connection.id,
-                fetchCache,
-              );
-            }
-
-            if (localEdgeConfig) {
+            function select(edgeConfig: EmbeddedEdgeConfig) {
               if (isEmptyKey(key)) return undefined;
               // We need to return a clone of the value so users can't modify
               // our original value, and so the reference changes.
               //
               // This makes it consistent with the real API.
-              return Promise.resolve(localEdgeConfig.items[key] as T);
+              return Promise.resolve(edgeConfig.items[key] as T);
             }
 
-            return fetchEdgeConfigItem<T>(
-              baseUrl,
-              key,
-              version,
-              localOptions?.consistentRead,
-              headers,
-              fetchCache,
-            );
+            try {
+              let localEdgeConfig: EmbeddedEdgeConfig | null = null;
+              if (localOptions?.consistentRead) {
+                // fall through to fetching
+              } else if (shouldUseDevelopmentCache) {
+                localEdgeConfig = await getInMemoryEdgeConfig(
+                  connectionString,
+                  fetchCache,
+                  options.staleIfError,
+                );
+              } else {
+                localEdgeConfig = await getLocalEdgeConfig(
+                  connection.type,
+                  connection.id,
+                  fetchCache,
+                );
+              }
+
+              if (localEdgeConfig) return select(localEdgeConfig);
+
+              return fetchEdgeConfigItem<T>(
+                baseUrl,
+                key,
+                version,
+                localOptions?.consistentRead,
+                headers,
+                fetchCache,
+              );
+            } catch (error) {
+              if (!buildEmbeddedEdgeConfig) throw error;
+              console.warn(FALLBACK_WARNING);
+              return select(buildEmbeddedEdgeConfig.data);
+            }
           },
           { name: 'get', isVerboseTrace: false, attributes: { edgeConfigId } },
         ),
@@ -173,36 +165,49 @@ export function createCreateClient({
             assertIsKey(key);
             if (isEmptyKey(key)) return false;
 
-            let localEdgeConfig: EmbeddedEdgeConfig | null = null;
+            const buildEmbeddedEdgeConfig =
+              await buildEmbeddedEdgeConfigPromise;
 
-            if (localOptions?.consistentRead) {
-              // fall through to fetching
-            } else if (shouldUseDevelopmentCache) {
-              localEdgeConfig = await getInMemoryEdgeConfig(
-                connectionString,
-                fetchCache,
-                options.staleIfError,
-              );
-            } else {
-              localEdgeConfig = await getLocalEdgeConfig(
-                connection.type,
-                connection.id,
-                fetchCache,
-              );
+            function select(edgeConfig: EmbeddedEdgeConfig) {
+              return Promise.resolve(hasOwn(edgeConfig.items, key));
             }
 
-            if (localEdgeConfig) {
-              return Promise.resolve(hasOwn(localEdgeConfig.items, key));
-            }
+            try {
+              let localEdgeConfig: EmbeddedEdgeConfig | null = null;
 
-            return fetchEdgeConfigHas(
-              baseUrl,
-              key,
-              version,
-              localOptions?.consistentRead,
-              headers,
-              fetchCache,
-            );
+              if (localOptions?.consistentRead) {
+                // fall through to fetching
+              } else if (shouldUseDevelopmentCache) {
+                localEdgeConfig = await getInMemoryEdgeConfig(
+                  connectionString,
+                  fetchCache,
+                  options.staleIfError,
+                );
+              } else {
+                localEdgeConfig = await getLocalEdgeConfig(
+                  connection.type,
+                  connection.id,
+                  fetchCache,
+                );
+              }
+
+              if (localEdgeConfig) {
+                return Promise.resolve(hasOwn(localEdgeConfig.items, key));
+              }
+
+              return fetchEdgeConfigHas(
+                baseUrl,
+                key,
+                version,
+                localOptions?.consistentRead,
+                headers,
+                fetchCache,
+              );
+            } catch (error) {
+              if (!buildEmbeddedEdgeConfig) throw error;
+              console.warn(FALLBACK_WARNING);
+              return select(buildEmbeddedEdgeConfig.data);
+            }
           },
           { name: 'has', isVerboseTrace: false, attributes: { edgeConfigId } },
         ),
@@ -215,40 +220,49 @@ export function createCreateClient({
               assertIsKeys(keys);
             }
 
-            let localEdgeConfig: EmbeddedEdgeConfig | null = null;
+            const buildEmbeddedEdgeConfig =
+              await buildEmbeddedEdgeConfigPromise;
 
-            if (localOptions?.consistentRead) {
-              // fall through to fetching
-            } else if (shouldUseDevelopmentCache) {
-              localEdgeConfig = await getInMemoryEdgeConfig(
-                connectionString,
-                fetchCache,
-                options.staleIfError,
-              );
-            } else {
-              localEdgeConfig = await getLocalEdgeConfig(
-                connection.type,
-                connection.id,
-                fetchCache,
-              );
+            function select(edgeConfig: EmbeddedEdgeConfig) {
+              return keys === undefined
+                ? Promise.resolve(edgeConfig.items as T)
+                : Promise.resolve(pick(edgeConfig.items as T, keys) as T);
             }
 
-            if (localEdgeConfig) {
-              if (keys === undefined) {
-                return Promise.resolve(localEdgeConfig.items as T);
+            try {
+              let localEdgeConfig: EmbeddedEdgeConfig | null = null;
+
+              if (localOptions?.consistentRead) {
+                // fall through to fetching
+              } else if (shouldUseDevelopmentCache) {
+                localEdgeConfig = await getInMemoryEdgeConfig(
+                  connectionString,
+                  fetchCache,
+                  options.staleIfError,
+                );
+              } else {
+                localEdgeConfig = await getLocalEdgeConfig(
+                  connection.type,
+                  connection.id,
+                  fetchCache,
+                );
               }
 
-              return Promise.resolve(pick(localEdgeConfig.items, keys) as T);
-            }
+              if (localEdgeConfig) return select(localEdgeConfig);
 
-            return fetchAllEdgeConfigItem<T>(
-              baseUrl,
-              keys,
-              version,
-              localOptions?.consistentRead,
-              headers,
-              fetchCache,
-            );
+              return fetchAllEdgeConfigItem<T>(
+                baseUrl,
+                keys,
+                version,
+                localOptions?.consistentRead,
+                headers,
+                fetchCache,
+              );
+            } catch (error) {
+              if (!buildEmbeddedEdgeConfig) throw error;
+              console.warn(FALLBACK_WARNING);
+              return select(buildEmbeddedEdgeConfig.data);
+            }
           },
           {
             name: 'getAll',
@@ -260,35 +274,46 @@ export function createCreateClient({
           async function digest(
             localOptions?: EdgeConfigFunctionsOptions,
           ): Promise<string> {
-            let localEdgeConfig: EmbeddedEdgeConfig | null = null;
+            const buildEmbeddedEdgeConfig =
+              await buildEmbeddedEdgeConfigPromise;
 
-            if (localOptions?.consistentRead) {
-              // fall through to fetching
-            } else if (shouldUseDevelopmentCache) {
-              localEdgeConfig = await getInMemoryEdgeConfig(
-                connectionString,
-                fetchCache,
-                options.staleIfError,
-              );
-            } else {
-              localEdgeConfig = await getLocalEdgeConfig(
-                connection.type,
-                connection.id,
-                fetchCache,
-              );
+            function select(embeddedEdgeConfig: EmbeddedEdgeConfig) {
+              return embeddedEdgeConfig.digest;
             }
 
-            if (localEdgeConfig) {
-              return Promise.resolve(localEdgeConfig.digest);
-            }
+            try {
+              let localEdgeConfig: EmbeddedEdgeConfig | null = null;
 
-            return fetchEdgeConfigTrace(
-              baseUrl,
-              version,
-              localOptions?.consistentRead,
-              headers,
-              fetchCache,
-            );
+              if (localOptions?.consistentRead) {
+                // fall through to fetching
+              } else if (shouldUseDevelopmentCache) {
+                localEdgeConfig = await getInMemoryEdgeConfig(
+                  connectionString,
+                  fetchCache,
+                  options.staleIfError,
+                );
+              } else {
+                localEdgeConfig = await getLocalEdgeConfig(
+                  connection.type,
+                  connection.id,
+                  fetchCache,
+                );
+              }
+
+              if (localEdgeConfig) return select(localEdgeConfig);
+
+              return fetchEdgeConfigTrace(
+                baseUrl,
+                version,
+                localOptions?.consistentRead,
+                headers,
+                fetchCache,
+              );
+            } catch (error) {
+              if (!buildEmbeddedEdgeConfig) throw error;
+              console.warn(FALLBACK_WARNING);
+              return select(buildEmbeddedEdgeConfig.data);
+            }
           },
           {
             name: 'digest',

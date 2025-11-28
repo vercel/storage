@@ -699,19 +699,18 @@ describe('blob client', () => {
       ],
     ];
 
-    it.each(table)(
-      'cancels requests with an abort controller: %s',
-      async (_, operation) => {
-        await expect(async () => {
-          const controller = new AbortController();
-          const promise = operation(controller.signal);
+    it.each(
+      table,
+    )('cancels requests with an abort controller: %s', async (_, operation) => {
+      await expect(async () => {
+        const controller = new AbortController();
+        const promise = operation(controller.signal);
 
-          controller.abort();
+        controller.abort();
 
-          await promise;
-        }).rejects.toThrow(BlobRequestAbortedError);
-      },
-    );
+        await promise;
+      }).rejects.toThrow(BlobRequestAbortedError);
+    });
   });
 
   // Some folks are trying to upload plain objects which cannot work, example: https://github.com/vercel/storage/issues/637

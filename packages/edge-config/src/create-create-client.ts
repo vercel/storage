@@ -97,7 +97,7 @@ export function createCreateClient({
         process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
 
       const buildEmbeddedEdgeConfigPromise = (() => {
-        if (process.env.EDGE_CONFIG_SKIP_BUILD_EMBEDDING) return null;
+        if (process.env.EDGE_CONFIG_SKIP_BUILD_EMBEDDING === '1') return null;
         if (!connection || connection.type !== 'vercel') return null;
         return getBuildEmbeddedEdgeConfig(connection.id, fetchCache);
       })();

@@ -1,6 +1,5 @@
 import { readFile } from '@vercel/edge-config-fs';
 import { name as sdkName, version as sdkVersion } from '../package.json';
-import { readBuildEmbeddedEdgeConfig } from './read-build-embedded-edge-config';
 import type {
   Connection,
   EdgeConfigItems,
@@ -14,6 +13,7 @@ import {
   UnexpectedNetworkError,
 } from './utils';
 import { fetchWithCachedResponse } from './utils/fetch-with-cached-response';
+import { readBuildEmbeddedEdgeConfig } from './utils/read-build-embedded-edge-config';
 import { trace } from './utils/tracing';
 
 const X_EDGE_CONFIG_SDK_HEADER =

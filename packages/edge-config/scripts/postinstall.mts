@@ -11,7 +11,7 @@
  * Attaches the updatedAt timestamp from the header to the emitted file, since
  * the endpoint does not currently include it in the response body.
  */
-import { mkdir, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Connection, EmbeddedEdgeConfig } from '../src/types.ts';
@@ -21,12 +21,11 @@ import { parseConnectionString } from '../src/utils/parse-connection-string.ts';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Write to the stores folder relative to the package root
-// This works both in development and when installed as a dependency
-const getStoresDir = (): string => {
-  // In development: packages/edge-config/scripts/postinstall.ts -> packages/edge-config/stores/
-  // When installed: node_modules/@vercel/edge-config/dist/cli.cjs -> node_modules/@vercel/edge-config/stores/
-  return join(__dirname, '..');
+// Write to the stores.json file of the package itself
+const getOutputPath = (): string => {
+  // During development: packages/edge-config/stores.json
+  // When installed: node_modules/@vercel/edge-config/stores.json
+  return join(__dirname, '..', 'dist', 'stores.json');
 };
 
 async function main(): Promise<void> {
@@ -34,48 +33,39 @@ async function main(): Promise<void> {
     (acc, value) => {
       if (typeof value !== 'string') return acc;
       const data = parseConnectionString(value);
-
-      if (data) {
-        acc.push(data);
-      }
-
+      if (data) acc.push(data);
       return acc;
     },
     [],
   );
 
-  const storesDir = getStoresDir();
-  // eslint-disable-next-line no-console -- This is a CLI tool
-  console.log(`Creating stores directory: ${storesDir}`);
-  await mkdir(storesDir, { recursive: true });
+  const outputPath = getOutputPath();
 
-  await Promise.all(
+  const values = await Promise.all(
     connections.map(async (connection) => {
-      const { data, updatedAt } = await fetch(connection.baseUrl, {
+      const res = await fetch(connection.baseUrl, {
         headers: {
           authorization: `Bearer ${connection.token}`,
           // consistentRead
           'x-edge-config-min-updated-at': `${Number.MAX_SAFE_INTEGER}`,
         },
-      }).then(async (res) => {
-        const ts = res.headers.get('x-edge-config-updated-at');
-
-        return {
-          data: (await res.json()) as EmbeddedEdgeConfig,
-          updatedAt: ts ? Number(ts) : undefined,
-        };
       });
 
-      // TODO move out of loop
-      const outputPath = join(storesDir, `stores.json`);
-      await writeFile(
-        outputPath,
-        JSON.stringify({ [connection.id]: { ...data, updatedAt } }),
-      );
-      // eslint-disable-next-line no-console -- This is a CLI tool
-      console.log(`Emitted Edge Config for ${connection.id} to: ${outputPath}`);
+      const ts = res.headers.get('x-edge-config-updated-at');
+      const data: EmbeddedEdgeConfig = await res.json();
+      return { data, updatedAt: ts ? Number(ts) : undefined };
     }),
   );
+
+  const stores = connections.reduce((acc, connection, index) => {
+    const value = values[index];
+    acc[connection.id] = value;
+    return acc;
+  }, {});
+
+  await writeFile(outputPath, JSON.stringify(stores));
+  // eslint-disable-next-line no-console -- This is a CLI tool
+  console.log(`Emitted ${outputPath}`);
 }
 
 main().catch((error) => {

@@ -36,7 +36,8 @@
     "test:common": "jest --env @edge-runtime/jest-environment .common.test.ts && jest --env node .common.test.ts",
     "test:edge": "jest --env @edge-runtime/jest-environment .edge.test.ts",
     "test:node": "jest --env node .node.test.ts",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "postinstall": "scripts/postinstall.mts"
   },
   "jest": {
     "preset": "ts-jest",

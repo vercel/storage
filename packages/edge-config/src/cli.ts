@@ -1,9 +1,12 @@
 /*
- * Reads all connected Edge Configs and emits them to the stores folder
- * that can be accessed at runtime by the mockable-import function.
+ * Edge Config CLI
  *
- * Attaches the updatedAt timestamp from the header to the emitted file, since
- * the endpoint does not currently include it in the response body.
+ * command: prepare
+ *   Reads all connected Edge Configs and emits a single stores.json file.
+ *   that can be accessed at runtime by the mockable-import function.
+ *
+ *   Attaches the updatedAt timestamp from the header to the emitted file, since
+ *   the endpoint does not currently include it in the response body.
  */
 
 import { mkdir, writeFile } from 'node:fs/promises';

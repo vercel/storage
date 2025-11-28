@@ -29,7 +29,7 @@ const getOutputPath = (): string => {
 };
 
 async function main(): Promise<void> {
-  if (process.env.EDGE_CONFIG_SKIP_BUILD_EMBEDDING) return;
+  if (process.env.EDGE_CONFIG_SKIP_BUILD_EMBEDDING === '1') return;
 
   const connections = Object.values(process.env).reduce<Connection[]>(
     (acc, value) => {

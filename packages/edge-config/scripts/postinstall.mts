@@ -65,7 +65,13 @@ async function main(): Promise<void> {
 
   await writeFile(outputPath, JSON.stringify(stores));
   // eslint-disable-next-line no-console -- This is a CLI tool
-  console.log(`Emitted ${outputPath}`);
+  if (Object.keys(stores).length === 0) {
+    console.error(`@vercel/edge-config: Embedded no stores`);
+  } else {
+    console.log(
+      `@vercel/edge-config: Embedded ${Object.keys(stores).join(', ')}`,
+    );
+  }
 }
 
 main().catch((error) => {

@@ -1,4 +1,3 @@
-#!/usr/bin/env -S node --experimental-strip-types
 /// <reference types="node" />
 
 // This script runs uncombiled with "node --experimental-strip-types",

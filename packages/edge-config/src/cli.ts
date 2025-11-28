@@ -1,8 +1,3 @@
-/// <reference types="node" />
-
-// This script runs uncombiled with "node --experimental-strip-types",
-// so all imports need to use ".ts"
-
 /*
  * Reads all connected Edge Configs and emits them to the stores folder
  * that can be accessed at runtime by the mockable-import function.
@@ -10,9 +5,12 @@
  * Attaches the updatedAt timestamp from the header to the emitted file, since
  * the endpoint does not currently include it in the response body.
  */
+
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { Command } from 'commander';
+import { version } from '../package.json';
 import type { Connection, EmbeddedEdgeConfig } from '../src/types';
 import { parseConnectionString } from '../src/utils/parse-connection-string';
 
@@ -28,16 +26,11 @@ type StoresJson = Record<
   }
 >;
 
-// Write to the stores.json file of the package itself
-const getOutputPath = (): string => {
-  // During development: packages/edge-config/stores.json
-  // When installed: node_modules/@vercel/edge-config/stores.json
-  return join(__dirname, '..', 'dist', 'stores.json');
+type PrepareOptions = {
+  verbose?: boolean;
 };
 
-async function main(): Promise<void> {
-  if (process.env.EDGE_CONFIG_SKIP_BUILD_EMBEDDING === '1') return;
-
+async function prepare(output: string, options: PrepareOptions): Promise<void> {
   const connections = Object.values(process.env).reduce<Connection[]>(
     (acc, value) => {
       if (typeof value !== 'string') return acc;
@@ -47,8 +40,6 @@ async function main(): Promise<void> {
     },
     [],
   );
-
-  const outputPath = getOutputPath();
 
   const values = await Promise.all(
     connections.map(async (connection) => {
@@ -73,20 +64,36 @@ async function main(): Promise<void> {
   }, {});
 
   // Ensure the dist directory exists before writing
-  await mkdir(dirname(outputPath), { recursive: true });
-  await writeFile(outputPath, JSON.stringify(stores));
-  // eslint-disable-next-line no-console -- This is a CLI tool
-  if (Object.keys(stores).length === 0) {
-    console.error(`@vercel/edge-config: Embedded no stores`);
-  } else {
-    console.log(
-      `@vercel/edge-config: Embedded ${Object.keys(stores).join(', ')}`,
-    );
+  await mkdir(dirname(output), { recursive: true });
+  await writeFile(output, JSON.stringify(stores));
+  if (options.verbose) {
+    console.log(`@vercel/edge-config prepare`);
+    console.log(`  → created ${output}`);
+    if (Object.keys(stores).length === 0) {
+      console.log(`  → no edge configs included`);
+    } else {
+      console.log(`  → included ${Object.keys(stores).join(', ')}`);
+    }
   }
 }
 
-main().catch((error) => {
-  // eslint-disable-next-line no-console -- This is a CLI tool
-  console.error('@vercel/edge-config: postinstall failed', error);
-  process.exit(1);
-});
+const program = new Command();
+program
+  .name('@vercel/edge-config')
+  .description('Vercel Edge Config CLI')
+  .version(version);
+
+program
+  .command('prepare')
+  .description('Prepare Edge Config stores.json file for build time embedding')
+  .argument(
+    '[string]',
+    'Where the output file should be written',
+    join(__dirname, '..', 'dist', 'stores.json'),
+  )
+  .option('--verbose', 'Enable verbose logging')
+  .action(async (output, options: PrepareOptions) => {
+    await prepare(output, options);
+  });
+
+program.parse();

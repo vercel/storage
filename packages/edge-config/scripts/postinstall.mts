@@ -11,7 +11,7 @@
  * Attaches the updatedAt timestamp from the header to the emitted file, since
  * the endpoint does not currently include it in the response body.
  */
-import { writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Connection, EmbeddedEdgeConfig } from '../src/types.ts';
@@ -65,6 +65,8 @@ async function main(): Promise<void> {
     return acc;
   }, {});
 
+  // Ensure the dist directory exists before writing
+  await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(outputPath, JSON.stringify(stores));
   // eslint-disable-next-line no-console -- This is a CLI tool
   if (Object.keys(stores).length === 0) {

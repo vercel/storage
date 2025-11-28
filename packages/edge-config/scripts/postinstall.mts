@@ -26,7 +26,7 @@ const __dirname = dirname(__filename);
 const getStoresDir = (): string => {
   // In development: packages/edge-config/scripts/postinstall.ts -> packages/edge-config/stores/
   // When installed: node_modules/@vercel/edge-config/dist/cli.cjs -> node_modules/@vercel/edge-config/stores/
-  return join(__dirname, '..', 'stores');
+  return join(__dirname, '..');
 };
 
 async function main(): Promise<void> {
@@ -66,8 +66,12 @@ async function main(): Promise<void> {
         };
       });
 
-      const outputPath = join(storesDir, `${connection.id}.json`);
-      await writeFile(outputPath, JSON.stringify({ ...data, updatedAt }));
+      // TODO move out of loop
+      const outputPath = join(storesDir, `stores.json`);
+      await writeFile(
+        outputPath,
+        JSON.stringify({ [connection.id]: { ...data, updatedAt } }),
+      );
       // eslint-disable-next-line no-console -- This is a CLI tool
       console.log(`Emitted Edge Config for ${connection.id} to: ${outputPath}`);
     }),

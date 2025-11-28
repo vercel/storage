@@ -1,5 +1,6 @@
 import { readFile } from '@vercel/edge-config-fs';
 import { name as sdkName, version as sdkVersion } from '../package.json';
+import { readBuildEmbeddedEdgeConfig } from './read-build-embedded-edge-config';
 import type {
   Connection,
   EdgeConfigItems,
@@ -104,6 +105,15 @@ const getPrivateEdgeConfig = trace(
     name: 'getPrivateEdgeConfig',
   },
 );
+
+export async function getBuildEmbeddedEdgeConfig(
+  connectionType: Connection['type'],
+  connectionId: Connection['id'],
+  _fetchCache: EdgeConfigClientOptions['cache'],
+): Promise<EmbeddedEdgeConfig | null> {
+  if (connectionType !== 'vercel') return null;
+  return readBuildEmbeddedEdgeConfig<EmbeddedEdgeConfig>(connectionId);
+}
 
 /**
  * Reads the Edge Config from a local provider, if available,

@@ -23,6 +23,7 @@ type CreateClient = (
 ) => EdgeConfigClient;
 
 export function createCreateClient({
+  getBuildEmbeddedEdgeConfig,
   getInMemoryEdgeConfig,
   getLocalEdgeConfig,
   fetchEdgeConfigItem,
@@ -30,6 +31,7 @@ export function createCreateClient({
   fetchAllEdgeConfigItem,
   fetchEdgeConfigTrace,
 }: {
+  getBuildEmbeddedEdgeConfig: typeof deps.getBuildEmbeddedEdgeConfig;
   getInMemoryEdgeConfig: typeof deps.getInMemoryEdgeConfig;
   getLocalEdgeConfig: typeof deps.getLocalEdgeConfig;
   fetchEdgeConfigItem: typeof deps.fetchEdgeConfigItem;
@@ -92,6 +94,27 @@ export function createCreateClient({
         process.env.NODE_ENV === 'development' &&
         process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
 
+      let buildEmbeddedEdgeConfigPromise:
+        | Promise<null | EmbeddedEdgeConfig>
+        | undefined = undefined;
+
+      function getBuildEmbeddedEdgeConfigPromise() {
+        if (buildEmbeddedEdgeConfigPromise !== undefined)
+          return buildEmbeddedEdgeConfigPromise;
+
+        if (!connection) {
+          buildEmbeddedEdgeConfigPromise = Promise.resolve(null);
+          return buildEmbeddedEdgeConfigPromise;
+        }
+
+        buildEmbeddedEdgeConfigPromise = getBuildEmbeddedEdgeConfig(
+          connection.type,
+          connection.id,
+          fetchCache,
+        );
+        return buildEmbeddedEdgeConfigPromise;
+      }
+
       const api: Omit<EdgeConfigClient, 'connection'> = {
         get: trace(
           async function get<T = EdgeConfigValue>(
@@ -99,6 +122,11 @@ export function createCreateClient({
             localOptions?: EdgeConfigFunctionsOptions,
           ): Promise<T | undefined> {
             assertIsKey(key);
+
+            const buildEmbeddedEdgeConfig =
+              await getBuildEmbeddedEdgeConfigPromise();
+
+            console.log('buildEmbeddedEdgeConfig', buildEmbeddedEdgeConfig);
 
             let localEdgeConfig: EmbeddedEdgeConfig | null = null;
             if (localOptions?.consistentRead) {

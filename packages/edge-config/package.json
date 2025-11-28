@@ -25,9 +25,7 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "files": [
-    "src",
-    "dist",
-    "scripts"
+    "dist"
   ],
   "scripts": {
     "build": "tsup",
@@ -40,7 +38,7 @@
     "test:edge": "jest --env @edge-runtime/jest-environment .edge.test.ts",
     "test:node": "jest --env node .node.test.ts",
     "type-check": "tsc --noEmit",
-    "postinstall": "node --experimental-strip-types ./scripts/postinstall.mts"
+    "postinstall": "node ./dist/postinstall.js"
   },
   "jest": {
     "preset": "ts-jest",
@@ -80,6 +78,6 @@
     }
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=14.6"
   }
 }

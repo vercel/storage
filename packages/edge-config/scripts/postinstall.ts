@@ -13,12 +13,20 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { Connection, EmbeddedEdgeConfig } from '../src/types.ts';
-import { parseConnectionString } from '../src/utils/parse-connection-string.ts';
+import type { Connection, EmbeddedEdgeConfig } from '../src/types';
+import { parseConnectionString } from '../src/utils/parse-connection-string';
 
 // Get the directory where this CLI script is located
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+type StoresJson = Record<
+  string,
+  {
+    data: EmbeddedEdgeConfig;
+    updatedAt: number | undefined;
+  }
+>;
 
 // Write to the stores.json file of the package itself
 const getOutputPath = (): string => {
@@ -58,7 +66,7 @@ async function main(): Promise<void> {
     }),
   );
 
-  const stores = connections.reduce((acc, connection, index) => {
+  const stores = connections.reduce<StoresJson>((acc, connection, index) => {
     const value = values[index];
     acc[connection.id] = value;
     return acc;

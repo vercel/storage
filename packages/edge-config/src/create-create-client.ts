@@ -101,6 +101,10 @@ export function createCreateClient({
         return getBuildEmbeddedEdgeConfig(connection.id, fetchCache);
       })();
 
+      const isBuildStep =
+        process.env.CI === '1' ||
+        process.env.NEXT_PHASE === 'phase-production-build';
+
       const api: Omit<EdgeConfigClient, 'connection'> = {
         get: trace(
           async function get<T = EdgeConfigValue>(
@@ -119,6 +123,10 @@ export function createCreateClient({
               //
               // This makes it consistent with the real API.
               return Promise.resolve(edgeConfig.items[key] as T);
+            }
+
+            if (buildEmbeddedEdgeConfig && isBuildStep) {
+              return select(buildEmbeddedEdgeConfig.data);
             }
 
             try {
@@ -170,6 +178,10 @@ export function createCreateClient({
 
             function select(edgeConfig: EmbeddedEdgeConfig) {
               return Promise.resolve(hasOwn(edgeConfig.items, key));
+            }
+
+            if (buildEmbeddedEdgeConfig && isBuildStep) {
+              return select(buildEmbeddedEdgeConfig.data);
             }
 
             try {
@@ -229,6 +241,10 @@ export function createCreateClient({
                 : Promise.resolve(pick(edgeConfig.items as T, keys) as T);
             }
 
+            if (buildEmbeddedEdgeConfig && isBuildStep) {
+              return select(buildEmbeddedEdgeConfig.data);
+            }
+
             try {
               let localEdgeConfig: EmbeddedEdgeConfig | null = null;
 
@@ -279,6 +295,10 @@ export function createCreateClient({
 
             function select(embeddedEdgeConfig: EmbeddedEdgeConfig) {
               return embeddedEdgeConfig.digest;
+            }
+
+            if (buildEmbeddedEdgeConfig && isBuildStep) {
+              return select(buildEmbeddedEdgeConfig.data);
             }
 
             try {

@@ -99,7 +99,12 @@ export function createCreateClient({
       const buildEmbeddedEdgeConfigPromise = (() => {
         if (process.env.EDGE_CONFIG_SKIP_BUILD_EMBEDDING === '1') return null;
         if (!connection || connection.type !== 'vercel') return null;
-        return getBuildEmbeddedEdgeConfig(connection.id, fetchCache);
+        return getBuildEmbeddedEdgeConfig(connection.id, fetchCache).then(
+          (value) => {
+            console.log('@vercel/edge-config: preloaded', connection.id, value);
+            return value;
+          },
+        );
       })();
 
       const isBuildStep =

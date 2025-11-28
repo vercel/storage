@@ -10,8 +10,8 @@ export async function readBuildEmbeddedEdgeConfig<M>(
     console.log('attempting to read build embedded edge config', id);
     // @ts-expect-error this file is generated later
     return (await import(`@vercel/edge-config/dist/stores.json`).then(
-      (module) => module.default[id],
-    )) as Promise<M>;
+      (module) => module.default[id] ?? null,
+    )) as Promise<M | null>;
   } catch (e) {
     if (
       typeof e === 'object' &&

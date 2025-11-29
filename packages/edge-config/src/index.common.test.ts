@@ -14,7 +14,7 @@ const sdkVersion = typeof pkgVersion === 'string' ? pkgVersion : '';
 describe('test conditions', () => {
   it('should have an env var called EDGE_CONFIG', () => {
     expect(process.env.EDGE_CONFIG).toEqual(
-      'https://edge-config.vercel.com/ecfg-1?token=token-1',
+      'https://edge-config.vercel.com/ecfg_1?token=token-1',
     );
   });
 });

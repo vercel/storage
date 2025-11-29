@@ -1,3 +1,5 @@
+// Tests the bundled Edge Config (stores.json) behavior
+
 import fetchMock from 'jest-fetch-mock';
 import { version as pkgVersion } from '../package.json';
 import { get, getAll, has } from './index';

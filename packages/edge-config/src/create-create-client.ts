@@ -86,6 +86,8 @@ export function createCreateClient({
         headers['cache-control'] = `stale-if-error=${options.staleIfError}`;
 
       const fetchCache = options.cache || 'no-store';
+      const timeoutMs =
+        typeof options.timeoutMs === 'number' ? options.timeoutMs : undefined;
 
       /**
        * While in development we use SWR-like behavior for the api client to
@@ -168,6 +170,7 @@ export function createCreateClient({
                 localOptions?.consistentRead,
                 headers,
                 fetchCache,
+                localOptions?.timeoutMs ?? timeoutMs,
               );
             } catch (error) {
               if (!bundledEdgeConfig) throw error;
@@ -225,6 +228,7 @@ export function createCreateClient({
                 localOptions?.consistentRead,
                 headers,
                 fetchCache,
+                localOptions?.timeoutMs ?? timeoutMs,
               );
             } catch (error) {
               if (!bundledEdgeConfig) throw error;
@@ -283,6 +287,7 @@ export function createCreateClient({
                 localOptions?.consistentRead,
                 headers,
                 fetchCache,
+                localOptions?.timeoutMs ?? timeoutMs,
               );
             } catch (error) {
               if (!bundledEdgeConfig) throw error;
@@ -337,6 +342,7 @@ export function createCreateClient({
                 localOptions?.consistentRead,
                 headers,
                 fetchCache,
+                localOptions?.timeoutMs ?? timeoutMs,
               );
             } catch (error) {
               if (!bundledEdgeConfig) throw error;

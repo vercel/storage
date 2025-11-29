@@ -21,6 +21,10 @@ jest.mock('@vercel/edge-config/dist/stores.json', () => {
 const sdkVersion = typeof pkgVersion === 'string' ? pkgVersion : '';
 const baseUrl = 'https://edge-config.vercel.com/ecfg_1';
 
+function delay<T>(data: T, timeoutMs: number): Promise<T> {
+  return new Promise((resolve) => setTimeout(() => resolve(data), timeoutMs));
+}
+
 beforeEach(() => {
   fetchMock.resetMocks();
   cache.clear();
@@ -91,69 +95,21 @@ describe('default Edge Config', () => {
         );
       });
     });
-  });
 
-  describe('getAll(keys)', () => {
-    describe('when called without keys', () => {
-      it('should return all items', async () => {
-        fetchMock.mockAbort();
-
-        await expect(getAll()).resolves.toEqual({
-          foo: 'foo-build-embedded',
-          bar: 'bar-build-embedded',
-        });
-
-        expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items?version=1`, {
-          headers: new Headers({
-            Authorization: 'Bearer token-1',
-            'x-edge-config-vercel-env': 'test',
-            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
-            'cache-control': 'stale-if-error=604800',
-          }),
-          cache: 'no-store',
-        });
-      });
-    });
-
-    describe('when called with keys', () => {
-      it('should return the selected items', async () => {
-        fetchMock.mockReject(new Error('mock failed error'));
-
-        await expect(getAll(['foo', 'bar'])).resolves.toEqual({
-          foo: 'foo-build-embedded',
-          bar: 'bar-build-embedded',
-        });
-
-        expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(
-          `${baseUrl}/items?version=1&key=foo&key=bar`,
-          {
-            headers: new Headers({
-              Authorization: 'Bearer token-1',
-              'x-edge-config-vercel-env': 'test',
-              'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
-              'cache-control': 'stale-if-error=604800',
-            }),
-            cache: 'no-store',
-          },
+    describe('when fetch times out', () => {
+      it('should fall back to the build embedded config', async () => {
+        const timeoutMs = 50;
+        fetchMock.mockResponseOnce(() =>
+          delay(JSON.stringify('fetched-value'), timeoutMs * 4),
         );
-      });
-    });
-  });
-
-  describe('has(key)', () => {
-    describe('when item exists', () => {
-      it('should return true', async () => {
-        fetchMock.mockAbort();
-
-        await expect(has('foo')).resolves.toEqual(true);
+        await expect(get('foo', { timeoutMs })).resolves.toEqual(
+          'foo-build-embedded',
+        );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(
           `${baseUrl}/item/foo?version=1`,
           {
-            method: 'HEAD',
             headers: new Headers({
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
@@ -161,20 +117,26 @@ describe('default Edge Config', () => {
               'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
+            signal: expect.any(AbortSignal),
           },
         );
       });
     });
+  });
 
-    describe('when the item does not exist', () => {
-      it('should return false', async () => {
-        fetchMock.mockAbort();
-        await expect(has('foo-does-not-exist')).resolves.toEqual(false);
-        expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(
-          `${baseUrl}/item/foo-does-not-exist?version=1`,
-          {
-            method: 'HEAD',
+  describe('getAll(keys)', () => {
+    describe('when fetch aborts', () => {
+      describe('when called without keys', () => {
+        it('should return all items', async () => {
+          fetchMock.mockAbort();
+
+          await expect(getAll()).resolves.toEqual({
+            foo: 'foo-build-embedded',
+            bar: 'bar-build-embedded',
+          });
+
+          expect(fetchMock).toHaveBeenCalledTimes(1);
+          expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items?version=1`, {
             headers: new Headers({
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
@@ -182,8 +144,299 @@ describe('default Edge Config', () => {
               'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
-          },
-        );
+          });
+        });
+      });
+      describe('when called with keys', () => {
+        it('should return the selected items', async () => {
+          fetchMock.mockAbort();
+
+          await expect(getAll(['foo', 'bar'])).resolves.toEqual({
+            foo: 'foo-build-embedded',
+            bar: 'bar-build-embedded',
+          });
+
+          expect(fetchMock).toHaveBeenCalledTimes(1);
+          expect(fetchMock).toHaveBeenCalledWith(
+            `${baseUrl}/items?version=1&key=foo&key=bar`,
+            {
+              headers: new Headers({
+                Authorization: 'Bearer token-1',
+                'x-edge-config-vercel-env': 'test',
+                'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+                'cache-control': 'stale-if-error=604800',
+              }),
+              cache: 'no-store',
+            },
+          );
+        });
+      });
+    });
+
+    describe('when fetch rejects', () => {
+      describe('when called without keys', () => {
+        it('should return all items', async () => {
+          fetchMock.mockReject(new Error('mock fetch error'));
+
+          await expect(getAll()).resolves.toEqual({
+            foo: 'foo-build-embedded',
+            bar: 'bar-build-embedded',
+          });
+
+          expect(fetchMock).toHaveBeenCalledTimes(1);
+          expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items?version=1`, {
+            headers: new Headers({
+              Authorization: 'Bearer token-1',
+              'x-edge-config-vercel-env': 'test',
+              'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
+            }),
+            cache: 'no-store',
+          });
+        });
+      });
+      describe('when called with keys', () => {
+        it('should return the selected items', async () => {
+          fetchMock.mockReject(new Error('mock fetch error'));
+
+          await expect(getAll(['foo', 'bar'])).resolves.toEqual({
+            foo: 'foo-build-embedded',
+            bar: 'bar-build-embedded',
+          });
+
+          expect(fetchMock).toHaveBeenCalledTimes(1);
+          expect(fetchMock).toHaveBeenCalledWith(
+            `${baseUrl}/items?version=1&key=foo&key=bar`,
+            {
+              headers: new Headers({
+                Authorization: 'Bearer token-1',
+                'x-edge-config-vercel-env': 'test',
+                'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+                'cache-control': 'stale-if-error=604800',
+              }),
+              cache: 'no-store',
+            },
+          );
+        });
+      });
+    });
+
+    describe('when fetch times out', () => {
+      const timeoutMs = 50;
+      describe('when called without keys', () => {
+        it('should return all items', async () => {
+          fetchMock.mockResponseOnce(() =>
+            delay(
+              JSON.stringify({ foo: 'fetched-foo', bar: 'fetched-bar' }),
+              timeoutMs * 4,
+            ),
+          );
+
+          await expect(getAll(undefined, { timeoutMs })).resolves.toEqual({
+            foo: 'foo-build-embedded',
+            bar: 'bar-build-embedded',
+          });
+
+          expect(fetchMock).toHaveBeenCalledTimes(1);
+          expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items?version=1`, {
+            headers: new Headers({
+              Authorization: 'Bearer token-1',
+              'x-edge-config-vercel-env': 'test',
+              'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
+            }),
+            cache: 'no-store',
+            signal: expect.any(AbortSignal),
+          });
+        });
+      });
+      describe('when called with keys', () => {
+        it('should return the selected items', async () => {
+          fetchMock.mockResponseOnce(() =>
+            delay(
+              JSON.stringify({ foo: 'fetched-foo', bar: 'fetched-bar' }),
+              timeoutMs * 4,
+            ),
+          );
+
+          await expect(getAll(['foo', 'bar'], { timeoutMs })).resolves.toEqual({
+            foo: 'foo-build-embedded',
+            bar: 'bar-build-embedded',
+          });
+
+          expect(fetchMock).toHaveBeenCalledTimes(1);
+          expect(fetchMock).toHaveBeenCalledWith(
+            `${baseUrl}/items?version=1&key=foo&key=bar`,
+            {
+              headers: new Headers({
+                Authorization: 'Bearer token-1',
+                'x-edge-config-vercel-env': 'test',
+                'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+                'cache-control': 'stale-if-error=604800',
+              }),
+              cache: 'no-store',
+              signal: expect.any(AbortSignal),
+            },
+          );
+        });
+      });
+    });
+  });
+
+  describe('has(key)', () => {
+    describe('when fetch aborts', () => {
+      describe('when item exists', () => {
+        it('should return true', async () => {
+          fetchMock.mockAbort();
+
+          await expect(has('foo')).resolves.toEqual(true);
+
+          expect(fetchMock).toHaveBeenCalledTimes(1);
+          expect(fetchMock).toHaveBeenCalledWith(
+            `${baseUrl}/item/foo?version=1`,
+            {
+              method: 'HEAD',
+              headers: new Headers({
+                Authorization: 'Bearer token-1',
+                'x-edge-config-vercel-env': 'test',
+                'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+                'cache-control': 'stale-if-error=604800',
+              }),
+              cache: 'no-store',
+            },
+          );
+        });
+      });
+
+      describe('when the item does not exist', () => {
+        it('should return false', async () => {
+          fetchMock.mockAbort();
+          await expect(has('foo-does-not-exist')).resolves.toEqual(false);
+          expect(fetchMock).toHaveBeenCalledTimes(1);
+          expect(fetchMock).toHaveBeenCalledWith(
+            `${baseUrl}/item/foo-does-not-exist?version=1`,
+            {
+              method: 'HEAD',
+              headers: new Headers({
+                Authorization: 'Bearer token-1',
+                'x-edge-config-vercel-env': 'test',
+                'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+                'cache-control': 'stale-if-error=604800',
+              }),
+              cache: 'no-store',
+            },
+          );
+        });
+      });
+    });
+
+    describe('when fetch rejects', () => {
+      describe('when item exists', () => {
+        it('should return true', async () => {
+          fetchMock.mockReject(new Error('mock fetch error'));
+
+          await expect(has('foo')).resolves.toEqual(true);
+
+          expect(fetchMock).toHaveBeenCalledTimes(1);
+          expect(fetchMock).toHaveBeenCalledWith(
+            `${baseUrl}/item/foo?version=1`,
+            {
+              method: 'HEAD',
+              headers: new Headers({
+                Authorization: 'Bearer token-1',
+                'x-edge-config-vercel-env': 'test',
+                'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+                'cache-control': 'stale-if-error=604800',
+              }),
+              cache: 'no-store',
+            },
+          );
+        });
+      });
+
+      describe('when the item does not exist', () => {
+        it('should return false', async () => {
+          fetchMock.mockReject(new Error('mock fetch error'));
+          await expect(has('foo-does-not-exist')).resolves.toEqual(false);
+          expect(fetchMock).toHaveBeenCalledTimes(1);
+          expect(fetchMock).toHaveBeenCalledWith(
+            `${baseUrl}/item/foo-does-not-exist?version=1`,
+            {
+              method: 'HEAD',
+              headers: new Headers({
+                Authorization: 'Bearer token-1',
+                'x-edge-config-vercel-env': 'test',
+                'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+                'cache-control': 'stale-if-error=604800',
+              }),
+              cache: 'no-store',
+            },
+          );
+        });
+      });
+    });
+
+    describe('when fetch times out', () => {
+      const timeoutMs = 50;
+      describe('when item exists', () => {
+        it('should return true', async () => {
+          fetchMock.mockResponseOnce(() =>
+            delay(
+              {
+                status: 404,
+                headers: { 'x-edge-config-digest': '1' },
+              },
+              timeoutMs * 4,
+            ),
+          );
+
+          await expect(has('foo', { timeoutMs })).resolves.toEqual(true);
+
+          expect(fetchMock).toHaveBeenCalledTimes(1);
+          expect(fetchMock).toHaveBeenCalledWith(
+            `${baseUrl}/item/foo?version=1`,
+            {
+              method: 'HEAD',
+              headers: new Headers({
+                Authorization: 'Bearer token-1',
+                'x-edge-config-vercel-env': 'test',
+                'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+                'cache-control': 'stale-if-error=604800',
+              }),
+              cache: 'no-store',
+              signal: expect.any(AbortSignal),
+            },
+          );
+        });
+      });
+
+      describe('when the item does not exist', () => {
+        it('should return false', async () => {
+          fetchMock.mockResponseOnce(() =>
+            delay(
+              JSON.stringify({ foo: 'fetched-foo', bar: 'fetched-bar' }),
+              timeoutMs * 4,
+            ),
+          );
+          await expect(
+            has('foo-does-not-exist', { timeoutMs }),
+          ).resolves.toEqual(false);
+          expect(fetchMock).toHaveBeenCalledTimes(1);
+          expect(fetchMock).toHaveBeenCalledWith(
+            `${baseUrl}/item/foo-does-not-exist?version=1`,
+            {
+              method: 'HEAD',
+              headers: new Headers({
+                Authorization: 'Bearer token-1',
+                'x-edge-config-vercel-env': 'test',
+                'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+                'cache-control': 'stale-if-error=604800',
+              }),
+              cache: 'no-store',
+              signal: expect.any(AbortSignal),
+            },
+          );
+        });
       });
     });
   });

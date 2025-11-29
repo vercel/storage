@@ -191,6 +191,7 @@ export function createCreateClient({
             const bundledEdgeConfig = await getBundledEdgeConfigPromise();
 
             function select(edgeConfig: EmbeddedEdgeConfig) {
+              console.log('select', key, edgeConfig.items);
               return Promise.resolve(hasOwn(edgeConfig.items, key));
             }
 
@@ -221,6 +222,10 @@ export function createCreateClient({
                 return Promise.resolve(hasOwn(localEdgeConfig.items, key));
               }
 
+              console.log(
+                'RESORTING TO FETCH',
+                localOptions?.timeoutMs ?? timeoutMs,
+              );
               return await fetchEdgeConfigHas(
                 baseUrl,
                 key,
@@ -231,6 +236,7 @@ export function createCreateClient({
                 localOptions?.timeoutMs ?? timeoutMs,
               );
             } catch (error) {
+              console.log('IN FALLBACK');
               if (!bundledEdgeConfig) throw error;
               console.warn(FALLBACK_WARNING);
               return select(bundledEdgeConfig.data);

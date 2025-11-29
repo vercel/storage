@@ -318,25 +318,38 @@ export async function fetchEdgeConfigHas(
   if (consistentRead) {
     addConsistentReadHeader(headers);
   }
+
+  const signal = timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined;
+
+  signal?.addEventListener('abort', () => {
+    console.log('Timeout occurred');
+  });
+
   // this is a HEAD request anyhow, no need for fetchWithCachedResponse
   return fetch(`${baseUrl}/item/${key}?version=${version}`, {
     method: 'HEAD',
     headers,
     cache: fetchCache,
-    signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined,
-  }).then((res) => {
-    if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
-    if (res.status === 404) {
-      // if the x-edge-config-digest header is present, it means
-      // the edge config exists, but the item does not
-      if (res.headers.has('x-edge-config-digest')) return false;
-      // if the x-edge-config-digest header is not present, it means
-      // the edge config itself does not exist
-      throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
-    }
-    if (res.ok) return true;
-    throw new UnexpectedNetworkError(res);
-  });
+    signal,
+  }).then(
+    (res) => {
+      if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
+      if (res.status === 404) {
+        // if the x-edge-config-digest header is present, it means
+        // the edge config exists, but the item does not
+        if (res.headers.has('x-edge-config-digest')) return false;
+        // if the x-edge-config-digest header is not present, it means
+        // the edge config itself does not exist
+        throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
+      }
+      if (res.ok) return true;
+      throw new UnexpectedNetworkError(res);
+    },
+    (err) => {
+      console.log('CAAUUUGHT');
+      throw err;
+    },
+  );
 }
 
 /**

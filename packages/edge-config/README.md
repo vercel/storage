@@ -8,7 +8,7 @@ A client that lets you read Edge Config.
 npm install @vercel/edge-config
 ```
 
-## Examples
+## Quickstart
 
 You can use the methods below to read your Edge Config given you have its Connection String stored in an Environment Variable called `process.env.EDGE_CONFIG`.
 
@@ -22,6 +22,44 @@ await get('someKey');
 Returns the value if the key exists.
 Returns `undefined` if the key does not exist.
 Throws on invalid tokens, deleted edge configs or network errors.
+
+### Bundling
+
+Edge Config is a robust service that benefits from multiple layers of redundancy and optimizations. One such layer of redundancy is the ability to bundle a fallback state of Edge Config into your build output. This fallback value is used by the Edge Config SDK in the rare event that the Edge Config service is degraded or unresponsive. It is also used during the build process to guarantee a consistent state of the Edge Config for your build and avoiding unnecessary network requests during the build.
+
+Add the following `prebuild` script to your `package.json` to set up Edge Config bundling:
+
+```json
+{
+  "scripts": {
+    "prebuild": "edge-config prepare"
+  }
+}
+```
+
+This will iterate through the environment variables to find Edge Config connection strings, load the latest version from the Edge Config API and emit them to the local file system. When your application is built later on your bundler will automatically include these files as they are imported by the Edge Config SDK.
+
+### Timeouts
+
+You can further pass the `timeoutMs` option when creating the Edge Config cilent to set a maximum timeout in milliseconds for any fetch requests the Edge Config SDK makes. If a request does not complete in time the Edge Config SDK will fall back to the bundled version if provided, or throw an error if not.
+
+```ts
+import { createClient } from '@vercel/edge-config';
+
+const client = createClient(process.env.EDGE_CONFIG, { timeoutMs: 750 });
+```
+
+This option is only recommended when you have set up [Edge Config bundling](#bundling) or when you otherwise catch the thrown error and handle it gracefully.
+
+## API
+
+
+### Reading a value
+
+```js
+import { get } from '@vercel/edge-config';
+await get('someKey');
+```
 
 ### Checking if a key exists
 
@@ -54,13 +92,13 @@ await getAll(['keyA', 'keyB']);
 Returns selected Edge Config items.
 Throws on invalid tokens, deleted edge configs or network errors.
 
-### Default behaviour
+## Default Edge Config Client
 
 By default `@vercel/edge-config` will read from the Edge Config stored in `process.env.EDGE_CONFIG`.
 
 The exported `get`, `getAll`, `has` and `digest` functions are bound to this default Edge Config Client.
 
-### Reading a value from a specific Edge Config
+### Reading a value from a different Edge Config
 
 You can use `createClient(connectionString)` to read values from Edge Configs other than the default one.
 
@@ -74,11 +112,33 @@ The `createClient` function connects to a any Edge Config based on the provided 
 
 It returns the same `get`, `getAll`, `has` and `digest` functions as the default Edge Config Client exports.
 
+
+### Custom Options
+
+The Edge Config SDK accepts custom options
+
+
+```js
+import { createClient } from '@vercel/edge-config';
+const edgeConfig = createClient(process.env.EDGE_CONFIG, {
+  
+export interface EdgeConfigClientOptions {
+  staleIfError?: number | false;
+  disableDevelopmentCache?: boolean;
+  cache?: 'no-store' | 'force-cache';
+  timeoutMs?: number;
+});
+```
+
+**Options**
+- `staleIfError`: The time in seconds for how long the Edge Config SDK will consider stale responses in case the Edge Config API responds with an error. Does not affect the usage of [bundled Edge Configs](#bundling) as fallbacks.
+- `disableDevelopmentCache`: Disables the default stale-while-revalidate cache that is active during development.
+- `cache`: Specifies the cache mode for the Edge Config SDK. Can be either 'no-store' or 'force-cache'.
+- `timeoutMs`: Specifies the timeout in milliseconds the Edge Config SDK waits for network requests before it times out. Use this in combination with [bundled Edge Configs](#bundling) to specify an upper bound for the time the Edge Config SDK waits for network requests before it falls back to the bundled config. Throws an error in case no bundled config is available and the timeout is reached.
+
 ### Making a value mutable
 
-By default, the value returned by `get` and `getAll` is immutable. Modifying the object might cause an error or other undefined behaviour.
-
-In order to make the returned value mutable, you can use the exported function `clone` to safely clone the object and make it mutable.
+By default, the value returned by `get` and `getAll` is considered immutable. Modifying the object might cause an error or other undefined behaviour. In order to make the returned value mutable, you must use the exported function `clone` to safely clone the object and make it mutable.
 
 ## Writing Edge Config Items
 

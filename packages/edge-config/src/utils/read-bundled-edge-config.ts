@@ -1,11 +1,7 @@
 /**
- * Reads the local edge config that gets embedded at build time.
- *
- * We currently use webpackIgnore to avoid bundling the local edge config.
+ * Reads the local edge config that gets bundled at build time (stores.json).
  */
-export async function readBuildEmbeddedEdgeConfig<M>(
-  id: string,
-): Promise<M | null> {
+export async function readBundledEdgeConfig<M>(id: string): Promise<M | null> {
   try {
     console.log('attempting to read build embedded edge config', id);
     // @ts-expect-error this file is generated later

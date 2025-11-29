@@ -91,4 +91,10 @@ export interface EdgeConfigFunctionsOptions {
    * need to ensure you generate with the latest content.
    */
   consistentRead?: boolean;
+
+  /**
+   * How long to wait for the Edge Config to be fetched before timing out
+   * and falling back to the bundled Edge Config value if present, or throwing.
+   */
+  timeoutMs?: number;
 }

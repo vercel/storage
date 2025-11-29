@@ -106,7 +106,7 @@ const getPrivateEdgeConfig = trace(
   },
 );
 
-export async function getBuildEmbeddedEdgeConfig(
+export async function getBundledEdgeConfig(
   connectionId: Connection['id'],
   _fetchCache: EdgeConfigClientOptions['cache'],
 ): Promise<{

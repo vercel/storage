@@ -154,7 +154,7 @@ export function createCreateClient({
 
               if (localEdgeConfig) return select(localEdgeConfig);
 
-              return fetchEdgeConfigItem<T>(
+              return await fetchEdgeConfigItem<T>(
                 baseUrl,
                 key,
                 version,
@@ -212,7 +212,7 @@ export function createCreateClient({
                 return Promise.resolve(hasOwn(localEdgeConfig.items, key));
               }
 
-              return fetchEdgeConfigHas(
+              return await fetchEdgeConfigHas(
                 baseUrl,
                 key,
                 version,
@@ -271,7 +271,7 @@ export function createCreateClient({
 
               if (localEdgeConfig) return select(localEdgeConfig);
 
-              return fetchAllEdgeConfigItem<T>(
+              return await fetchAllEdgeConfigItem<T>(
                 baseUrl,
                 keys,
                 version,
@@ -327,7 +327,7 @@ export function createCreateClient({
 
               if (localEdgeConfig) return select(localEdgeConfig);
 
-              return fetchEdgeConfigTrace(
+              return await fetchEdgeConfigTrace(
                 baseUrl,
                 version,
                 localOptions?.consistentRead,

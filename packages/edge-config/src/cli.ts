@@ -89,13 +89,9 @@ program
 program
   .command('prepare')
   .description('Prepare Edge Config stores.json file for build time embedding')
-  .argument(
-    '[string]',
-    'Where the output file should be written',
-    join(__dirname, '..', 'dist', 'stores.json'),
-  )
   .option('--verbose', 'Enable verbose logging')
-  .action(async (output, options: PrepareOptions) => {
+  .action(async (options: PrepareOptions) => {
+    const output = join(__dirname, '..', 'dist', 'stores.json');
     await prepare(output, options);
   });
 

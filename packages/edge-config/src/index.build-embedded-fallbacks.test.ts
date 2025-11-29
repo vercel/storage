@@ -167,9 +167,7 @@ describe('default Edge Config', () => {
     describe('when the item does not exist', () => {
       it('should return false', async () => {
         fetchMock.mockAbort();
-
         await expect(has('foo-does-not-exist')).resolves.toEqual(false);
-
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(
           `${baseUrl}/item/foo-does-not-exist?version=1`,

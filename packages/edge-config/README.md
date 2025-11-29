@@ -1,33 +1,44 @@
 # @vercel/edge-config
 
-A client that lets you read Edge Config.
+The official JavaScript client for reading from [Vercel Edge Config](https://vercel.com/docs/storage/edge-config) — an ultra-low latency data store for global configuration data.
 
-## Installation
+## Quick Start
+
+### Installation
 
 ```sh
 npm install @vercel/edge-config
 ```
 
-## Quickstart
+### Setup
 
-You can use the methods below to read your Edge Config given you have its Connection String stored in an Environment Variable called `process.env.EDGE_CONFIG`.
+1. Create an Edge Config on [vercel.com](https://vercel.com/d?to=%2F%5Bteam%5D%2F%5Bproject%5D%2Fstores&title=Create+Edge+Config+Store).
+2. Connect it to your project to get a connection string
+3. The connection string is automatically available as `process.env.EDGE_CONFIG`
 
-### Reading a value
+### Basic Usage
 
 ```js
 import { get } from '@vercel/edge-config';
-await get('someKey');
+
+// Read a single value
+const value = await get('myKey');
+
+// Check if a key exists
+import { has } from '@vercel/edge-config';
+const exists = await has('myKey'); // true or false
+
+// Read multiple values at once
+import { getAll } from '@vercel/edge-config';
+const values = await getAll(['keyA', 'keyB', 'keyC']);
+
+// Read all values
+const allValues = await getAll();
 ```
 
-Returns the value if the key exists.
-Returns `undefined` if the key does not exist.
-Throws on invalid tokens, deleted edge configs or network errors.
+### Production Best Practices
 
-### Bundling
-
-Edge Config is a robust service that benefits from multiple layers of redundancy and optimizations. One such layer of redundancy is the ability to bundle a fallback state of Edge Config into your build output. This fallback value is used by the Edge Config SDK in the rare event that the Edge Config service is degraded or unresponsive. It is also used during the build process to guarantee a consistent state of the Edge Config for your build and avoiding unnecessary network requests during the build.
-
-Add the following `prebuild` script to your `package.json` to set up Edge Config bundling:
+Add Edge Config bundling for resilience and faster builds:
 
 ```json
 {
@@ -37,190 +48,287 @@ Add the following `prebuild` script to your `package.json` to set up Edge Config
 }
 ```
 
-This will iterate through the environment variables to find Edge Config connection strings, load the latest version from the Edge Config API and emit them to the local file system. When your application is built later on your bundler will automatically include these files as they are imported by the Edge Config SDK.
+This bundles a snapshot of your Edge Config into your build as a fallback, ensuring your application continues working in the rare event the Edge Config service is temporarily unavailable.
 
-### Timeouts
+---
 
-You can further pass the `timeoutMs` option when creating the Edge Config cilent to set a maximum timeout in milliseconds for any fetch requests the Edge Config SDK makes. If a request does not complete in time the Edge Config SDK will fall back to the bundled version if provided, or throw an error if not.
+## API Reference
 
-```ts
-import { createClient } from '@vercel/edge-config';
+### Default Client Functions
 
-const client = createClient(process.env.EDGE_CONFIG, { timeoutMs: 750 });
-```
+These functions read from the Edge Config specified in `process.env.EDGE_CONFIG`.
 
-This option is only recommended when you have set up [Edge Config bundling](#bundling) or when you otherwise catch the thrown error and handle it gracefully.
+#### `get(key)`
 
-## API
-
-
-### Reading a value
+Reads a single value from Edge Config.
 
 ```js
 import { get } from '@vercel/edge-config';
-await get('someKey');
+const value = await get('myKey');
 ```
 
-### Checking if a key exists
+**Returns:**
+- The value if the key exists
+- `undefined` if the key does not exist
+
+**Throws:**
+- Error on invalid connection string
+- Error on deleted Edge Config
+- Error on network failures
+
+#### `has(key)`
+
+Checks if a key exists in Edge Config.
 
 ```js
 import { has } from '@vercel/edge-config';
-await has('someKey');
+const exists = await has('myKey');
 ```
 
-Returns `true` if the key exists.
-Returns `false` if the key does not exist.
-Throws on invalid tokens, deleted edge configs or network errors.
+**Returns:**
+- `true` if the key exists
+- `false` if the key does not exist
 
-### Reading all items
+**Throws:**
+- Error on invalid connection string
+- Error on deleted Edge Config
+- Error on network failures
+
+#### `getAll(keys?)`
+
+Reads multiple or all values from Edge Config.
 
 ```js
 import { getAll } from '@vercel/edge-config';
-await getAll();
+
+// Get specific keys
+const some = await getAll(['keyA', 'keyB']);
+
+// Get all keys
+const all = await getAll();
 ```
 
-Returns all Edge Config items.
-Throws on invalid tokens, deleted edge configs or network errors.
+**Parameters:**
+- `keys` (optional): Array of keys to retrieve. If omitted, returns all items.
 
-### Reading items in batch
+**Returns:**
+- Object containing the requested key-value pairs
+
+**Throws:**
+- Error on invalid connection string
+- Error on deleted Edge Config
+- Error on network failures
+
+#### `digest()`
+
+Gets the current digest (version hash) of the Edge Config.
 
 ```js
-import { getAll } from '@vercel/edge-config';
-await getAll(['keyA', 'keyB']);
+import { digest } from '@vercel/edge-config';
+const currentDigest = await digest();
 ```
 
-Returns selected Edge Config items.
-Throws on invalid tokens, deleted edge configs or network errors.
+**Returns:**
+- String containing the current digest
 
-## Default Edge Config Client
+**Throws:**
+- Error on invalid connection string
+- Error on deleted Edge Config
+- Error on network failures
 
-By default `@vercel/edge-config` will read from the Edge Config stored in `process.env.EDGE_CONFIG`.
+---
 
-The exported `get`, `getAll`, `has` and `digest` functions are bound to this default Edge Config Client.
+### Custom Client
 
-### Reading a value from a different Edge Config
+Use `createClient()` to connect to a specific Edge Config or customize behavior.
 
-You can use `createClient(connectionString)` to read values from Edge Configs other than the default one.
+#### `createClient(connectionString, options?)`
+
+Creates a client instance for a specific Edge Config.
 
 ```js
 import { createClient } from '@vercel/edge-config';
-const edgeConfig = createClient(process.env.ANOTHER_EDGE_CONFIG);
-await edgeConfig.get('someKey');
+
+const client = createClient(process.env.ANOTHER_EDGE_CONFIG);
+await client.get('myKey');
 ```
 
-The `createClient` function connects to a any Edge Config based on the provided Connection String.
+**Parameters:**
 
-It returns the same `get`, `getAll`, `has` and `digest` functions as the default Edge Config Client exports.
+- `connectionString` (string): The Edge Config connection string
+- `options` (object, optional): Configuration options
 
+**Options:**
 
-### Custom Options
-
-The Edge Config SDK accepts custom options
-
-
-```js
-import { createClient } from '@vercel/edge-config';
-const edgeConfig = createClient(process.env.EDGE_CONFIG, {
-  
-export interface EdgeConfigClientOptions {
+```ts
+{
+  // Fallback to stale data for N seconds if the API returns an error
   staleIfError?: number | false;
+  
+  // Disable the default development cache (stale-while-revalidate)
   disableDevelopmentCache?: boolean;
+  
+  // Control Next.js fetch cache behavior
   cache?: 'no-store' | 'force-cache';
+  
+  // Timeout for network requests in milliseconds
+  // Falls back to bundled config if available, or throws if not
   timeoutMs?: number;
+}
+```
+
+**Returns:**
+- Client object with `get()`, `getAll()`, `has()`, and `digest()` methods
+
+**Example with options:**
+
+```js
+const client = createClient(process.env.EDGE_CONFIG, {
+  timeoutMs: 750,
+  cache: 'force-cache',
+  staleIfError: 300, // Use stale data for 5 minutes on error
 });
 ```
 
-**Options**
-- `staleIfError`: The time in seconds for how long the Edge Config SDK will consider stale responses in case the Edge Config API responds with an error. Does not affect the usage of [bundled Edge Configs](#bundling) as fallbacks.
-- `disableDevelopmentCache`: Disables the default stale-while-revalidate cache that is active during development.
-- `cache`: Specifies the cache mode for the Edge Config SDK. Can be either 'no-store' or 'force-cache'.
-- `timeoutMs`: Specifies the timeout in milliseconds the Edge Config SDK waits for network requests before it times out. Use this in combination with [bundled Edge Configs](#bundling) to specify an upper bound for the time the Edge Config SDK waits for network requests before it falls back to the bundled config. Throws an error in case no bundled config is available and the timeout is reached.
+#### `clone(value)`
 
-### Making a value mutable
-
-By default, the value returned by `get` and `getAll` is considered immutable. Modifying the object might cause an error or other undefined behaviour. In order to make the returned value mutable, you must use the exported function `clone` to safely clone the object and make it mutable.
-
-## Writing Edge Config Items
-
-Edge Config Items can be managed in two ways:
-
-- [Using the Dashboard on vercel.com](https://vercel.com/docs/concepts/edge-network/edge-config/edge-config-dashboard#manage-items-in-the-store)
-- [Using the Vercel API](https://vercel.com/docs/concepts/edge-network/edge-config/vercel-api#update-your-edge-config)
-
-Keep in mind that Edge Config is built for very high read volume, but for infrequent writes.
-
-## Error Handling
-
-- An error is thrown in case of a network error
-- An error is thrown in case of an unexpected response
-
-## Edge Runtime Support
-
-`@vercel/edge-config` is compatible with the [Edge Runtime](https://edge-runtime.vercel.app/). It can be used inside environments like [Vercel Edge Functions](https://vercel.com/edge) as follows:
+Creates a mutable copy of a value returned from Edge Config.
 
 ```js
-// Next.js (pages/api/edge.js) (npm i next@canary)
-// Other frameworks (api/edge.js) (npm i -g vercel@canary)
+import { get, clone } from '@vercel/edge-config';
 
+const value = await get('myKey');
+const mutableValue = clone(value);
+mutableValue.someProperty = 'new value'; // Safe to modify
+```
+
+**Why this is needed:** For performance, Edge Config returns immutable references. Mutating values directly may cause unexpected behavior. Use `clone()` when you need to modify returned values.
+
+---
+
+## Advanced Features
+
+### Edge Config Bundling
+
+Bundling creates a build-time snapshot of your Edge Config that serves as a fallback and eliminates network requests during builds.
+
+**Setup:**
+
+```json
+{
+  "scripts": {
+    "prebuild": "edge-config prepare"
+  }
+}
+```
+
+**Benefits:**
+- Resilience: Your app continues working if Edge Config is temporarily unavailable
+- Faster builds: Only a single network request needed per Edge Config during build
+- Consistency: Guarantees the same Edge Config state throughout your build
+
+**How it works:**
+1. The `edge-config prepare` command scans environment variables for connection strings
+2. It fetches the latest version of each Edge Config
+3. It saves them to local files that are automatically bundled by your build tool
+4. The SDK automatically uses these as fallbacks when needed
+
+### Timeouts
+
+Set a maximum wait time for Edge Config requests:
+
+```js
+import { createClient } from '@vercel/edge-config';
+
+const client = createClient(process.env.EDGE_CONFIG, {
+  timeoutMs: 750,
+});
+```
+
+**Behavior:**
+- If a request exceeds the timeout, the SDK falls back to the bundled version (if available)
+- If no bundled version exists, an error is thrown
+
+**Recommendation:** Only use timeouts when you have bundling enabled or proper error handling.
+
+### Writing to Edge Config
+
+Edge Config is optimized for high-volume reads and infrequent writes. Update values using:
+
+- [Vercel Dashboard](https://vercel.com/docs/concepts/edge-network/edge-config/edge-config-dashboard#manage-items-in-the-store) — Visual interface
+- [Vercel API](https://vercel.com/docs/concepts/edge-network/edge-config/vercel-api#update-your-edge-config) — Programmatic updates
+
+---
+
+## Framework Integration
+
+### Next.js
+
+#### App Router (Dynamic Rendering)
+
+By default, Edge Config triggers dynamic rendering:
+
+```js
 import { get } from '@vercel/edge-config';
 
-export default (req) => {
-  const value = await get("someKey")
-  return new Response(`someKey contains value "${value})"`);
-};
+export default async function Page() {
+  const value = await get('myKey');
+  return <div>{value}</div>;
+}
+```
+
+#### App Router (Static Rendering)
+
+To use Edge Config with static pages, enable caching:
+
+```js
+import { createClient } from '@vercel/edge-config';
+
+const client = createClient(process.env.EDGE_CONFIG, {
+  cache: 'force-cache',
+});
+
+export default async function Page() {
+  const value = await client.get('myKey');
+  return <div>{value}</div>;
+}
+```
+
+**Note:** Static rendering may display stale values until the page is rebuilt.
+
+#### Pages Router
+
+```js
+// pages/api/config.js
+import { get } from '@vercel/edge-config';
+
+export default async function handler(req, res) {
+  const value = await get('myKey');
+  res.json({ value });
+}
+```
+
+#### Edge Runtime
+
+```js
+// pages/api/edge.js
+import { get } from '@vercel/edge-config';
+
+export default async function handler(req) {
+  const value = await get('myKey');
+  return new Response(JSON.stringify({ value }));
+}
 
 export const config = { runtime: 'edge' };
 ```
 
-## OpenTelemetry Tracing
+### Vite-Based Frameworks (Nuxt, SvelteKit, etc.)
 
-The `@vercel/edge-config` package makes use of the OpenTelemetry standard to trace certain functions for observability. In order to enable it, use the function `setTracerProvider` to set the `TracerProvider` that should be used by the SDK.
+Vite doesn't automatically expose `.env` variables on `process.env`. Choose one solution:
 
-```js
-import { setTracerProvider } from '@vercel/edge-config';
-import { trace } from '@opentelemetry/api';
+**Option 1: Populate `process.env` with dotenv-expand**
 
-setTracerProvider(trace);
-```
-
-More verbose traces can be enabled by setting the `EDGE_CONFIG_TRACE_VERBOSE` environment variable to `true`.
-
-## Frameworks
-
-### Next.js
-
-#### Cache Components
-
-The Edge Config SDK supports [Cache Components](https://nextjs.org/docs/app/getting-started/cache-components) out of the box. Since Edge Config is a dynamic operation it always triggers dynamic mode unless you explicitly opt out as shown in the next section.
-
-##### Fetch cache
-
-By default the Edge Config SDK will fetch with `no-store`, which triggers dynamic mode in Next.js ([docs](https://nextjs.org/docs/app/api-reference/functions/fetch#optionscache)).
-
-To use Edge Config with static pages, pass the `force-cache` option:
-
-```js
-import { createClient } from '@vercel/edge-config';
-
-const edgeConfigClient = createClient(process.env.EDGE_CONFIG, {
-  cache: 'force-cache',
-});
-
-// then use the client as usual
-edgeConfigClient.get('someKey');
-```
-
-**Note** This opts out of dynamic behavior, so the page might display stale values.
-
-### Nuxt, SvelteKit and other vite based frameworks
-
-`@vercel/edge-config` reads database credentials from the environment variables on `process.env`. In general, `process.env` is automatically populated from your `.env` file during development, which is created when you run `vc env pull`. However, Vite does not expose the `.env` variables on `process.env.`
-
-You can fix this in **one** of following two ways:
-
-1. You can populate `process.env` yourself using something like `dotenv-expand`:
-
-```shell
+```sh
 pnpm install --save-dev dotenv dotenv-expand
 ```
 
@@ -230,43 +338,111 @@ import dotenvExpand from 'dotenv-expand';
 import { loadEnv, defineConfig } from 'vite';
 
 export default defineConfig(({ mode }) => {
-  // This check is important!
   if (mode === 'development') {
     const env = loadEnv(mode, process.cwd(), '');
     dotenvExpand.expand({ parsed: env });
   }
 
   return {
-    ...
+    // Your config
   };
 });
 ```
 
-2. You can provide the credentials explicitly, instead of relying on a zero-config setup. For example, this is how you could create a client in SvelteKit, which makes private environment variables available via `$env/static/private`:
+**Option 2: Pass connection string explicitly**
 
-```diff
+```js
+// SvelteKit example
 import { createClient } from '@vercel/edge-config';
-+ import { EDGE_CONFIG } from '$env/static/private';
+import { EDGE_CONFIG } from '$env/static/private';
 
-- const edgeConfig = createClient(process.env.ANOTHER_EDGE_CONFIG);
-+ const edgeConfig = createClient(EDGE_CONFIG);
-await edgeConfig.get('someKey');
+const client = createClient(EDGE_CONFIG);
+await client.get('myKey');
 ```
 
-## Notes
+---
 
-### Do not mutate return values
+## Observability
 
-Cloning objects in JavaScript can be slow. That's why the Edge Config SDK uses an optimization which can lead to multiple calls reading the same key all receiving a reference to the same value.
+### OpenTelemetry Tracing
 
-For this reason the value read from Edge Config should never be mutated, otherwise they could affect other parts of the code base reading the same key, or a later request reading the same key.
+Enable tracing for observability:
 
-If you need to modify, see the `clone` function described [here](#do-not-mutate-return-values).
+```js
+import { setTracerProvider } from '@vercel/edge-config';
+import { trace } from '@opentelemetry/api';
 
-## Caught a Bug?
+setTracerProvider(trace);
+```
 
-1. [Fork](https://help.github.com/articles/fork-a-repo/) this repository to your own GitHub account and then [clone](https://help.github.com/articles/cloning-a-repository/) it to your local device
-2. Link the package to the global module directory: `npm link`
-3. Within the module you want to test your local development instance of `@vercel/edge-config`, just link it to the dependencies: `npm link @vercel/edge-config`. Instead of the default one from npm, Node.js will now use your clone of `@vercel/edge-config`!
+For verbose traces, set the environment variable:
 
-As always, you can run the tests using: `npm test`
+```sh
+EDGE_CONFIG_TRACE_VERBOSE=true
+```
+
+---
+
+## Error Handling
+
+Edge Config throws errors in these cases:
+
+- **Invalid connection string**: The provided connection string is malformed or invalid
+- **Deleted Edge Config**: The Edge Config has been deleted
+- **Network errors**: Request failed due to network issues
+- **Timeout**: Request exceeded `timeoutMs` and no bundled fallback is available
+
+**Example:**
+
+```js
+import { get } from '@vercel/edge-config';
+
+try {
+  const value = await get('myKey');
+} catch (error) {
+  console.error('Failed to read Edge Config:', error);
+  // Handle error appropriately
+}
+```
+
+---
+
+## Important Notes
+
+### Immutability
+
+Values returned by `get()` and `getAll()` are immutable by default. Do not modify them directly:
+
+```js
+// BAD - Do not do this
+const value = await get('myKey');
+value.property = 'new value'; // Causes undefined behavior
+
+// GOOD - Clone first
+import { clone } from '@vercel/edge-config';
+const value = await get('myKey');
+const mutableValue = clone(value);
+mutableValue.property = 'new value'; // Safe
+```
+
+**Why?** For performance, the SDK returns references to cached objects. Mutations can affect other parts of your application.
+
+---
+
+## Contributing
+
+Found a bug or want to contribute?
+
+1. [Fork this repository](https://help.github.com/articles/fork-a-repo/)
+2. [Clone it locally](https://help.github.com/articles/cloning-a-repository/)
+3. Link the package: `npm link`
+4. In your test project: `npm link @vercel/edge-config`
+5. Make your changes and run tests: `npm test`
+
+---
+
+## Resources
+
+- [Edge Config Documentation](https://vercel.com/docs/edge-config)
+- [Vercel Dashboard](https://vercel.com/)
+- [Report Issues](https://github.com/vercel/storage/issues)

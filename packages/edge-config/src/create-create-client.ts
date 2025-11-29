@@ -191,8 +191,8 @@ export function createCreateClient({
               return Promise.resolve(hasOwn(edgeConfig.items, key));
             }
 
-            if (BundledEdgeConfig && isBuildStep) {
-              return select(BundledEdgeConfig.data);
+            if (bundledEdgeConfig && isBuildStep) {
+              return select(bundledEdgeConfig.data);
             }
 
             try {
@@ -227,9 +227,9 @@ export function createCreateClient({
                 fetchCache,
               );
             } catch (error) {
-              if (!BundledEdgeConfig) throw error;
+              if (!bundledEdgeConfig) throw error;
               console.warn(FALLBACK_WARNING);
-              return select(BundledEdgeConfig.data);
+              return select(bundledEdgeConfig.data);
             }
           },
           { name: 'has', isVerboseTrace: false, attributes: { edgeConfigId } },
@@ -251,8 +251,8 @@ export function createCreateClient({
                 : Promise.resolve(pick(edgeConfig.items as T, keys) as T);
             }
 
-            if (BundledEdgeConfig && isBuildStep) {
-              return select(BundledEdgeConfig.data);
+            if (bundledEdgeConfig && isBuildStep) {
+              return select(bundledEdgeConfig.data);
             }
 
             try {
@@ -285,9 +285,9 @@ export function createCreateClient({
                 fetchCache,
               );
             } catch (error) {
-              if (!BundledEdgeConfig) throw error;
+              if (!bundledEdgeConfig) throw error;
               console.warn(FALLBACK_WARNING);
-              return select(BundledEdgeConfig.data);
+              return select(bundledEdgeConfig.data);
             }
           },
           {
@@ -306,8 +306,8 @@ export function createCreateClient({
               return embeddedEdgeConfig.digest;
             }
 
-            if (BundledEdgeConfig && isBuildStep) {
-              return select(BundledEdgeConfig.data);
+            if (bundledEdgeConfig && isBuildStep) {
+              return select(bundledEdgeConfig.data);
             }
 
             try {
@@ -339,9 +339,9 @@ export function createCreateClient({
                 fetchCache,
               );
             } catch (error) {
-              if (!BundledEdgeConfig) throw error;
+              if (!bundledEdgeConfig) throw error;
               console.warn(FALLBACK_WARNING);
-              return select(BundledEdgeConfig.data);
+              return select(bundledEdgeConfig.data);
             }
           },
           {

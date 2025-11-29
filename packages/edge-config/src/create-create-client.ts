@@ -25,7 +25,7 @@ type CreateClient = (
 const FALLBACK_WARNING = '@vercel/edge-config: Falling back to build embed';
 
 export function createCreateClient({
-  getBuildEmbeddedEdgeConfig,
+  getBundledEdgeConfig,
   getInMemoryEdgeConfig,
   getLocalEdgeConfig,
   fetchEdgeConfigItem,
@@ -33,7 +33,7 @@ export function createCreateClient({
   fetchAllEdgeConfigItem,
   fetchEdgeConfigTrace,
 }: {
-  getBuildEmbeddedEdgeConfig: typeof deps.getBuildEmbeddedEdgeConfig;
+  getBundledEdgeConfig: typeof deps.getBundledEdgeConfig;
   getInMemoryEdgeConfig: typeof deps.getInMemoryEdgeConfig;
   getLocalEdgeConfig: typeof deps.getLocalEdgeConfig;
   fetchEdgeConfigItem: typeof deps.fetchEdgeConfigItem;
@@ -97,30 +97,21 @@ export function createCreateClient({
         process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
 
       /**
-       * The edge config embedded at build time
+       * The edge config bundled at build time
        */
-      let buildEmbeddedEdgeConfigPromise: Promise<{
+      let bundledEdgeConfigPromise: Promise<{
         data: EmbeddedEdgeConfig;
         updatedAt: number | undefined;
       } | null> | null;
       /**
-       * Function to load the edge config embedded at build time or null.
+       * Function to load the bundled edge config or null.
        */
-      async function getEmbeddedEdgeConfigPromise() {
+      async function getBundledEdgeConfigPromise() {
         if (!connection || connection.type !== 'vercel') return null;
-
-        if (buildEmbeddedEdgeConfigPromise)
-          return await buildEmbeddedEdgeConfigPromise;
-
+        if (bundledEdgeConfigPromise) return await bundledEdgeConfigPromise;
         const { id } = connection;
-        buildEmbeddedEdgeConfigPromise = getBuildEmbeddedEdgeConfig(
-          id,
-          fetchCache,
-        );
-
-        const value = await buildEmbeddedEdgeConfigPromise;
-        console.log('@vercel/edge-config: preloaded', id, value);
-        return value;
+        bundledEdgeConfigPromise = getBundledEdgeConfig(id, fetchCache);
+        return await bundledEdgeConfigPromise;
       }
 
       const isBuildStep =
@@ -135,7 +126,7 @@ export function createCreateClient({
           ): Promise<T | undefined> {
             assertIsKey(key);
 
-            const embeddedEdgeConfig = await getEmbeddedEdgeConfigPromise();
+            const bundledEdgeConfig = await getBundledEdgeConfigPromise();
 
             function select(edgeConfig: EmbeddedEdgeConfig) {
               if (isEmptyKey(key)) return undefined;
@@ -146,8 +137,8 @@ export function createCreateClient({
               return Promise.resolve(edgeConfig.items[key] as T);
             }
 
-            if (embeddedEdgeConfig && isBuildStep) {
-              return select(embeddedEdgeConfig.data);
+            if (bundledEdgeConfig && isBuildStep) {
+              return select(bundledEdgeConfig.data);
             }
 
             try {
@@ -179,9 +170,9 @@ export function createCreateClient({
                 fetchCache,
               );
             } catch (error) {
-              if (!embeddedEdgeConfig) throw error;
+              if (!bundledEdgeConfig) throw error;
               console.warn(FALLBACK_WARNING);
-              return select(embeddedEdgeConfig.data);
+              return select(bundledEdgeConfig.data);
             }
           },
           { name: 'get', isVerboseTrace: false, attributes: { edgeConfigId } },
@@ -194,15 +185,14 @@ export function createCreateClient({
             assertIsKey(key);
             if (isEmptyKey(key)) return false;
 
-            const buildEmbeddedEdgeConfig =
-              await getEmbeddedEdgeConfigPromise();
+            const bundledEdgeConfig = await getBundledEdgeConfigPromise();
 
             function select(edgeConfig: EmbeddedEdgeConfig) {
               return Promise.resolve(hasOwn(edgeConfig.items, key));
             }
 
-            if (buildEmbeddedEdgeConfig && isBuildStep) {
-              return select(buildEmbeddedEdgeConfig.data);
+            if (BundledEdgeConfig && isBuildStep) {
+              return select(BundledEdgeConfig.data);
             }
 
             try {
@@ -237,9 +227,9 @@ export function createCreateClient({
                 fetchCache,
               );
             } catch (error) {
-              if (!buildEmbeddedEdgeConfig) throw error;
+              if (!BundledEdgeConfig) throw error;
               console.warn(FALLBACK_WARNING);
-              return select(buildEmbeddedEdgeConfig.data);
+              return select(BundledEdgeConfig.data);
             }
           },
           { name: 'has', isVerboseTrace: false, attributes: { edgeConfigId } },
@@ -253,8 +243,7 @@ export function createCreateClient({
               assertIsKeys(keys);
             }
 
-            const buildEmbeddedEdgeConfig =
-              await getEmbeddedEdgeConfigPromise();
+            const bundledEdgeConfig = await getBundledEdgeConfigPromise();
 
             function select(edgeConfig: EmbeddedEdgeConfig) {
               return keys === undefined
@@ -262,8 +251,8 @@ export function createCreateClient({
                 : Promise.resolve(pick(edgeConfig.items as T, keys) as T);
             }
 
-            if (buildEmbeddedEdgeConfig && isBuildStep) {
-              return select(buildEmbeddedEdgeConfig.data);
+            if (BundledEdgeConfig && isBuildStep) {
+              return select(BundledEdgeConfig.data);
             }
 
             try {
@@ -296,9 +285,9 @@ export function createCreateClient({
                 fetchCache,
               );
             } catch (error) {
-              if (!buildEmbeddedEdgeConfig) throw error;
+              if (!BundledEdgeConfig) throw error;
               console.warn(FALLBACK_WARNING);
-              return select(buildEmbeddedEdgeConfig.data);
+              return select(BundledEdgeConfig.data);
             }
           },
           {
@@ -311,15 +300,14 @@ export function createCreateClient({
           async function digest(
             localOptions?: EdgeConfigFunctionsOptions,
           ): Promise<string> {
-            const buildEmbeddedEdgeConfig =
-              await getEmbeddedEdgeConfigPromise();
+            const bundledEdgeConfig = await getBundledEdgeConfigPromise();
 
             function select(embeddedEdgeConfig: EmbeddedEdgeConfig) {
               return embeddedEdgeConfig.digest;
             }
 
-            if (buildEmbeddedEdgeConfig && isBuildStep) {
-              return select(buildEmbeddedEdgeConfig.data);
+            if (BundledEdgeConfig && isBuildStep) {
+              return select(BundledEdgeConfig.data);
             }
 
             try {
@@ -351,9 +339,9 @@ export function createCreateClient({
                 fetchCache,
               );
             } catch (error) {
-              if (!buildEmbeddedEdgeConfig) throw error;
+              if (!BundledEdgeConfig) throw error;
               console.warn(FALLBACK_WARNING);
-              return select(buildEmbeddedEdgeConfig.data);
+              return select(BundledEdgeConfig.data);
             }
           },
           {

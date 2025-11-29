@@ -96,15 +96,32 @@ export function createCreateClient({
         process.env.NODE_ENV === 'development' &&
         process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
 
-      const buildEmbeddedEdgeConfigPromise = (() => {
+      /**
+       * The edge config embedded at build time
+       */
+      let buildEmbeddedEdgeConfigPromise: Promise<{
+        data: EmbeddedEdgeConfig;
+        updatedAt: number | undefined;
+      } | null> | null;
+      /**
+       * Function to load the edge config embedded at build time or null.
+       */
+      async function getEmbeddedEdgeConfigPromise() {
         if (!connection || connection.type !== 'vercel') return null;
-        return getBuildEmbeddedEdgeConfig(connection.id, fetchCache).then(
-          (value) => {
-            console.log('@vercel/edge-config: preloaded', connection.id, value);
-            return value;
-          },
+
+        if (buildEmbeddedEdgeConfigPromise)
+          return await buildEmbeddedEdgeConfigPromise;
+
+        const { id } = connection;
+        buildEmbeddedEdgeConfigPromise = getBuildEmbeddedEdgeConfig(
+          id,
+          fetchCache,
         );
-      })();
+
+        const value = await buildEmbeddedEdgeConfigPromise;
+        console.log('@vercel/edge-config: preloaded', id, value);
+        return value;
+      }
 
       const isBuildStep =
         process.env.CI === '1' ||
@@ -118,8 +135,7 @@ export function createCreateClient({
           ): Promise<T | undefined> {
             assertIsKey(key);
 
-            const buildEmbeddedEdgeConfig =
-              await buildEmbeddedEdgeConfigPromise;
+            const embeddedEdgeConfig = await getEmbeddedEdgeConfigPromise();
 
             function select(edgeConfig: EmbeddedEdgeConfig) {
               if (isEmptyKey(key)) return undefined;
@@ -130,8 +146,8 @@ export function createCreateClient({
               return Promise.resolve(edgeConfig.items[key] as T);
             }
 
-            if (buildEmbeddedEdgeConfig && isBuildStep) {
-              return select(buildEmbeddedEdgeConfig.data);
+            if (embeddedEdgeConfig && isBuildStep) {
+              return select(embeddedEdgeConfig.data);
             }
 
             try {
@@ -163,9 +179,9 @@ export function createCreateClient({
                 fetchCache,
               );
             } catch (error) {
-              if (!buildEmbeddedEdgeConfig) throw error;
+              if (!embeddedEdgeConfig) throw error;
               console.warn(FALLBACK_WARNING);
-              return select(buildEmbeddedEdgeConfig.data);
+              return select(embeddedEdgeConfig.data);
             }
           },
           { name: 'get', isVerboseTrace: false, attributes: { edgeConfigId } },
@@ -179,7 +195,7 @@ export function createCreateClient({
             if (isEmptyKey(key)) return false;
 
             const buildEmbeddedEdgeConfig =
-              await buildEmbeddedEdgeConfigPromise;
+              await getEmbeddedEdgeConfigPromise();
 
             function select(edgeConfig: EmbeddedEdgeConfig) {
               return Promise.resolve(hasOwn(edgeConfig.items, key));
@@ -238,7 +254,7 @@ export function createCreateClient({
             }
 
             const buildEmbeddedEdgeConfig =
-              await buildEmbeddedEdgeConfigPromise;
+              await getEmbeddedEdgeConfigPromise();
 
             function select(edgeConfig: EmbeddedEdgeConfig) {
               return keys === undefined
@@ -296,7 +312,7 @@ export function createCreateClient({
             localOptions?: EdgeConfigFunctionsOptions,
           ): Promise<string> {
             const buildEmbeddedEdgeConfig =
-              await buildEmbeddedEdgeConfigPromise;
+              await getEmbeddedEdgeConfigPromise();
 
             function select(embeddedEdgeConfig: EmbeddedEdgeConfig) {
               return embeddedEdgeConfig.digest;

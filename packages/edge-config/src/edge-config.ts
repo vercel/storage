@@ -13,7 +13,7 @@ import {
   UnexpectedNetworkError,
 } from './utils';
 import { fetchWithCachedResponse } from './utils/fetch-with-cached-response';
-import { readBuildEmbeddedEdgeConfig } from './utils/read-build-embedded-edge-config';
+import { readBundledEdgeConfig } from './utils/read-bundled-edge-config';
 import { trace } from './utils/tracing';
 
 const X_EDGE_CONFIG_SDK_HEADER =
@@ -113,7 +113,7 @@ export async function getBundledEdgeConfig(
   data: EmbeddedEdgeConfig;
   updatedAt: number | undefined;
 } | null> {
-  return readBuildEmbeddedEdgeConfig<{
+  return readBundledEdgeConfig<{
     data: EmbeddedEdgeConfig;
     updatedAt: number | undefined;
   }>(connectionId);

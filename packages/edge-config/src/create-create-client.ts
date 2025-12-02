@@ -173,7 +173,7 @@ export function createCreateClient({
             } catch (error) {
               if (!bundledEdgeConfig) throw error;
               console.warn(
-                `@vercel/edge-config: Falling back to bundled version of ${edgeConfigId}`,
+                `@vercel/edge-config: Falling back to bundled version of ${edgeConfigId} due to the following error`,
                 error,
               );
               return select(bundledEdgeConfig.data);
@@ -234,7 +234,7 @@ export function createCreateClient({
             } catch (error) {
               if (!bundledEdgeConfig) throw error;
               console.warn(
-                `@vercel/edge-config: Falling back to bundled version of ${edgeConfigId}`,
+                `@vercel/edge-config: Falling back to bundled version of ${edgeConfigId} due to the following error`,
                 error,
               );
               return select(bundledEdgeConfig.data);
@@ -296,7 +296,7 @@ export function createCreateClient({
             } catch (error) {
               if (!bundledEdgeConfig) throw error;
               console.warn(
-                `@vercel/edge-config: Falling back to bundled version of ${edgeConfigId}`,
+                `@vercel/edge-config: Falling back to bundled version of ${edgeConfigId} due to the following error`,
                 error,
               );
               return select(bundledEdgeConfig.data);
@@ -354,7 +354,7 @@ export function createCreateClient({
             } catch (error) {
               if (!bundledEdgeConfig) throw error;
               console.warn(
-                `@vercel/edge-config: Falling back to bundled version of ${edgeConfigId}`,
+                `@vercel/edge-config: Falling back to bundled version of ${edgeConfigId} due to the following error`,
                 error,
               );
               return select(bundledEdgeConfig.data);

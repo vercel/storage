@@ -22,8 +22,6 @@ type CreateClient = (
   options?: deps.EdgeConfigClientOptions,
 ) => EdgeConfigClient;
 
-const FALLBACK_WARNING = '@vercel/edge-config: Falling back to build embed';
-
 export function createCreateClient({
   getBundledEdgeConfig,
   getInMemoryEdgeConfig,
@@ -174,7 +172,9 @@ export function createCreateClient({
               );
             } catch (error) {
               if (!bundledEdgeConfig) throw error;
-              console.warn(FALLBACK_WARNING);
+              console.warn(
+                `@vercel/edge-config: Falling back to bundled version of ${edgeConfigId}`,
+              );
               return select(bundledEdgeConfig.data);
             }
           },
@@ -232,7 +232,9 @@ export function createCreateClient({
               );
             } catch (error) {
               if (!bundledEdgeConfig) throw error;
-              console.warn(FALLBACK_WARNING);
+              console.warn(
+                `@vercel/edge-config: Falling back to bundled version of ${edgeConfigId}`,
+              );
               return select(bundledEdgeConfig.data);
             }
           },
@@ -291,7 +293,9 @@ export function createCreateClient({
               );
             } catch (error) {
               if (!bundledEdgeConfig) throw error;
-              console.warn(FALLBACK_WARNING);
+              console.warn(
+                `@vercel/edge-config: Falling back to bundled version of ${edgeConfigId}`,
+              );
               return select(bundledEdgeConfig.data);
             }
           },
@@ -346,7 +350,9 @@ export function createCreateClient({
               );
             } catch (error) {
               if (!bundledEdgeConfig) throw error;
-              console.warn(FALLBACK_WARNING);
+              console.warn(
+                `@vercel/edge-config: Falling back to bundled version of ${edgeConfigId}`,
+              );
               return select(bundledEdgeConfig.data);
             }
           },

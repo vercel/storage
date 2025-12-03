@@ -4,6 +4,7 @@ import fetchMock from 'jest-fetch-mock';
 import { version as pkgVersion } from '../package.json';
 import { get, getAll, has } from './index';
 import type { EmbeddedEdgeConfig } from './types';
+import { delay } from './utils/delay';
 import { cache } from './utils/fetch-with-cached-response';
 
 jest.mock('@vercel/edge-config/dist/stores.json', () => {
@@ -20,10 +21,6 @@ jest.mock('@vercel/edge-config/dist/stores.json', () => {
 
 const sdkVersion = typeof pkgVersion === 'string' ? pkgVersion : '';
 const baseUrl = 'https://edge-config.vercel.com/ecfg_1';
-
-function delay<T>(data: T, timeoutMs: number): Promise<T> {
-  return new Promise((resolve) => setTimeout(() => resolve(data), timeoutMs));
-}
 
 beforeEach(() => {
   fetchMock.resetMocks();
@@ -112,7 +109,7 @@ describe('default Edge Config', () => {
       it('should fall back to the build embedded config', async () => {
         const timeoutMs = 50;
         fetchMock.mockResponseOnce(() =>
-          delay(JSON.stringify('fetched-value'), timeoutMs * 4),
+          delay(timeoutMs * 4, JSON.stringify('fetched-value')),
         );
         await expect(get('foo', { timeoutMs })).resolves.toEqual(
           'foo-build-embedded',

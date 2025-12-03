@@ -7,6 +7,7 @@ import fetchMock from 'jest-fetch-mock';
 import { version as pkgVersion } from '../package.json';
 import * as pkg from './index';
 import type { EdgeConfigClient } from './types';
+import { delay } from './utils/delay';
 import { cache } from './utils/fetch-with-cached-response';
 
 const sdkVersion = typeof pkgVersion === 'string' ? pkgVersion : '';
@@ -160,6 +161,30 @@ describe('when running without lambda layer or via edge function', () => {
       it('should return undefined', async () => {
         await expect(edgeConfig.get('')).resolves.toBe(undefined);
         expect(fetchMock).toHaveBeenCalledTimes(0);
+      });
+    });
+
+    describe('timeoutMs', () => {
+      it('should not race when timeoutMs is not set', async () => {
+        fetchMock.mockResponseOnce(() =>
+          delay(10, JSON.stringify('fetched-value')),
+        );
+
+        await expect(edgeConfig.get('foo')).resolves.toEqual('fetched-value');
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock).toHaveBeenCalledWith(
+          `${modifiedBaseUrl}/item/foo?version=1`,
+          {
+            headers: new Headers({
+              Authorization: 'Bearer token-2',
+              'x-edge-config-vercel-env': 'test',
+              'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
+            }),
+            cache: 'no-store',
+          },
+        );
       });
     });
   });

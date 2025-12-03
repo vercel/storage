@@ -33,3 +33,19 @@ Using `edge-config prepare` also improves build performance and consistency:
 - **Faster builds:** The SDK fetches each Edge Config store once per build instead of once per key
 - **Eliminates inconsistencies:** Prevents Edge Config changes between individual key reads during the build
 - **Automatic optimization:** No code changes required—just add the prebuild script
+
+**Timeout configuration:**
+
+You can now configure request timeouts to prevent slow Edge Config reads from blocking your application:
+
+```ts
+// Set timeout when creating the client
+const client = createClient(process.env.EDGE_CONFIG, {
+  timeoutMs: 1000 // timeout after 1 second
+});
+
+// Or per-request
+await client.get('key', { timeoutMs: 500 });
+```
+
+When a timeout occurs, the SDK will fall back to the bundled Edge Config if available, or throw an error otherwise. This is particularly useful when combined with bundled Edge Configs to ensure fast, resilient reads.

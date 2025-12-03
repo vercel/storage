@@ -15,20 +15,18 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 import { version } from '../package.json';
-import type { Connection, EmbeddedEdgeConfig } from '../src/types';
+import type {
+  BundledEdgeConfig,
+  Connection,
+  EmbeddedEdgeConfig,
+} from '../src/types';
 import { parseConnectionString } from '../src/utils/parse-connection-string';
 
 // Get the directory where this CLI script is located
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-type StoresJson = Record<
-  string,
-  {
-    data: EmbeddedEdgeConfig;
-    updatedAt: number | undefined;
-  }
->;
+type StoresJson = Record<string, BundledEdgeConfig>;
 
 type PrepareOptions = {
   verbose?: boolean;
@@ -45,8 +43,8 @@ async function prepare(output: string, options: PrepareOptions): Promise<void> {
     [],
   );
 
-  const values = await Promise.all(
-    connections.map(async (connection) => {
+  const values: BundledEdgeConfig[] = await Promise.all(
+    connections.map<Promise<BundledEdgeConfig>>(async (connection) => {
       const res = await fetch(connection.baseUrl, {
         headers: {
           authorization: `Bearer ${connection.token}`,
@@ -54,6 +52,12 @@ async function prepare(output: string, options: PrepareOptions): Promise<void> {
           'x-edge-config-min-updated-at': `${Number.MAX_SAFE_INTEGER}`,
         },
       });
+
+      if (!res.ok) {
+        throw new Error(
+          `@vercel/edge-config: Failed to prepare edge config ${connection.id}: ${res.status} ${res.statusText}`,
+        );
+      }
 
       const ts = res.headers.get('x-edge-config-updated-at');
       const data: EmbeddedEdgeConfig = await res.json();

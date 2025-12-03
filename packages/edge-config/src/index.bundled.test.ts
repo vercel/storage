@@ -260,8 +260,8 @@ describe('default Edge Config', () => {
         it('should return all items', async () => {
           fetchMock.mockResponseOnce(() =>
             delay(
-              JSON.stringify({ foo: 'fetched-foo', bar: 'fetched-bar' }),
               timeoutMs * 4,
+              JSON.stringify({ foo: 'fetched-foo', bar: 'fetched-bar' }),
             ),
           );
 
@@ -291,8 +291,8 @@ describe('default Edge Config', () => {
         it('should return the selected items', async () => {
           fetchMock.mockResponseOnce(() =>
             delay(
-              JSON.stringify({ foo: 'fetched-foo', bar: 'fetched-bar' }),
               timeoutMs * 4,
+              JSON.stringify({ foo: 'fetched-foo', bar: 'fetched-bar' }),
             ),
           );
 
@@ -442,13 +442,10 @@ describe('default Edge Config', () => {
       describe('when item exists', () => {
         it('should return true', async () => {
           fetchMock.mockResponseOnce(() =>
-            delay(
-              {
-                status: 404,
-                headers: { 'x-edge-config-digest': '1' },
-              },
-              timeoutMs * 4,
-            ),
+            delay(timeoutMs * 4, {
+              status: 404,
+              headers: { 'x-edge-config-digest': '1' },
+            }),
           );
 
           await expect(has('foo', { timeoutMs })).resolves.toEqual(true);
@@ -479,8 +476,8 @@ describe('default Edge Config', () => {
         it('should return false', async () => {
           fetchMock.mockResponseOnce(() =>
             delay(
-              JSON.stringify({ foo: 'fetched-foo', bar: 'fetched-bar' }),
               timeoutMs * 4,
+              JSON.stringify({ foo: 'fetched-foo', bar: 'fetched-bar' }),
             ),
           );
           await expect(

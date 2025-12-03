@@ -4,6 +4,18 @@ export interface EmbeddedEdgeConfig {
 }
 
 /**
+ * An Edge Config bundled into stores.json
+ *
+ * The contents of stores.json itself are either
+ * - null
+ * - Record<string, BundledEdgeConfig>
+ */
+export type BundledEdgeConfig = {
+  data: EmbeddedEdgeConfig;
+  updatedAt: number | undefined;
+};
+
+/**
  * The parsed info contained in a connection string.
  */
 export type Connection =

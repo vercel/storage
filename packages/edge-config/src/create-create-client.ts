@@ -1,6 +1,7 @@
 import { name as sdkName, version as sdkVersion } from '../package.json';
 import type * as deps from './edge-config';
 import type {
+  BundledEdgeConfig,
   EdgeConfigClient,
   EdgeConfigFunctionsOptions,
   EdgeConfigItems,
@@ -15,6 +16,7 @@ import {
   parseConnectionString,
   pick,
 } from './utils';
+import { readBundledEdgeConfig } from './utils/read-bundled-edge-config';
 import { trace } from './utils/tracing';
 
 type CreateClient = (
@@ -23,7 +25,6 @@ type CreateClient = (
 ) => EdgeConfigClient;
 
 export function createCreateClient({
-  getBundledEdgeConfig,
   getInMemoryEdgeConfig,
   getLocalEdgeConfig,
   fetchEdgeConfigItem,
@@ -31,7 +32,6 @@ export function createCreateClient({
   fetchAllEdgeConfigItem,
   fetchEdgeConfigTrace,
 }: {
-  getBundledEdgeConfig: typeof deps.getBundledEdgeConfig;
   getInMemoryEdgeConfig: typeof deps.getInMemoryEdgeConfig;
   getLocalEdgeConfig: typeof deps.getLocalEdgeConfig;
   fetchEdgeConfigItem: typeof deps.fetchEdgeConfigItem;
@@ -99,20 +99,10 @@ export function createCreateClient({
       /**
        * The edge config bundled at build time
        */
-      let bundledEdgeConfigPromise: Promise<{
-        data: EmbeddedEdgeConfig;
-        updatedAt: number | undefined;
-      } | null> | null;
-      /**
-       * Function to load the bundled edge config or null.
-       */
-      async function getBundledEdgeConfigPromise() {
-        if (!connection || connection.type !== 'vercel') return null;
-        if (bundledEdgeConfigPromise) return await bundledEdgeConfigPromise;
-        const { id } = connection;
-        bundledEdgeConfigPromise = getBundledEdgeConfig(id, fetchCache);
-        return await bundledEdgeConfigPromise;
-      }
+      const bundledEdgeConfig: BundledEdgeConfig | null =
+        connection && connection.type === 'vercel'
+          ? readBundledEdgeConfig(connection.id)
+          : null;
 
       const isBuildStep =
         process.env.CI === '1' ||
@@ -125,8 +115,6 @@ export function createCreateClient({
             localOptions?: EdgeConfigFunctionsOptions,
           ): Promise<T | undefined> {
             assertIsKey(key);
-
-            const bundledEdgeConfig = await getBundledEdgeConfigPromise();
 
             function select(edgeConfig: EmbeddedEdgeConfig) {
               if (isEmptyKey(key)) return undefined;
@@ -189,8 +177,6 @@ export function createCreateClient({
             assertIsKey(key);
             if (isEmptyKey(key)) return false;
 
-            const bundledEdgeConfig = await getBundledEdgeConfigPromise();
-
             function select(edgeConfig: EmbeddedEdgeConfig) {
               return Promise.resolve(hasOwn(edgeConfig.items, key));
             }
@@ -251,8 +237,6 @@ export function createCreateClient({
               assertIsKeys(keys);
             }
 
-            const bundledEdgeConfig = await getBundledEdgeConfigPromise();
-
             function select(edgeConfig: EmbeddedEdgeConfig) {
               return keys === undefined
                 ? Promise.resolve(edgeConfig.items as T)
@@ -312,8 +296,6 @@ export function createCreateClient({
           async function digest(
             localOptions?: EdgeConfigFunctionsOptions,
           ): Promise<string> {
-            const bundledEdgeConfig = await getBundledEdgeConfigPromise();
-
             function select(embeddedEdgeConfig: EmbeddedEdgeConfig) {
               return embeddedEdgeConfig.digest;
             }

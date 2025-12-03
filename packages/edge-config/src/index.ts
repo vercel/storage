@@ -4,7 +4,6 @@ import {
   fetchEdgeConfigHas,
   fetchEdgeConfigItem,
   fetchEdgeConfigTrace,
-  getBundledEdgeConfig,
   getInMemoryEdgeConfig,
   getLocalEdgeConfig,
 } from './edge-config';
@@ -37,7 +36,6 @@ export {
  * @returns An Edge Config Client instance
  */
 export const createClient = createCreateClient({
-  getBundledEdgeConfig,
   getInMemoryEdgeConfig,
   getLocalEdgeConfig,
   fetchEdgeConfigItem,

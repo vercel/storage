@@ -257,7 +257,6 @@ export async function fetchEdgeConfigItem<T = EdgeConfigValue>(
   consistentRead: undefined | boolean,
   localHeaders: HeadersRecord,
   fetchCache: EdgeConfigClientOptions['cache'],
-  timeoutMs: number | undefined,
 ): Promise<T | undefined> {
   if (isEmptyKey(key)) return undefined;
 
@@ -268,7 +267,6 @@ export async function fetchEdgeConfigItem<T = EdgeConfigValue>(
   return fetchWithCachedResponse(`${baseUrl}/item/${key}?version=${version}`, {
     headers,
     cache: fetchCache,
-    signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined,
   }).then<T | undefined, undefined>(async (res) => {
     if (res.ok) return res.json();
     await consumeResponseBody(res);
@@ -298,7 +296,6 @@ export async function fetchEdgeConfigHas(
   consistentRead: undefined | boolean,
   localHeaders: HeadersRecord,
   fetchCache: EdgeConfigClientOptions['cache'],
-  timeoutMs: undefined | number,
 ): Promise<boolean> {
   const headers = new Headers(localHeaders);
   if (consistentRead) {
@@ -310,7 +307,6 @@ export async function fetchEdgeConfigHas(
     method: 'HEAD',
     headers,
     cache: fetchCache,
-    signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined,
   }).then((res) => {
     if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
     if (res.status === 404) {
@@ -336,7 +332,6 @@ export async function fetchAllEdgeConfigItem<T = EdgeConfigItems>(
   consistentRead: undefined | boolean,
   localHeaders: HeadersRecord,
   fetchCache: EdgeConfigClientOptions['cache'],
-  timeoutMs: undefined | number,
 ): Promise<T> {
   let url = `${baseUrl}/items?version=${version}`;
   if (keys) {
@@ -360,7 +355,6 @@ export async function fetchAllEdgeConfigItem<T = EdgeConfigItems>(
   return fetchWithCachedResponse(url, {
     headers,
     cache: fetchCache,
-    signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined,
   }).then<T>(async (res) => {
     if (res.ok) return res.json();
     await consumeResponseBody(res);
@@ -384,7 +378,6 @@ export async function fetchEdgeConfigTrace(
   consistentRead: undefined | boolean,
   localHeaders: HeadersRecord,
   fetchCache: EdgeConfigClientOptions['cache'],
-  timeoutMs: number | undefined,
 ): Promise<string> {
   const headers = new Headers(localHeaders);
   if (consistentRead) {
@@ -394,7 +387,6 @@ export async function fetchEdgeConfigTrace(
   return fetchWithCachedResponse(`${baseUrl}/digest?version=${version}`, {
     headers,
     cache: fetchCache,
-    signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined,
   }).then(async (res) => {
     if (res.ok) return res.json() as Promise<string>;
     await consumeResponseBody(res);

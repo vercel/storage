@@ -16,6 +16,7 @@ import {
   parseConnectionString,
   pick,
 } from './utils';
+import { delay } from './utils/delay';
 import { readBundledEdgeConfig } from './utils/read-bundled-edge-config';
 import { TimeoutError } from './utils/timeout-error';
 import { trace } from './utils/tracing';
@@ -126,16 +127,14 @@ export function createCreateClient({
         let timer: NodeJS.Timeout | undefined;
         // ensure we don't throw within race to avoid throwing after run() completes
         const result = await Promise.race([
-          new Promise<TimeoutError>((resolve) => {
-            timer = setTimeout(
-              () => resolve(new TimeoutError(edgeConfigId, method, key)),
-              ms,
-            );
+          delay(ms, new TimeoutError(edgeConfigId, method, key), (t) => {
+            timer = t;
           }),
           run(),
-        ]);
+        ]).finally(() => {
+          clearTimeout(timer);
+        });
         if (result instanceof TimeoutError) throw result;
-        clearTimeout(timer);
         return result;
       }
 

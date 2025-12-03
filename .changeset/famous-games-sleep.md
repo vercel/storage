@@ -25,3 +25,11 @@ Add the `edge-config prepare` command to your `prebuild` script:
 ```
 
 The prepare command reads your environment variables and bundles all connected Edge Configs. Use `--verbose` for detailed logs. Note that the bundled Edge Config stores count towards your build [function bundle size limit](https://vercel.com/docs/functions/limitations#bundle-size-limits).
+
+**Build improvements:**
+
+Using `edge-config prepare` also improves build performance and consistency:
+
+- **Faster builds:** The SDK fetches each Edge Config store once per build instead of once per key
+- **Eliminates inconsistencies:** Prevents Edge Config changes between individual key reads during the build
+- **Automatic optimization:** No code changes required—just add the prebuild script

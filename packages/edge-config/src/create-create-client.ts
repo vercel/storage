@@ -17,7 +17,7 @@ import {
   pick,
 } from './utils';
 import { readBundledEdgeConfig } from './utils/read-bundled-edge-config';
-import { EdgeConfigFetchTimeoutError } from './utils/timeout-error';
+import { TimeoutError } from './utils/timeout-error';
 import { trace } from './utils/tracing';
 
 type CreateClient = (
@@ -120,18 +120,20 @@ export function createCreateClient({
         run: () => Promise<T>,
       ): Promise<T> {
         const ms = localOptions?.timeoutMs ?? timeoutMs;
-        return await Promise.race([
-          new Promise<T>((resolve, reject) =>
-            setTimeout(
-              () =>
-                reject(
-                  new EdgeConfigFetchTimeoutError(edgeConfigId, method, key),
-                ),
+        let timer: NodeJS.Timeout | undefined;
+        // ensure we don't throw within race to avoid throwing after run() completes
+        const result = await Promise.race([
+          new Promise<TimeoutError>((resolve) => {
+            timer = setTimeout(
+              () => resolve(new TimeoutError(edgeConfigId, method, key)),
               ms,
-            ),
-          ),
+            );
+          }),
           run(),
         ]);
+        if (result instanceof TimeoutError) throw result;
+        clearTimeout(timer);
+        return result;
       }
 
       const api: Omit<EdgeConfigClient, 'connection'> = {

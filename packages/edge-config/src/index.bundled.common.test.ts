@@ -129,7 +129,6 @@ describe('default Edge Config', () => {
               'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
-            signal: expect.any(AbortSignal),
           },
         );
 
@@ -283,7 +282,6 @@ describe('default Edge Config', () => {
               'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
-            signal: expect.any(AbortSignal),
           });
 
           expect(console.warn).toHaveBeenCalledWith(
@@ -317,7 +315,6 @@ describe('default Edge Config', () => {
                 'cache-control': 'stale-if-error=604800',
               }),
               cache: 'no-store',
-              signal: expect.any(AbortSignal),
             },
           );
 
@@ -471,7 +468,6 @@ describe('default Edge Config', () => {
                 'cache-control': 'stale-if-error=604800',
               }),
               cache: 'no-store',
-              signal: expect.any(AbortSignal),
             },
           );
 
@@ -505,7 +501,6 @@ describe('default Edge Config', () => {
                 'cache-control': 'stale-if-error=604800',
               }),
               cache: 'no-store',
-              signal: expect.any(AbortSignal),
             },
           );
 

@@ -1,4 +1,4 @@
-export class EdgeConfigFetchTimeoutError extends Error {
+export class TimeoutError extends Error {
   public method: string;
   public edgeConfigId: string;
   public key: string | string[] | undefined;
@@ -16,7 +16,7 @@ export class EdgeConfigFetchTimeoutError extends Error {
         .filter((x) => x !== '')
         .join(' ')})`,
     );
-    this.name = 'EdgeConfigFetchTimeoutError';
+    this.name = 'TimeoutError';
     this.edgeConfigId = edgeConfigId;
     this.key = key;
     this.method = method;

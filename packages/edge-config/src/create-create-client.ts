@@ -17,6 +17,7 @@ import {
   pick,
 } from './utils';
 import { readBundledEdgeConfig } from './utils/read-bundled-edge-config';
+import { EdgeConfigFetchTimeoutError } from './utils/timeout-error';
 import { trace } from './utils/tracing';
 
 type CreateClient = (
@@ -108,6 +109,31 @@ export function createCreateClient({
         process.env.CI === '1' ||
         process.env.NEXT_PHASE === 'phase-production-build';
 
+      /**
+       * Ensures that the provided function runs within a specified timeout.
+       * If the timeout is reached before the function completes, it returns the fallback.
+       */
+      async function timeout<T>(
+        method: string,
+        key: string | string[] | undefined,
+        localOptions: EdgeConfigFunctionsOptions | undefined,
+        run: () => Promise<T>,
+      ): Promise<T> {
+        const ms = localOptions?.timeoutMs ?? timeoutMs;
+        return await Promise.race([
+          new Promise<T>((resolve, reject) =>
+            setTimeout(
+              () =>
+                reject(
+                  new EdgeConfigFetchTimeoutError(edgeConfigId, method, key),
+                ),
+              ms,
+            ),
+          ),
+          run(),
+        ]);
+      }
+
       const api: Omit<EdgeConfigClient, 'connection'> = {
         get: trace(
           async function get<T = EdgeConfigValue>(
@@ -118,11 +144,7 @@ export function createCreateClient({
 
             function select(edgeConfig: EmbeddedEdgeConfig) {
               if (isEmptyKey(key)) return undefined;
-              // We need to return a clone of the value so users can't modify
-              // our original value, and so the reference changes.
-              //
-              // This makes it consistent with the real API.
-              return Promise.resolve(edgeConfig.items[key] as T);
+              return edgeConfig.items[key] as T;
             }
 
             if (bundledEdgeConfig && isBuildStep) {
@@ -130,34 +152,35 @@ export function createCreateClient({
             }
 
             try {
-              let localEdgeConfig: EmbeddedEdgeConfig | null = null;
-              if (localOptions?.consistentRead) {
-                // fall through to fetching
-              } else if (shouldUseDevelopmentCache) {
-                localEdgeConfig = await getInMemoryEdgeConfig(
-                  connectionString,
-                  fetchCache,
-                  options.staleIfError,
-                );
-              } else {
-                localEdgeConfig = await getLocalEdgeConfig(
-                  connection.type,
-                  connection.id,
-                  fetchCache,
-                );
-              }
+              return await timeout('get', key, localOptions, async () => {
+                let localEdgeConfig: EmbeddedEdgeConfig | null = null;
+                if (localOptions?.consistentRead) {
+                  // fall through to fetching
+                } else if (shouldUseDevelopmentCache) {
+                  localEdgeConfig = await getInMemoryEdgeConfig(
+                    connectionString,
+                    fetchCache,
+                    options.staleIfError,
+                  );
+                } else {
+                  localEdgeConfig = await getLocalEdgeConfig(
+                    connection.type,
+                    connection.id,
+                    fetchCache,
+                  );
+                }
 
-              if (localEdgeConfig) return select(localEdgeConfig);
+                if (localEdgeConfig) return select(localEdgeConfig);
 
-              return await fetchEdgeConfigItem<T>(
-                baseUrl,
-                key,
-                version,
-                localOptions?.consistentRead,
-                headers,
-                fetchCache,
-                localOptions?.timeoutMs ?? timeoutMs,
-              );
+                return await fetchEdgeConfigItem<T>(
+                  baseUrl,
+                  key,
+                  version,
+                  localOptions?.consistentRead,
+                  headers,
+                  fetchCache,
+                );
+              });
             } catch (error) {
               if (!bundledEdgeConfig) throw error;
               console.warn(
@@ -178,7 +201,7 @@ export function createCreateClient({
             if (isEmptyKey(key)) return false;
 
             function select(edgeConfig: EmbeddedEdgeConfig) {
-              return Promise.resolve(hasOwn(edgeConfig.items, key));
+              return hasOwn(edgeConfig.items, key);
             }
 
             if (bundledEdgeConfig && isBuildStep) {
@@ -186,37 +209,38 @@ export function createCreateClient({
             }
 
             try {
-              let localEdgeConfig: EmbeddedEdgeConfig | null = null;
+              return await timeout('has', key, localOptions, async () => {
+                let localEdgeConfig: EmbeddedEdgeConfig | null = null;
 
-              if (localOptions?.consistentRead) {
-                // fall through to fetching
-              } else if (shouldUseDevelopmentCache) {
-                localEdgeConfig = await getInMemoryEdgeConfig(
-                  connectionString,
+                if (localOptions?.consistentRead) {
+                  // fall through to fetching
+                } else if (shouldUseDevelopmentCache) {
+                  localEdgeConfig = await getInMemoryEdgeConfig(
+                    connectionString,
+                    fetchCache,
+                    options.staleIfError,
+                  );
+                } else {
+                  localEdgeConfig = await getLocalEdgeConfig(
+                    connection.type,
+                    connection.id,
+                    fetchCache,
+                  );
+                }
+
+                if (localEdgeConfig) {
+                  return Promise.resolve(hasOwn(localEdgeConfig.items, key));
+                }
+
+                return await fetchEdgeConfigHas(
+                  baseUrl,
+                  key,
+                  version,
+                  localOptions?.consistentRead,
+                  headers,
                   fetchCache,
-                  options.staleIfError,
                 );
-              } else {
-                localEdgeConfig = await getLocalEdgeConfig(
-                  connection.type,
-                  connection.id,
-                  fetchCache,
-                );
-              }
-
-              if (localEdgeConfig) {
-                return Promise.resolve(hasOwn(localEdgeConfig.items, key));
-              }
-
-              return await fetchEdgeConfigHas(
-                baseUrl,
-                key,
-                version,
-                localOptions?.consistentRead,
-                headers,
-                fetchCache,
-                localOptions?.timeoutMs ?? timeoutMs,
-              );
+              });
             } catch (error) {
               if (!bundledEdgeConfig) throw error;
               console.warn(
@@ -239,8 +263,8 @@ export function createCreateClient({
 
             function select(edgeConfig: EmbeddedEdgeConfig) {
               return keys === undefined
-                ? Promise.resolve(edgeConfig.items as T)
-                : Promise.resolve(pick(edgeConfig.items as T, keys) as T);
+                ? (edgeConfig.items as T)
+                : (pick(edgeConfig.items as T, keys) as T);
             }
 
             if (bundledEdgeConfig && isBuildStep) {
@@ -248,35 +272,36 @@ export function createCreateClient({
             }
 
             try {
-              let localEdgeConfig: EmbeddedEdgeConfig | null = null;
+              return await timeout('getAll', keys, localOptions, async () => {
+                let localEdgeConfig: EmbeddedEdgeConfig | null = null;
 
-              if (localOptions?.consistentRead) {
-                // fall through to fetching
-              } else if (shouldUseDevelopmentCache) {
-                localEdgeConfig = await getInMemoryEdgeConfig(
-                  connectionString,
+                if (localOptions?.consistentRead) {
+                  // fall through to fetching
+                } else if (shouldUseDevelopmentCache) {
+                  localEdgeConfig = await getInMemoryEdgeConfig(
+                    connectionString,
+                    fetchCache,
+                    options.staleIfError,
+                  );
+                } else {
+                  localEdgeConfig = await getLocalEdgeConfig(
+                    connection.type,
+                    connection.id,
+                    fetchCache,
+                  );
+                }
+
+                if (localEdgeConfig) return select(localEdgeConfig);
+
+                return await fetchAllEdgeConfigItem<T>(
+                  baseUrl,
+                  keys,
+                  version,
+                  localOptions?.consistentRead,
+                  headers,
                   fetchCache,
-                  options.staleIfError,
                 );
-              } else {
-                localEdgeConfig = await getLocalEdgeConfig(
-                  connection.type,
-                  connection.id,
-                  fetchCache,
-                );
-              }
-
-              if (localEdgeConfig) return select(localEdgeConfig);
-
-              return await fetchAllEdgeConfigItem<T>(
-                baseUrl,
-                keys,
-                version,
-                localOptions?.consistentRead,
-                headers,
-                fetchCache,
-                localOptions?.timeoutMs ?? timeoutMs,
-              );
+              });
             } catch (error) {
               if (!bundledEdgeConfig) throw error;
               console.warn(
@@ -305,33 +330,39 @@ export function createCreateClient({
             }
 
             try {
-              let localEdgeConfig: EmbeddedEdgeConfig | null = null;
+              return await timeout(
+                'digest',
+                undefined,
+                localOptions,
+                async () => {
+                  let localEdgeConfig: EmbeddedEdgeConfig | null = null;
 
-              if (localOptions?.consistentRead) {
-                // fall through to fetching
-              } else if (shouldUseDevelopmentCache) {
-                localEdgeConfig = await getInMemoryEdgeConfig(
-                  connectionString,
-                  fetchCache,
-                  options.staleIfError,
-                );
-              } else {
-                localEdgeConfig = await getLocalEdgeConfig(
-                  connection.type,
-                  connection.id,
-                  fetchCache,
-                );
-              }
+                  if (localOptions?.consistentRead) {
+                    // fall through to fetching
+                  } else if (shouldUseDevelopmentCache) {
+                    localEdgeConfig = await getInMemoryEdgeConfig(
+                      connectionString,
+                      fetchCache,
+                      options.staleIfError,
+                    );
+                  } else {
+                    localEdgeConfig = await getLocalEdgeConfig(
+                      connection.type,
+                      connection.id,
+                      fetchCache,
+                    );
+                  }
 
-              if (localEdgeConfig) return select(localEdgeConfig);
+                  if (localEdgeConfig) return select(localEdgeConfig);
 
-              return await fetchEdgeConfigTrace(
-                baseUrl,
-                version,
-                localOptions?.consistentRead,
-                headers,
-                fetchCache,
-                localOptions?.timeoutMs ?? timeoutMs,
+                  return await fetchEdgeConfigTrace(
+                    baseUrl,
+                    version,
+                    localOptions?.consistentRead,
+                    headers,
+                    fetchCache,
+                  );
+                },
               );
             } catch (error) {
               if (!bundledEdgeConfig) throw error;

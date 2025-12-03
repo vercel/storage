@@ -15,6 +15,7 @@ import type {
 } from './types';
 import { parseConnectionString } from './utils';
 
+export { EdgeConfigFetchTimeoutError } from './utils/timeout-error';
 export { setTracerProvider } from './utils/tracing';
 
 export {

@@ -82,6 +82,7 @@ async function prepare(output: string, options: PrepareOptions): Promise<void> {
           authorization: `Bearer ${connection.token}`,
           // consistentRead
           'x-edge-config-min-updated-at': `${Number.MAX_SAFE_INTEGER}`,
+          'user-agent': `@vercel/edge-config@${version} (prepare)`,
         },
       });
 

@@ -32,12 +32,44 @@ type PrepareOptions = {
   verbose?: boolean;
 };
 
+/**
+ * Parses a connection string with the following format:
+ * `flags:edgeConfigId=ecfg_abcd&edgeConfigToken=xxx`
+ */
+function parseConnectionFromFlags(text: string): Connection | null {
+  try {
+    if (!text.startsWith('flags:')) return null;
+    const params = new URLSearchParams(text.slice(6));
+
+    const id = params.get('edgeConfigId');
+    const token = params.get('edgeConfigToken');
+
+    if (!id || !token) return null;
+
+    return {
+      type: 'vercel',
+      baseUrl: `https://edge-config.vercel.com/${id}`,
+      id,
+      version: '1',
+      token,
+    };
+  } catch {
+    // no-op
+  }
+
+  return null;
+}
+
 async function prepare(output: string, options: PrepareOptions): Promise<void> {
   const connections = Object.values(process.env).reduce<Connection[]>(
     (acc, value) => {
       if (typeof value !== 'string') return acc;
       const data = parseConnectionString(value);
       if (data) acc.push(data);
+
+      const vfData = parseConnectionFromFlags(value);
+      if (vfData) acc.push(vfData);
+
       return acc;
     },
     [],

@@ -1,3 +1,7 @@
+/**
+ * @jest-environment @edge-runtime/jest-environment
+ */
+
 import fetchMock from 'jest-fetch-mock';
 import { version as pkgVersion } from '../package.json';
 import { createClient, digest, get, getAll, has } from './index';
@@ -17,6 +21,10 @@ describe('default Edge Config', () => {
       expect(process.env.EDGE_CONFIG).toEqual(
         'https://edge-config.vercel.com/ecfg_1?token=token-1',
       );
+    });
+
+    it('should use Edge Runtime', () => {
+      expect(EdgeRuntime).toBe('edge-runtime');
     });
   });
 

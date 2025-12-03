@@ -1,3 +1,7 @@
+/**
+ * @jest-environment node
+ */
+
 import { readFile } from '@vercel/edge-config-fs';
 import fetchMock from 'jest-fetch-mock';
 import { version as pkgVersion } from '../package.json';
@@ -33,6 +37,10 @@ describe('default Edge Config', () => {
       expect(process.env.EDGE_CONFIG).toEqual(
         'https://edge-config.vercel.com/ecfg_1?token=token-1',
       );
+    });
+
+    it('should use Edge Runtime', () => {
+      expect(typeof EdgeRuntime).toBe('undefined');
     });
   });
 

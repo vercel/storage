@@ -35,7 +35,7 @@
     "publint": "npx publint",
     "test": "jest",
     "test:edge": "jest --env @edge-runtime/jest-environment",
-    "test:node": "jest --env node --testPathIgnorePatterns",
+    "test:node": "jest --env node",
     "type-check": "tsc --noEmit"
   },
   "bin": {

@@ -120,6 +120,9 @@ export function createCreateClient({
         run: () => Promise<T>,
       ): Promise<T> {
         const ms = localOptions?.timeoutMs ?? timeoutMs;
+
+        if (typeof ms !== 'number') return run();
+
         let timer: NodeJS.Timeout | undefined;
         // ensure we don't throw within race to avoid throwing after run() completes
         const result = await Promise.race([

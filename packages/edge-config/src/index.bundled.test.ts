@@ -28,6 +28,8 @@ function delay<T>(data: T, timeoutMs: number): Promise<T> {
 beforeEach(() => {
   fetchMock.resetMocks();
   cache.clear();
+
+  jest.spyOn(console, 'warn').mockImplementationOnce(() => {});
 });
 
 // mock fs for test
@@ -72,6 +74,11 @@ describe('default Edge Config', () => {
             cache: 'no-store',
           },
         );
+
+        expect(console.warn).toHaveBeenCalledWith(
+          '@vercel/edge-config: Falling back to bundled version of ecfg_1 due to the following error',
+          expect.any(DOMException),
+        );
       });
     });
 
@@ -92,6 +99,11 @@ describe('default Edge Config', () => {
             }),
             cache: 'no-store',
           },
+        );
+
+        expect(console.warn).toHaveBeenCalledWith(
+          '@vercel/edge-config: Falling back to bundled version of ecfg_1 due to the following error',
+          expect.any(DOMException),
         );
       });
     });
@@ -120,6 +132,11 @@ describe('default Edge Config', () => {
             signal: expect.any(AbortSignal),
           },
         );
+
+        expect(console.warn).toHaveBeenCalledWith(
+          '@vercel/edge-config: Falling back to bundled version of ecfg_1 due to the following error',
+          expect.any(DOMException),
+        );
       });
     });
   });
@@ -145,6 +162,11 @@ describe('default Edge Config', () => {
             }),
             cache: 'no-store',
           });
+
+          expect(console.warn).toHaveBeenCalledWith(
+            '@vercel/edge-config: Falling back to bundled version of ecfg_1 due to the following error',
+            expect.any(DOMException),
+          );
         });
       });
       describe('when called with keys', () => {
@@ -168,6 +190,11 @@ describe('default Edge Config', () => {
               }),
               cache: 'no-store',
             },
+          );
+
+          expect(console.warn).toHaveBeenCalledWith(
+            '@vercel/edge-config: Falling back to bundled version of ecfg_1 due to the following error',
+            expect.any(DOMException),
           );
         });
       });
@@ -193,6 +220,11 @@ describe('default Edge Config', () => {
             }),
             cache: 'no-store',
           });
+
+          expect(console.warn).toHaveBeenCalledWith(
+            '@vercel/edge-config: Falling back to bundled version of ecfg_1 due to the following error',
+            expect.any(DOMException),
+          );
         });
       });
       describe('when called with keys', () => {
@@ -216,6 +248,11 @@ describe('default Edge Config', () => {
               }),
               cache: 'no-store',
             },
+          );
+
+          expect(console.warn).toHaveBeenCalledWith(
+            '@vercel/edge-config: Falling back to bundled version of ecfg_1 due to the following error',
+            expect.any(DOMException),
           );
         });
       });
@@ -248,6 +285,11 @@ describe('default Edge Config', () => {
             cache: 'no-store',
             signal: expect.any(AbortSignal),
           });
+
+          expect(console.warn).toHaveBeenCalledWith(
+            '@vercel/edge-config: Falling back to bundled version of ecfg_1 due to the following error',
+            expect.any(DOMException),
+          );
         });
       });
       describe('when called with keys', () => {
@@ -278,6 +320,11 @@ describe('default Edge Config', () => {
               signal: expect.any(AbortSignal),
             },
           );
+
+          expect(console.warn).toHaveBeenCalledWith(
+            '@vercel/edge-config: Falling back to bundled version of ecfg_1 due to the following error',
+            expect.any(DOMException),
+          );
         });
       });
     });
@@ -305,6 +352,11 @@ describe('default Edge Config', () => {
               cache: 'no-store',
             },
           );
+
+          expect(console.warn).toHaveBeenCalledWith(
+            '@vercel/edge-config: Falling back to bundled version of ecfg_1 due to the following error',
+            expect.any(DOMException),
+          );
         });
       });
 
@@ -325,6 +377,11 @@ describe('default Edge Config', () => {
               }),
               cache: 'no-store',
             },
+          );
+
+          expect(console.warn).toHaveBeenCalledWith(
+            '@vercel/edge-config: Falling back to bundled version of ecfg_1 due to the following error',
+            expect.any(DOMException),
           );
         });
       });
@@ -351,6 +408,11 @@ describe('default Edge Config', () => {
               cache: 'no-store',
             },
           );
+
+          expect(console.warn).toHaveBeenCalledWith(
+            '@vercel/edge-config: Falling back to bundled version of ecfg_1 due to the following error',
+            expect.any(DOMException),
+          );
         });
       });
 
@@ -371,6 +433,11 @@ describe('default Edge Config', () => {
               }),
               cache: 'no-store',
             },
+          );
+
+          expect(console.warn).toHaveBeenCalledWith(
+            '@vercel/edge-config: Falling back to bundled version of ecfg_1 due to the following error',
+            expect.any(DOMException),
           );
         });
       });
@@ -407,6 +474,11 @@ describe('default Edge Config', () => {
               signal: expect.any(AbortSignal),
             },
           );
+
+          expect(console.warn).toHaveBeenCalledWith(
+            '@vercel/edge-config: Falling back to bundled version of ecfg_1 due to the following error',
+            expect.any(DOMException),
+          );
         });
       });
 
@@ -435,6 +507,11 @@ describe('default Edge Config', () => {
               cache: 'no-store',
               signal: expect.any(AbortSignal),
             },
+          );
+
+          expect(console.warn).toHaveBeenCalledWith(
+            '@vercel/edge-config: Falling back to bundled version of ecfg_1 due to the following error',
+            expect.any(DOMException),
           );
         });
       });

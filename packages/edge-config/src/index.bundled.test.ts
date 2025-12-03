@@ -6,6 +6,7 @@ import { get, getAll, has } from './index';
 import type { EmbeddedEdgeConfig } from './types';
 import { delay } from './utils/delay';
 import { cache } from './utils/fetch-with-cached-response';
+import { TimeoutError } from './utils/timeout-error';
 
 jest.mock('@vercel/edge-config/dist/stores.json', () => {
   return {
@@ -131,7 +132,7 @@ describe('default Edge Config', () => {
 
         expect(console.warn).toHaveBeenCalledWith(
           '@vercel/edge-config: Falling back to bundled version of ecfg_1 due to the following error',
-          expect.any(DOMException),
+          expect.any(TimeoutError),
         );
       });
     });

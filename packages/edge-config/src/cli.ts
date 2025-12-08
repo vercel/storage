@@ -129,6 +129,8 @@ program
   .description('Prepare Edge Config stores.json file for build time embedding')
   .option('--verbose', 'Enable verbose logging')
   .action(async (options: PrepareOptions) => {
+    if (process.env.EDGE_CONFIG_DISABLE_EMBEDDING === '1') return;
+
     const output = join(__dirname, '..', 'dist', 'stores.json');
     await prepare(output, options);
   });

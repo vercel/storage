@@ -301,6 +301,7 @@ export async function fetchEdgeConfigHas(
   if (consistentRead) {
     addConsistentReadHeader(headers);
   }
+
   // this is a HEAD request anyhow, no need for fetchWithCachedResponse
   return fetch(`${baseUrl}/item/${key}?version=${version}`, {
     method: 'HEAD',
@@ -456,4 +457,11 @@ export interface EdgeConfigClientOptions {
    * Unlike Next.js, this defaults to `no-store`, as you most likely want to use Edge Config dynamically.
    */
   cache?: 'no-store' | 'force-cache';
+
+  /**
+   * How long to wait for a fresh value before falling back to a stale value or throwing.
+   *
+   * It is recommended to only use this in combination with a bundled Edge Config (see "edge-config prepare" script).
+   */
+  timeoutMs?: number;
 }

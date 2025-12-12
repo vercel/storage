@@ -30,12 +30,16 @@ const expectedRows = [
 test.describe('@vercel/postgres-kysely', () => {
   test.describe('app directory', () => {
     test.describe('api', () => {
-      test('edge', async ({ request }) => {
-        const res = await request.get('api/vercel/postgres-kysely/app/edge');
+      test('edge', async ({ request, extraHTTPHeaders }) => {
+        const res = await request.get('api/vercel/postgres-kysely/app/edge', {
+          headers: extraHTTPHeaders,
+        });
         expect(await res.json()).toEqual(expectedRows);
       });
-      test('node', async ({ request }) => {
-        const res = await request.get('api/vercel/postgres-kysely/app/node');
+      test('node', async ({ request, extraHTTPHeaders }) => {
+        const res = await request.get('api/vercel/postgres-kysely/app/node', {
+          headers: extraHTTPHeaders,
+        });
         expect(await res.json()).toEqual(expectedRows);
       });
     });
@@ -60,12 +64,16 @@ test.describe('@vercel/postgres-kysely', () => {
   });
   test.describe('pages directory', () => {
     test.describe('api', () => {
-      test('edge', async ({ request }) => {
-        const res = await request.get('api/vercel/postgres-kysely/pages/edge');
+      test('edge', async ({ request, extraHTTPHeaders }) => {
+        const res = await request.get('api/vercel/postgres-kysely/pages/edge', {
+          headers: extraHTTPHeaders,
+        });
         expect(await res.json()).toEqual(expectedRows);
       });
-      test('node', async ({ request }) => {
-        const res = await request.get('api/vercel/postgres-kysely/pages/node');
+      test('node', async ({ request, extraHTTPHeaders }) => {
+        const res = await request.get('api/vercel/postgres-kysely/pages/node', {
+          headers: extraHTTPHeaders,
+        });
         expect(await res.json()).toEqual(expectedRows);
       });
     });

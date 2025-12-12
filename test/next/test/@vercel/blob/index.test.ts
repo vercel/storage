@@ -16,12 +16,13 @@ test.describe('@vercel/blob', () => {
       'api/vercel/blob/pages/edge',
       'api/vercel/blob/pages/serverless',
     ].forEach((path) => {
-      test(path, async ({ request }) => {
+      test(path, async ({ request, extraHTTPHeaders }) => {
         const data = (await request
           .post(`${path}?filename=${prefix}/test.txt`, {
             data: `Hello world ${path} ${prefix}`,
             headers: {
               cookie: `clientUpload=${process.env.BLOB_UPLOAD_SECRET ?? ''}`,
+              ...extraHTTPHeaders,
             },
           })
           .then((r) => r.json())) as PutBlobResult;
@@ -145,7 +146,7 @@ test.describe('@vercel/blob', () => {
           'api/vercel/blob/pages/edge',
           'api/vercel/blob/pages/serverless',
         ].forEach((path) => {
-          test(path, async ({ request }) => {
+          test(path, async ({ request, extraHTTPHeaders }) => {
             const data = (await request
               .post(`${path}?filename=${prefix}/test.txt&multipart=1`, {
                 data: `Hello world ${path} ${prefix}`,
@@ -153,6 +154,7 @@ test.describe('@vercel/blob', () => {
                   cookie: `clientUpload=${
                     process.env.BLOB_UPLOAD_SECRET ?? ''
                   }`,
+                  ...extraHTTPHeaders,
                 },
               })
               .then((r) => r.json())) as PutBlobResult;
@@ -170,7 +172,10 @@ test.describe('@vercel/blob', () => {
       });
 
       // https://github.com/vercel/storage/pull/616
-      test('multipart upload with buffer', async ({ request }) => {
+      test('multipart upload with buffer', async ({
+        request,
+        extraHTTPHeaders,
+      }) => {
         const path = 'vercel/blob/api/app/body/serverless';
         const imgPath = join(process.cwd(), 'images');
         const imageFile = readFileSync(join(imgPath, `g.jpeg`));
@@ -180,6 +185,7 @@ test.describe('@vercel/blob', () => {
             data: imageFile,
             headers: {
               cookie: `clientUpload=${process.env.BLOB_UPLOAD_SECRET ?? ''}`,
+              ...extraHTTPHeaders,
             },
           })
           .then((r) => r.json())) as PutBlobResult;

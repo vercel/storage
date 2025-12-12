@@ -26,8 +26,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version-file: '.node-version'
-          cache: 'pnpm'
+          node-version-file: ".node-version"
+          cache: "pnpm"
 
       - uses: actions/cache@v4
         id: playwright-cache
@@ -48,10 +48,11 @@ jobs:
       # this allows to use action cache, which is not possible when using deployment_status otherwise
       # see https://github.com/actions/cache/issues/319
       - name: Wait for Vercel Preview
-        uses: patrickedqvist/wait-for-vercel-preview@v1.3.1
+        uses: patrickedqvist/wait-for-vercel-preview@d0c786948cbb91d3a92fdfff2829e9066c232330
         id: waitForVercelPreview
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          vercel_protection_bypass_header: ${{ secrets.VERCEL_PROTECTION_BYPASS_HEADER }}
           max_timeout: 600
 
       - name: Run Playwright tests on ${{ steps.waitForVercelPreview.outputs.url }}
@@ -59,6 +60,7 @@ jobs:
         env:
           PLAYWRIGHT_TEST_BASE_URL: ${{ steps.waitForVercelPreview.outputs.url }}
           BLOB_UPLOAD_SECRET: ${{ secrets.BLOB_UPLOAD_SECRET }}
+          VERCEL_PROTECTION_BYPASS_HEADER: ${{ secrets.VERCEL_PROTECTION_BYPASS_HEADER }}
 
       - uses: actions/upload-artifact@v4
         if: always()

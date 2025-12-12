@@ -47,7 +47,7 @@ const config: PlaywrightTestConfig = {
           'x-vercel-protection-bypass':
             process.env.VERCEL_PROTECTION_BYPASS_HEADER,
         }
-      : {},
+      : undefined,
   },
 
   projects: process.env.PLAYWRIGHT_PROJECT

@@ -44,7 +44,9 @@ test.skip('web worker upload', async ({ browser }) => {
   expect(response).toBe(fileContent);
 });
 
-test.afterAll(async ({ request }) => {
+test.afterAll(async ({ request, extraHTTPHeaders }) => {
   // cleanup all files
-  await request.delete(`vercel/blob/api/app/clean?prefix=${prefix}`);
+  await request.delete(`vercel/blob/api/app/clean?prefix=${prefix}`, {
+    headers: { ...extraHTTPHeaders },
+  });
 });

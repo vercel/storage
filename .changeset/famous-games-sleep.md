@@ -2,9 +2,12 @@
 "@vercel/edge-config": minor
 ---
 
-**NEW** Edge Config Snapshotting
+**NEW** Edge Config Snapshots
 
-You can now bundle a snapshot of your Edge Config along with your deployment. This snapshot will be used to guarantee your build consistently uses the same version of each Edge Config and as a fallback in case the Edge Config service is unavailable once your project is deployed to protect against Edge Config service degradation or unavailability.
+You can now bundle a snapshot of your Edge Config along with your deployment.
+- snapshot is used as a fallback in case the Edge Config service is unavailable
+- snapshot is consistently used during builds, ensuring your app uses a consistent version and reducing build time
+- snapshot will be used in the future to immediately bootstrap the Edge Config SDK (soon)
 
 **How it works:**
 - Your app continues using the latest Edge Config version under normal conditions
@@ -26,7 +29,7 @@ Add the `edge-config snapshot` command to your `prebuild` script:
 }
 ```
 
-The snapshot command reads your environment variables and bundles all connected Edge Configs. Use `--verbose` for detailed logs. Technically this works by writing the Edge Config stores to `node_modules/@vercel/edge-config/dist/stores.json`. Note that the bundled Edge Config stores count towards your build [function bundle size limit](https://vercel.com/docs/functions/limitations#bundle-size-limits).
+The snapshot command reads your environment variables and bundles all connected Edge Configs. Use `--verbose` for detailed logs. Note that the bundled Edge Config stores count towards your build [function bundle size limit](https://vercel.com/docs/functions/limitations#bundle-size-limits).
 
 You can further configure your client to throw errors in case it can not find the Edge Config snapshot by editing the connection string stored in the `EDGE_CONFIG` environment variable and appending `&snapshot=required`. You can also specify `snapshot: "required"` when creating clients using `createClient`.
 

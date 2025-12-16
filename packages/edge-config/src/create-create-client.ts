@@ -57,6 +57,7 @@ export function createCreateClient({
       options = {
         staleIfError: 604800 /* one week */,
         cache: 'no-store',
+        snapshot: 'optional',
       },
     ): EdgeConfigClient {
       if (!connectionString)
@@ -85,9 +86,15 @@ export function createCreateClient({
       if (typeof options.staleIfError === 'number' && options.staleIfError > 0)
         headers['cache-control'] = `stale-if-error=${options.staleIfError}`;
 
+      const snapshot = options.snapshot ?? connection.snapshot;
+
       const fetchCache = options.cache || 'no-store';
       const timeoutMs =
-        typeof options.timeoutMs === 'number' ? options.timeoutMs : undefined;
+        typeof options.timeoutMs === 'number'
+          ? options.timeoutMs
+          : typeof connection.timeoutMs === 'number'
+            ? connection.timeoutMs
+            : undefined;
 
       /**
        * While in development we use SWR-like behavior for the api client to
@@ -109,6 +116,16 @@ export function createCreateClient({
       const isBuildStep =
         process.env.CI === '1' ||
         process.env.NEXT_PHASE === 'phase-production-build';
+
+      if (
+        isBuildStep &&
+        snapshot === 'required' &&
+        bundledEdgeConfig === null
+      ) {
+        throw new Error(
+          `@vercel/edge-config: Missing snapshot for ${connection.id}. Did you forget to set up the "edge-config snapshot" script or do you have multiple Edge Config versions present in your project?`,
+        );
+      }
 
       /**
        * Ensures that the provided function runs within a specified timeout.

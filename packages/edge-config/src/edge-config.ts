@@ -461,7 +461,18 @@ export interface EdgeConfigClientOptions {
   /**
    * How long to wait for a fresh value before falling back to a stale value or throwing.
    *
-   * It is recommended to only use this in combination with a bundled Edge Config (see "edge-config prepare" script).
+   * It is recommended to only use this in combination with a bundled Edge Config (see "edge-config snapshot" script).
    */
   timeoutMs?: number;
+
+  /**
+   * When set to "required" the createClient will throw an error when no snapshot is found
+   * during the build process.
+   *
+   * Note that the client will only check for the snapshot and throw when the CI environment
+   * variable is set to "1", or when the NEXT_PHASE environment variable is set to "phase-production-build".
+   *
+   * This is done as the snapshot is usually not present in development.
+   */
+  snapshot?: 'optional' | 'required';
 }

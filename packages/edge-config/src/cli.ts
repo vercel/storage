@@ -108,7 +108,7 @@ async function prepare(output: string, options: PrepareOptions): Promise<void> {
   await mkdir(dirname(output), { recursive: true });
   await writeFile(output, JSON.stringify(stores));
   if (options.verbose) {
-    console.log(`@vercel/edge-config prepare`);
+    console.log(`@vercel/edge-config snapshot`);
     console.log(`  → created ${output}`);
     if (Object.keys(stores).length === 0) {
       console.log(`  → no edge configs included`);

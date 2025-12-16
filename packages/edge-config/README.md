@@ -43,7 +43,7 @@ Add Edge Config bundling for resilience and faster builds:
 ```json
 {
   "scripts": {
-    "prebuild": "edge-config prepare"
+    "prebuild": "edge-config snapshot"
   }
 }
 ```
@@ -217,7 +217,7 @@ Bundling creates a build-time snapshot of your Edge Config that serves as a fall
 ```json
 {
   "scripts": {
-    "prebuild": "edge-config prepare"
+    "prebuild": "edge-config snapshot"
   }
 }
 ```
@@ -228,7 +228,7 @@ Bundling creates a build-time snapshot of your Edge Config that serves as a fall
 - Consistency: Guarantees the same Edge Config state throughout your build
 
 **How it works:**
-1. The `edge-config prepare` command scans environment variables for connection strings
+1. The `edge-config snapshot` command scans environment variables for connection strings
 2. It fetches the latest version of each Edge Config
 3. It saves them to local files that are automatically bundled by your build tool
 4. The SDK automatically uses these as fallbacks when needed

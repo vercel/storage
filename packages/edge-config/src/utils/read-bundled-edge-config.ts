@@ -4,14 +4,14 @@
 // the config, even if the Edge Config service is degraded or unavailable.
 //
 // At build time of the actual app the stores.json file is overwritten
-// using the "edge-config prepare" script.
+// using the "edge-config snapshot" script.
 //
 // At build time of this package we also copy over a placeholder file,
-// such that any app not using the "edge-config prepare" script has
+// such that any app not using the "edge-config snapshot" script has
 // imports an empty object instead.
 //
 // By default we provide a "stores.json" file that contains "null", which
-// allows us to determine whether the "edge-config prepare" script ran.
+// allows us to determine whether the "edge-config snapshot" script ran.
 // If the value is "null" the script did not run. If the value is an empty
 // object or an object with keys the script definitely ran.
 //
@@ -24,7 +24,7 @@ import type { BundledEdgeConfig } from '../types';
  */
 export function readBundledEdgeConfig(id: string): BundledEdgeConfig | null {
   try {
-    // "edge-config prepare" script did not run
+    // "edge-config snapshot" script did not run
     if (stores === null) return null;
 
     return (stores[id] as BundledEdgeConfig | undefined) ?? null;

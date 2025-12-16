@@ -24,6 +24,8 @@ function parseVercelConnectionStringFromUrl(text: string): Connection | null {
     const snapshot =
       url.searchParams.get('snapshot') === 'required' ? 'required' : 'optional';
 
+    const timeoutMs = parseTimeoutMs(url.searchParams.get('timeoutMs'));
+
     return {
       type: 'vercel',
       baseUrl: `https://edge-config.vercel.com/${id}`,
@@ -31,10 +33,18 @@ function parseVercelConnectionStringFromUrl(text: string): Connection | null {
       version: '1',
       token,
       snapshot,
+      timeoutMs,
     };
   } catch {
     return null;
   }
+}
+
+function parseTimeoutMs(timeoutMs: string | null): number | undefined {
+  if (!timeoutMs) return undefined;
+  const parsedTimeoutMs = Number.parseInt(timeoutMs, 10);
+  if (Number.isNaN(parsedTimeoutMs)) return undefined;
+  return parsedTimeoutMs;
 }
 
 /**
@@ -54,6 +64,8 @@ function parseConnectionFromQueryParams(text: string): Connection | null {
     const snapshot =
       params.get('snapshot') === 'required' ? 'required' : 'optional';
 
+    const timeoutMs = parseTimeoutMs(params.get('timeoutMs'));
+
     return {
       type: 'vercel',
       baseUrl: `https://edge-config.vercel.com/${id}`,
@@ -61,6 +73,7 @@ function parseConnectionFromQueryParams(text: string): Connection | null {
       version: '1',
       token,
       snapshot,
+      timeoutMs,
     };
   } catch {
     // no-op
@@ -114,6 +127,8 @@ function parseExternalConnectionStringFromUrl(
     const snapshot =
       url.searchParams.get('snapshot') === 'required' ? 'required' : 'optional';
 
+    const timeoutMs = parseTimeoutMs(url.searchParams.get('timeoutMs'));
+
     // remove all search params for use as baseURL
     url.search = '';
 
@@ -125,6 +140,7 @@ function parseExternalConnectionStringFromUrl(
       token,
       version,
       snapshot,
+      timeoutMs,
     };
   } catch {
     return null;

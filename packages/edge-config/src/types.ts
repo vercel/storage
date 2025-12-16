@@ -25,6 +25,7 @@ export type Connection =
       token: string;
       version: string;
       type: 'vercel';
+      snapshot: 'required' | 'optional';
     }
   | {
       baseUrl: string;
@@ -32,6 +33,7 @@ export type Connection =
       token: string;
       version: string;
       type: 'external';
+      snapshot: 'required' | 'optional';
     };
 
 /**

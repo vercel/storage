@@ -21,12 +21,16 @@ function parseVercelConnectionStringFromUrl(text: string): Connection | null {
     const token = url.searchParams.get('token');
     if (!token || token === '') return null;
 
+    const snapshot =
+      url.searchParams.get('snapshot') === 'required' ? 'required' : 'optional';
+
     return {
       type: 'vercel',
       baseUrl: `https://edge-config.vercel.com/${id}`,
       id,
       version: '1',
       token,
+      snapshot,
     };
   } catch {
     return null;
@@ -47,12 +51,16 @@ function parseConnectionFromQueryParams(text: string): Connection | null {
 
     if (!id || !token) return null;
 
+    const snapshot =
+      params.get('snapshot') === 'required' ? 'required' : 'optional';
+
     return {
       type: 'vercel',
       baseUrl: `https://edge-config.vercel.com/${id}`,
       id,
       version: '1',
       token,
+      snapshot,
     };
   } catch {
     // no-op
@@ -103,6 +111,9 @@ function parseExternalConnectionStringFromUrl(
 
     if (!id || !token) return null;
 
+    const snapshot =
+      url.searchParams.get('snapshot') === 'required' ? 'required' : 'optional';
+
     // remove all search params for use as baseURL
     url.search = '';
 
@@ -113,6 +124,7 @@ function parseExternalConnectionStringFromUrl(
       id,
       token,
       version,
+      snapshot,
     };
   } catch {
     return null;

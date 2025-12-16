@@ -125,8 +125,12 @@ program
   .version(version);
 
 program
-  .command('prepare')
-  .description('Prepare Edge Config stores.json file for build time embedding')
+  .command('snapshot')
+  .description(
+    'Capture point-in-time snapshots of Edge Configs. ' +
+      'Ensures consistent values during build, enables instant bootstrapping, ' +
+      'and provides fallback when the service is unavailable.',
+  )
   .option('--verbose', 'Enable verbose logging')
   .action(async (options: PrepareOptions) => {
     if (process.env.EDGE_CONFIG_SKIP_PREPARE_SCRIPT === '1') return;

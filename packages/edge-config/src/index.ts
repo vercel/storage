@@ -51,6 +51,8 @@ let defaultEdgeConfigClient: EdgeConfigClient;
 // process.env.EDGE_CONFIG is not defined and its methods are never used.
 function init(): void {
   if (!defaultEdgeConfigClient) {
+    // TODO if process.env.EDGE_CONFIG exists we can ALWAYS create
+    // the client eagerly!!, no need for lazy creation
     defaultEdgeConfigClient = createClient(process.env.EDGE_CONFIG);
   }
 }

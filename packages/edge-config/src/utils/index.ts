@@ -3,6 +3,8 @@ import { trace } from './tracing';
 export const ERRORS = {
   UNAUTHORIZED: '@vercel/edge-config: Unauthorized',
   EDGE_CONFIG_NOT_FOUND: '@vercel/edge-config: Edge Config not found',
+  MISSING_DEFAULT_EDGE_CONFIG_CONNECTION_STRING:
+    '@vercel/edge-config: Missing default Edge Config connection string',
 };
 
 export { parseConnectionString } from './parse-connection-string';

@@ -40,7 +40,7 @@ function parseVercelConnectionStringFromUrl(text: string): Connection | null {
   }
 }
 
-function parseTimeoutMs(timeoutMs: string | null): number | undefined {
+export function parseTimeoutMs(timeoutMs: string | null): number | undefined {
   if (!timeoutMs) return undefined;
   const parsedTimeoutMs = Number.parseInt(timeoutMs, 10);
   if (Number.isNaN(parsedTimeoutMs)) return undefined;

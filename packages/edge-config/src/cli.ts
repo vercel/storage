@@ -20,7 +20,10 @@ import type {
   Connection,
   EmbeddedEdgeConfig,
 } from '../src/types';
-import { parseConnectionString } from '../src/utils/parse-connection-string';
+import {
+  parseConnectionString,
+  parseTimeoutMs,
+} from '../src/utils/parse-connection-string';
 
 // Get the directory where this CLI script is located
 const __filename = fileURLToPath(import.meta.url);
@@ -46,12 +49,19 @@ function parseConnectionFromFlags(text: string): Connection | null {
 
     if (!id || !token) return null;
 
+    const snapshot =
+      params.get('snapshot') === 'required' ? 'required' : 'optional';
+
+    const timeoutMs = parseTimeoutMs(params.get('timeoutMs'));
+
     return {
       type: 'vercel',
       baseUrl: `https://edge-config.vercel.com/${id}`,
       id,
       version: '1',
       token,
+      snapshot,
+      timeoutMs,
     };
   } catch {
     // no-op

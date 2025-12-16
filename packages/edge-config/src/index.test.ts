@@ -47,6 +47,8 @@ describe('parseConnectionString', () => {
       token: '00000000-0000-0000-0000-000000000000',
       type: 'vercel',
       version: '1',
+      snapshot: 'optional',
+      timeoutMs: undefined,
     });
   });
 
@@ -61,6 +63,8 @@ describe('parseConnectionString', () => {
       version: '1',
       type: 'external',
       baseUrl: 'https://example.com/ecfg_cljia81u2q1gappdgptj881dwwtc',
+      snapshot: 'optional',
+      timeoutMs: undefined,
     });
   });
 
@@ -75,6 +79,8 @@ describe('parseConnectionString', () => {
       baseUrl: 'https://example.com/',
       type: 'external',
       version: '1',
+      snapshot: 'optional',
+      timeoutMs: undefined,
     });
   });
 
@@ -90,6 +96,8 @@ describe('parseConnectionString', () => {
       token: '00000000-0000-0000-0000-000000000000',
       type: 'vercel',
       version: '1',
+      snapshot: 'optional',
+      timeoutMs: undefined,
     });
   });
 
@@ -429,6 +437,8 @@ describe('connectionStrings', () => {
           token: 'token-2',
           type: 'external',
           version: '1',
+          snapshot: 'optional',
+          timeoutMs: undefined,
         });
       });
     });

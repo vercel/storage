@@ -11,8 +11,6 @@ export default [
     skipNodeModulesBundle: true,
     dts: true,
     external: ['node_modules'],
-    // copies over the stores.json file to dist/
-    publicDir: 'public',
   }),
   // Separate configs so we don't get split types
   defineConfig({

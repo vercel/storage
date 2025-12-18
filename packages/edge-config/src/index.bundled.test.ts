@@ -1,4 +1,4 @@
-// Tests the bundled Edge Config (stores.json) behavior
+// Tests the bundled Edge Config (data.json) behavior
 
 import fetchMock from 'jest-fetch-mock';
 import { version as pkgVersion } from '../package.json';
@@ -8,17 +8,21 @@ import { delay } from './utils/delay';
 import { cache } from './utils/fetch-with-cached-response';
 import { TimeoutError } from './utils/timeout-error';
 
-jest.mock('@vercel/edge-config/dist/stores.json', () => {
-  return {
-    ecfg_1: {
-      updatedAt: 100,
-      data: {
-        items: { foo: 'foo-build-embedded', bar: 'bar-build-embedded' },
-        digest: 'a',
+jest.mock(
+  '@vercel/edge-config-storage/data.json',
+  () => {
+    return {
+      ecfg_1: {
+        updatedAt: 100,
+        data: {
+          items: { foo: 'foo-build-embedded', bar: 'bar-build-embedded' },
+          digest: 'a',
+        },
       },
-    },
-  };
-});
+    };
+  },
+  { virtual: true },
+);
 
 const sdkVersion = typeof pkgVersion === 'string' ? pkgVersion : '';
 const baseUrl = 'https://edge-config.vercel.com/ecfg_1';

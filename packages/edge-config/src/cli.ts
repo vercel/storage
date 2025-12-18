@@ -2,17 +2,17 @@
 /*
  * Edge Config CLI
  *
- * command: prepare
- *   Reads all connected Edge Configs and emits a single stores.json file.
- *   that can be accessed at runtime by the mockable-import function.
+ * command: snapshot
+ *   Reads all connected Edge Configs and emits them into
+ *   node_modules/@vercel/edge-config-storage/data.json along with a package.json
+ *   that exports the data.json file.
  *
  *   Attaches the updatedAt timestamp from the header to the emitted file, since
  *   the endpoint does not currently include it in the response body.
  */
 
 import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { Command } from 'commander';
 import { version } from '../package.json';
 import type {
@@ -24,10 +24,6 @@ import {
   parseConnectionString,
   parseTimeoutMs,
 } from '../src/utils/parse-connection-string';
-
-// Get the directory where this CLI script is located
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 type StoresJson = Record<string, BundledEdgeConfig>;
 
@@ -70,7 +66,7 @@ function parseConnectionFromFlags(text: string): Connection | null {
   return null;
 }
 
-async function prepare(output: string, options: PrepareOptions): Promise<void> {
+async function prepare(options: PrepareOptions): Promise<void> {
   const connections = Object.values(process.env).reduce<Connection[]>(
     (acc, value) => {
       if (typeof value !== 'string') return acc;
@@ -114,12 +110,38 @@ async function prepare(output: string, options: PrepareOptions): Promise<void> {
     return acc;
   }, {});
 
-  // Ensure the dist directory exists before writing
-  await mkdir(dirname(output), { recursive: true });
-  await writeFile(output, JSON.stringify(stores));
+  // Determine the output directory in node_modules
+  // Start from current working directory (the customer's app) and find node_modules
+  const storageDir = join(
+    process.cwd(),
+    'node_modules',
+    '@vercel',
+    'edge-config-storage',
+  );
+  const dataPath = join(storageDir, 'data.json');
+  const pkgPath = join(storageDir, 'package.json');
+
+  // Ensure the storage directory exists
+  await mkdir(storageDir, { recursive: true });
+
+  // Write the data.json file
+  await writeFile(dataPath, JSON.stringify(stores));
+
+  // Create a package.json that exports data.json
+  const packageJson = {
+    name: '@vercel/edge-config-storage',
+    version: '1.0.0',
+    type: 'module',
+    exports: {
+      './data.json': './data.json',
+    },
+  };
+  await writeFile(pkgPath, JSON.stringify(packageJson, null, 2));
+
   if (options.verbose) {
     console.log(`@vercel/edge-config snapshot`);
-    console.log(`  → created ${output}`);
+    console.log(`  → created ${dataPath}`);
+    console.log(`  → created ${pkgPath}`);
     if (Object.keys(stores).length === 0) {
       console.log(`  → no edge configs included`);
     } else {
@@ -145,8 +167,7 @@ program
   .action(async (options: PrepareOptions) => {
     if (process.env.EDGE_CONFIG_SKIP_PREPARE_SCRIPT === '1') return;
 
-    const output = join(__dirname, '..', 'dist', 'stores.json');
-    await prepare(output, options);
+    await prepare(options);
   });
 
 program.parse();

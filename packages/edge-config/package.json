@@ -19,8 +19,7 @@
       },
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    },
-    "./dist/stores.json": "./dist/stores.json"
+    }
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

@@ -14,10 +14,12 @@ import type { BundledEdgeConfig } from '../types';
 /**
  * Reads the local edge config that gets bundled at build time (data.json).
  */
-export function readBundledEdgeConfig(id: string): BundledEdgeConfig | null {
+export async function readBundledEdgeConfig(
+  id: string,
+): Promise<BundledEdgeConfig | null> {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const stores = require('@vercel/edge-config-storage/data.json');
+    // @ts-expect-error this only exists at build time
+    const stores = await import('@vercel/edge-config-storage/data.json');
 
     // "edge-config snapshot" script did not run or returned null
     if (stores === null) return null;

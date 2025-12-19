@@ -108,7 +108,7 @@ export function createCreateClient({
       /**
        * The edge config bundled at build time
        */
-      const bundledEdgeConfigPromise: Promise<BundledEdgeConfig | null> =
+      const bundledEdgeConfig: BundledEdgeConfig | null =
         connection && connection.type === 'vercel'
           ? readBundledEdgeConfig(connection.id)
           : null;
@@ -117,15 +117,15 @@ export function createCreateClient({
         process.env.CI === '1' ||
         process.env.NEXT_PHASE === 'phase-production-build';
 
-      // if (
-      //   isBuildStep &&
-      //   snapshot === 'required' &&
-      //   bundledEdgeConfig === null
-      // ) {
-      //   throw new Error(
-      //     `@vercel/edge-config: Missing snapshot for ${connection.id}. Did you forget to set up the "edge-config snapshot" script or do you have multiple Edge Config versions present in your project?`,
-      //   );
-      // }
+      if (
+        isBuildStep &&
+        snapshot === 'required' &&
+        bundledEdgeConfig === null
+      ) {
+        throw new Error(
+          `@vercel/edge-config: Missing snapshot for ${connection.id}. Did you forget to set up the "edge-config snapshot" script or do you have multiple Edge Config versions present in your project?`,
+        );
+      }
 
       /**
        * Ensures that the provided function runs within a specified timeout.
@@ -168,7 +168,6 @@ export function createCreateClient({
               return edgeConfig.items[key] as T;
             }
 
-            const bundledEdgeConfig = await bundledEdgeConfigPromise;
             if (bundledEdgeConfig && isBuildStep) {
               return select(bundledEdgeConfig.data);
             }
@@ -226,7 +225,6 @@ export function createCreateClient({
               return hasOwn(edgeConfig.items, key);
             }
 
-            const bundledEdgeConfig = await bundledEdgeConfigPromise;
             if (bundledEdgeConfig && isBuildStep) {
               return select(bundledEdgeConfig.data);
             }
@@ -290,7 +288,6 @@ export function createCreateClient({
                 : (pick(edgeConfig.items as T, keys) as T);
             }
 
-            const bundledEdgeConfig = await bundledEdgeConfigPromise;
             if (bundledEdgeConfig && isBuildStep) {
               return select(bundledEdgeConfig.data);
             }
@@ -349,7 +346,6 @@ export function createCreateClient({
               return embeddedEdgeConfig.digest;
             }
 
-            const bundledEdgeConfig = await bundledEdgeConfigPromise;
             if (bundledEdgeConfig && isBuildStep) {
               return select(bundledEdgeConfig.data);
             }

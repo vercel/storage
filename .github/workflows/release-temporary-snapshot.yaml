@@ -187,23 +187,23 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const snapshotDir = 'snapshot-packages';
-            const files = fs.readdirSync(snapshotDir).filter(f => f.endsWith('.tgz'));
+
+            // Read the blob URLs from the file created in the previous step
+            const blobUrlsContent = fs.readFileSync('blob-urls.txt', 'utf-8');
+            const blobUrls = blobUrlsContent.trim().split('\n').map(line => {
+              const [filename, url] = line.split('|');
+              return { filename, url };
+            });
+
+            const packageList = blobUrls.map(({ filename, url }) =>
+              `- \`${filename}\`\n  \`\`\`bash\n  pnpm add ${url}\n  \`\`\``
+            ).join('\n\n');
 
             const comment = `## 📦 Snapshot packages uploaded
 
-            The following snapshot packages have been uploaded to Vercel Blob:
+            The following snapshot packages have been uploaded to Vercel Blob and are ready to install:
 
-            ${files.map(f => `- \`${f}\``).join('\n')}
-
-            **Installation:**
-            \`\`\`bash
-            npm install <blob-url-from-logs>
-            # or
-            pnpm add <blob-url-from-logs>
-            \`\`\`
-
-            Check the workflow logs for the complete Blob URLs.
+            ${packageList}
             `;
 
             github.rest.issues.createComment({

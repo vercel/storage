@@ -1,4 +1,4 @@
-# This workflow creates snapshot builds and uploads them to Vercel Blob
+# This workflow creates temporary snapshot builds and uploads them to Vercel Blob
 #
 # A snapshot build is useful when you want to try out changes on a pull request
 # before making a full release. Unlike release-snapshot.yaml, this workflow

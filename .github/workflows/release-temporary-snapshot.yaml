@@ -27,7 +27,7 @@
 # and wait for approval. Once approved, it will build and upload snapshots.
 # The workflow run logs will show the uploaded package paths in Blob storage.
 
-name: Upload Snapshot
+name: Release Temporary Snapshot
 
 env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}

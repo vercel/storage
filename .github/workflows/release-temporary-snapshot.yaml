@@ -52,9 +52,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Fetch base branch
-        run: git fetch origin main:main --depth=1
+        run: git fetch origin main:main
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v2

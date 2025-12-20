@@ -52,6 +52,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history for changeset to work
 
       - name: Fetch base branch
         run: git fetch origin main:main

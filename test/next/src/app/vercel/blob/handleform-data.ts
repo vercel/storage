@@ -8,7 +8,6 @@ export async function handleFormData(request: Request): Promise<NextResponse> {
   // Note: this will buffer the file in memory, fine for small files
   const file = form.get('file') as File;
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- [@vercel/style-guide@5 migration]
   if (!file) {
     return NextResponse.json(
       { message: 'No file to upload.' },

@@ -1,4 +1,3 @@
-/* eslint-disable -- This file is copy pasted*/
 // @ts-nocheck -- This file is copy pasted
 
 // Source: https://github.com/sindresorhus/is-network-error/blob/main/index.js

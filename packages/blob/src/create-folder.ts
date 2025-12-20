@@ -1,6 +1,6 @@
 import { requestApi } from './api';
 import type { BlobCommandOptions } from './helpers';
-import { putOptionHeaderMap, type PutBlobApiResponse } from './put-helpers';
+import { type PutBlobApiResponse, putOptionHeaderMap } from './put-helpers';
 
 export interface CreateFolderResult {
   pathname: string;

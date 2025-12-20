@@ -5,11 +5,11 @@ import { BlobError, isPlainObject } from './helpers';
 import { uncontrolledMultipartUpload } from './multipart/uncontrolled';
 import type {
   CreatePutMethodOptions,
-  PutBody,
   PutBlobApiResponse,
   PutBlobResult,
+  PutBody,
 } from './put-helpers';
-import { createPutOptions, createPutHeaders } from './put-helpers';
+import { createPutHeaders, createPutOptions } from './put-helpers';
 
 export interface PutCommandOptions
   extends CommonCreateBlobOptions,

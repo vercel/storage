@@ -142,46 +142,42 @@ jobs:
         env:
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
         run: |
-          node -e "
-            const { put } = require('@vercel/blob');
-            const fs = require('fs');
-            const path = require('path');
+          echo "📦 Uploading snapshot packages to Vercel Blob..."
+          echo ""
 
-            async function uploadSnapshots() {
-              const snapshotDir = 'snapshot-packages';
-              const files = fs.readdirSync(snapshotDir);
+          # Store blob URLs for later
+          > blob-urls.txt
 
-              console.log('📦 Uploading snapshot packages to Vercel Blob...');
-              console.log('');
+          for file in snapshot-packages/*.tgz; do
+            if [ -f "$file" ]; then
+              filename=$(basename "$file")
+              echo "Uploading $filename..."
 
-              for (const file of files) {
-                if (file.endsWith('.tgz')) {
-                  const filePath = path.join(snapshotDir, file);
-                  const fileBuffer = fs.readFileSync(filePath);
+              # Upload using Vercel Blob HTTP API
+              response=$(curl -X PUT \
+                "https://blob.vercel-storage.com/snapshots/${{ github.event.pull_request.number }}/$filename" \
+                -H "Authorization: Bearer $BLOB_READ_WRITE_TOKEN" \
+                -H "Content-Type: application/gzip" \
+                -H "x-vercel-blob-add-random-suffix: 0" \
+                --data-binary "@$file" \
+                --silent --show-error --fail-with-body)
 
-                  console.log(\`Uploading \${file}...\`);
+              blob_url=$(echo "$response" | node -e "
+                const data = JSON.parse(require('fs').readFileSync(0, 'utf-8'));
+                console.log(data.url);
+              ")
 
-                  const blob = await put(\`snapshots/${{ github.event.pull_request.number }}/\${file}\`, fileBuffer, {
-                    access: 'public',
-                  });
+              echo "✅ Uploaded: $blob_url"
+              echo "$filename|$blob_url" >> blob-urls.txt
+            fi
+          done
 
-                  console.log(\`✅ Uploaded: \${blob.url}\`);
-                }
-              }
-
-              console.log('');
-              console.log('🎉 All snapshot packages uploaded successfully!');
-              console.log('');
-              console.log('To install a snapshot package, run:');
-              console.log('  npm install <blob-url>');
-              console.log('  pnpm add <blob-url>');
-            }
-
-            uploadSnapshots().catch(error => {
-              console.error('Error uploading snapshots:', error);
-              process.exit(1);
-            });
-          "
+          echo ""
+          echo "🎉 All snapshot packages uploaded successfully!"
+          echo ""
+          echo "To install a snapshot package, run:"
+          echo "  npm install <blob-url>"
+          echo "  pnpm add <blob-url>"
 
       - name: Comment on PR
         if: steps.check-changes.outputs.has_changes == 'true'

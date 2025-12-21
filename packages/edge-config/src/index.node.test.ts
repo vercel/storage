@@ -1,14 +1,13 @@
 import { readFile } from '@vercel/edge-config-fs';
 import fetchMock from 'jest-fetch-mock';
 import { version as pkgVersion } from '../package.json';
+import { createClient, digest, get, getAll, has } from './index';
 import type { EmbeddedEdgeConfig } from './types';
 import { cache } from './utils/fetch-with-cached-response';
-import { get, has, digest, createClient, getAll } from './index';
 
 const sdkVersion = typeof pkgVersion === 'string' ? pkgVersion : '';
 const baseUrl = 'https://edge-config.vercel.com/ecfg-1';
 
-// eslint-disable-next-line jest/require-top-level-describe -- [@vercel/style-guide@5 migration]
 beforeEach(() => {
   fetchMock.resetMocks();
   cache.clear();

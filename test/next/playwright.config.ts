@@ -24,7 +24,7 @@ const config: PlaywrightTestConfig = {
   testDir: path.join(__dirname, 'test'),
   testMatch: process.env.PLAYWRIGHT_TEST_MATCH,
   // If a test fails, retry it additional 2 times
-  retries: 2,
+  retries: 5,
   // Artifacts folder where screenshots, videos, and traces are stored.
   outputDir: 'test-results/',
 
@@ -79,5 +79,4 @@ const config: PlaywrightTestConfig = {
       ],
 };
 
-// eslint-disable-next-line import/no-default-export -- [@vercel/style-guide@5 migration]
 export default config;

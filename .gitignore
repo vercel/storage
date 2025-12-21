@@ -10,5 +10,5 @@ npm-debug.log
 .turbo
 .DS_Store
 .vscode
-
-packages/edge-config/DEVELOPMENT.md
+.vercel
+.env*.local

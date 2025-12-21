@@ -1,0 +1,53 @@
+name: Deprecate Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Package name"
+        required: true
+        type: choice
+        options:
+          - "@vercel/blob"
+          - "@vercel/edge-config"
+          - "@vercel/edge-config-fs"
+          - "@vercel/kv"
+          - "@vercel/postgres"
+          - "@vercel/postgres-kysely"
+      version:
+        description: "Package version (e.g., 1.0.0 or 1.x or *)"
+        required: true
+        type: string
+      message:
+        description: "Deprecation message"
+        required: true
+        type: string
+
+jobs:
+  deprecate:
+    name: Deprecate Package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".node-version"
+          cache: "pnpm"
+
+      - name: Configure npm authentication
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN_ELEVATED }}" > ~/.npmrc
+
+      - name: Deprecate package
+        run: |
+          npm deprecate "${{ inputs.package }}@${{ inputs.version }}" "${{ inputs.message }}"
+
+      - name: Log deprecation
+        run: |
+          echo "✓ Successfully deprecated ${{ inputs.package }}@${{ inputs.version }}"
+          echo "Message: ${{ inputs.message }}"

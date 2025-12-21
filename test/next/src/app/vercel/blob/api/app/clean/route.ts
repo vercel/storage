@@ -7,13 +7,11 @@ export async function DELETE(request: Request): Promise<NextResponse> {
   let hasMore = true;
   let cursor: string | undefined;
   while (hasMore) {
-    // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
     const listResult = await vercelBlob.list({
       cursor,
       prefix,
     });
     if (listResult.blobs.length > 0) {
-      // eslint-disable-next-line no-await-in-loop -- [@vercel/style-guide@5 migration]
       await vercelBlob.del(listResult.blobs.map((blob) => blob.url));
     }
     hasMore = listResult.hasMore;

@@ -1,4 +1,4 @@
-import defaultKv, { kv, VercelKV, createClient } from '.';
+import defaultKv, { createClient, kv, VercelKV } from '.';
 
 let scanReturnValues: [string, string[]][] = [['0', []]];
 jest.mock('@upstash/redis', () => ({
@@ -7,7 +7,7 @@ jest.mock('@upstash/redis', () => ({
     scan: jest
       .fn()
       .mockImplementation(() => Promise.resolve(scanReturnValues.shift())),
-    // eslint-disable-next-line jest/unbound-method -- [@vercel/style-guide@5 migration]
+
     scanIterator: VercelKV.prototype.scanIterator,
   })),
 }));

@@ -1,5 +1,5 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
 import { type HandleUploadBody, handleUpload } from '@vercel/blob/client';
+import type { NextApiRequest, NextApiResponse } from 'next';
 import { validateUploadToken } from '@/app/vercel/blob/validate-upload-token';
 
 export const config = {
@@ -20,7 +20,7 @@ export default async function handleBody(
     const jsonResponse = await handleUpload({
       body,
       request,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/require-await -- [@vercel/style-guide@5 migration]
+
       onBeforeGenerateToken: async (pathname) => {
         return {
           addRandomSuffix: true,
@@ -35,15 +35,6 @@ export default async function handleBody(
             userId: 'user.id',
           }),
         };
-      },
-      // eslint-disable-next-line @typescript-eslint/require-await -- [@vercel/style-guide@5 migration]
-      onUploadCompleted: async ({ blob, tokenPayload }) => {
-        console.log('Upload completed', blob, tokenPayload);
-        try {
-          //   await db.update({ avatar: blob.url, userId: tokenPayload.userId });
-        } catch (error) {
-          throw new Error('Could not update user');
-        }
       },
     });
 

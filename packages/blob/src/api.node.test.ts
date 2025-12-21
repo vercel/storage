@@ -1,12 +1,12 @@
 import undici from 'undici';
 import {
   BlobAccessError,
+  BlobContentTypeNotAllowedError,
   BlobNotFoundError,
   BlobServiceNotAvailable,
   BlobStoreNotFoundError,
   BlobStoreSuspendedError,
   BlobUnknownError,
-  BlobContentTypeNotAllowedError,
   requestApi,
 } from './api';
 import { BlobError } from './helpers';
@@ -115,23 +115,20 @@ describe('api', () => {
       [700, 'store_not_found', BlobStoreNotFoundError],
       [800, 'not_allowed', BlobUnknownError],
       [800, 'not_allowed', BlobUnknownError],
-    ])(
-      `should not retry '%s %s' response error response`,
-      async (status, code, error, message = '') => {
-        const fetchMock = jest.spyOn(undici, 'fetch').mockImplementation(
-          jest.fn().mockResolvedValue({
-            status,
-            ok: false,
-            json: () => Promise.resolve({ error: { code, message } }),
-          }),
-        );
+    ])(`should not retry '%s %s' response error response`, async (status, code, error, message = '') => {
+      const fetchMock = jest.spyOn(undici, 'fetch').mockImplementation(
+        jest.fn().mockResolvedValue({
+          status,
+          ok: false,
+          json: () => Promise.resolve({ error: { code, message } }),
+        }),
+      );
 
-        await expect(
-          requestApi('/api', { method: 'GET' }, { token: '123' }),
-        ).rejects.toThrow(error);
+      await expect(
+        requestApi('/api', { method: 'GET' }, { token: '123' }),
+      ).rejects.toThrow(error);
 
-        expect(fetchMock).toHaveBeenCalledTimes(1);
-      },
-    );
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
   });
 });

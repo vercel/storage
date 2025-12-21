@@ -1,20 +1,19 @@
-// eslint-disable-next-line unicorn/prefer-node-protocol -- node:crypto does not resolve correctly in browser and edge runtime
-import * as crypto from 'crypto';
 import type { IncomingMessage } from 'node:http';
+import * as crypto from 'crypto';
 // When bundled via a bundler supporting the `browser` field, then
 // the `undici` module will be replaced with https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
 // for browser contexts. See ./undici-browser.js and ./package.json
 import { fetch } from 'undici';
 import type { BlobCommandOptions, WithUploadProgress } from './helpers';
 import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
-import { createPutMethod } from './put';
-import type { PutBlobResult } from './put-helpers';
 import type { CommonCompleteMultipartUploadOptions } from './multipart/complete';
 import { createCompleteMultipartUploadMethod } from './multipart/complete';
 import { createCreateMultipartUploadMethod } from './multipart/create';
-import { createUploadPartMethod } from './multipart/upload';
-import type { CommonMultipartUploadOptions } from './multipart/upload';
 import { createCreateMultipartUploaderMethod } from './multipart/create-uploader';
+import type { CommonMultipartUploadOptions } from './multipart/upload';
+import { createUploadPartMethod } from './multipart/upload';
+import { createPutMethod } from './put';
+import type { PutBlobResult } from './put-helpers';
 
 /**
  * Interface for put, upload and multipart upload operations.
@@ -270,7 +269,6 @@ export type UploadOptions = ClientCommonPutOptions & CommonUploadOptions;
 export const upload = createPutMethod<UploadOptions>({
   allowedOptions: ['contentType'],
   extraChecks(options) {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX.
     if (options.handleUploadUrl === undefined) {
       throw new BlobError(
         "client/`upload` requires the 'handleUploadUrl' parameter",
@@ -321,7 +319,6 @@ async function signPayload(
   payload: string,
   token: string,
 ): Promise<string | undefined> {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Node.js < 20: globalThis.crypto is undefined (in a real script.js, because the REPL has it linked to the crypto module). Node.js >= 20, Browsers and Cloudflare workers: globalThis.crypto is defined and is the Web Crypto API.
   if (!globalThis.crypto) {
     return crypto.createHmac('sha256', token).update(payload).digest('hex');
   }
@@ -349,7 +346,7 @@ async function verifyCallbackSignature({
   // callback signature is signed using the server token
   const secret = token;
   // Browsers, Edge runtime and Node >=20 implement the Web Crypto API
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Node.js < 20: globalThis.crypto is undefined (in a real script.js, because the REPL has it linked to the crypto module). Node.js >= 20, Browsers and Cloudflare workers: globalThis.crypto is defined and is the Web Crypto API.
+
   if (!globalThis.crypto) {
     // Node <20 falls back to the Node.js crypto module
     const digest = crypto
@@ -384,7 +381,7 @@ function hexToArrayByte(input: string): Buffer {
   const view = new Uint8Array(input.length / 2);
 
   for (let i = 0; i < input.length; i += 2) {
-    view[i / 2] = parseInt(input.substring(i, i + 2), 16);
+    view[i / 2] = Number.parseInt(input.substring(i, i + 2), 16);
   }
 
   return Buffer.from(view);
@@ -446,11 +443,6 @@ interface GenerateClientTokenEvent {
      * The destination path for the blob.
      */
     pathname: string;
-
-    /**
-     * URL where upload completion callbacks will be sent.
-     */
-    callbackUrl: string;
 
     /**
      * Whether the upload will use multipart uploading.
@@ -517,7 +509,7 @@ export interface HandleUploadOptions {
    * @param clientPayload - A string payload specified on the client when calling upload()
    * @param multipart - A boolean specifying whether the file is a multipart upload
    *
-   * @returns An object with configuration options for the client token
+   * @returns An object with configuration options for the client token including the optional callbackUrl
    */
   onBeforeGenerateToken: (
     pathname: string,
@@ -532,7 +524,7 @@ export interface HandleUploadOptions {
       | 'addRandomSuffix'
       | 'allowOverwrite'
       | 'cacheControlMaxAge'
-    > & { tokenPayload?: string | null }
+    > & { tokenPayload?: string | null; callbackUrl?: string }
   >;
 
   /**
@@ -541,7 +533,7 @@ export interface HandleUploadOptions {
    *
    * @param body - Contains information about the completed upload including the blob details
    */
-  onUploadCompleted: (body: UploadCompletedEvent['payload']) => Promise<void>;
+  onUploadCompleted?: (body: UploadCompletedEvent['payload']) => Promise<void>;
 
   /**
    * A string specifying the read-write token to use when making requests.
@@ -564,7 +556,7 @@ export interface HandleUploadOptions {
  *   - request - (Required) An IncomingMessage or Request object to be used to determine the action to take.
  *   - body - (Required) The request body containing upload information.
  *   - onBeforeGenerateToken - (Required) Function called before generating the client token for uploads.
- *   - onUploadCompleted - (Required) Function called by Vercel Blob when the client upload finishes.
+ *   - onUploadCompleted - (Optional) Function called by Vercel Blob when the client upload finishes.
  *   - token - (Optional) A string specifying the read-write token to use when making requests. Defaults to process.env.BLOB_READ_WRITE_TOKEN.
  * @returns A promise that resolves to either a client token generation result or an upload completion result
  */
@@ -583,13 +575,27 @@ export async function handleUpload({
   const type = body.type;
   switch (type) {
     case 'blob.generate-client-token': {
-      const { pathname, callbackUrl, clientPayload, multipart } = body.payload;
+      const { pathname, clientPayload, multipart } = body.payload;
       const payload = await onBeforeGenerateToken(
         pathname,
         clientPayload,
         multipart,
       );
       const tokenPayload = payload.tokenPayload ?? clientPayload;
+      const { callbackUrl: providedCallbackUrl, ...tokenOptions } = payload;
+      let callbackUrl = providedCallbackUrl;
+
+      // If onUploadCompleted is provided but no callbackUrl was provided, try to infer it from environment
+      if (onUploadCompleted && !callbackUrl) {
+        callbackUrl = getCallbackUrl(request);
+      }
+
+      // If no onUploadCompleted but callbackUrl was provided, warn about it
+      if (!onUploadCompleted && callbackUrl) {
+        console.warn(
+          'callbackUrl was provided but onUploadCompleted is not defined. The callback will not be handled.',
+        );
+      }
 
       // one hour
       const oneHourInSeconds = 60 * 60;
@@ -601,13 +607,15 @@ export async function handleUpload({
       return {
         type,
         clientToken: await generateClientTokenFromReadWriteToken({
-          ...payload,
+          ...tokenOptions,
           token: resolvedToken,
           pathname,
-          onUploadCompleted: {
-            callbackUrl,
-            tokenPayload,
-          },
+          onUploadCompleted: callbackUrl
+            ? {
+                callbackUrl,
+                tokenPayload,
+              }
+            : undefined,
           validUntil,
         }),
       };
@@ -633,7 +641,10 @@ export async function handleUpload({
       if (!isVerified) {
         throw new BlobError('Invalid callback signature');
       }
-      await onUploadCompleted(body.payload);
+
+      if (onUploadCompleted) {
+        await onUploadCompleted(body.payload);
+      }
       return { type, response: 'ok' };
     }
     default:
@@ -661,7 +672,6 @@ async function retrieveClientToken(options: {
     type: EventTypes.generateClientToken,
     payload: {
       pathname,
-      callbackUrl: url,
       clientPayload: options.clientPayload,
       multipart: options.multipart,
     },
@@ -684,7 +694,7 @@ async function retrieveClientToken(options: {
   try {
     const { clientToken } = (await res.json()) as { clientToken: string };
     return clientToken;
-  } catch (e) {
+  } catch {
     throw new BlobError('Failed to retrieve the client token');
   }
 }
@@ -703,7 +713,7 @@ function toAbsoluteUrl(url: string): string {
 function isAbsoluteUrl(url: string): boolean {
   try {
     return Boolean(new URL(url));
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -814,6 +824,68 @@ export interface GenerateClientTokenOptions extends BlobCommandOptions {
    * @defaultvalue 30 * 24 * 60 * 60 (1 Month)
    */
   cacheControlMaxAge?: number;
+}
+
+/**
+ * @internal Helper function to determine the callback URL for client uploads
+ * when onUploadCompleted is provided but no callbackUrl was specified
+ */
+function getCallbackUrl(request: RequestType): string | undefined {
+  const reqPath = getPathFromRequestUrl(request.url!);
+
+  if (!reqPath) {
+    console.warn(
+      'onUploadCompleted provided but no callbackUrl could be determined. Please provide a callbackUrl in onBeforeGenerateToken or set the VERCEL_BLOB_CALLBACK_URL environment variable.',
+    );
+    return undefined;
+  }
+
+  // Check if we have VERCEL_BLOB_CALLBACK_URL env var (works on or off Vercel)
+  if (process.env.VERCEL_BLOB_CALLBACK_URL) {
+    return `${process.env.VERCEL_BLOB_CALLBACK_URL}${reqPath}`;
+  }
+
+  // Not hosted on Vercel and no VERCEL_BLOB_CALLBACK_URL
+  if (process.env.VERCEL !== '1') {
+    console.warn(
+      'onUploadCompleted provided but no callbackUrl could be determined. Please provide a callbackUrl in onBeforeGenerateToken or set the VERCEL_BLOB_CALLBACK_URL environment variable.',
+    );
+    return undefined;
+  }
+
+  // If hosted on Vercel, generate default callbackUrl
+
+  if (process.env.VERCEL_ENV === 'preview') {
+    if (process.env.VERCEL_BRANCH_URL) {
+      return `https://${process.env.VERCEL_BRANCH_URL}${reqPath}`;
+    }
+    if (process.env.VERCEL_URL) {
+      return `https://${process.env.VERCEL_URL}${reqPath}`;
+    }
+  }
+
+  if (
+    process.env.VERCEL_ENV === 'production' &&
+    process.env.VERCEL_PROJECT_PRODUCTION_URL
+  ) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}${reqPath}`;
+  }
+
+  return undefined;
+}
+
+/**
+ * @internal Helper function to safely extract pathname and query string from request URL
+ * Handles both full URLs (http://localhost:3000/api/upload?test=1) and relative paths (/api/upload?test=1)
+ */
+function getPathFromRequestUrl(url: string): string | null {
+  try {
+    // Using dummy.com as base URL to handle relative paths
+    const parsedUrl = new URL(url, 'https://dummy.com');
+    return parsedUrl.pathname + parsedUrl.search;
+  } catch {
+    return null;
+  }
 }
 
 export { createFolder } from './create-folder';

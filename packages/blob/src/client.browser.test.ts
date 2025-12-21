@@ -2,10 +2,10 @@ import undici from 'undici';
 import {
   completeMultipartUpload,
   createMultipartUpload,
-  uploadPart,
-  upload,
   createMultipartUploader,
   put,
+  upload,
+  uploadPart,
 } from './client';
 
 describe('client', () => {
@@ -78,7 +78,7 @@ describe('client', () => {
         1,
         'http://localhost:3000/api/upload',
         {
-          body: '{"type":"blob.generate-client-token","payload":{"pathname":"foo.txt","callbackUrl":"http://localhost:3000/api/upload","clientPayload":null,"multipart":false}}',
+          body: '{"type":"blob.generate-client-token","payload":{"pathname":"foo.txt","clientPayload":null,"multipart":false}}',
           headers: { 'content-type': 'application/json' },
           method: 'POST',
         },

@@ -1,6 +1,6 @@
-import { join } from 'node:path';
 import { statSync } from 'node:fs';
-import { test, expect } from '@playwright/test';
+import { join } from 'node:path';
+import { expect, test } from '@playwright/test';
 import type { UploadProgressEvent } from '@vercel/blob';
 
 test.describe('progress events', () => {

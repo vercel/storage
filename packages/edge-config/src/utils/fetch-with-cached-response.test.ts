@@ -1,127 +1,225 @@
 import fetchMock from 'jest-fetch-mock';
-import { createEnhancedFetch } from './fetch-with-cached-response';
+import { cache, fetchWithCachedResponse } from './fetch-with-cached-response';
 
-describe('enhancedFetch', () => {
-  let enhancedFetch: ReturnType<typeof createEnhancedFetch>;
+jest.useFakeTimers();
 
+describe('cache', () => {
+  it('should be an object', () => {
+    expect(typeof cache).toEqual('object');
+  });
+});
+
+describe('fetchWithCachedResponse', () => {
   beforeEach(() => {
-    enhancedFetch = createEnhancedFetch();
     fetchMock.resetMocks();
+    cache.clear();
   });
 
-  describe('fetch deduplication', () => {
-    it('should return a function', () => {
-      expect(typeof enhancedFetch).toEqual('function');
+  it('should cache responses and return them from cache', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify({ name: 'John' }), {
+      headers: { ETag: 'abc123', 'content-type': 'application/json' },
     });
 
-    it('should deduplicate pending requests', async () => {
-      const { resolve, promise } = Promise.withResolvers<Response>();
-      fetchMock.mockResolvedValue(promise);
-      const invocation1Promise = enhancedFetch('https://example.com/api/data');
-      const invocation2Promise = enhancedFetch('https://example.com/api/data');
-      const invocation3Promise = enhancedFetch('https://example.com/api/data');
-      resolve(
-        new Response(JSON.stringify({ name: 'John' }), {
-          headers: { 'content-type': 'application/json' },
-        }),
-      );
-      const [res1, res2, res3] = await Promise.all([
-        invocation1Promise,
-        invocation2Promise,
-        invocation3Promise,
-      ]);
-      expect(res1).toEqual([expect.any(Response), null]);
-      expect(res2).toEqual([expect.any(Response), null]);
-      expect(res3).toEqual([expect.any(Response), null]);
-      await expect(res1[0].json()).resolves.toStrictEqual({ name: 'John' });
-      await expect(res2[0].json()).resolves.toStrictEqual({ name: 'John' });
-      await expect(res3[0].json()).resolves.toStrictEqual({ name: 'John' });
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-    });
+    // First request
+    const data1 = await fetchWithCachedResponse('https://example.com/api/data');
 
-    it('should not deduplicate after a pending request finished', async () => {
-      fetchMock.mockResponseOnce(JSON.stringify({ name: 'A' }));
-      fetchMock.mockResponseOnce(JSON.stringify({ name: 'B' }));
-      // by awaiting res1 we essentially allow the fetch cache to clear
-      const [res1] = await enhancedFetch('https://example.com/api/data');
-      const [res2] = await enhancedFetch('https://example.com/api/data');
-      expect(res1).not.toStrictEqual(res2);
-      expect(fetchMock).toHaveBeenCalledTimes(2);
-      await expect(res1.json()).resolves.toEqual({ name: 'A' });
-      await expect(res2.json()).resolves.toEqual({ name: 'B' });
-    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith('https://example.com/api/data', {});
+    expect(data1.headers).toEqual(
+      new Headers({
+        ETag: 'abc123',
+        'content-type': 'application/json',
+      }),
+    );
+    await expect(data1.json()).resolves.toEqual({ name: 'John' });
+    expect(data1.cachedResponseBody).toBeUndefined();
 
-    it('should not deduplicate requests with different auth headers', async () => {
-      const invocation1 = Promise.withResolvers<Response>();
-      const invocation2 = Promise.withResolvers<Response>();
-      fetchMock.mockResolvedValueOnce(invocation1.promise);
-      fetchMock.mockResolvedValueOnce(invocation2.promise);
-      const invocation1Promise = enhancedFetch('https://example.com/api/data');
-      const invocation2Promise = enhancedFetch('https://example.com/api/data', {
-        headers: new Headers({ Authorization: 'Bearer 1' }),
-      });
-      invocation1.resolve(new Response(JSON.stringify({ name: 'A' })));
-      invocation2.resolve(new Response(JSON.stringify({ name: 'B' })));
-      const [res1, res2] = await Promise.all([
-        invocation1Promise.then(([r]) => r),
-        invocation2Promise.then(([r]) => r),
-      ]);
-      expect(res1).not.toStrictEqual(res2);
-      expect(fetchMock).toHaveBeenCalledTimes(2);
-      await expect(res1.json()).resolves.toEqual({ name: 'A' });
-      await expect(res2.json()).resolves.toEqual({ name: 'B' });
+    // Second request (should come from cache)
+    fetchMock.mockResponseOnce('', {
+      status: 304,
+      headers: {
+        ETag: 'abc123',
+        'content-type': 'application/json',
+      },
     });
+    const data2 = await fetchWithCachedResponse('https://example.com/api/data');
 
-    it('should not deduplicate requests with different urls', async () => {
-      const invocation1 = Promise.withResolvers<Response>();
-      const invocation2 = Promise.withResolvers<Response>();
-      fetchMock.mockResolvedValueOnce(invocation1.promise);
-      fetchMock.mockResolvedValueOnce(invocation2.promise);
-      const invocation1Promise = enhancedFetch('https://example.com/a');
-      const invocation2Promise = enhancedFetch('https://example.com/b');
-      invocation1.resolve(new Response(JSON.stringify({ name: 'A' })));
-      invocation2.resolve(new Response(JSON.stringify({ name: 'B' })));
-      const [res1, res2] = await Promise.all([
-        invocation1Promise.then(([r]) => r),
-        invocation2Promise.then(([r]) => r),
-      ]);
-      expect(res1).not.toStrictEqual(res2);
-      expect(fetchMock).toHaveBeenCalledTimes(2);
-      await expect(res1.json()).resolves.toEqual({ name: 'A' });
-      await expect(res2.json()).resolves.toEqual({ name: 'B' });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledWith('https://example.com/api/data', {
+      headers: new Headers({ 'If-None-Match': 'abc123' }),
     });
+    expect(data2.headers).toEqual(
+      new Headers({ ETag: 'abc123', 'content-type': 'application/json' }),
+    );
+
+    expect(data2).toHaveProperty('status', 304);
+    expect(data2.cachedResponseBody).toEqual({ name: 'John' });
   });
 
-  describe('etag and if-none-match', () => {
-    it('should return from the http cache if the response is not modified', async () => {
-      const content = JSON.stringify({ name: 'A' });
-      fetchMock.mockResponseOnce(content, { headers: { ETag: '"123"' } });
-      fetchMock.mockResponseOnce('', {
-        status: 304,
-        headers: { ETag: '"123"' },
-      });
-      const [res1] = await enhancedFetch('https://example.com/api/data');
-      const [res2, cachedRes2] = await enhancedFetch(
-        'https://example.com/api/data',
-      );
-
-      // ensure the etag was not added to the request headers of the 1st request
-      const headers1 = fetchMock.mock.calls[0]?.[1]?.headers;
-      expect(headers1).toBeUndefined();
-
-      // ensure the etag was added to the request headers of the 2nd request
-      const headers2 = fetchMock.mock.calls[1]?.[1]?.headers;
-      expect(headers2).toBeInstanceOf(Headers);
-      expect((headers2 as Headers).get('If-None-Match')).toEqual('"123"');
-
-      expect(res1).toHaveProperty('status', 200);
-      expect(res2).toHaveProperty('status', 304);
-      expect(cachedRes2).toHaveProperty('status', 200);
-      const text1 = await res1.text();
-      const cachedText = await cachedRes2?.text();
-      expect(text1).toStrictEqual(cachedText);
-      expect(text1).toEqual(content);
-      expect(fetchMock).toHaveBeenCalledTimes(2);
+  it('should differentiate caches by authorization header', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify({ name: 'John' }), {
+      headers: {
+        ETag: 'abc123',
+        'content-type': 'application/json',
+      },
     });
+
+    // First request
+    const data1 = await fetchWithCachedResponse(
+      'https://example.com/api/data',
+      {
+        headers: new Headers({ authorization: 'bearer A' }),
+      },
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith('https://example.com/api/data', {
+      headers: new Headers({ authorization: 'bearer A' }),
+    });
+    expect(data1.headers).toEqual(
+      new Headers({ ETag: 'abc123', 'content-type': 'application/json' }),
+    );
+    await expect(data1.json()).resolves.toEqual({ name: 'John' });
+
+    // Second request uses a different authorization header => do not use cache
+    fetchMock.mockResponseOnce(JSON.stringify({ name: 'Bob' }), {
+      headers: { ETag: 'abc123', 'content-type': 'application/json' },
+    });
+    const data2 = await fetchWithCachedResponse(
+      'https://example.com/api/data',
+      {
+        // using a different authorization header here
+        headers: new Headers({ authorization: 'bearer B' }),
+      },
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledWith('https://example.com/api/data', {
+      headers: new Headers({ authorization: 'bearer B' }),
+    });
+    expect(data2.headers).toEqual(
+      new Headers({ ETag: 'abc123', 'content-type': 'application/json' }),
+    );
+    expect(data2).toHaveProperty('status', 200);
+    expect(data2.cachedResponseBody).toBeUndefined();
+    await expect(data2.json()).resolves.toEqual({
+      name: 'Bob',
+    });
+
+    // Third request uses same auth header as first request => use cache
+    fetchMock.mockResponseOnce('', {
+      status: 304,
+      headers: { ETag: 'abc123', 'content-type': 'application/json' },
+    });
+    const data3 = await fetchWithCachedResponse(
+      'https://example.com/api/data',
+      {
+        headers: new Headers({ authorization: 'bearer A' }),
+      },
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledWith('https://example.com/api/data', {
+      headers: new Headers({
+        'If-None-Match': 'abc123',
+        authorization: 'bearer A',
+      }),
+    });
+    expect(data3.headers).toEqual(
+      new Headers({ ETag: 'abc123', 'content-type': 'application/json' }),
+    );
+
+    expect(data3).toHaveProperty('status', 304);
+    expect(data3.cachedResponseBody).toEqual({ name: 'John' });
+  });
+
+  it('should respect stale-if-error on 500s', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify({ name: 'John' }), {
+      headers: { ETag: 'abc123', 'content-type': 'application/json' },
+    });
+
+    // First request
+    const data1 = await fetchWithCachedResponse('https://example.com/api/data');
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith('https://example.com/api/data', {});
+    expect(data1.headers).toEqual(
+      new Headers({
+        ETag: 'abc123',
+        'content-type': 'application/json',
+      }),
+    );
+    await expect(data1.json()).resolves.toEqual({ name: 'John' });
+    expect(data1.cachedResponseBody).toBeUndefined();
+
+    jest.advanceTimersByTime(5000);
+
+    // Second request (should come from cache)
+    fetchMock.mockResponseOnce('', { status: 502 });
+    const data2 = await fetchWithCachedResponse(
+      'https://example.com/api/data',
+      { headers: new Headers({ 'Cache-Control': 'stale-if-error=10' }) },
+    );
+
+    jest.advanceTimersByTime(3000);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(data2.headers).toEqual(
+      new Headers({
+        'content-type': 'application/json',
+        // Age is present when a cached response was served as per HTTP spec
+        // And in this case a stale-if-error cached response is being served
+        Age: '5',
+        etag: 'abc123',
+      }),
+    );
+
+    expect(data2).toHaveProperty('status', 200);
+    await expect(data2.json()).resolves.toEqual({ name: 'John' });
+  });
+
+  it('should respect stale-if-error on network faults', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify({ name: 'John' }), {
+      headers: { ETag: 'abc123', 'content-type': 'application/json' },
+    });
+
+    // First request
+    const data1 = await fetchWithCachedResponse('https://example.com/api/data');
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith('https://example.com/api/data', {});
+    expect(data1.headers).toEqual(
+      new Headers({
+        ETag: 'abc123',
+        'content-type': 'application/json',
+      }),
+    );
+    await expect(data1.json()).resolves.toEqual({ name: 'John' });
+    expect(data1.cachedResponseBody).toBeUndefined();
+
+    jest.advanceTimersByTime(5000);
+
+    // Second request (should come from cache)
+    fetchMock.mockAbortOnce();
+    const data2 = await fetchWithCachedResponse(
+      'https://example.com/api/data',
+      { headers: new Headers({ 'Cache-Control': 'stale-if-error=10' }) },
+    );
+
+    jest.advanceTimersByTime(3000);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(data2.headers).toEqual(
+      new Headers({
+        'content-type': 'application/json',
+        // Age is present when a cached response was served as per HTTP spec
+        // And in this case a stale-if-error cached response is being served
+        Age: '5',
+        etag: 'abc123',
+      }),
+    );
+
+    expect(data2).toHaveProperty('status', 200);
+    await expect(data2.json()).resolves.toEqual({ name: 'John' });
   });
 });

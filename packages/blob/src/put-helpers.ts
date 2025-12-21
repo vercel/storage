@@ -1,13 +1,12 @@
-// eslint-disable-next-line unicorn/prefer-node-protocol -- node:stream does not resolve correctly in browser and edge
 import type { Readable } from 'stream';
 // We use the undici types to ensure TS doesn't complain about native types (like ReadableStream) vs
 // undici types fetch expects (like Blob is from node:buffer..)
 // import type { Blob } from 'node:buffer';
 import type { File } from 'undici';
+import { MAXIMUM_PATHNAME_LENGTH } from './api';
 import type { ClientCommonCreateBlobOptions } from './client';
 import type { CommonCreateBlobOptions } from './helpers';
 import { BlobError, disallowedPathnameCharacters } from './helpers';
-import { MAXIMUM_PATHNAME_LENGTH } from './api';
 
 export const putOptionHeaderMap = {
   cacheControlMaxAge: 'x-cache-control-max-age',
@@ -140,7 +139,6 @@ export async function createPutOptions<
     throw new BlobError('missing options, see usage');
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Runtime check for DX.
   if (options.access !== 'public') {
     throw new BlobError('access must be "public"');
   }

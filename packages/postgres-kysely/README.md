@@ -1,6 +1,5 @@
 # @vercel/postgres-kysely
 
-<!-- prettier-ignore -->
 > [!CAUTION]
 > **`@vercel/postgres-kysely` has moved to the [`@neondatabase/serverless` package from Neon instead](https://github.com/neondatabase/serverless).** For a complete example of its implementation, check out the [neondatabase-labs/neon-vercel-kysely](https://github.com/neondatabase-labs/neon-vercel-kysely) repository.
 

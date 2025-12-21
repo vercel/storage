@@ -1,14 +1,30 @@
+import { readFile } from '@vercel/edge-config-fs';
 import fetchMock from 'jest-fetch-mock';
 import { version as pkgVersion } from '../package.json';
-import { get, has, all, mget } from './index';
+import { createClient, digest, get, getAll, has } from './index';
+import type { EmbeddedEdgeConfig } from './types';
+import { cache } from './utils/fetch-with-cached-response';
 
 const sdkVersion = typeof pkgVersion === 'string' ? pkgVersion : '';
 const baseUrl = 'https://edge-config.vercel.com/ecfg-1';
 
-// eslint-disable-next-line jest/require-top-level-describe -- [@vercel/style-guide@5 migration]
 beforeEach(() => {
   fetchMock.resetMocks();
-  process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_STREAM = '1';
+  cache.clear();
+});
+
+// mock fs for test
+jest.mock('@vercel/edge-config-fs', () => {
+  const embeddedEdgeConfig: EmbeddedEdgeConfig = {
+    digest: 'awe1',
+    items: { foo: 'bar', someArray: [] },
+  };
+
+  return {
+    readFile: jest.fn((): Promise<string> => {
+      return Promise.resolve(JSON.stringify(embeddedEdgeConfig));
+    }),
+  };
 });
 
 describe('default Edge Config', () => {
@@ -21,24 +37,17 @@ describe('default Edge Config', () => {
   });
 
   it('should fetch an item from the Edge Config specified by process.env.EDGE_CONFIG', async () => {
-    fetchMock.mockResponse(JSON.stringify('bar'), {
-      headers: {
-        'x-edge-config-digest': 'fake',
-        'x-edge-config-updated-at': '1000',
-        'content-type': 'application/json',
-      },
-    });
+    fetchMock.mockResponse(JSON.stringify('bar'));
 
     await expect(get('foo')).resolves.toEqual('bar');
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/item/foo?version=1`, {
-      method: 'GET',
       headers: new Headers({
         Authorization: 'Bearer token-1',
         'x-edge-config-vercel-env': 'test',
         'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
-        // 'cache-control': 'stale-if-error=604800',
+        'cache-control': 'stale-if-error=604800',
       }),
       cache: 'no-store',
     });
@@ -47,13 +56,7 @@ describe('default Edge Config', () => {
   describe('get(key)', () => {
     describe('when item exists', () => {
       it('should return the value', async () => {
-        fetchMock.mockResponse(JSON.stringify('bar'), {
-          headers: {
-            'x-edge-config-digest': 'fake',
-            'x-edge-config-updated-at': '1000',
-            'content-type': 'application/json',
-          },
-        });
+        fetchMock.mockResponse(JSON.stringify('bar'));
 
         await expect(get('foo')).resolves.toEqual('bar');
 
@@ -61,11 +64,11 @@ describe('default Edge Config', () => {
         expect(fetchMock).toHaveBeenCalledWith(
           `${baseUrl}/item/foo?version=1`,
           {
-            method: 'GET',
             headers: new Headers({
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
           },
@@ -85,9 +88,8 @@ describe('default Edge Config', () => {
           {
             status: 404,
             headers: {
-              'x-edge-config-digest': 'digest1',
-              'x-edge-config-updated-at': '1000',
               'content-type': 'application/json',
+              'x-edge-config-digest': 'fake',
             },
           },
         );
@@ -98,11 +100,11 @@ describe('default Edge Config', () => {
         expect(fetchMock).toHaveBeenCalledWith(
           `${baseUrl}/item/foo?version=1`,
           {
-            method: 'GET',
             headers: new Headers({
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
           },
@@ -130,11 +132,11 @@ describe('default Edge Config', () => {
         expect(fetchMock).toHaveBeenCalledWith(
           `${baseUrl}/item/foo?version=1`,
           {
-            method: 'GET',
             headers: new Headers({
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
           },
@@ -146,17 +148,17 @@ describe('default Edge Config', () => {
       it('should throw a Network error', async () => {
         fetchMock.mockReject(new Error('Unexpected fetch error'));
 
-        await expect(get('foo256')).rejects.toThrow('Unexpected fetch error');
+        await expect(get('foo')).rejects.toThrow('Unexpected fetch error');
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(
-          `${baseUrl}/item/foo256?version=1`,
+          `${baseUrl}/item/foo?version=1`,
           {
-            method: 'GET',
             headers: new Headers({
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
           },
@@ -168,19 +170,19 @@ describe('default Edge Config', () => {
       it('should throw a Unexpected error on 500', async () => {
         fetchMock.mockResponse('', { status: 500 });
 
-        await expect(get('foo500')).rejects.toThrow(
+        await expect(get('foo')).rejects.toThrow(
           '@vercel/edge-config: Unexpected error due to response with status code 500',
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(
-          `${baseUrl}/item/foo500?version=1`,
+          `${baseUrl}/item/foo?version=1`,
           {
-            method: 'GET',
             headers: new Headers({
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
           },
@@ -189,42 +191,31 @@ describe('default Edge Config', () => {
     });
   });
 
-  describe('all()', () => {
-    it('should return all items', async () => {
-      fetchMock.mockResponse(JSON.stringify({ foo: 'foo1' }), {
-        headers: {
-          'x-edge-config-digest': 'fake',
-          'x-edge-config-updated-at': '1000',
-          'content-type': 'application/json',
-        },
-      });
+  describe('getAll(keys)', () => {
+    describe('when called without keys', () => {
+      it('should return all items', async () => {
+        fetchMock.mockResponse(JSON.stringify({ foo: 'foo1' }));
 
-      await expect(all()).resolves.toEqual({ foo: 'foo1' });
+        await expect(getAll()).resolves.toEqual({ foo: 'foo1' });
 
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-      expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items?version=1`, {
-        headers: new Headers({
-          Authorization: 'Bearer token-1',
-          'x-edge-config-vercel-env': 'test',
-          'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
-        }),
-        cache: 'no-store',
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items?version=1`, {
+          headers: new Headers({
+            Authorization: 'Bearer token-1',
+            'x-edge-config-vercel-env': 'test',
+            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
+          }),
+          cache: 'no-store',
+        });
       });
     });
-  });
 
-  describe('mget(keys)', () => {
     describe('when called with keys', () => {
       it('should return the selected items', async () => {
-        fetchMock.mockResponse(JSON.stringify({ foo: 'foo1', bar: 'bar1' }), {
-          headers: {
-            'x-edge-config-digest': 'fake',
-            'x-edge-config-updated-at': '1000',
-            'content-type': 'application/json',
-          },
-        });
+        fetchMock.mockResponse(JSON.stringify({ foo: 'foo1', bar: 'bar1' }));
 
-        await expect(mget(['foo', 'bar'])).resolves.toEqual({
+        await expect(getAll(['foo', 'bar'])).resolves.toEqual({
           foo: 'foo1',
           bar: 'bar1',
         });
@@ -237,6 +228,7 @@ describe('default Edge Config', () => {
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
           },
@@ -246,23 +238,15 @@ describe('default Edge Config', () => {
 
     describe('when called with an empty string key', () => {
       it('should return the selected items', async () => {
-        await expect(mget([''])).resolves.toEqual({});
+        await expect(getAll([''])).resolves.toEqual({});
         expect(fetchMock).toHaveBeenCalledTimes(0);
       });
     });
 
     describe('when called with an empty string key mix', () => {
       it('should return the selected items', async () => {
-        fetchMock.mockResponse(JSON.stringify({ foo: 'foo1' }), {
-          headers: {
-            'x-edge-config-digest': 'fake',
-            'x-edge-config-updated-at': '1000',
-            'content-type': 'application/json',
-          },
-        });
-        await expect(mget(['foo', ''])).resolves.toEqual({
-          foo: 'foo1',
-        });
+        fetchMock.mockResponse(JSON.stringify({ foo: 'foo1' }));
+        await expect(getAll(['foo', ''])).resolves.toEqual({ foo: 'foo1' });
         expect(fetchMock).toHaveBeenCalledTimes(1);
       });
     });
@@ -279,7 +263,7 @@ describe('default Edge Config', () => {
           { status: 404, headers: { 'content-type': 'application/json' } },
         );
 
-        await expect(mget(['foo', 'bar'])).rejects.toThrow(
+        await expect(getAll(['foo', 'bar'])).rejects.toThrow(
           '@vercel/edge-config: Edge Config not found',
         );
 
@@ -291,6 +275,7 @@ describe('default Edge Config', () => {
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
           },
@@ -302,7 +287,7 @@ describe('default Edge Config', () => {
       it('should throw a Network error', async () => {
         fetchMock.mockReject(new Error('Unexpected fetch error'));
 
-        await expect(all()).rejects.toThrow('Unexpected fetch error');
+        await expect(getAll()).rejects.toThrow('Unexpected fetch error');
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/items?version=1`, {
@@ -310,6 +295,7 @@ describe('default Edge Config', () => {
             Authorization: 'Bearer token-1',
             'x-edge-config-vercel-env': 'test',
             'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
           }),
           cache: 'no-store',
         });
@@ -320,7 +306,7 @@ describe('default Edge Config', () => {
       it('should throw a Unexpected error on 500', async () => {
         fetchMock.mockResponse('', { status: 500 });
 
-        await expect(all()).rejects.toThrow(
+        await expect(getAll()).rejects.toThrow(
           '@vercel/edge-config: Unexpected error due to response with status code 500',
         );
 
@@ -330,6 +316,7 @@ describe('default Edge Config', () => {
             Authorization: 'Bearer token-1',
             'x-edge-config-vercel-env': 'test',
             'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
           }),
           cache: 'no-store',
         });
@@ -340,13 +327,7 @@ describe('default Edge Config', () => {
   describe('has(key)', () => {
     describe('when item exists', () => {
       it('should return true', async () => {
-        fetchMock.mockResponse('', {
-          headers: {
-            'x-edge-config-digest': 'fake',
-            'x-edge-config-updated-at': '1000',
-            'content-type': 'application/json',
-          },
-        });
+        fetchMock.mockResponse('');
 
         await expect(has('foo')).resolves.toEqual(true);
 
@@ -359,6 +340,7 @@ describe('default Edge Config', () => {
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
           },
@@ -380,7 +362,6 @@ describe('default Edge Config', () => {
             headers: {
               'content-type': 'application/json',
               'x-edge-config-digest': 'fake',
-              'x-edge-config-updated-at': '1000',
             },
           },
         );
@@ -396,6 +377,7 @@ describe('default Edge Config', () => {
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
           },
@@ -428,11 +410,235 @@ describe('default Edge Config', () => {
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
               'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
           },
         );
       });
+    });
+  });
+
+  describe('/', () => {
+    describe('when the request succeeds', () => {
+      it('should return the digest', async () => {
+        fetchMock.mockResponse(JSON.stringify('awe1'));
+
+        await expect(digest()).resolves.toEqual('awe1');
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest?version=1`, {
+          headers: new Headers({
+            Authorization: 'Bearer token-1',
+            'x-edge-config-vercel-env': 'test',
+            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
+          }),
+          cache: 'no-store',
+        });
+      });
+    });
+
+    describe('when the server returns an unexpected status code', () => {
+      it('should throw an Unexpected error on 500', async () => {
+        fetchMock.mockResponse('', { status: 500 });
+
+        await expect(digest()).rejects.toThrow(
+          '@vercel/edge-config: Unexpected error due to response with status code 500',
+        );
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest?version=1`, {
+          headers: new Headers({
+            Authorization: 'Bearer token-1',
+            'x-edge-config-vercel-env': 'test',
+            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
+          }),
+          cache: 'no-store',
+        });
+      });
+
+      it('should throw an Unexpected error on 404', async () => {
+        fetchMock.mockResponse('', { status: 404 });
+
+        await expect(digest()).rejects.toThrow(
+          '@vercel/edge-config: Unexpected error due to response with status code 404',
+        );
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest?version=1`, {
+          headers: new Headers({
+            Authorization: 'Bearer token-1',
+            'x-edge-config-vercel-env': 'test',
+            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
+          }),
+          cache: 'no-store',
+        });
+      });
+    });
+
+    describe('when the network fails', () => {
+      it('should throw a Network error', async () => {
+        fetchMock.mockReject(new Error('Unexpected fetch error'));
+
+        await expect(digest()).rejects.toThrow('Unexpected fetch error');
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/digest?version=1`, {
+          headers: new Headers({
+            Authorization: 'Bearer token-1',
+            'x-edge-config-vercel-env': 'test',
+            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'cache-control': 'stale-if-error=604800',
+          }),
+          cache: 'no-store',
+        });
+      });
+    });
+  });
+});
+
+// these test the happy path only, as the cases are tested through the
+// "default Edge Config" tests above anyhow
+describe('createClient', () => {
+  describe('when running with lambda layer on serverless function', () => {
+    beforeAll(() => {
+      process.env.AWS_LAMBDA_FUNCTION_NAME = 'some-value';
+    });
+
+    afterAll(() => {
+      delete process.env.AWS_LAMBDA_FUNCTION_NAME;
+    });
+
+    beforeEach(() => {
+      (readFile as jest.Mock).mockClear();
+    });
+
+    describe('get(key)', () => {
+      describe('when item exists', () => {
+        it('should return the value', async () => {
+          const edgeConfig = createClient(process.env.EDGE_CONFIG);
+          await expect(edgeConfig.get('foo')).resolves.toEqual('bar');
+          expect(fetchMock).toHaveBeenCalledTimes(0);
+          expect(readFile).toHaveBeenCalledTimes(1);
+          expect(readFile).toHaveBeenCalledWith(
+            '/opt/edge-config/ecfg-1.json',
+            'utf-8',
+          );
+        });
+      });
+
+      describe('when the item does not exist', () => {
+        it('should return undefined', async () => {
+          const edgeConfig = createClient(process.env.EDGE_CONFIG);
+          await expect(edgeConfig.get('baz')).resolves.toEqual(undefined);
+          expect(fetchMock).toHaveBeenCalledTimes(0);
+          expect(readFile).toHaveBeenCalledTimes(1);
+          expect(readFile).toHaveBeenCalledWith(
+            '/opt/edge-config/ecfg-1.json',
+            'utf-8',
+          );
+        });
+      });
+    });
+
+    describe('get(key, { consistentRead: true })', () => {
+      it('should handle multiple concurrent requests correctly', async () => {
+        const edgeConfig = createClient(process.env.EDGE_CONFIG);
+
+        let i = 0;
+        // Create a more realistic response with a proper body stream
+        // @ts-expect-error - aaa
+        fetchMock.mockImplementation(() => {
+          return new Response(JSON.stringify(`bar${i++}`), {
+            headers: { 'content-type': 'application/json' },
+          });
+        });
+
+        // Make multiple concurrent requests
+        const a = edgeConfig.get('foo', { consistentRead: true });
+        const b = edgeConfig.get('foo', { consistentRead: true });
+
+        await a;
+        await b;
+        await expect(a).resolves.toEqual('bar0');
+        await expect(b).resolves.toEqual('bar1');
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    describe('has(key)', () => {
+      describe('when item exists', () => {
+        it('should return true', async () => {
+          const edgeConfig = createClient(process.env.EDGE_CONFIG);
+          await expect(edgeConfig.has('foo')).resolves.toEqual(true);
+          expect(fetchMock).toHaveBeenCalledTimes(0);
+          expect(readFile).toHaveBeenCalledTimes(1);
+          expect(readFile).toHaveBeenCalledWith(
+            '/opt/edge-config/ecfg-1.json',
+            'utf-8',
+          );
+        });
+      });
+
+      describe('when the item does not exist', () => {
+        it('should return false', async () => {
+          const edgeConfig = createClient(process.env.EDGE_CONFIG);
+          await expect(edgeConfig.has('baz')).resolves.toEqual(false);
+          expect(fetchMock).toHaveBeenCalledTimes(0);
+          expect(readFile).toHaveBeenCalledTimes(1);
+          expect(readFile).toHaveBeenCalledWith(
+            '/opt/edge-config/ecfg-1.json',
+            'utf-8',
+          );
+        });
+      });
+    });
+
+    describe('digest()', () => {
+      it('should return the digest', async () => {
+        const edgeConfig = createClient(process.env.EDGE_CONFIG);
+        await expect(edgeConfig.digest()).resolves.toEqual('awe1');
+        expect(fetchMock).toHaveBeenCalledTimes(0);
+        expect(readFile).toHaveBeenCalledTimes(1);
+        expect(readFile).toHaveBeenCalledWith(
+          '/opt/edge-config/ecfg-1.json',
+          'utf-8',
+        );
+      });
+    });
+  });
+
+  describe('fetch cache', () => {
+    it('should respect the fetch cache option', async () => {
+      fetchMock.mockResponse(JSON.stringify('bar2'));
+      const edgeConfig = createClient(process.env.EDGE_CONFIG, {
+        cache: 'force-cache',
+      });
+      await expect(edgeConfig.get('foo')).resolves.toEqual('bar2');
+
+      // returns undefined as file does not exist
+      expect(readFile).toHaveBeenCalledTimes(1);
+      expect(readFile).toHaveBeenCalledWith(
+        '/opt/edge-config/ecfg-1.json',
+        'utf-8',
+      );
+
+      // ensure fetch was called with the right options
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://edge-config.vercel.com/ecfg-1/item/foo?version=1',
+        {
+          cache: 'force-cache',
+          headers: new Headers({
+            Authorization: 'Bearer token-1',
+            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'x-edge-config-vercel-env': 'test',
+          }),
+        },
+      );
     });
   });
 });

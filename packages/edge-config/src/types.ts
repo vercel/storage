@@ -4,9 +4,9 @@ export interface EmbeddedEdgeConfig {
 }
 
 /**
- * An Edge Config bundled into data.json
+ * An Edge Config bundled into stores.json
  *
- * The contents of data.json itself are either
+ * The contents of stores.json itself are either
  * - null
  * - Record<string, BundledEdgeConfig>
  */

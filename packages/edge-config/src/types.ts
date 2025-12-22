@@ -85,6 +85,18 @@ export interface EdgeConfigClient {
    * @returns The digest of the Edge Config.
    */
   digest: (options?: EdgeConfigFunctionsOptions) => Promise<string>;
+
+  /**
+   * Reads the bootstrap data snapshot of the Edge Config that got embedded at build time.
+   *
+   * @returns The bootstrap data of the Edge Config
+   */
+  getBootstrapData: () => Promise<
+    | { store: BundledEdgeConfig; state: 'ok' }
+    | { store: null; state: 'external-connection' }
+    | { store: null; state: 'missing-file' | 'missing-entry' }
+    | { store: null; state: 'unexpected-error'; error: unknown }
+  >;
 }
 
 export type EdgeConfigItems = Record<string, EdgeConfigValue>;

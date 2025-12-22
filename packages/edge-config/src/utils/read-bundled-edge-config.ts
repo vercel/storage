@@ -16,15 +16,15 @@ import type { BundledEdgeConfig } from '../types';
  */
 export async function readBundledEdgeConfig(
   id: string,
-): Promise<BundledEdgeConfig | null> {
+): Promise<
+  | { store: BundledEdgeConfig; state: 'ok' }
+  | { store: null; state: 'missing-file' | 'missing-entry' }
+  | { store: null; state: 'unexpected-error'; error: unknown }
+> {
+  let stores: Record<string, BundledEdgeConfig>;
   try {
     // @ts-expect-error this only exists at build time
-    const stores = await import('@vercel/edge-config-storage/data.json');
-
-    // "edge-config snapshot" script did not run or returned null
-    if (stores === null) return null;
-
-    return (stores[id] as BundledEdgeConfig | undefined) ?? null;
+    stores = await import('@vercel/edge-config-storage/stores.json');
   } catch (error) {
     // If the module doesn't exist, the snapshot script didn't run
     if (
@@ -33,13 +33,13 @@ export async function readBundledEdgeConfig(
       'code' in error &&
       error.code === 'MODULE_NOT_FOUND'
     ) {
-      return null;
+      return { store: null, state: 'missing-file' };
     }
 
-    console.error(
-      '@vercel/edge-config: Failed to read bundled edge config:',
-      error,
-    );
-    return null;
+    return { store: null, state: 'unexpected-error', error: error };
   }
+
+  const store = stores && Object.hasOwn(stores, id) ? stores[id] : null;
+  if (!store) return { store: null, state: 'missing-entry' };
+  return { store: store, state: 'ok' };
 }

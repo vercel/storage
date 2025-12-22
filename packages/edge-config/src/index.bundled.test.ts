@@ -9,7 +9,7 @@ import { cache } from './utils/fetch-with-cached-response';
 import { TimeoutError } from './utils/timeout-error';
 
 jest.mock(
-  '@vercel/edge-config-storage/data.json',
+  '@vercel/edge-config-storage/stores.json',
   () => {
     return {
       ecfg_1: {

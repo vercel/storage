@@ -86,8 +86,6 @@ export function createCreateClient({
       if (typeof options.staleIfError === 'number' && options.staleIfError > 0)
         headers['cache-control'] = `stale-if-error=${options.staleIfError}`;
 
-      const snapshot = options.snapshot ?? connection.snapshot;
-
       const fetchCache = options.cache || 'no-store';
       const timeoutMs =
         typeof options.timeoutMs === 'number'
@@ -108,10 +106,12 @@ export function createCreateClient({
       /**
        * The edge config bundled at build time
        */
-      const bundledEdgeConfigPromise: Promise<BundledEdgeConfig | null> =
+      const bundledEdgeConfigPromise:
+        | ReturnType<typeof readBundledEdgeConfig>
+        | { store: null; state: 'external-connection' } =
         connection && connection.type === 'vercel'
           ? readBundledEdgeConfig(connection.id)
-          : null;
+          : { store: null, state: 'external-connection' };
 
       const isBuildStep =
         process.env.CI === '1' ||
@@ -169,8 +169,8 @@ export function createCreateClient({
             }
 
             const bundledEdgeConfig = await bundledEdgeConfigPromise;
-            if (bundledEdgeConfig && isBuildStep) {
-              return select(bundledEdgeConfig.data);
+            if (bundledEdgeConfig.store && isBuildStep) {
+              return select(bundledEdgeConfig.store.data);
             }
 
             try {
@@ -204,12 +204,12 @@ export function createCreateClient({
                 );
               });
             } catch (error) {
-              if (!bundledEdgeConfig) throw error;
+              if (!bundledEdgeConfig.store) throw error;
               console.warn(
                 `@vercel/edge-config: Falling back to bundled version of ${edgeConfigId} due to the following error`,
                 error,
               );
-              return select(bundledEdgeConfig.data);
+              return select(bundledEdgeConfig.store.data);
             }
           },
           { name: 'get', isVerboseTrace: false, attributes: { edgeConfigId } },
@@ -227,8 +227,8 @@ export function createCreateClient({
             }
 
             const bundledEdgeConfig = await bundledEdgeConfigPromise;
-            if (bundledEdgeConfig && isBuildStep) {
-              return select(bundledEdgeConfig.data);
+            if (bundledEdgeConfig.store && isBuildStep) {
+              return select(bundledEdgeConfig.store.data);
             }
 
             try {
@@ -265,12 +265,12 @@ export function createCreateClient({
                 );
               });
             } catch (error) {
-              if (!bundledEdgeConfig) throw error;
+              if (!bundledEdgeConfig.store) throw error;
               console.warn(
                 `@vercel/edge-config: Falling back to bundled version of ${edgeConfigId} due to the following error`,
                 error,
               );
-              return select(bundledEdgeConfig.data);
+              return select(bundledEdgeConfig.store.data);
             }
           },
           { name: 'has', isVerboseTrace: false, attributes: { edgeConfigId } },
@@ -337,6 +337,21 @@ export function createCreateClient({
           },
           {
             name: 'getAll',
+            isVerboseTrace: false,
+            attributes: { edgeConfigId },
+          },
+        ),
+        getBootstrapData: trace(
+          async function getBootstrapDataPromise(): Promise<
+            | { store: BundledEdgeConfig; state: 'ok' }
+            | { store: null; state: 'external-connection' }
+            | { store: null; state: 'missing-file' | 'missing-entry' }
+            | { store: null; state: 'unexpected-error'; error: unknown }
+          > {
+            return await bundledEdgeConfigPromise;
+          },
+          {
+            name: 'getBootstrapData',
             isVerboseTrace: false,
             attributes: { edgeConfigId },
           },

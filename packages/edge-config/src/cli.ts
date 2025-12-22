@@ -4,7 +4,7 @@
  *
  * command: snapshot
  *   Reads all connected Edge Configs and emits them into
- *   node_modules/@vercel/edge-config-storage/data.json along with a package.json
+ *   node_modules/@vercel/edge-config-storage/stores.json along with a package.json
  *   that exports the data.json file.
  *
  *   Attaches the updatedAt timestamp from the header to the emitted file, since

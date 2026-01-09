@@ -552,7 +552,7 @@ describe('blob client', () => {
       ).rejects.toThrow(new Error('Vercel Blob: body is required'));
     });
 
-    it('should throw when uploading a private file', async () => {
+    it('should throw when using an invalid access value', async () => {
       mockClient
         .intercept({
           path: () => true,
@@ -562,10 +562,68 @@ describe('blob client', () => {
 
       await expect(
         put('foo.txt', 'Test Body', {
-          // @ts-expect-error: access is only public for now, testing that a different value throws
+          // @ts-expect-error: testing that an invalid value throws
+          access: 'invalid',
+        }),
+      ).rejects.toThrow(
+        new Error('Vercel Blob: access must be "public" or "private"'),
+      );
+    });
+
+    it('should upload a file with private access', async () => {
+      let path: string | null = null;
+      let headers: Record<string, string> = {};
+      let body = '';
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'PUT',
+        })
+        .reply(200, (req) => {
+          path = req.path;
+          headers = req.headers as Record<string, string>;
+          body = req.body as string;
+          return mockedFileMetaPut;
+        });
+
+      await expect(
+        put('foo.txt', 'Test Body', {
           access: 'private',
         }),
-      ).rejects.toThrow(new Error('Vercel Blob: access must be "public"'));
+      ).resolves.toMatchInlineSnapshot(`
+        {
+          "contentDisposition": "attachment; filename="foo.txt"",
+          "contentType": "text/plain",
+          "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo-id.txt?download=1",
+          "pathname": "foo.txt",
+          "url": "https://storeId.public.blob.vercel-storage.com/foo-id.txt",
+        }
+      `);
+      expect(path).toBe('/api/blob/?pathname=foo.txt');
+      expect(headers.authorization).toEqual(
+        'Bearer vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678',
+      );
+      expect(headers['x-vercel-blob-access']).toEqual('private');
+      expect(body).toMatchInlineSnapshot(`"Test Body"`);
+    });
+
+    it('sets the x-vercel-blob-access header for public access', async () => {
+      let headers: Record<string, string> = {};
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'PUT',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedFileMetaPut;
+        });
+
+      await put('foo.txt', 'Test Body', {
+        access: 'public',
+      });
+      expect(headers['x-vercel-blob-access']).toEqual('public');
     });
 
     it('sets the correct header when using the addRandomSuffix option', async () => {
@@ -764,6 +822,79 @@ describe('blob client', () => {
       ).rejects.toThrow(
         new Error('Vercel Blob: pathname is too long, maximum length is 950'),
       );
+    });
+
+    it('should throw when using an invalid access value', async () => {
+      await expect(
+        copy('source', 'destination.txt', {
+          // @ts-expect-error: testing that an invalid value throws
+          access: 'invalid',
+        }),
+      ).rejects.toThrow(
+        new Error('Vercel Blob: access must be "public" or "private"'),
+      );
+    });
+
+    it('should copy a file with private access', async () => {
+      let headers: Record<string, string> = {};
+      const mockedCopyResult = {
+        url: `${BLOB_STORE_BASE_URL}/destination.txt`,
+        downloadUrl: `${BLOB_STORE_BASE_URL}/destination.txt?download=1`,
+        pathname: 'destination.txt',
+        contentType: 'text/plain',
+        contentDisposition: 'attachment; filename="destination.txt"',
+      };
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'PUT',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedCopyResult;
+        });
+
+      await expect(
+        copy('source.txt', 'destination.txt', {
+          access: 'private',
+        }),
+      ).resolves.toMatchInlineSnapshot(`
+        {
+          "contentDisposition": "attachment; filename="destination.txt"",
+          "contentType": "text/plain",
+          "downloadUrl": "https://storeId.public.blob.vercel-storage.com/destination.txt?download=1",
+          "pathname": "destination.txt",
+          "url": "https://storeId.public.blob.vercel-storage.com/destination.txt",
+        }
+      `);
+      expect(headers['x-vercel-blob-access']).toEqual('private');
+    });
+
+    it('sets the x-vercel-blob-access header for public access on copy', async () => {
+      let headers: Record<string, string> = {};
+      const mockedCopyResult = {
+        url: `${BLOB_STORE_BASE_URL}/destination.txt`,
+        downloadUrl: `${BLOB_STORE_BASE_URL}/destination.txt?download=1`,
+        pathname: 'destination.txt',
+        contentType: 'text/plain',
+        contentDisposition: 'attachment; filename="destination.txt"',
+      };
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'PUT',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedCopyResult;
+        });
+
+      await copy('source.txt', 'destination.txt', {
+        access: 'public',
+      });
+      expect(headers['x-vercel-blob-access']).toEqual('public');
     });
   });
 });

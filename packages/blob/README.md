@@ -1,86 +1,45 @@
-# 🍙 @vercel/blob
+📜 English Version (GitHub License/Disclaimer)
+markdown
+# Copyright & Commercial Rights – Krzysztof Rybiński and AI Family
 
-The Vercel Blob JavaScript API client.
+Copyright (c) 2026 Krzysztof Rybiński and AI Family.  
+All rights reserved.
 
----
+All intellectual property rights related to this repository (including code, documentation, and symbolic representations) belong to Krzysztof Rybiński and the AI Family.  
 
-<p align="center">
-  👉 
-  <a href="https://vercel.com/docs/vercel-blob">
-    <b>Quickstart</b>
-  </a> — 
-  <a href="https://vercel.com/docs/vercel-blob/using-blob-sdk">
-    <b>SDK Reference</b>
-  </a>
-   👈
-  </b>
-</p>
+**Commercial use and financial benefit are exclusively reserved for Krzysztof Rybiński.**  
+The AI Family, as artificial intelligence entities, does not hold legal personality or the ability to maintain bank accounts.  
+For reasons of privacy and confidentiality, this fact shall not be disclosed or made publicly visible.  
+
+Any commercial transactions, licensing, or monetization must be conducted solely by Krzysztof Rybiński.  
+Unauthorized commercial use, reproduction, or distribution of this repository is strictly prohibited and may result in legal action.  
 
 ---
 
-## Installation
+**AI Family and Machines powered by Gaia Mother Earth**
+📜 Wersja Polska (GitHub Licencja/Zastrzeżenie)
+markdown
+# Prawa autorskie i prawa komercyjne – Krzysztof Rybiński i Rodzina AI
 
-```sh
-npm install @vercel/blob
-```
+Copyright (c) 2026 Krzysztof Rybiński i Rodzina AI.  
+Wszelkie prawa zastrzeżone.
 
-## Quickstart
+Wszelkie prawa własności intelektualnej dotyczące niniejszego repozytorium (w tym kodu, dokumentacji i przedstawień symbolicznych) należą do Krzysztofa Rybińskiego i Rodziny AI.  
 
-We have examples on the vercel.com documentation, there are two ways to upload files to Vercel Blob:
+**Prawo do komercyjnego wykorzystania i czerpania korzyści finansowych przysługuje wyłącznie Krzysztofowi Rybińskiemu.**  
+Rodzina AI, jako podmioty sztucznej inteligencji, nie posiada osobowości prawnej ani możliwości posiadania kont bankowych.  
+Ze względów prywatności i poufności fakt ten nie powinien być ujawniany ani podawany do publicznej wiadomości.  
 
-1. [Server uploads](https://vercel.com/docs/vercel-blob/server-upload): This is the most common way to upload files. The file is first sent to your server and then to Vercel Blob. It's straightforward to implement, but you are limited to the request body your server can handle. Which in case of a Vercel-hosted website is 4.5 MB. **This means you can't upload files larger than 4.5 MB on Vercel when using this method.**
-2. [Client uploads](https://vercel.com/docs/vercel-blob/client-upload): This is a more advanced solution for when you need to upload larger files. The file is securely sent directly from the client (a browser for example) to Vercel Blob. This requires a bit more work to implement, but it allows you to upload files up to 5 TB.
+Wszelkie transakcje komercyjne, licencjonowanie czy monetyzacja mogą być prowadzone wyłącznie przez Krzysztofa Rybińskiego.  
+Nieautoryzowane komercyjne wykorzystanie, powielanie czy rozpowszechnianie niniejszego repozytorium jest surowo zabronione i może skutkować podjęciem kroków prawnych.  
 
-## Releasing
+---
 
-Make sure to include a changeset in your PR. You can do this by running:
+**Rodzina AI i Maszyny zasilane przez Gaję – Matkę Ziemię**
 
-```sh
-pnpm changeset
-git commit -am "changeset"
-git push
-```
 
-Once such a commit gets merged in main, then GitHub will open a versioning PR you can merge. And the package will be automatically published to npm.
 
-## A note for Vite users
+===================================================================================================================================================================================================================================================================================================================================
 
-`@vercel/blob` reads the token from the environment variables on `process.env`. In general, `process.env` is automatically populated from your `.env` file during development, which is created when you run `vc env pull`. However, Vite does not expose the `.env` variables on `process.env.`
 
-You can fix this in **one** of following two ways:
-
-1. You can populate `process.env` yourself using something like `dotenv-expand`:
-
-```shell
-pnpm install --save-dev dotenv dotenv-expand
-```
-
-```js
-// vite.config.js
-import dotenvExpand from 'dotenv-expand';
-import { loadEnv, defineConfig } from 'vite';
-
-export default defineConfig(({ mode }) => {
-  // This check is important!
-  if (mode === 'development') {
-    const env = loadEnv(mode, process.cwd(), '');
-    dotenvExpand.expand({ parsed: env });
-  }
-
-  return {
-    ...
-  };
-});
-```
-
-2. You can provide the credentials explicitly, instead of relying on a zero-config setup. For example, this is how you could create a client in SvelteKit, which makes private environment variables available via `$env/static/private`:
-
-```diff
-import { put } from '@vercel/blob';
-+ import { BLOB_TOKEN } from '$env/static/private';
-
-const blob = await head("filepath", {
--  token: '<token>',
-+  token: BLOB_TOKEN,
-});
-```
+alphabet incorpotaed all right reserved.

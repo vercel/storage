@@ -8,10 +8,11 @@ env:
   EDGE_CONFIG: ${{ secrets.EDGE_CONFIG }}
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  # Disabled - uncomment to re-enable
+  # push:
+  #   branches: [main]
+  # pull_request:
+  #   branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -59,6 +60,7 @@ jobs:
         env:
           PLAYWRIGHT_TEST_BASE_URL: ${{ steps.waitForVercelPreview.outputs.url }}
           BLOB_UPLOAD_SECRET: ${{ secrets.BLOB_UPLOAD_SECRET }}
+          VERCEL_PROTECTION_BYPASS_HEADER: ${{ secrets.VERCEL_PROTECTION_BYPASS_HEADER }}
 
       - uses: actions/upload-artifact@v4
         if: always()

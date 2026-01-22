@@ -74,6 +74,11 @@ export { del } from './del';
 export type { HeadBlobResult } from './head';
 export { head } from './head';
 
+// vercelBlob.get()
+
+export type { GetBlobResult, GetCommandOptions } from './get';
+export { get } from './get';
+
 // vercelBlob.list()
 
 export type {

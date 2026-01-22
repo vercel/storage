@@ -813,6 +813,227 @@ describe('blob client', () => {
     });
   });
 
+  describe('createMultipartUpload', () => {
+    const mockedCreateResponse = {
+      uploadId: 'upload-123',
+      key: 'foo.txt',
+    };
+
+    it('should create a multipart upload with private access', async () => {
+      let headers: Record<string, string> = {};
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedCreateResponse;
+        });
+
+      await expect(
+        createMultipartUpload('foo.txt', {
+          access: 'private',
+        }),
+      ).resolves.toMatchInlineSnapshot(`
+        {
+          "key": "foo.txt",
+          "uploadId": "upload-123",
+        }
+      `);
+      expect(headers['x-vercel-blob-access']).toEqual('private');
+    });
+
+    it('should create a multipart upload with public access', async () => {
+      let headers: Record<string, string> = {};
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedCreateResponse;
+        });
+
+      await createMultipartUpload('foo.txt', {
+        access: 'public',
+      });
+      expect(headers['x-vercel-blob-access']).toEqual('public');
+    });
+
+    it('should throw when using an invalid access value', async () => {
+      await expect(
+        createMultipartUpload('foo.txt', {
+          // @ts-expect-error: testing that an invalid value throws
+          access: 'invalid',
+        }),
+      ).rejects.toThrow(
+        new Error('Vercel Blob: access must be "public" or "private"'),
+      );
+    });
+  });
+
+  describe('uploadPart', () => {
+    const mockedUploadPartResponse = {
+      etag: 'etag-123',
+    };
+
+    it('should upload a part with private access', async () => {
+      let headers: Record<string, string> = {};
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedUploadPartResponse;
+        });
+
+      await expect(
+        uploadPart('foo.txt', 'Test Body', {
+          access: 'private',
+          key: 'foo.txt',
+          uploadId: 'upload-123',
+          partNumber: 1,
+        }),
+      ).resolves.toMatchInlineSnapshot(`
+        {
+          "etag": "etag-123",
+          "partNumber": 1,
+        }
+      `);
+      expect(headers['x-vercel-blob-access']).toEqual('private');
+    });
+
+    it('should upload a part with public access', async () => {
+      let headers: Record<string, string> = {};
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedUploadPartResponse;
+        });
+
+      await uploadPart('foo.txt', 'Test Body', {
+        access: 'public',
+        key: 'foo.txt',
+        uploadId: 'upload-123',
+        partNumber: 1,
+      });
+      expect(headers['x-vercel-blob-access']).toEqual('public');
+    });
+
+    it('should throw when using an invalid access value', async () => {
+      await expect(
+        uploadPart('foo.txt', 'Test Body', {
+          // @ts-expect-error: testing that an invalid value throws
+          access: 'invalid',
+          key: 'foo.txt',
+          uploadId: 'upload-123',
+          partNumber: 1,
+        }),
+      ).rejects.toThrow(
+        new Error('Vercel Blob: access must be "public" or "private"'),
+      );
+    });
+  });
+
+  describe('completeMultipartUpload', () => {
+    const mockedCompleteResponse = {
+      url: `${BLOB_STORE_BASE_URL}/foo.txt`,
+      downloadUrl: `${BLOB_STORE_BASE_URL}/foo.txt?download=1`,
+      pathname: 'foo.txt',
+      contentType: 'text/plain',
+      contentDisposition: 'attachment; filename="foo.txt"',
+    };
+
+    it('should complete a multipart upload with private access', async () => {
+      let headers: Record<string, string> = {};
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedCompleteResponse;
+        });
+
+      await expect(
+        completeMultipartUpload(
+          'foo.txt',
+          [{ partNumber: 1, etag: 'etag-123' }],
+          {
+            access: 'private',
+            key: 'foo.txt',
+            uploadId: 'upload-123',
+          },
+        ),
+      ).resolves.toMatchInlineSnapshot(`
+        {
+          "contentDisposition": "attachment; filename="foo.txt"",
+          "contentType": "text/plain",
+          "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo.txt?download=1",
+          "pathname": "foo.txt",
+          "url": "https://storeId.public.blob.vercel-storage.com/foo.txt",
+        }
+      `);
+      expect(headers['x-vercel-blob-access']).toEqual('private');
+    });
+
+    it('should complete a multipart upload with public access', async () => {
+      let headers: Record<string, string> = {};
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedCompleteResponse;
+        });
+
+      await completeMultipartUpload(
+        'foo.txt',
+        [{ partNumber: 1, etag: 'etag-123' }],
+        {
+          access: 'public',
+          key: 'foo.txt',
+          uploadId: 'upload-123',
+        },
+      );
+      expect(headers['x-vercel-blob-access']).toEqual('public');
+    });
+
+    it('should throw when using an invalid access value', async () => {
+      await expect(
+        completeMultipartUpload(
+          'foo.txt',
+          [{ partNumber: 1, etag: 'etag-123' }],
+          {
+            // @ts-expect-error: testing that an invalid value throws
+            access: 'invalid',
+            key: 'foo.txt',
+            uploadId: 'upload-123',
+          },
+        ),
+      ).rejects.toThrow(
+        new Error('Vercel Blob: access must be "public" or "private"'),
+      );
+    });
+  });
+
   describe('copy', () => {
     it('throws when filepath is too long', async () => {
       await expect(

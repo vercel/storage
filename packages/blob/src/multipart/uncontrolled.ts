@@ -36,6 +36,7 @@ export async function uncontrolledMultipartUpload(
     uploadId: createMultipartUploadResponse.uploadId,
     key: createMultipartUploadResponse.key,
     pathname,
+    // @ts-expect-error ReadableStream<ArrayBuffer | Uint8Array> is compatible at runtime
     stream,
     headers,
     options,

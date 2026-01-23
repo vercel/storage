@@ -1,4 +1,4 @@
-import type { BlobCommandOptions } from './helpers';
+import type { BlobAccessType, BlobCommandOptions } from './helpers';
 import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
 
 /**
@@ -10,7 +10,7 @@ export interface GetCommandOptions extends BlobCommandOptions {
    * - 'public': The blob is publicly accessible via its URL.
    * - 'private': The blob requires authentication to access.
    */
-  access: 'public' | 'private';
+  access: BlobAccessType;
 }
 
 /**

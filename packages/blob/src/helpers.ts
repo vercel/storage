@@ -23,6 +23,13 @@ export interface BlobCommandOptions {
   abortSignal?: AbortSignal;
 }
 
+/**
+ * The access level of a blob.
+ * - 'public': The blob is publicly accessible via its URL.
+ * - 'private': The blob requires authentication to access.
+ */
+export type BlobAccessType = 'public' | 'private';
+
 // shared interface for put, copy and multipart upload
 export interface CommonCreateBlobOptions extends BlobCommandOptions {
   /**
@@ -30,7 +37,7 @@ export interface CommonCreateBlobOptions extends BlobCommandOptions {
    * - 'public': The blob will be publicly accessible via its URL.
    * - 'private': The blob will require authentication to access.
    */
-  access: 'public' | 'private';
+  access: BlobAccessType;
   /**
    * Adds a random suffix to the filename.
    * @defaultvalue false

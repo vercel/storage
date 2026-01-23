@@ -4,7 +4,11 @@ import * as crypto from 'crypto';
 // the `undici` module will be replaced with https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
 // for browser contexts. See ./undici-browser.js and ./package.json
 import { fetch } from 'undici';
-import type { BlobCommandOptions, WithUploadProgress } from './helpers';
+import type {
+  BlobAccessType,
+  BlobCommandOptions,
+  WithUploadProgress,
+} from './helpers';
 import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
 import type { CommonCompleteMultipartUploadOptions } from './multipart/complete';
 import { createCompleteMultipartUploadMethod } from './multipart/complete';
@@ -25,7 +29,7 @@ export interface ClientCommonCreateBlobOptions {
    * - 'public': The blob will be publicly accessible via its URL.
    * - 'private': The blob will require authentication to access.
    */
-  access: 'public' | 'private';
+  access: BlobAccessType;
   /**
    * Defines the content type of the blob. By default, this value is inferred from the pathname.
    * Sent as the 'content-type' header when downloading a blob.

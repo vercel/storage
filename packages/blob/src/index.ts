@@ -25,6 +25,7 @@ export {
 } from './api';
 // expose generic BlobError and download url util
 export {
+  type BlobAccessType,
   BlobError,
   getDownloadUrl,
   type OnUploadProgressCallback,

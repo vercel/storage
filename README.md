@@ -8,7 +8,10 @@
 ## Deprecated Packages
 
 > **Note:** Vercel Postgres and Vercel KV products are now sunset. You can install other postgres and KV storage solutions from the [Vercel Marketplace](https://vercel.com/marketplace) as native integrations to your Vercel project.
+>
+> The source code for these deprecated packages is preserved in the [`vercel-kv-vercel-postgres-archive`](https://github.com/vercel/storage/tree/vercel-kv-vercel-postgres-archive) branch.
 
-- `@vercel/postgres` Vercel Postgres database client — [Documentation](https://vercel.com/docs/storage/vercel-postgres) | [Source](./packages/postgres)
-- `@vercel/kv` Durable Redis-compatible Key Value store — [Documentation](https://vercel.com/docs/storage/vercel-kv) | [Source](./packages/kv)
-- `@vercel/postgres-kysely` A `@vercel/postgres` wrapper for the [kysely ORM](https://github.com/kysely-org/kysely) — [Documentation](./packages/postgres-kysely) | [Source](./packages/postgres-kysely)
+### Migration Guides
+
+- **@vercel/postgres** → Use [@neondatabase/serverless](https://neon.tech/docs/serverless/serverless-driver) or [@neondatabase/vercel-postgres-compat](https://www.npmjs.com/package/@neondatabase/vercel-postgres-compat) (drop-in replacement). See the [Neon transition guide](https://neon.com/docs/guides/vercel-postgres-transition-guide#compatibility-notes).
+- **@vercel/kv** → Use [@upstash/redis](https://www.npmjs.com/package/@upstash/redis). See the [Upstash Redis documentation](https://upstash.com/docs/redis/overall/getstarted).

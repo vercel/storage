@@ -56,7 +56,8 @@ jobs:
           max_timeout: 600
 
       - name: Run Playwright tests on ${{ steps.waitForVercelPreview.outputs.url }}
-        run: pnpm integration-test
+        working-directory: test/next
+        run: pnpm exec playwright test
         env:
           PLAYWRIGHT_TEST_BASE_URL: ${{ steps.waitForVercelPreview.outputs.url }}
           BLOB_UPLOAD_SECRET: ${{ secrets.BLOB_UPLOAD_SECRET }}

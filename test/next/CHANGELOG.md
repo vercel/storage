@@ -1,5 +1,12 @@
 # vercel-storage-integration-test-suite
 
+## 0.3.14
+
+### Patch Changes
+
+- Updated dependencies [e2de71a]
+  - @vercel/blob@2.0.1
+
 ## 0.3.13
 
 ### Patch Changes
@@ -237,12 +244,12 @@
   const abortController = new AbortController();
 
   vercelBlob
-    .put('canceled.txt', 'test', {
-      access: 'public',
+    .put("canceled.txt", "test", {
+      access: "public",
       abortSignal: abortController.signal,
     })
     .then((blob) => {
-      console.log('Blob created:', blob);
+      console.log("Blob created:", blob);
     });
 
   setTimeout(function () {
@@ -331,19 +338,19 @@
 
   ```ts
   const { key, uploadId } = await vercelBlob.createMultipartUpload(
-    'big-file.txt',
-    { access: 'public' },
+    "big-file.txt",
+    { access: "public" }
   );
 
-  const part1 = await vercelBlob.uploadPart(fullPath, 'first part', {
-    access: 'public',
+  const part1 = await vercelBlob.uploadPart(fullPath, "first part", {
+    access: "public",
     key,
     uploadId,
     partNumber: 1,
   });
 
-  const part2 = await vercelBlob.uploadPart(fullPath, 'second part', {
-    access: 'public',
+  const part2 = await vercelBlob.uploadPart(fullPath, "second part", {
+    access: "public",
     key,
     uploadId,
     partNumber: 2,
@@ -353,10 +360,10 @@
     fullPath,
     [part1, part2],
     {
-      access: 'public',
+      access: "public",
       key,
       uploadId,
-    },
+    }
   );
   ```
 
@@ -365,8 +372,8 @@
   For multipart methods, since some of the data remains consistent (uploadId, key), you can make use of the `createMultipartUploader`. This function stores certain data internally, making it possible to offer convinient `put` and `complete` functions.
 
   ```ts
-  const uploader = await vercelBlob.createMultipartUploader('big-file.txt', {
-    access: 'public',
+  const uploader = await vercelBlob.createMultipartUploader("big-file.txt", {
+    access: "public",
   });
 
   const part1 = await uploader.uploadPart(1, createReadStream(fullPath));
@@ -447,8 +454,8 @@
   Now the the SDK validates if the operation is a folder creation by checking if the pathname ends with a trailling slash.
 
   ```ts
-  const blob = await vercelBlob.put('folder/', {
-    access: 'public',
+  const blob = await vercelBlob.put("folder/", {
+    access: "public",
     addRandomSuffix: false,
   });
   ```
@@ -464,15 +471,15 @@
   Usage:
 
   ```ts
-  const blob = await put('file.png', file, {
-    access: 'public',
+  const blob = await put("file.png", file, {
+    access: "public",
     multipart: true, // `false` by default
   });
 
   // and:
-  const blob = await upload('file.png', file, {
-    access: 'public',
-    handleUploadUrl: '/api/upload',
+  const blob = await upload("file.png", file, {
+    access: "public",
+    handleUploadUrl: "/api/upload",
     multipart: true,
   });
   ```
@@ -482,26 +489,26 @@
   More examples:
 
   ```ts
-  import { createReadStream } from 'node:fs';
+  import { createReadStream } from "node:fs";
 
   const blob = await vercelBlob.put(
-    'elon.mp4',
+    "elon.mp4",
     // this works 👍, it will gradually read the file from the system and upload it
-    createReadStream('/users/Elon/me.mp4'),
-    { access: 'public', multipart: true },
+    createReadStream("/users/Elon/me.mp4"),
+    { access: "public", multipart: true }
   );
   ```
 
   ```ts
   const response = await fetch(
-    'https://example-files.online-convert.com/video/mp4/example_big.mp4',
+    "https://example-files.online-convert.com/video/mp4/example_big.mp4"
   );
 
   const blob = await vercelBlob.put(
-    'example_big.mp4',
+    "example_big.mp4",
     // this works too 👍, it will gradually read the file from internet and upload it
     response.body,
-    { access: 'public', multipart: true },
+    { access: "public", multipart: true }
   );
   ```
 

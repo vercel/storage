@@ -365,6 +365,7 @@ async function verifyCallbackSignature({
   const verified = await globalThis.crypto.subtle.verify(
     'HMAC',
     await importKey(token),
+    // @ts-expect-error TypeScript 5.9 has stricter ArrayBuffer typing that conflicts with Buffer
     hexToArrayByte(signature),
     new TextEncoder().encode(body),
   );

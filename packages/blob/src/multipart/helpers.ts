@@ -91,6 +91,7 @@ export async function toReadableStream(
   // This line ensures that even when we get a buffer of 70MB, we'll create a stream out of it so we can have
   // better progress indication during uploads
   if (await supportsNewBlobFromArrayBuffer) {
+    // @ts-expect-error TypeScript 5.9 has stricter ArrayBuffer typing
     return new Blob([streamValue]).stream();
   }
 

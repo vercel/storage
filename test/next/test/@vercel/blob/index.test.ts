@@ -84,7 +84,14 @@ test.describe('@vercel/blob', () => {
         '/api/vercel/blob/pages/handle-blob-upload-serverless',
       ].forEach((callback) => {
         test(callback, async ({ browser }) => {
-          const browserContext = await browser.newContext();
+          const browserContext = await browser.newContext({
+            extraHTTPHeaders: process.env.VERCEL_PROTECTION_BYPASS_HEADER
+              ? {
+                  'x-vercel-protection-bypass':
+                    process.env.VERCEL_PROTECTION_BYPASS_HEADER,
+                }
+              : undefined,
+          });
           await browserContext.addCookies([
             {
               name: 'clientUpload',
@@ -114,7 +121,14 @@ test.describe('@vercel/blob', () => {
     test.describe('multipart upload', () => {
       test('multipart client upload', async ({ browser }) => {
         const callback = '/vercel/blob/api/app/handle-blob-upload/serverless';
-        const browserContext = await browser.newContext();
+        const browserContext = await browser.newContext({
+          extraHTTPHeaders: process.env.VERCEL_PROTECTION_BYPASS_HEADER
+            ? {
+                'x-vercel-protection-bypass':
+                  process.env.VERCEL_PROTECTION_BYPASS_HEADER,
+              }
+            : undefined,
+        });
         await browserContext.addCookies([
           {
             name: 'clientUpload',
@@ -195,8 +209,10 @@ test.describe('@vercel/blob', () => {
     });
   });
 
-  test.afterAll(async ({ request }) => {
+  test.afterAll(async ({ request, extraHTTPHeaders }) => {
     // cleanup all files
-    await request.delete(`vercel/blob/api/app/clean?prefix=${prefix}`);
+    await request.delete(`vercel/blob/api/app/clean?prefix=${prefix}`, {
+      headers: { ...extraHTTPHeaders },
+    });
   });
 });

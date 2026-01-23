@@ -7,7 +7,6 @@ const prefix =
 test.describe('@vercel/blob', () => {
   test.describe('page', () => {
     test('serverless', async ({ page }) => {
-      console.log(`vercel/pages/blob/image?prefix=${prefix}`);
       const response = await page.goto(
         `vercel/pages/blob/image?prefix=${prefix}`,
       );

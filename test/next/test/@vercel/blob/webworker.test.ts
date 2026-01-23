@@ -6,7 +6,14 @@ const prefix =
 
 // This test broke with the upgrade to Next.js v16 of "test/next"
 test.skip('web worker upload', async ({ browser }) => {
-  const browserContext = await browser.newContext();
+  const browserContext = await browser.newContext({
+    extraHTTPHeaders: process.env.VERCEL_PROTECTION_BYPASS_HEADER
+      ? {
+          'x-vercel-protection-bypass':
+            process.env.VERCEL_PROTECTION_BYPASS_HEADER,
+        }
+      : undefined,
+  });
   await browserContext.addCookies([
     {
       name: 'clientUpload',

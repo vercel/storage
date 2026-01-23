@@ -74,39 +74,45 @@ test.describe('progress events', () => {
       await expect(page.getByTestId('video-player')).toBeVisible();
 
       // Wait for and verify progress events
+      // Use toPass() for polling because in Firefox the DOM might not have
+      // all progress events rendered immediately after they become visible
       await expect(page.getByTestId('progress-events')).toBeVisible();
-      const progressEvents = await page
-        .getByTestId('progress-event-item')
-        .all();
-      expect(progressEvents.length).toBeGreaterThan(2);
 
-      // Verify first event (0%)
-      const firstEventText = await progressEvents[0].textContent();
-      const firstEvent = JSON.parse(
-        firstEventText || '{}',
-      ) as UploadProgressEvent;
-      expect(firstEvent.loaded).toBe(0);
-      expect(firstEvent.total).toBe(sizeInBytes);
-      expect(firstEvent.percentage).toBe(0);
+      await expect(async () => {
+        const progressEvents = await page
+          .getByTestId('progress-event-item')
+          .all();
+        expect(progressEvents.length).toBeGreaterThan(2);
 
-      // Verify second event (>0%)
-      const secondEventText = await progressEvents[1].textContent();
-      const secondEvent = JSON.parse(
-        secondEventText || '{}',
-      ) as UploadProgressEvent;
-      expect(secondEvent.loaded).toBeGreaterThan(0);
-      expect(secondEvent.total).toBe(sizeInBytes);
-      expect(secondEvent.percentage).toBeGreaterThan(0);
+        // Verify first event (0%)
+        const firstEventText = await progressEvents[0].textContent();
+        const firstEvent = JSON.parse(
+          firstEventText || '{}',
+        ) as UploadProgressEvent;
+        expect(firstEvent.loaded).toBe(0);
+        expect(firstEvent.total).toBe(sizeInBytes);
+        expect(firstEvent.percentage).toBe(0);
 
-      // Verify last event (100%)
-      const lastEventText =
-        await progressEvents[progressEvents.length - 1].textContent();
-      const lastEvent = JSON.parse(
-        lastEventText || '{}',
-      ) as UploadProgressEvent;
-      expect(lastEvent.loaded).toBe(sizeInBytes);
-      expect(lastEvent.total).toBe(sizeInBytes);
-      expect(lastEvent.percentage).toBe(100);
+        // Verify second event (>0%) - in Firefox, events may batch differently
+        // so we need to find the first event with loaded > 0
+        const secondEventText = await progressEvents[1].textContent();
+        const secondEvent = JSON.parse(
+          secondEventText || '{}',
+        ) as UploadProgressEvent;
+        expect(secondEvent.loaded).toBeGreaterThan(0);
+        expect(secondEvent.total).toBe(sizeInBytes);
+        expect(secondEvent.percentage).toBeGreaterThan(0);
+
+        // Verify last event (100%)
+        const lastEventText =
+          await progressEvents[progressEvents.length - 1].textContent();
+        const lastEvent = JSON.parse(
+          lastEventText || '{}',
+        ) as UploadProgressEvent;
+        expect(lastEvent.loaded).toBe(sizeInBytes);
+        expect(lastEvent.total).toBe(sizeInBytes);
+        expect(lastEvent.percentage).toBe(100);
+      }).toPass({ timeout: 10000 });
     });
   });
 });

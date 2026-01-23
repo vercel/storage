@@ -27,6 +27,8 @@ const config: PlaywrightTestConfig = {
   retries: 5,
   // Artifacts folder where screenshots, videos, and traces are stored.
   outputDir: 'test-results/',
+  // Use line reporter for real-time progress in CI
+  reporter: process.env.CI ? 'line' : 'list',
 
   // Run your local dev server before starting the tests:
   // https://playwright.dev/docs/test-advanced#launching-a-development-web-server-during-the-tests
@@ -40,6 +42,14 @@ const config: PlaywrightTestConfig = {
     // Retry a test if its failing with enabled tracing. This allows you to analyse the DOM, console logs, network traffic etc.
     // More information: https://playwright.dev/docs/trace-viewer
     trace: 'retry-with-trace',
+
+    // Add Vercel protection bypass header if provided
+    extraHTTPHeaders: process.env.VERCEL_PROTECTION_BYPASS_HEADER
+      ? {
+          'x-vercel-protection-bypass':
+            process.env.VERCEL_PROTECTION_BYPASS_HEADER,
+        }
+      : undefined,
   },
 
   projects: process.env.PLAYWRIGHT_PROJECT

@@ -31,12 +31,16 @@ test.describe('@vercel/postgres', () => {
   test.describe('app directory', () => {
     test.describe('client', () => {
       test.describe('api', () => {
-        test('edge', async ({ request }) => {
-          const res = await request.get('api/vercel/postgres/app/client/edge');
+        test('edge', async ({ request, extraHTTPHeaders }) => {
+          const res = await request.get('api/vercel/postgres/app/client/edge', {
+            headers: { ...extraHTTPHeaders },
+          });
           expect(await res.json()).toEqual(expectedRows);
         });
-        test('node', async ({ request }) => {
-          const res = await request.get('api/vercel/postgres/app/client/node');
+        test('node', async ({ request, extraHTTPHeaders }) => {
+          const res = await request.get('api/vercel/postgres/app/client/node', {
+            headers: { ...extraHTTPHeaders },
+          });
           expect(await res.json()).toEqual(expectedRows);
         });
       });
@@ -61,12 +65,16 @@ test.describe('@vercel/postgres', () => {
     });
     test.describe('pool', () => {
       test.describe('api', () => {
-        test('edge', async ({ request }) => {
-          const res = await request.get('api/vercel/postgres/app/pool/edge');
+        test('edge', async ({ request, extraHTTPHeaders }) => {
+          const res = await request.get('api/vercel/postgres/app/pool/edge', {
+            headers: { ...extraHTTPHeaders },
+          });
           expect(await res.json()).toEqual(expectedRows);
         });
-        test('node', async ({ request }) => {
-          const res = await request.get('api/vercel/postgres/app/pool/node');
+        test('node', async ({ request, extraHTTPHeaders }) => {
+          const res = await request.get('api/vercel/postgres/app/pool/node', {
+            headers: { ...extraHTTPHeaders },
+          });
           expect(await res.json()).toEqual(expectedRows);
         });
       });
@@ -92,22 +100,30 @@ test.describe('@vercel/postgres', () => {
   });
   test.describe('pages directory', () => {
     test.describe('client', () => {
-      test('edge', async ({ request }) => {
-        const res = await request.get('api/vercel/postgres/pages/client/edge');
+      test('edge', async ({ request, extraHTTPHeaders }) => {
+        const res = await request.get('api/vercel/postgres/pages/client/edge', {
+          headers: { ...extraHTTPHeaders },
+        });
         expect(await res.json()).toEqual(expectedRows);
       });
-      test('node', async ({ request }) => {
-        const res = await request.get('api/vercel/postgres/pages/client/node');
+      test('node', async ({ request, extraHTTPHeaders }) => {
+        const res = await request.get('api/vercel/postgres/pages/client/node', {
+          headers: { ...extraHTTPHeaders },
+        });
         expect(await res.json()).toEqual(expectedRows);
       });
     });
     test.describe('pool', () => {
-      test('edge', async ({ request }) => {
-        const res = await request.get('api/vercel/postgres/pages/pool/edge');
+      test('edge', async ({ request, extraHTTPHeaders }) => {
+        const res = await request.get('api/vercel/postgres/pages/pool/edge', {
+          headers: { ...extraHTTPHeaders },
+        });
         expect(await res.json()).toEqual(expectedRows);
       });
-      test('node', async ({ request }) => {
-        const res = await request.get('api/vercel/postgres/pages/pool/node');
+      test('node', async ({ request, extraHTTPHeaders }) => {
+        const res = await request.get('api/vercel/postgres/pages/pool/node', {
+          headers: { ...extraHTTPHeaders },
+        });
         expect(await res.json()).toEqual(expectedRows);
       });
     });

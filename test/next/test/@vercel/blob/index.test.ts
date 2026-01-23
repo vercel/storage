@@ -84,6 +84,8 @@ test.describe('@vercel/blob', () => {
         '/api/vercel/blob/pages/handle-blob-upload-serverless',
       ].forEach((callback) => {
         test(callback, async ({ browser }) => {
+          // Increase test timeout for client uploads
+          test.setTimeout(120000);
           const browserContext = await browser.newContext({
             extraHTTPHeaders: process.env.VERCEL_PROTECTION_BYPASS_HEADER
               ? {
@@ -120,6 +122,8 @@ test.describe('@vercel/blob', () => {
 
     test.describe('multipart upload', () => {
       test('multipart client upload', async ({ browser }) => {
+        // Increase test timeout for multipart uploads
+        test.setTimeout(120000);
         const callback = '/vercel/blob/api/app/handle-blob-upload/serverless';
         const browserContext = await browser.newContext({
           extraHTTPHeaders: process.env.VERCEL_PROTECTION_BYPASS_HEADER

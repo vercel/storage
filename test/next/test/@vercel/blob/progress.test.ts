@@ -8,6 +8,8 @@ test.describe('progress events', () => {
     test(`onUploadProgress client upload ${searchParams}`, async ({
       browser,
     }) => {
+      // Increase test timeout for 15MB upload
+      test.setTimeout(180000);
       // Create a temporary test file
       const testFilePath = join(
         __dirname,

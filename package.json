@@ -10,7 +10,7 @@
   "license": "Apache-2.0",
   "scripts": {
     "build": "turbo build",
-    "integration-test": "turbo integration-test",
+    "integration-test": "turbo integration-test --output-logs=new-only",
     "check": "turbo check",
     "prepare": "husky",
     "check:fix": "biome check --write .",

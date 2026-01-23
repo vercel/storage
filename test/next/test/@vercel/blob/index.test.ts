@@ -16,12 +16,13 @@ test.describe('@vercel/blob', () => {
       'api/vercel/blob/pages/edge',
       'api/vercel/blob/pages/serverless',
     ].forEach((path) => {
-      test(path, async ({ request }) => {
+      test(path, async ({ request, extraHTTPHeaders }) => {
         const data = (await request
           .post(`${path}?filename=${prefix}/test.txt`, {
             data: `Hello world ${path} ${prefix}`,
             headers: {
               cookie: `clientUpload=${process.env.BLOB_UPLOAD_SECRET ?? ''}`,
+              ...extraHTTPHeaders,
             },
           })
           .then((r) => r.json())) as PutBlobResult;
@@ -83,6 +84,11 @@ test.describe('@vercel/blob', () => {
         '/api/vercel/blob/pages/handle-blob-upload-serverless',
       ].forEach((callback) => {
         test(callback, async ({ browser }) => {
+          // Increase test timeout for client uploads
+          test.setTimeout(120000);
+          // Don't use extraHTTPHeaders here - it applies to ALL requests including
+          // cross-origin blob API calls, which breaks CORS. Instead use page.route()
+          // to add the header only to preview deployment requests.
           const browserContext = await browser.newContext();
           await browserContext.addCookies([
             {
@@ -95,6 +101,20 @@ test.describe('@vercel/blob', () => {
             },
           ]);
           const page = await browserContext.newPage();
+
+          // Add protection bypass header only for requests to the preview deployment
+          if (process.env.VERCEL_PROTECTION_BYPASS_HEADER) {
+            const baseUrl = process.env.PLAYWRIGHT_TEST_BASE_URL ?? '';
+            await page.route(`${baseUrl}/**`, async (route) => {
+              const headers = {
+                ...route.request().headers(),
+                'x-vercel-protection-bypass':
+                  process.env.VERCEL_PROTECTION_BYPASS_HEADER!,
+              };
+              await route.continue({ headers });
+            });
+          }
+
           await page.goto(
             `vercel/blob/app/test/client?filename=${prefix}/test-app-client.txt&callback=${callback}`,
           );
@@ -112,7 +132,12 @@ test.describe('@vercel/blob', () => {
 
     test.describe('multipart upload', () => {
       test('multipart client upload', async ({ browser }) => {
+        // Increase test timeout for multipart uploads
+        test.setTimeout(120000);
         const callback = '/vercel/blob/api/app/handle-blob-upload/serverless';
+        // Don't use extraHTTPHeaders here - it applies to ALL requests including
+        // cross-origin blob API calls, which breaks CORS. Instead use page.route()
+        // to add the header only to preview deployment requests.
         const browserContext = await browser.newContext();
         await browserContext.addCookies([
           {
@@ -125,6 +150,20 @@ test.describe('@vercel/blob', () => {
           },
         ]);
         const page = await browserContext.newPage();
+
+        // Add protection bypass header only for requests to the preview deployment
+        if (process.env.VERCEL_PROTECTION_BYPASS_HEADER) {
+          const baseUrl = process.env.PLAYWRIGHT_TEST_BASE_URL ?? '';
+          await page.route(`${baseUrl}/**`, async (route) => {
+            const headers = {
+              ...route.request().headers(),
+              'x-vercel-protection-bypass':
+                process.env.VERCEL_PROTECTION_BYPASS_HEADER!,
+            };
+            await route.continue({ headers });
+          });
+        }
+
         await page.goto(
           `vercel/blob/app/test/client?filename=${prefix}/test-app-client.txt&callback=${callback}&multipart=1`,
         );
@@ -145,7 +184,7 @@ test.describe('@vercel/blob', () => {
           'api/vercel/blob/pages/edge',
           'api/vercel/blob/pages/serverless',
         ].forEach((path) => {
-          test(path, async ({ request }) => {
+          test(path, async ({ request, extraHTTPHeaders }) => {
             const data = (await request
               .post(`${path}?filename=${prefix}/test.txt&multipart=1`, {
                 data: `Hello world ${path} ${prefix}`,
@@ -153,6 +192,7 @@ test.describe('@vercel/blob', () => {
                   cookie: `clientUpload=${
                     process.env.BLOB_UPLOAD_SECRET ?? ''
                   }`,
+                  ...extraHTTPHeaders,
                 },
               })
               .then((r) => r.json())) as PutBlobResult;
@@ -170,7 +210,10 @@ test.describe('@vercel/blob', () => {
       });
 
       // https://github.com/vercel/storage/pull/616
-      test('multipart upload with buffer', async ({ request }) => {
+      test('multipart upload with buffer', async ({
+        request,
+        extraHTTPHeaders,
+      }) => {
         const path = 'vercel/blob/api/app/body/serverless';
         const imgPath = join(process.cwd(), 'images');
         const imageFile = readFileSync(join(imgPath, `g.jpeg`));
@@ -180,6 +223,7 @@ test.describe('@vercel/blob', () => {
             data: imageFile,
             headers: {
               cookie: `clientUpload=${process.env.BLOB_UPLOAD_SECRET ?? ''}`,
+              ...extraHTTPHeaders,
             },
           })
           .then((r) => r.json())) as PutBlobResult;
@@ -189,8 +233,10 @@ test.describe('@vercel/blob', () => {
     });
   });
 
-  test.afterAll(async ({ request }) => {
+  test.afterAll(async ({ request, extraHTTPHeaders }) => {
     // cleanup all files
-    await request.delete(`vercel/blob/api/app/clean?prefix=${prefix}`);
+    await request.delete(`vercel/blob/api/app/clean?prefix=${prefix}`, {
+      headers: { ...extraHTTPHeaders },
+    });
   });
 });

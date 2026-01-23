@@ -11,9 +11,6 @@ on:
           - "@vercel/blob"
           - "@vercel/edge-config"
           - "@vercel/edge-config-fs"
-          - "@vercel/kv"
-          - "@vercel/postgres"
-          - "@vercel/postgres-kysely"
       version:
         description: "Package version (e.g., 1.0.0 or 1.x or *)"
         required: true

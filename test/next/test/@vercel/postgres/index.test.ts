@@ -37,8 +37,10 @@ test.describe('@vercel/postgres', () => {
           });
           expect(await res.json()).toEqual(expectedRows);
         });
-        test('node', async ({ request }) => {
-          const res = await request.get('api/vercel/postgres/app/client/node');
+        test('node', async ({ request, extraHTTPHeaders }) => {
+          const res = await request.get('api/vercel/postgres/app/client/node', {
+            headers: { ...extraHTTPHeaders },
+          });
           expect(await res.json()).toEqual(expectedRows);
         });
       });

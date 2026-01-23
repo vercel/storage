@@ -50,6 +50,8 @@ jobs:
       - name: Wait for Vercel Preview
         uses: patrickedqvist/wait-for-vercel-preview@v1.3.3
         id: waitForVercelPreview
+        env:
+          ACTIONS_STEP_DEBUG: true
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           vercel_protection_bypass_header: ${{ secrets.VERCEL_PROTECTION_BYPASS_HEADER }}

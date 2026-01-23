@@ -76,7 +76,7 @@ export { head } from './head';
 
 // vercelBlob.get()
 
-export type { GetBlobResult, GetCommandOptions } from './get';
+export type { BlobMetadata, GetBlobResult, GetCommandOptions } from './get';
 export { get } from './get';
 
 // vercelBlob.list()

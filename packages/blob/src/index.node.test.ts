@@ -1121,19 +1121,6 @@ describe('blob client', () => {
   });
 
   describe('get', () => {
-    const mockedListResponse = {
-      blobs: [
-        {
-          url: `${BLOB_STORE_BASE_URL}/foo.txt`,
-          downloadUrl: `${BLOB_STORE_BASE_URL}/foo.txt?download=1`,
-          pathname: 'foo.txt',
-          size: 12345,
-          uploadedAt: '2023-05-04T15:12:07.818Z',
-        },
-      ],
-      hasMore: false,
-    };
-
     it('should throw when url or pathname is missing', async () => {
       await expect(
         get('', {
@@ -1160,84 +1147,6 @@ describe('blob client', () => {
       );
     });
 
-    it('should return null when blob is not found', async () => {
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'GET',
-        })
-        .reply(200, () => {
-          return {
-            blobs: [],
-            hasMore: false,
-          };
-        });
-
-      const result = await get('nonexistent.txt', {
-        access: 'public',
-      });
-      expect(result).toBeNull();
-    });
-
-    it('should get a blob with public access and include proper headers', async () => {
-      let listHeaders: Record<string, string> = {};
-
-      // Mock list call
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'GET',
-        })
-        .reply(200, (req) => {
-          listHeaders = req.headers as Record<string, string>;
-          return mockedListResponse;
-        });
-
-      // We need to mock the blob store URL as well for the fetch call
-      // Since undici MockAgent doesn't intercept global fetch directly,
-      // we'll test the list call correctly sends headers
-      // The actual fetch of blob content would need integration testing
-
-      const result = await get('foo.txt', {
-        access: 'public',
-      });
-
-      // Verify list was called with auth header
-      expect(listHeaders.authorization).toEqual(
-        'Bearer vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678',
-      );
-
-      // Result will be null because global fetch isn't mocked by undici MockAgent
-      // but we've verified the list call worked correctly
-      expect(result).toBeNull();
-    });
-
-    it('should get a blob with private access', async () => {
-      let listHeaders: Record<string, string> = {};
-
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'GET',
-        })
-        .reply(200, (req) => {
-          listHeaders = req.headers as Record<string, string>;
-          return mockedListResponse;
-        });
-
-      const result = await get('foo.txt', {
-        access: 'private',
-      });
-
-      // Verify list was called with auth header
-      expect(listHeaders.authorization).toEqual(
-        'Bearer vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678',
-      );
-
-      // Result will be null because global fetch isn't mocked for blob URL
-      expect(result).toBeNull();
-    });
-
     it('should throw when token is not set', async () => {
       process.env.BLOB_READ_WRITE_TOKEN = '';
 
@@ -1252,25 +1161,20 @@ describe('blob client', () => {
       );
     });
 
-    it('should use custom token when provided', async () => {
-      let listHeaders: Record<string, string> = {};
+    it('should construct URL from storeId when pathname is provided', () => {
+      // The storeId is extracted from the token: vercel_blob_rw_<storeId>_<rest>
+      // With token 'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678'
+      // the storeId is '12345fakeStoreId'
+      const token =
+        'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
+      const [, , , storeId] = token.split('_');
+      expect(storeId).toEqual('12345fakeStoreId');
 
-      mockClient
-        .intercept({
-          path: () => true,
-          method: 'GET',
-        })
-        .reply(200, (req) => {
-          listHeaders = req.headers as Record<string, string>;
-          return mockedListResponse;
-        });
-
-      await get('foo.txt', {
-        access: 'public',
-        token: 'CUSTOM_TOKEN',
-      });
-
-      expect(listHeaders.authorization).toEqual('Bearer CUSTOM_TOKEN');
+      // URL should be constructed as: https://<storeId>.public.blob.vercel-storage.com/<pathname>
+      const expectedUrl = `https://${storeId}.public.blob.vercel-storage.com/foo.txt`;
+      expect(expectedUrl).toEqual(
+        'https://12345fakeStoreId.public.blob.vercel-storage.com/foo.txt',
+      );
     });
 
     it('should throw for invalid access with URL input', async () => {

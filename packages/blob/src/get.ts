@@ -1,6 +1,5 @@
 import type { BlobCommandOptions } from './helpers';
 import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
-import { list } from './list';
 
 /**
  * Options for the get method.
@@ -15,14 +14,9 @@ export interface GetCommandOptions extends BlobCommandOptions {
 }
 
 /**
- * Result of the get method containing the blob content and metadata.
+ * Blob metadata returned by the get method.
  */
-export interface GetBlobResult {
-  /**
-   * The blob content as a Blob object.
-   */
-  blob: Blob;
-
+export interface BlobMetadata {
   /**
    * The URL of the blob.
    */
@@ -42,6 +36,23 @@ export interface GetBlobResult {
    * The size of the blob in bytes.
    */
   size: number;
+}
+
+/**
+ * Result of the get method containing the stream and blob metadata.
+ */
+export interface GetBlobResult {
+  /**
+   * The readable stream from the fetch response.
+   * This is the raw stream with no automatic buffering, allowing efficient
+   * streaming of large files without loading them entirely into memory.
+   */
+  stream: ReadableStream<Uint8Array>;
+
+  /**
+   * The blob metadata object containing url, pathname, contentType, and size.
+   */
+  blob: BlobMetadata;
 }
 
 /**
@@ -67,9 +78,34 @@ function extractPathnameFromUrl(url: string): string {
 }
 
 /**
+ * Extracts the store ID from a blob token.
+ * Token format: vercel_blob_rw_<storeId>_<rest>
+ */
+function getStoreIdFromToken(token: string): string {
+  const [, , , storeId = ''] = token.split('_');
+  return storeId;
+}
+
+/**
+ * Constructs the blob URL from storeId and pathname.
+ */
+function constructBlobUrl(storeId: string, pathname: string): string {
+  return `https://${storeId}.public.blob.vercel-storage.com/${pathname}`;
+}
+
+/**
  * Fetches blob content by URL or pathname.
- * - If a URL is provided, fetches the blob directly (bypasses list operation).
- * - If a pathname is provided, uses list to find the blob first.
+ * - If a URL is provided, fetches the blob directly.
+ * - If a pathname is provided, constructs the URL from the token's store ID.
+ *
+ * Returns a stream (no automatic buffering) and blob metadata.
+ *
+ * @example
+ * ```ts
+ * const { stream, blob } = await get('user123/love-letter.txt', { access: 'private' });
+ * // stream is the ReadableStream from fetch() - no automatic buffering
+ * // blob is the metadata object { url, pathname, contentType, size }
+ * ```
  *
  * Detailed documentation can be found here: https://vercel.com/docs/vercel-blob/using-blob-sdk
  *
@@ -78,7 +114,7 @@ function extractPathnameFromUrl(url: string): string {
  *   - access - (Required) Must be 'public' or 'private'. Determines the access level of the blob.
  *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel.
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
- * @returns A promise that resolves to the blob content and metadata, or null if not found.
+ * @returns A promise that resolves to { stream, blob } or null if not found.
  */
 export async function get(
   urlOrPathname: string,
@@ -100,33 +136,19 @@ export async function get(
 
   let blobUrl: string;
   let pathname: string;
-  let size: number | undefined;
 
-  // Check if input is a URL - if so, bypass list operation
+  // Check if input is a URL or a pathname
   if (isUrl(urlOrPathname)) {
     blobUrl = urlOrPathname;
     pathname = extractPathnameFromUrl(urlOrPathname);
   } else {
-    // Use list to find the blob by pathname
-    const listResult = await list({
-      prefix: urlOrPathname,
-      limit: 1,
-      token,
-      abortSignal: options.abortSignal,
-    });
-
-    // Find exact match by pathname
-    const blobInfo = listResult.blobs.find(
-      (blob) => blob.pathname === urlOrPathname,
-    );
-
-    if (!blobInfo) {
-      return null;
+    // Construct the URL from the token's storeId and the pathname
+    const storeId = getStoreIdFromToken(token);
+    if (!storeId) {
+      throw new BlobError('Invalid token: unable to extract store ID');
     }
-
-    blobUrl = blobInfo.url;
-    pathname = blobInfo.pathname;
-    size = blobInfo.size;
+    pathname = urlOrPathname;
+    blobUrl = constructBlobUrl(storeId, pathname);
   }
 
   // Fetch the blob content with authentication headers
@@ -150,14 +172,24 @@ export async function get(
     );
   }
 
-  const blob = await response.blob();
+  // Get size from content-length header
+  const contentLength = response.headers.get('content-length');
+  const size = contentLength ? parseInt(contentLength, 10) : 0;
+
+  // Return the stream directly without buffering
+  const stream = response.body;
+  if (!stream) {
+    throw new BlobError('Response body is null');
+  }
 
   return {
-    blob,
-    url: blobUrl,
-    pathname,
-    contentType:
-      response.headers.get('content-type') || 'application/octet-stream',
-    size: size ?? blob.size,
+    stream,
+    blob: {
+      url: blobUrl,
+      pathname,
+      contentType:
+        response.headers.get('content-type') || 'application/octet-stream',
+      size,
+    },
   };
 }

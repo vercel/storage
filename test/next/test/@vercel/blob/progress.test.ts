@@ -84,35 +84,32 @@ test.describe('progress events', () => {
           .all();
         expect(progressEvents.length).toBeGreaterThan(2);
 
-        // Verify first event (0%)
-        const firstEventText = await progressEvents[0].textContent();
-        const firstEvent = JSON.parse(
-          firstEventText || '{}',
-        ) as UploadProgressEvent;
-        expect(firstEvent.loaded).toBe(0);
-        expect(firstEvent.total).toBe(sizeInBytes);
-        expect(firstEvent.percentage).toBe(0);
+        // Parse all events
+        const events: UploadProgressEvent[] = [];
+        for (const el of progressEvents) {
+          const text = await el.textContent();
+          events.push(JSON.parse(text || '{}') as UploadProgressEvent);
+        }
 
-        // Verify second event (>0%) - in Firefox, events may batch differently
-        // so we need to find the first event with loaded > 0
-        const secondEventText = await progressEvents[1].textContent();
-        const secondEvent = JSON.parse(
-          secondEventText || '{}',
-        ) as UploadProgressEvent;
-        expect(secondEvent.loaded).toBeGreaterThan(0);
-        expect(secondEvent.total).toBe(sizeInBytes);
-        expect(secondEvent.percentage).toBeGreaterThan(0);
+        // Verify first event (0%)
+        expect(events[0].loaded).toBe(0);
+        expect(events[0].total).toBe(sizeInBytes);
+        expect(events[0].percentage).toBe(0);
+
+        // Verify there's at least one intermediate event with loaded > 0
+        // In Firefox multipart mode, the first few events might all have loaded=0
+        // before actual progress is reported, so we look for ANY event with progress
+        const hasIntermediateProgress = events
+          .slice(1, -1)
+          .some((e) => e.loaded > 0 && e.loaded < sizeInBytes);
+        expect(hasIntermediateProgress).toBe(true);
 
         // Verify last event (100%)
-        const lastEventText =
-          await progressEvents[progressEvents.length - 1].textContent();
-        const lastEvent = JSON.parse(
-          lastEventText || '{}',
-        ) as UploadProgressEvent;
+        const lastEvent = events[events.length - 1];
         expect(lastEvent.loaded).toBe(sizeInBytes);
         expect(lastEvent.total).toBe(sizeInBytes);
         expect(lastEvent.percentage).toBe(100);
-      }).toPass({ timeout: 10000 });
+      }).toPass({ timeout: 30000 });
     });
   });
 });

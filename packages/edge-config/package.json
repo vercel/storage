@@ -61,7 +61,7 @@
     "ts-jest": "29.4.6",
     "tsconfig": "workspace:*",
     "tsup": "8.5.1",
-    "typescript": "5.7.3"
+    "typescript": "5.9.3"
   },
   "peerDependencies": {
     "@opentelemetry/api": "^1.7.0",

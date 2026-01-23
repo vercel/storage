@@ -60,7 +60,7 @@
     "node-domexception": "2.0.2",
     "ts-jest": "29.4.6",
     "tsconfig": "workspace:*",
-    "tsup": "8.4.0",
+    "tsup": "8.5.1",
     "typescript": "5.7.3"
   },
   "peerDependencies": {

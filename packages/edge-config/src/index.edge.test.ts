@@ -1,10 +1,14 @@
+/**
+ * @jest-environment @edge-runtime/jest-environment
+ */
+
 import fetchMock from 'jest-fetch-mock';
 import { version as pkgVersion } from '../package.json';
 import { createClient, digest, get, getAll, has } from './index';
 import { cache } from './utils/fetch-with-cached-response';
 
 const sdkVersion = typeof pkgVersion === 'string' ? pkgVersion : '';
-const baseUrl = 'https://edge-config.vercel.com/ecfg-1';
+const baseUrl = 'https://edge-config.vercel.com/ecfg_1';
 
 describe('default Edge Config', () => {
   beforeEach(() => {
@@ -15,8 +19,12 @@ describe('default Edge Config', () => {
   describe('test conditions', () => {
     it('should have an env var called EDGE_CONFIG', () => {
       expect(process.env.EDGE_CONFIG).toEqual(
-        'https://edge-config.vercel.com/ecfg-1?token=token-1',
+        'https://edge-config.vercel.com/ecfg_1?token=token-1',
       );
+    });
+
+    it('should use Edge Runtime', () => {
+      expect(EdgeRuntime).toBe('edge-runtime');
     });
   });
 
@@ -102,7 +110,7 @@ describe('default Edge Config', () => {
           JSON.stringify({
             error: {
               code: 'edge_config_not_found',
-              message: 'Could not find the edge config: ecfg-1',
+              message: 'Could not find the edge config: ecfg_1',
             },
           }),
           { status: 404, headers: { 'content-type': 'application/json' } },
@@ -241,7 +249,7 @@ describe('default Edge Config', () => {
           JSON.stringify({
             error: {
               code: 'edge_config_not_found',
-              message: 'Could not find the edge config: ecfg-1',
+              message: 'Could not find the edge config: ecfg_1',
             },
           }),
           { status: 404, headers: { 'content-type': 'application/json' } },
@@ -375,7 +383,7 @@ describe('default Edge Config', () => {
           JSON.stringify({
             error: {
               code: 'edge_config_not_found',
-              message: 'Could not find the edge config: ecfg-1',
+              message: 'Could not find the edge config: ecfg_1',
             },
           }),
           { status: 404, headers: { 'content-type': 'application/json' } },

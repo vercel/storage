@@ -13,8 +13,9 @@ import type {
   EdgeConfigValue,
   EmbeddedEdgeConfig,
 } from './types';
-import { parseConnectionString } from './utils';
+import { ERRORS, parseConnectionString } from './utils';
 
+export { TimeoutError } from './utils/timeout-error';
 export { setTracerProvider } from './utils/tracing';
 
 export {
@@ -44,15 +45,16 @@ export const createClient = createCreateClient({
   fetchEdgeConfigTrace,
 });
 
-let defaultEdgeConfigClient: EdgeConfigClient;
-
-// lazy init fn so the default edge config does not throw in case
-// process.env.EDGE_CONFIG is not defined and its methods are never used.
-function init(): void {
-  if (!defaultEdgeConfigClient) {
-    defaultEdgeConfigClient = createClient(process.env.EDGE_CONFIG);
-  }
-}
+/**
+ * The default Edge Config client that is automatically created from the `process.env.EDGE_CONFIG` environment variable.
+ * When using the `get`, `getAl`, `has`, and `digest` exports they use this underlying default client.
+ */
+export const defaultClient: EdgeConfigClient | null =
+  typeof process.env.EDGE_CONFIG === 'string' &&
+  (process.env.EDGE_CONFIG.startsWith('edge-config:') ||
+    process.env.EDGE_CONFIG.startsWith('https://edge-config.vercel.com/'))
+    ? createClient(process.env.EDGE_CONFIG)
+    : null;
 
 /**
  * Reads a single item from the default Edge Config.
@@ -65,8 +67,10 @@ function init(): void {
  * @returns the value stored under the given key, or undefined
  */
 export const get: EdgeConfigClient['get'] = (...args) => {
-  init();
-  return defaultEdgeConfigClient.get(...args);
+  if (!defaultClient) {
+    throw new Error(ERRORS.MISSING_DEFAULT_EDGE_CONFIG_CONNECTION_STRING);
+  }
+  return defaultClient.get(...args);
 };
 
 /**
@@ -80,8 +84,10 @@ export const get: EdgeConfigClient['get'] = (...args) => {
  * @returns the value stored under the given key, or undefined
  */
 export const getAll: EdgeConfigClient['getAll'] = (...args) => {
-  init();
-  return defaultEdgeConfigClient.getAll(...args);
+  if (!defaultClient) {
+    throw new Error(ERRORS.MISSING_DEFAULT_EDGE_CONFIG_CONNECTION_STRING);
+  }
+  return defaultClient.getAll(...args);
 };
 
 /**
@@ -95,8 +101,10 @@ export const getAll: EdgeConfigClient['getAll'] = (...args) => {
  * @returns true if the given key exists in the Edge Config.
  */
 export const has: EdgeConfigClient['has'] = (...args) => {
-  init();
-  return defaultEdgeConfigClient.has(...args);
+  if (!defaultClient) {
+    throw new Error(ERRORS.MISSING_DEFAULT_EDGE_CONFIG_CONNECTION_STRING);
+  }
+  return defaultClient.has(...args);
 };
 
 /**
@@ -109,8 +117,10 @@ export const has: EdgeConfigClient['has'] = (...args) => {
  * @returns The digest of the Edge Config.
  */
 export const digest: EdgeConfigClient['digest'] = (...args) => {
-  init();
-  return defaultEdgeConfigClient.digest(...args);
+  if (!defaultClient) {
+    throw new Error(ERRORS.MISSING_DEFAULT_EDGE_CONFIG_CONNECTION_STRING);
+  }
+  return defaultClient.digest(...args);
 };
 
 /**

@@ -1,6 +1,7 @@
 import { name as sdkName, version as sdkVersion } from '../package.json';
 import type * as deps from './edge-config';
 import type {
+  BundledEdgeConfig,
   EdgeConfigClient,
   EdgeConfigFunctionsOptions,
   EdgeConfigItems,
@@ -15,6 +16,9 @@ import {
   parseConnectionString,
   pick,
 } from './utils';
+import { delay } from './utils/delay';
+import { readBundledEdgeConfig } from './utils/read-bundled-edge-config';
+import { TimeoutError } from './utils/timeout-error';
 import { trace } from './utils/tracing';
 
 type CreateClient = (
@@ -53,6 +57,7 @@ export function createCreateClient({
       options = {
         staleIfError: 604800 /* one week */,
         cache: 'no-store',
+        snapshot: 'optional',
       },
     ): EdgeConfigClient {
       if (!connectionString)
@@ -81,7 +86,15 @@ export function createCreateClient({
       if (typeof options.staleIfError === 'number' && options.staleIfError > 0)
         headers['cache-control'] = `stale-if-error=${options.staleIfError}`;
 
+      const snapshot = options.snapshot ?? connection.snapshot;
+
       const fetchCache = options.cache || 'no-store';
+      const timeoutMs =
+        typeof options.timeoutMs === 'number'
+          ? options.timeoutMs
+          : typeof connection.timeoutMs === 'number'
+            ? connection.timeoutMs
+            : undefined;
 
       /**
        * While in development we use SWR-like behavior for the api client to
@@ -92,6 +105,56 @@ export function createCreateClient({
         process.env.NODE_ENV === 'development' &&
         process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
 
+      /**
+       * The edge config bundled at build time
+       */
+      const bundledEdgeConfig: BundledEdgeConfig | null =
+        connection && connection.type === 'vercel'
+          ? readBundledEdgeConfig(connection.id)
+          : null;
+
+      const isBuildStep =
+        process.env.CI === '1' ||
+        process.env.NEXT_PHASE === 'phase-production-build';
+
+      if (
+        isBuildStep &&
+        snapshot === 'required' &&
+        bundledEdgeConfig === null
+      ) {
+        throw new Error(
+          `@vercel/edge-config: Missing snapshot for ${connection.id}. Did you forget to set up the "edge-config snapshot" script or do you have multiple Edge Config versions present in your project?`,
+        );
+      }
+
+      /**
+       * Ensures that the provided function runs within a specified timeout.
+       * If the timeout is reached before the function completes, it returns the fallback.
+       */
+      async function timeout<T>(
+        method: string,
+        key: string | string[] | undefined,
+        localOptions: EdgeConfigFunctionsOptions | undefined,
+        run: () => Promise<T>,
+      ): Promise<T> {
+        const ms = localOptions?.timeoutMs ?? timeoutMs;
+
+        if (typeof ms !== 'number') return run();
+
+        let timer: NodeJS.Timeout | undefined;
+        // ensure we don't throw within race to avoid throwing after run() completes
+        const result = await Promise.race([
+          delay(ms, new TimeoutError(edgeConfigId, method, key), (t) => {
+            timer = t;
+          }),
+          run(),
+        ]).finally(() => {
+          clearTimeout(timer);
+        });
+        if (result instanceof TimeoutError) throw result;
+        return result;
+      }
+
       const api: Omit<EdgeConfigClient, 'connection'> = {
         get: trace(
           async function get<T = EdgeConfigValue>(
@@ -100,40 +163,53 @@ export function createCreateClient({
           ): Promise<T | undefined> {
             assertIsKey(key);
 
-            let localEdgeConfig: EmbeddedEdgeConfig | null = null;
-            if (localOptions?.consistentRead) {
-              // fall through to fetching
-            } else if (shouldUseDevelopmentCache) {
-              localEdgeConfig = await getInMemoryEdgeConfig(
-                connectionString,
-                fetchCache,
-                options.staleIfError,
-              );
-            } else {
-              localEdgeConfig = await getLocalEdgeConfig(
-                connection.type,
-                connection.id,
-                fetchCache,
-              );
-            }
-
-            if (localEdgeConfig) {
+            function select(edgeConfig: EmbeddedEdgeConfig) {
               if (isEmptyKey(key)) return undefined;
-              // We need to return a clone of the value so users can't modify
-              // our original value, and so the reference changes.
-              //
-              // This makes it consistent with the real API.
-              return Promise.resolve(localEdgeConfig.items[key] as T);
+              return edgeConfig.items[key] as T;
             }
 
-            return fetchEdgeConfigItem<T>(
-              baseUrl,
-              key,
-              version,
-              localOptions?.consistentRead,
-              headers,
-              fetchCache,
-            );
+            if (bundledEdgeConfig && isBuildStep) {
+              return select(bundledEdgeConfig.data);
+            }
+
+            try {
+              return await timeout('get', key, localOptions, async () => {
+                let localEdgeConfig: EmbeddedEdgeConfig | null = null;
+                if (localOptions?.consistentRead) {
+                  // fall through to fetching
+                } else if (shouldUseDevelopmentCache) {
+                  localEdgeConfig = await getInMemoryEdgeConfig(
+                    connectionString,
+                    fetchCache,
+                    options.staleIfError,
+                  );
+                } else {
+                  localEdgeConfig = await getLocalEdgeConfig(
+                    connection.type,
+                    connection.id,
+                    fetchCache,
+                  );
+                }
+
+                if (localEdgeConfig) return select(localEdgeConfig);
+
+                return await fetchEdgeConfigItem<T>(
+                  baseUrl,
+                  key,
+                  version,
+                  localOptions?.consistentRead,
+                  headers,
+                  fetchCache,
+                );
+              });
+            } catch (error) {
+              if (!bundledEdgeConfig) throw error;
+              console.warn(
+                `@vercel/edge-config: Falling back to bundled version of ${edgeConfigId} due to the following error`,
+                error,
+              );
+              return select(bundledEdgeConfig.data);
+            }
           },
           { name: 'get', isVerboseTrace: false, attributes: { edgeConfigId } },
         ),
@@ -145,36 +221,55 @@ export function createCreateClient({
             assertIsKey(key);
             if (isEmptyKey(key)) return false;
 
-            let localEdgeConfig: EmbeddedEdgeConfig | null = null;
-
-            if (localOptions?.consistentRead) {
-              // fall through to fetching
-            } else if (shouldUseDevelopmentCache) {
-              localEdgeConfig = await getInMemoryEdgeConfig(
-                connectionString,
-                fetchCache,
-                options.staleIfError,
-              );
-            } else {
-              localEdgeConfig = await getLocalEdgeConfig(
-                connection.type,
-                connection.id,
-                fetchCache,
-              );
+            function select(edgeConfig: EmbeddedEdgeConfig) {
+              return hasOwn(edgeConfig.items, key);
             }
 
-            if (localEdgeConfig) {
-              return Promise.resolve(hasOwn(localEdgeConfig.items, key));
+            if (bundledEdgeConfig && isBuildStep) {
+              return select(bundledEdgeConfig.data);
             }
 
-            return fetchEdgeConfigHas(
-              baseUrl,
-              key,
-              version,
-              localOptions?.consistentRead,
-              headers,
-              fetchCache,
-            );
+            try {
+              return await timeout('has', key, localOptions, async () => {
+                let localEdgeConfig: EmbeddedEdgeConfig | null = null;
+
+                if (localOptions?.consistentRead) {
+                  // fall through to fetching
+                } else if (shouldUseDevelopmentCache) {
+                  localEdgeConfig = await getInMemoryEdgeConfig(
+                    connectionString,
+                    fetchCache,
+                    options.staleIfError,
+                  );
+                } else {
+                  localEdgeConfig = await getLocalEdgeConfig(
+                    connection.type,
+                    connection.id,
+                    fetchCache,
+                  );
+                }
+
+                if (localEdgeConfig) {
+                  return Promise.resolve(hasOwn(localEdgeConfig.items, key));
+                }
+
+                return await fetchEdgeConfigHas(
+                  baseUrl,
+                  key,
+                  version,
+                  localOptions?.consistentRead,
+                  headers,
+                  fetchCache,
+                );
+              });
+            } catch (error) {
+              if (!bundledEdgeConfig) throw error;
+              console.warn(
+                `@vercel/edge-config: Falling back to bundled version of ${edgeConfigId} due to the following error`,
+                error,
+              );
+              return select(bundledEdgeConfig.data);
+            }
           },
           { name: 'has', isVerboseTrace: false, attributes: { edgeConfigId } },
         ),
@@ -187,40 +282,55 @@ export function createCreateClient({
               assertIsKeys(keys);
             }
 
-            let localEdgeConfig: EmbeddedEdgeConfig | null = null;
-
-            if (localOptions?.consistentRead) {
-              // fall through to fetching
-            } else if (shouldUseDevelopmentCache) {
-              localEdgeConfig = await getInMemoryEdgeConfig(
-                connectionString,
-                fetchCache,
-                options.staleIfError,
-              );
-            } else {
-              localEdgeConfig = await getLocalEdgeConfig(
-                connection.type,
-                connection.id,
-                fetchCache,
-              );
+            function select(edgeConfig: EmbeddedEdgeConfig) {
+              return keys === undefined
+                ? (edgeConfig.items as T)
+                : (pick(edgeConfig.items as T, keys) as T);
             }
 
-            if (localEdgeConfig) {
-              if (keys === undefined) {
-                return Promise.resolve(localEdgeConfig.items as T);
-              }
-
-              return Promise.resolve(pick(localEdgeConfig.items, keys) as T);
+            if (bundledEdgeConfig && isBuildStep) {
+              return select(bundledEdgeConfig.data);
             }
 
-            return fetchAllEdgeConfigItem<T>(
-              baseUrl,
-              keys,
-              version,
-              localOptions?.consistentRead,
-              headers,
-              fetchCache,
-            );
+            try {
+              return await timeout('getAll', keys, localOptions, async () => {
+                let localEdgeConfig: EmbeddedEdgeConfig | null = null;
+
+                if (localOptions?.consistentRead) {
+                  // fall through to fetching
+                } else if (shouldUseDevelopmentCache) {
+                  localEdgeConfig = await getInMemoryEdgeConfig(
+                    connectionString,
+                    fetchCache,
+                    options.staleIfError,
+                  );
+                } else {
+                  localEdgeConfig = await getLocalEdgeConfig(
+                    connection.type,
+                    connection.id,
+                    fetchCache,
+                  );
+                }
+
+                if (localEdgeConfig) return select(localEdgeConfig);
+
+                return await fetchAllEdgeConfigItem<T>(
+                  baseUrl,
+                  keys,
+                  version,
+                  localOptions?.consistentRead,
+                  headers,
+                  fetchCache,
+                );
+              });
+            } catch (error) {
+              if (!bundledEdgeConfig) throw error;
+              console.warn(
+                `@vercel/edge-config: Falling back to bundled version of ${edgeConfigId} due to the following error`,
+                error,
+              );
+              return select(bundledEdgeConfig.data);
+            }
           },
           {
             name: 'getAll',
@@ -232,35 +342,57 @@ export function createCreateClient({
           async function digest(
             localOptions?: EdgeConfigFunctionsOptions,
           ): Promise<string> {
-            let localEdgeConfig: EmbeddedEdgeConfig | null = null;
-
-            if (localOptions?.consistentRead) {
-              // fall through to fetching
-            } else if (shouldUseDevelopmentCache) {
-              localEdgeConfig = await getInMemoryEdgeConfig(
-                connectionString,
-                fetchCache,
-                options.staleIfError,
-              );
-            } else {
-              localEdgeConfig = await getLocalEdgeConfig(
-                connection.type,
-                connection.id,
-                fetchCache,
-              );
+            function select(embeddedEdgeConfig: EmbeddedEdgeConfig) {
+              return embeddedEdgeConfig.digest;
             }
 
-            if (localEdgeConfig) {
-              return Promise.resolve(localEdgeConfig.digest);
+            if (bundledEdgeConfig && isBuildStep) {
+              return select(bundledEdgeConfig.data);
             }
 
-            return fetchEdgeConfigTrace(
-              baseUrl,
-              version,
-              localOptions?.consistentRead,
-              headers,
-              fetchCache,
-            );
+            try {
+              return await timeout(
+                'digest',
+                undefined,
+                localOptions,
+                async () => {
+                  let localEdgeConfig: EmbeddedEdgeConfig | null = null;
+
+                  if (localOptions?.consistentRead) {
+                    // fall through to fetching
+                  } else if (shouldUseDevelopmentCache) {
+                    localEdgeConfig = await getInMemoryEdgeConfig(
+                      connectionString,
+                      fetchCache,
+                      options.staleIfError,
+                    );
+                  } else {
+                    localEdgeConfig = await getLocalEdgeConfig(
+                      connection.type,
+                      connection.id,
+                      fetchCache,
+                    );
+                  }
+
+                  if (localEdgeConfig) return select(localEdgeConfig);
+
+                  return await fetchEdgeConfigTrace(
+                    baseUrl,
+                    version,
+                    localOptions?.consistentRead,
+                    headers,
+                    fetchCache,
+                  );
+                },
+              );
+            } catch (error) {
+              if (!bundledEdgeConfig) throw error;
+              console.warn(
+                `@vercel/edge-config: Falling back to bundled version of ${edgeConfigId} due to the following error`,
+                error,
+              );
+              return select(bundledEdgeConfig.data);
+            }
           },
           {
             name: 'digest',

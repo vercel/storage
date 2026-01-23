@@ -1,0 +1,152 @@
+#!/usr/bin/env node
+/*
+ * Edge Config CLI
+ *
+ * command: prepare
+ *   Reads all connected Edge Configs and emits a single stores.json file.
+ *   that can be accessed at runtime by the mockable-import function.
+ *
+ *   Attaches the updatedAt timestamp from the header to the emitted file, since
+ *   the endpoint does not currently include it in the response body.
+ */
+
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { Command } from 'commander';
+import { version } from '../package.json';
+import type {
+  BundledEdgeConfig,
+  Connection,
+  EmbeddedEdgeConfig,
+} from '../src/types';
+import {
+  parseConnectionString,
+  parseTimeoutMs,
+} from '../src/utils/parse-connection-string';
+
+// Get the directory where this CLI script is located
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+type StoresJson = Record<string, BundledEdgeConfig>;
+
+type PrepareOptions = {
+  verbose?: boolean;
+};
+
+/**
+ * Parses a connection string with the following format:
+ * `flags:edgeConfigId=ecfg_abcd&edgeConfigToken=xxx`
+ */
+function parseConnectionFromFlags(text: string): Connection | null {
+  try {
+    if (!text.startsWith('flags:')) return null;
+    const params = new URLSearchParams(text.slice(6));
+
+    const id = params.get('edgeConfigId');
+    const token = params.get('edgeConfigToken');
+
+    if (!id || !token) return null;
+
+    const snapshot =
+      params.get('snapshot') === 'required' ? 'required' : 'optional';
+
+    const timeoutMs = parseTimeoutMs(params.get('timeoutMs'));
+
+    return {
+      type: 'vercel',
+      baseUrl: `https://edge-config.vercel.com/${id}`,
+      id,
+      version: '1',
+      token,
+      snapshot,
+      timeoutMs,
+    };
+  } catch {
+    // no-op
+  }
+
+  return null;
+}
+
+async function prepare(output: string, options: PrepareOptions): Promise<void> {
+  const connections = Object.values(process.env).reduce<Connection[]>(
+    (acc, value) => {
+      if (typeof value !== 'string') return acc;
+      const data = parseConnectionString(value);
+      if (data) acc.push(data);
+
+      const vfData = parseConnectionFromFlags(value);
+      if (vfData) acc.push(vfData);
+
+      return acc;
+    },
+    [],
+  );
+
+  const values: BundledEdgeConfig[] = await Promise.all(
+    connections.map<Promise<BundledEdgeConfig>>(async (connection) => {
+      const res = await fetch(connection.baseUrl, {
+        headers: {
+          authorization: `Bearer ${connection.token}`,
+          // consistentRead
+          'x-edge-config-min-updated-at': `${Number.MAX_SAFE_INTEGER}`,
+          'user-agent': `@vercel/edge-config@${version} (prepare)`,
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error(
+          `@vercel/edge-config: Failed to prepare edge config ${connection.id}: ${res.status} ${res.statusText}`,
+        );
+      }
+
+      const ts = res.headers.get('x-edge-config-updated-at');
+      const data: EmbeddedEdgeConfig = await res.json();
+      return { data, updatedAt: ts ? Number(ts) : undefined };
+    }),
+  );
+
+  const stores = connections.reduce<StoresJson>((acc, connection, index) => {
+    const value = values[index];
+    acc[connection.id] = value;
+    return acc;
+  }, {});
+
+  // Ensure the dist directory exists before writing
+  await mkdir(dirname(output), { recursive: true });
+  await writeFile(output, JSON.stringify(stores));
+  if (options.verbose) {
+    console.log(`@vercel/edge-config snapshot`);
+    console.log(`  → created ${output}`);
+    if (Object.keys(stores).length === 0) {
+      console.log(`  → no edge configs included`);
+    } else {
+      console.log(`  → included ${Object.keys(stores).join(', ')}`);
+    }
+  }
+}
+
+const program = new Command();
+program
+  .name('@vercel/edge-config')
+  .description('Vercel Edge Config CLI')
+  .version(version);
+
+program
+  .command('snapshot')
+  .description(
+    'Capture point-in-time snapshots of Edge Configs. ' +
+      'Ensures consistent values during build, enables instant bootstrapping, ' +
+      'and provides fallback when the service is unavailable.',
+  )
+  .option('--verbose', 'Enable verbose logging')
+  .action(async (options: PrepareOptions) => {
+    if (process.env.EDGE_CONFIG_SKIP_PREPARE_SCRIPT === '1') return;
+
+    const output = join(__dirname, '..', 'dist', 'stores.json');
+    await prepare(output, options);
+  });
+
+program.parse();

@@ -4,6 +4,18 @@ export interface EmbeddedEdgeConfig {
 }
 
 /**
+ * An Edge Config bundled into stores.json
+ *
+ * The contents of stores.json itself are either
+ * - null
+ * - Record<string, BundledEdgeConfig>
+ */
+export type BundledEdgeConfig = {
+  data: EmbeddedEdgeConfig;
+  updatedAt: number | undefined;
+};
+
+/**
  * The parsed info contained in a connection string.
  */
 export type Connection =
@@ -13,6 +25,8 @@ export type Connection =
       token: string;
       version: string;
       type: 'vercel';
+      snapshot: 'required' | 'optional';
+      timeoutMs: number | undefined;
     }
   | {
       baseUrl: string;
@@ -20,6 +34,8 @@ export type Connection =
       token: string;
       version: string;
       type: 'external';
+      snapshot: 'required' | 'optional';
+      timeoutMs: number | undefined;
     };
 
 /**
@@ -91,4 +107,10 @@ export interface EdgeConfigFunctionsOptions {
    * need to ensure you generate with the latest content.
    */
   consistentRead?: boolean;
+
+  /**
+   * How long to wait for the Edge Config to be fetched before timing out
+   * and falling back to the bundled Edge Config value if present, or throwing.
+   */
+  timeoutMs?: number;
 }

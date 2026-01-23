@@ -7,7 +7,6 @@ const prefix =
 test.describe('@vercel/blob', () => {
   test.describe('page', () => {
     test('serverless', async ({ page }) => {
-      console.log(`vercel/pages/blob/image?prefix=${prefix}`);
       const response = await page.goto(
         `vercel/pages/blob/image?prefix=${prefix}`,
       );
@@ -17,8 +16,10 @@ test.describe('@vercel/blob', () => {
       expect(response?.status()).toBe(200);
     });
   });
-  test.afterAll(async ({ request }) => {
+  test.afterAll(async ({ request, extraHTTPHeaders }) => {
     // cleanup all files
-    await request.delete(`vercel/blob/api/app/clean?prefix=${prefix}`);
+    await request.delete(`vercel/blob/api/app/clean?prefix=${prefix}`, {
+      headers: { ...extraHTTPHeaders },
+    });
   });
 });

@@ -85,7 +85,7 @@ export default function AppList(): React.JSX.Element {
       <h1 className="text-xl mb-4">App Router List blob items</h1>
       <div className="flex gap-2">
         <input
-          className="shadow appearance-none border rounded  py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          className="shadow-sm appearance-none border rounded-sm  py-2 px-3 text-gray-700 leading-tight focus:outline-hidden focus:shadow-outline"
           onChange={(e): void => {
             setSearchPrefix(e.target.value);
           }}
@@ -94,14 +94,14 @@ export default function AppList(): React.JSX.Element {
           value={searchPrefix}
         />
         <button
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-sm"
           onClick={(): void => void getList('', searchPrefix)}
           type="button"
         >
           Search
         </button>
         <button
-          className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+          className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-sm"
           onClick={(): void => void handleDelete(urlsToRemove)}
           type="button"
         >
@@ -141,14 +141,14 @@ export default function AppList(): React.JSX.Element {
             </a>
             <p>{new Date(blob.uploadedAt).toISOString()} </p>
             <button
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-sm"
               onClick={(): void => void handleHead(blob.url)}
               type="button"
             >
               Head
             </button>
             <button
-              className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+              className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-sm"
               onClick={(): void => void handleDelete([blob.url])}
               type="button"
             >
@@ -160,7 +160,7 @@ export default function AppList(): React.JSX.Element {
       {result.hasMore && result.cursor ? (
         <div>
           <button
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-sm"
             onClick={(): void =>
               void getList(result.cursor ?? '', searchPrefix)
             }

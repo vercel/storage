@@ -367,6 +367,7 @@ async function verifyCallbackSignature({
   const verified = await globalThis.crypto.subtle.verify(
     'HMAC',
     await importKey(token),
+    // @ts-expect-error Buffer is compatible with BufferSource at runtime
     hexToArrayByte(signature),
     new TextEncoder().encode(body),
   );

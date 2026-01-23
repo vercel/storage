@@ -34,7 +34,7 @@ export function FormBodyUpload({
       >
         <input name="file" ref={inputFileRef} type="file" />
         <button
-          className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded inline-flex items-center"
+          className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-sm inline-flex items-center"
           type="submit"
         >
           Upload

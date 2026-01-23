@@ -256,8 +256,8 @@ importers:
         specifier: 29.7.0
         version: 29.7.0(@types/node@22.19.1)(ts-node@10.9.2(@types/node@22.19.1)(typescript@5.7.3))
       kysely:
-        specifier: 0.27.5
-        version: 0.27.5
+        specifier: 0.28.10
+        version: 0.28.10
       ts-jest:
         specifier: 29.2.5
         version: 29.2.5(@babel/core@7.28.6)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.6))(esbuild@0.24.2)(jest@29.7.0(@types/node@22.19.1)(ts-node@10.9.2(@types/node@22.19.1)(typescript@5.7.3)))(typescript@5.7.3)
@@ -3759,10 +3759,6 @@ packages:
   kleur@3.0.3:
     resolution: {integrity: sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==}
     engines: {node: '>=6'}
-
-  kysely@0.27.5:
-    resolution: {integrity: sha512-s7hZHcQeSNKpzCkHRm8yA+0JPLjncSWnjb+2TIElwS2JAqYr+Kv3Ess+9KFfJS0C1xcQ1i9NkNHpWwCYpHMWsA==}
-    engines: {node: '>=14.0.0'}
 
   kysely@0.28.10:
     resolution: {integrity: sha512-ksNxfzIW77OcZ+QWSAPC7yDqUSaIVwkTWnTPNiIy//vifNbwsSgQ57OkkncHxxpcBHM3LRfLAZVEh7kjq5twVA==}
@@ -9213,8 +9209,6 @@ snapshots:
       '@keyv/serialize': 1.1.1
 
   kleur@3.0.3: {}
-
-  kysely@0.27.5: {}
 
   kysely@0.28.10: {}
 

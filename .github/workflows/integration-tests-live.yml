@@ -63,7 +63,7 @@ jobs:
           BLOB_UPLOAD_SECRET: ${{ secrets.BLOB_UPLOAD_SECRET }}
           VERCEL_PROTECTION_BYPASS_HEADER: ${{ secrets.VERCEL_PROTECTION_BYPASS_HEADER }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: playwright-report

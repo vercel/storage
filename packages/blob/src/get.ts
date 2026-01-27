@@ -131,7 +131,6 @@ export async function get(
   // Fetch the blob content with authentication headers
   const headers: Record<string, string> = {
     authorization: `Bearer ${token}`,
-    'x-vercel-blob-access': options.access,
   };
 
   const response = await fetch(blobUrl, {

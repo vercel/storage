@@ -1209,5 +1209,168 @@ describe('blob client', () => {
         pathname.startsWith('http://') || pathname.startsWith('https://'),
       ).toBe(false);
     });
+
+    describe('useCache option', () => {
+      // undici normalizes hostnames to lowercase
+      const BLOB_STORE_BASE_URL_LOWERCASE =
+        'https://12345fakestoreid.public.blob.vercel-storage.com';
+      const BLOB_STORE_BASE_URL_STOREID_LOWERCASE =
+        'https://storeid.public.blob.vercel-storage.com';
+
+      it('should append cache=0 to fetch URL when useCache is false', async () => {
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        const blobStoreMockClient = mockAgent.get(
+          BLOB_STORE_BASE_URL_LOWERCASE,
+        );
+
+        // Mock the exact path with cache=0 query param
+        blobStoreMockClient
+          .intercept({
+            path: '/foo.txt?cache=0',
+            method: 'GET',
+          })
+          .reply(200, 'blob content', {
+            headers: {
+              'content-type': 'text/plain',
+              'content-length': '12',
+            },
+          });
+
+        const result = await get('foo.txt', {
+          access: 'public',
+          useCache: false,
+        });
+
+        // If the path didn't include ?cache=0, the mock wouldn't match and test would fail
+        expect(result).not.toBeNull();
+        expect(result?.blob.pathname).toEqual('foo.txt');
+      });
+
+      it('should not append cache=0 when useCache is true', async () => {
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        const blobStoreMockClient = mockAgent.get(
+          BLOB_STORE_BASE_URL_LOWERCASE,
+        );
+
+        // Mock the exact path without cache=0
+        blobStoreMockClient
+          .intercept({
+            path: '/foo.txt',
+            method: 'GET',
+          })
+          .reply(200, 'blob content', {
+            headers: {
+              'content-type': 'text/plain',
+              'content-length': '12',
+            },
+          });
+
+        const result = await get('foo.txt', {
+          access: 'public',
+          useCache: true,
+        });
+
+        // If the path included ?cache=0, the mock wouldn't match and test would fail
+        expect(result).not.toBeNull();
+        expect(result?.blob.pathname).toEqual('foo.txt');
+      });
+
+      it('should not append cache=0 when useCache is omitted', async () => {
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        const blobStoreMockClient = mockAgent.get(
+          BLOB_STORE_BASE_URL_LOWERCASE,
+        );
+
+        // Mock the exact path without cache=0
+        blobStoreMockClient
+          .intercept({
+            path: '/foo.txt',
+            method: 'GET',
+          })
+          .reply(200, 'blob content', {
+            headers: {
+              'content-type': 'text/plain',
+              'content-length': '12',
+            },
+          });
+
+        const result = await get('foo.txt', {
+          access: 'public',
+        });
+
+        // If the path included ?cache=0, the mock wouldn't match and test would fail
+        expect(result).not.toBeNull();
+        expect(result?.blob.pathname).toEqual('foo.txt');
+      });
+
+      it('should not include cache=0 in returned downloadUrl', async () => {
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        const blobStoreMockClient = mockAgent.get(
+          BLOB_STORE_BASE_URL_LOWERCASE,
+        );
+
+        blobStoreMockClient
+          .intercept({
+            path: '/foo.txt?cache=0',
+            method: 'GET',
+          })
+          .reply(200, 'blob content', {
+            headers: {
+              'content-type': 'text/plain',
+              'content-length': '12',
+            },
+          });
+
+        const result = await get('foo.txt', {
+          access: 'public',
+          useCache: false,
+        });
+
+        // URL class normalizes hostnames to lowercase for downloadUrl
+        // but url keeps original casing from constructBlobUrl()
+        expect(result?.blob.downloadUrl).toEqual(
+          'https://12345fakestoreid.public.blob.vercel-storage.com/foo.txt?download=1',
+        );
+        expect(result?.blob.url).toEqual(
+          'https://12345fakeStoreId.public.blob.vercel-storage.com/foo.txt',
+        );
+      });
+
+      it('should work with URL input and useCache false', async () => {
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        // Use lowercase since undici normalizes hostnames
+        const storeMock = mockAgent.get(BLOB_STORE_BASE_URL_STOREID_LOWERCASE);
+
+        storeMock
+          .intercept({
+            path: '/foo.txt?cache=0',
+            method: 'GET',
+          })
+          .reply(200, 'blob content', {
+            headers: {
+              'content-type': 'text/plain',
+              'content-length': '12',
+            },
+          });
+
+        const result = await get(`${BLOB_STORE_BASE_URL}/foo.txt`, {
+          access: 'public',
+          useCache: false,
+        });
+
+        // If the path didn't include ?cache=0, the mock wouldn't match and test would fail
+        expect(result).not.toBeNull();
+      });
+    });
   });
 });

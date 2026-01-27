@@ -1,3 +1,4 @@
+import { fetch } from 'undici';
 import type { HeadBlobResult } from './head';
 import type { BlobAccessType, BlobCommandOptions } from './helpers';
 import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
@@ -12,6 +13,12 @@ export interface GetCommandOptions extends BlobCommandOptions {
    * - 'private': The blob requires authentication to access.
    */
   access: BlobAccessType;
+  /**
+   * Whether to use the content-cache layer when fetching the blob.
+   * When false, appends ?cache=0 to bypass the cache and fetch directly.
+   * @defaultValue true
+   */
+  useCache?: boolean;
 }
 
 /**
@@ -133,7 +140,15 @@ export async function get(
     authorization: `Bearer ${token}`,
   };
 
-  const response = await fetch(blobUrl, {
+  // Construct fetch URL with optional cache bypass
+  let fetchUrl = blobUrl;
+  if (options.useCache === false) {
+    const url = new URL(blobUrl);
+    url.searchParams.set('cache', '0');
+    fetchUrl = url.toString();
+  }
+
+  const response = await fetch(fetchUrl, {
     method: 'GET',
     headers,
     signal: options.abortSignal,

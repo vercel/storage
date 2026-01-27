@@ -1,3 +1,4 @@
+import type { HeadBlobResult } from './head';
 import type { BlobAccessType, BlobCommandOptions } from './helpers';
 import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
 
@@ -14,31 +15,6 @@ export interface GetCommandOptions extends BlobCommandOptions {
 }
 
 /**
- * Blob metadata returned by the get method.
- */
-export interface BlobMetadata {
-  /**
-   * The URL of the blob.
-   */
-  url: string;
-
-  /**
-   * The pathname of the blob within the store.
-   */
-  pathname: string;
-
-  /**
-   * The content type of the blob.
-   */
-  contentType: string;
-
-  /**
-   * The size of the blob in bytes.
-   */
-  size: number;
-}
-
-/**
  * Result of the get method containing the stream and blob metadata.
  */
 export interface GetBlobResult {
@@ -50,9 +26,10 @@ export interface GetBlobResult {
   stream: ReadableStream<Uint8Array>;
 
   /**
-   * The blob metadata object containing url, pathname, contentType, and size.
+   * The blob metadata object containing url, pathname, contentType, size,
+   * downloadUrl, contentDisposition, cacheControl, and uploadedAt.
    */
-  blob: BlobMetadata;
+  blob: HeadBlobResult;
 }
 
 /**
@@ -172,24 +149,32 @@ export async function get(
     );
   }
 
-  // Get size from content-length header
-  const contentLength = response.headers.get('content-length');
-  const size = contentLength ? parseInt(contentLength, 10) : 0;
-
   // Return the stream directly without buffering
   const stream = response.body;
   if (!stream) {
     throw new BlobError('Response body is null');
   }
 
+  // Extract metadata from response headers
+  const contentLength = response.headers.get('content-length');
+  const lastModified = response.headers.get('last-modified');
+
+  // Build download URL by adding download=1 query param
+  const downloadUrl = new URL(blobUrl);
+  downloadUrl.searchParams.set('download', '1');
+
   return {
     stream,
     blob: {
       url: blobUrl,
+      downloadUrl: downloadUrl.toString(),
       pathname,
       contentType:
         response.headers.get('content-type') || 'application/octet-stream',
-      size,
+      contentDisposition: response.headers.get('content-disposition') || '',
+      cacheControl: response.headers.get('cache-control') || '',
+      size: contentLength ? parseInt(contentLength, 10) : 0,
+      uploadedAt: lastModified ? new Date(lastModified) : new Date(),
     },
   };
 }

@@ -37,7 +37,7 @@
     "turbo": "2.7.6",
     "typescript": "5.9.3"
   },
-  "packageManager": "pnpm@10.28.1",
+  "packageManager": "pnpm@10.28.2",
   "engines": {
     "node": ">=18"
   }

@@ -15,10 +15,12 @@ export interface GetCommandOptions extends BlobCommandOptions {
   access: BlobAccessType;
   /**
    * Whether to use the content-cache layer when fetching the blob.
-   * When false, appends ?cache=0 to bypass the cache and fetch directly.
+   * When false, bypasses the cache and fetches directly from storage.
+   * Only effective for private blobs (ignored for public blobs).
    * @defaultValue true
    */
   useCache?: boolean;
+  /**
    * Advanced: Additional headers to include in the fetch request.
    * You probably don't need this. The authorization header is automatically set.
    */
@@ -96,10 +98,11 @@ function constructBlobUrl(storeId: string, pathname: string): string {
  *
  * @example
  * ```ts
- * const { stream, headers, blob } = await get('user123/love-letter.txt', { access: 'private' });
- * // stream is the ReadableStream from fetch() - no automatic buffering
- * // headers is the raw Headers object from the fetch response
- * // blob is the metadata object { url, pathname, contentType, size }
+ * // Basic usage
+ * const { stream, headers, blob } = await get('user123/avatar.png', { access: 'private' });
+ *
+ * // Bypass cache for private blobs (always fetch fresh from storage)
+ * const { stream, headers, blob } = await get('user123/data.json', { access: 'private', useCache: false });
  * ```
  *
  * Detailed documentation can be found here: https://vercel.com/docs/vercel-blob/using-blob-sdk
@@ -107,6 +110,7 @@ function constructBlobUrl(storeId: string, pathname: string): string {
  * @param urlOrPathname - The URL or pathname of the blob to fetch.
  * @param options - Configuration options including:
  *   - access - (Required) Must be 'public' or 'private'. Determines the access level of the blob.
+ *   - useCache - (Optional) When false, bypasses the cache and fetches directly from storage. Only effective for private blobs. Defaults to true.
  *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel.
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
  *   - headers - (Optional, advanced) Additional headers to include in the fetch request. You probably don't need this.

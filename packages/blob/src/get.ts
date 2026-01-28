@@ -12,6 +12,11 @@ export interface GetCommandOptions extends BlobCommandOptions {
    * - 'private': The blob requires authentication to access.
    */
   access: BlobAccessType;
+  /**
+   * Advanced: Additional headers to include in the fetch request.
+   * You probably don't need this. The authorization header is automatically set.
+   */
+  headers?: Record<string, string>;
 }
 
 /**
@@ -98,6 +103,7 @@ function constructBlobUrl(storeId: string, pathname: string): string {
  *   - access - (Required) Must be 'public' or 'private'. Determines the access level of the blob.
  *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel.
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
+ *   - headers - (Optional, advanced) Additional headers to include in the fetch request. You probably don't need this.
  * @returns A promise that resolves to { stream, blob } or null if not found.
  */
 export async function get(
@@ -136,13 +142,14 @@ export async function get(
   }
 
   // Fetch the blob content with authentication headers
-  const headers: Record<string, string> = {
+  const requestHeaders: Record<string, string> = {
+    ...options.headers,
     authorization: `Bearer ${token}`,
   };
 
   const response = await fetch(blobUrl, {
     method: 'GET',
-    headers,
+    headers: requestHeaders,
     signal: options.abortSignal,
   });
 

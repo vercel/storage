@@ -26,6 +26,12 @@ export interface GetBlobResult {
   stream: ReadableStream<Uint8Array>;
 
   /**
+   * The raw headers from the fetch response.
+   * Useful for accessing additional response metadata like ETag, x-vercel-* headers, etc.
+   */
+  headers: Headers;
+
+  /**
    * The blob metadata object containing url, pathname, contentType, size,
    * downloadUrl, contentDisposition, cacheControl, and uploadedAt.
    */
@@ -79,8 +85,9 @@ function constructBlobUrl(storeId: string, pathname: string): string {
  *
  * @example
  * ```ts
- * const { stream, blob } = await get('user123/love-letter.txt', { access: 'private' });
+ * const { stream, headers, blob } = await get('user123/love-letter.txt', { access: 'private' });
  * // stream is the ReadableStream from fetch() - no automatic buffering
+ * // headers is the raw Headers object from the fetch response
  * // blob is the metadata object { url, pathname, contentType, size }
  * ```
  *
@@ -164,6 +171,7 @@ export async function get(
 
   return {
     stream,
+    headers: response.headers,
     blob: {
       url: blobUrl,
       downloadUrl: downloadUrl.toString(),

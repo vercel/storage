@@ -13,7 +13,7 @@ export interface GetCommandOptions extends BlobCommandOptions {
    */
   access: BlobAccessType;
   /**
-   * Whether to allow the blob to be served from edge cache.
+   * Whether to allow the blob to be served from CDN cache.
    * When false, fetches directly from origin storage.
    * Only effective for private blobs (ignored for public blobs).
    * @defaultValue true
@@ -109,7 +109,7 @@ function constructBlobUrl(storeId: string, pathname: string): string {
  * @param urlOrPathname - The URL or pathname of the blob to fetch.
  * @param options - Configuration options including:
  *   - access - (Required) Must be 'public' or 'private'. Determines the access level of the blob.
- *   - useCache - (Optional) When false, fetches directly from origin storage instead of edge cache. Only effective for private blobs. Defaults to true.
+ *   - useCache - (Optional) When false, fetches directly from origin storage instead of CDN cache. Only effective for private blobs. Defaults to true.
  *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel.
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
  *   - headers - (Optional, advanced) Additional headers to include in the fetch request. You probably don't need this.

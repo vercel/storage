@@ -19,6 +19,10 @@ export interface GetCommandOptions extends BlobCommandOptions {
    * @defaultValue true
    */
   useCache?: boolean;
+   * Advanced: Additional headers to include in the fetch request.
+   * You probably don't need this. The authorization header is automatically set.
+   */
+  headers?: Record<string, string>;
 }
 
 /**
@@ -31,6 +35,12 @@ export interface GetBlobResult {
    * streaming of large files without loading them entirely into memory.
    */
   stream: ReadableStream<Uint8Array>;
+
+  /**
+   * The raw headers from the fetch response.
+   * Useful for accessing additional response metadata like ETag, x-vercel-* headers, etc.
+   */
+  headers: Headers;
 
   /**
    * The blob metadata object containing url, pathname, contentType, size,
@@ -86,8 +96,9 @@ function constructBlobUrl(storeId: string, pathname: string): string {
  *
  * @example
  * ```ts
- * const { stream, blob } = await get('user123/love-letter.txt', { access: 'private' });
+ * const { stream, headers, blob } = await get('user123/love-letter.txt', { access: 'private' });
  * // stream is the ReadableStream from fetch() - no automatic buffering
+ * // headers is the raw Headers object from the fetch response
  * // blob is the metadata object { url, pathname, contentType, size }
  * ```
  *
@@ -98,6 +109,7 @@ function constructBlobUrl(storeId: string, pathname: string): string {
  *   - access - (Required) Must be 'public' or 'private'. Determines the access level of the blob.
  *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel.
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
+ *   - headers - (Optional, advanced) Additional headers to include in the fetch request. You probably don't need this.
  * @returns A promise that resolves to { stream, blob } or null if not found.
  */
 export async function get(
@@ -136,7 +148,8 @@ export async function get(
   }
 
   // Fetch the blob content with authentication headers
-  const headers: Record<string, string> = {
+  const requestHeaders: Record<string, string> = {
+    ...options.headers,
     authorization: `Bearer ${token}`,
   };
 
@@ -150,7 +163,7 @@ export async function get(
 
   const response = await fetch(fetchUrl, {
     method: 'GET',
-    headers,
+    headers: requestHeaders,
     signal: options.abortSignal,
   });
 
@@ -179,6 +192,7 @@ export async function get(
 
   return {
     stream,
+    headers: response.headers,
     blob: {
       url: blobUrl,
       downloadUrl: downloadUrl.toString(),

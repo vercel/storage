@@ -1,4 +1,3 @@
-import { fetch } from 'undici';
 import type { HeadBlobResult } from './head';
 import type { BlobAccessType, BlobCommandOptions } from './helpers';
 import { BlobError, getTokenFromOptionsOrEnv } from './helpers';

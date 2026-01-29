@@ -216,5 +216,9 @@ export const completeMultipartUpload =
     ],
   });
 
+export type {
+  CreateFolderCommandOptions,
+  CreateFolderResult,
+} from './create-folder';
 export { createFolder } from './create-folder';
 export type { Part, PartInput } from './multipart/helpers';

@@ -84,8 +84,12 @@ function getStoreIdFromToken(token: string): string {
 /**
  * Constructs the blob URL from storeId and pathname.
  */
-function constructBlobUrl(storeId: string, pathname: string): string {
-  return `https://${storeId}.public.blob.vercel-storage.com/${pathname}`;
+function constructBlobUrl(
+  storeId: string,
+  pathname: string,
+  access: BlobAccessType,
+): string {
+  return `https://${storeId}.${access}.blob.vercel-storage.com/${pathname}`;
 }
 
 /**
@@ -135,6 +139,7 @@ export async function get(
 
   let blobUrl: string;
   let pathname: string;
+  const access = options.access;
 
   // Check if input is a URL or a pathname
   if (isUrl(urlOrPathname)) {
@@ -147,7 +152,7 @@ export async function get(
       throw new BlobError('Invalid token: unable to extract store ID');
     }
     pathname = urlOrPathname;
-    blobUrl = constructBlobUrl(storeId, pathname);
+    blobUrl = constructBlobUrl(storeId, pathname, access);
   }
 
   // Fetch the blob content with authentication headers

@@ -25,17 +25,17 @@ jobs:
     timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version-file: '.node-version'
           cache: 'pnpm'
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         id: playwright-cache
         with:
           path: |
@@ -55,7 +55,7 @@ jobs:
         env:
           BLOB_UPLOAD_SECRET: ${{ secrets.BLOB_UPLOAD_SECRET }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: playwright-report

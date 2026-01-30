@@ -1,3 +1,4 @@
+import { fetch, type Headers } from 'undici';
 import type { HeadBlobResult } from './head';
 import type { BlobAccessType, BlobCommandOptions } from './helpers';
 import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
@@ -23,7 +24,7 @@ export interface GetCommandOptions extends BlobCommandOptions {
    * Advanced: Additional headers to include in the fetch request.
    * You probably don't need this. The authorization header is automatically set.
    */
-  headers?: Record<string, string>;
+  headers?: HeadersInit;
 }
 
 /**
@@ -151,7 +152,7 @@ export async function get(
   }
 
   // Fetch the blob content with authentication headers
-  const requestHeaders: Record<string, string> = {
+  const requestHeaders: HeadersInit = {
     ...options.headers,
     authorization: `Bearer ${token}`,
   };
@@ -180,7 +181,7 @@ export async function get(
   }
 
   // Return the stream directly without buffering
-  const stream = response.body;
+  const stream = response.body as ReadableStream;
   if (!stream) {
     throw new BlobError('Response body is null');
   }

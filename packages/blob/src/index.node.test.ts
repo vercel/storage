@@ -1178,85 +1178,69 @@ describe('blob client', () => {
     });
 
     it('should return public URL when access is public', async () => {
-      let requestedUrl = '';
-      const mockFetch = jest.fn().mockImplementation((url: string) => {
-        requestedUrl = url;
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          body: new ReadableStream({
-            start(controller) {
-              controller.enqueue(new TextEncoder().encode('blob content'));
-              controller.close();
-            },
-          }),
-          headers: new Headers({
+      // undici normalizes hostnames to lowercase
+      const publicMockAgent = new MockAgent();
+      publicMockAgent.disableNetConnect();
+      setGlobalDispatcher(publicMockAgent);
+      const publicMock = publicMockAgent.get(
+        'https://12345fakestoreid.public.blob.vercel-storage.com',
+      );
+
+      publicMock
+        .intercept({
+          path: '/test-file.txt',
+          method: 'GET',
+        })
+        .reply(200, 'blob content', {
+          headers: {
             'content-type': 'text/plain',
             'content-length': '12',
-          }),
+          },
         });
+
+      const result = await get('test-file.txt', {
+        access: 'public',
       });
-      const originalFetch = globalThis.fetch;
-      globalThis.fetch = mockFetch;
 
-      try {
-        const result = await get('test-file.txt', {
-          access: 'public',
-        });
-
-        expect(result).not.toBeNull();
-        expect(result?.blob.url).toEqual(
-          'https://12345fakeStoreId.public.blob.vercel-storage.com/test-file.txt',
-        );
-        expect(result?.blob.url).toContain('.public.');
-        expect(result?.blob.pathname).toEqual('test-file.txt');
-        expect(requestedUrl).toEqual(
-          'https://12345fakeStoreId.public.blob.vercel-storage.com/test-file.txt',
-        );
-      } finally {
-        globalThis.fetch = originalFetch;
-      }
+      expect(result).not.toBeNull();
+      expect(result?.blob.url).toEqual(
+        'https://12345fakeStoreId.public.blob.vercel-storage.com/test-file.txt',
+      );
+      expect(result?.blob.url).toContain('.public.');
+      expect(result?.blob.pathname).toEqual('test-file.txt');
     });
 
     it('should return private URL when access is private', async () => {
-      let requestedUrl = '';
-      const mockFetch = jest.fn().mockImplementation((url: string) => {
-        requestedUrl = url;
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          body: new ReadableStream({
-            start(controller) {
-              controller.enqueue(new TextEncoder().encode('blob content'));
-              controller.close();
-            },
-          }),
-          headers: new Headers({
+      // undici normalizes hostnames to lowercase
+      const privateMockAgent = new MockAgent();
+      privateMockAgent.disableNetConnect();
+      setGlobalDispatcher(privateMockAgent);
+      const privateMock = privateMockAgent.get(
+        'https://12345fakestoreid.private.blob.vercel-storage.com',
+      );
+
+      privateMock
+        .intercept({
+          path: '/test-file.txt',
+          method: 'GET',
+        })
+        .reply(200, 'blob content', {
+          headers: {
             'content-type': 'text/plain',
             'content-length': '12',
-          }),
+          },
         });
+
+      const result = await get('test-file.txt', {
+        access: 'private',
       });
-      const originalFetch = globalThis.fetch;
-      globalThis.fetch = mockFetch;
 
-      try {
-        const result = await get('test-file.txt', {
-          access: 'private',
-        });
-
-        expect(result).not.toBeNull();
-        expect(result?.blob.url).toEqual(
-          'https://12345fakeStoreId.private.blob.vercel-storage.com/test-file.txt',
-        );
-        expect(result?.blob.url).toContain('.private.');
-        expect(result?.blob.pathname).toEqual('test-file.txt');
-        expect(requestedUrl).toEqual(
-          'https://12345fakeStoreId.private.blob.vercel-storage.com/test-file.txt',
-        );
-      } finally {
-        globalThis.fetch = originalFetch;
-      }
+      expect(result).not.toBeNull();
+      expect(result?.blob.url).toEqual(
+        'https://12345fakeStoreId.private.blob.vercel-storage.com/test-file.txt',
+      );
+      expect(result?.blob.url).toContain('.private.');
+      expect(result?.blob.pathname).toEqual('test-file.txt');
     });
 
     it('should throw for invalid access with URL input', async () => {
@@ -1293,187 +1277,165 @@ describe('blob client', () => {
     });
 
     describe('useCache option', () => {
+      // undici normalizes hostnames to lowercase
+      const BLOB_STORE_BASE_URL_LOWERCASE =
+        'https://12345fakestoreid.public.blob.vercel-storage.com';
+      const BLOB_STORE_BASE_URL_STOREID_LOWERCASE =
+        'https://storeid.public.blob.vercel-storage.com';
+
       it('should append cache=0 to fetch URL when useCache is false', async () => {
-        let requestedUrl = '';
-        const mockFetch = jest.fn().mockImplementation((url: string) => {
-          requestedUrl = url;
-          return Promise.resolve({
-            ok: true,
-            status: 200,
-            body: new ReadableStream({
-              start(controller) {
-                controller.enqueue(new TextEncoder().encode('blob content'));
-                controller.close();
-              },
-            }),
-            headers: new Headers({
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        const blobStoreMockClient = mockAgent.get(
+          BLOB_STORE_BASE_URL_LOWERCASE,
+        );
+
+        // Mock the exact path with cache=0 query param
+        blobStoreMockClient
+          .intercept({
+            path: '/foo.txt?cache=0',
+            method: 'GET',
+          })
+          .reply(200, 'blob content', {
+            headers: {
               'content-type': 'text/plain',
               'content-length': '12',
-            }),
+            },
           });
+
+        const result = await get('foo.txt', {
+          access: 'public',
+          useCache: false,
         });
-        const originalFetch = globalThis.fetch;
-        globalThis.fetch = mockFetch;
 
-        try {
-          const result = await get('foo.txt', {
-            access: 'public',
-            useCache: false,
-          });
-
-          expect(result).not.toBeNull();
-          expect(result?.blob.pathname).toEqual('foo.txt');
-          // Verify cache=0 is in the fetch URL
-          expect(requestedUrl).toContain('cache=0');
-        } finally {
-          globalThis.fetch = originalFetch;
-        }
+        // If the path didn't include ?cache=0, the mock wouldn't match and test would fail
+        expect(result).not.toBeNull();
+        expect(result?.blob.pathname).toEqual('foo.txt');
       });
 
       it('should not append cache=0 when useCache is true', async () => {
-        let requestedUrl = '';
-        const mockFetch = jest.fn().mockImplementation((url: string) => {
-          requestedUrl = url;
-          return Promise.resolve({
-            ok: true,
-            status: 200,
-            body: new ReadableStream({
-              start(controller) {
-                controller.enqueue(new TextEncoder().encode('blob content'));
-                controller.close();
-              },
-            }),
-            headers: new Headers({
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        const blobStoreMockClient = mockAgent.get(
+          BLOB_STORE_BASE_URL_LOWERCASE,
+        );
+
+        // Mock the exact path without cache=0
+        blobStoreMockClient
+          .intercept({
+            path: '/foo.txt',
+            method: 'GET',
+          })
+          .reply(200, 'blob content', {
+            headers: {
               'content-type': 'text/plain',
               'content-length': '12',
-            }),
+            },
           });
+
+        const result = await get('foo.txt', {
+          access: 'public',
+          useCache: true,
         });
-        const originalFetch = globalThis.fetch;
-        globalThis.fetch = mockFetch;
 
-        try {
-          const result = await get('foo.txt', {
-            access: 'public',
-            useCache: true,
-          });
-
-          expect(result).not.toBeNull();
-          expect(result?.blob.pathname).toEqual('foo.txt');
-          // Verify cache=0 is NOT in the fetch URL
-          expect(requestedUrl).not.toContain('cache=0');
-        } finally {
-          globalThis.fetch = originalFetch;
-        }
+        // If the path included ?cache=0, the mock wouldn't match and test would fail
+        expect(result).not.toBeNull();
+        expect(result?.blob.pathname).toEqual('foo.txt');
       });
 
       it('should not append cache=0 when useCache is omitted', async () => {
-        let requestedUrl = '';
-        const mockFetch = jest.fn().mockImplementation((url: string) => {
-          requestedUrl = url;
-          return Promise.resolve({
-            ok: true,
-            status: 200,
-            body: new ReadableStream({
-              start(controller) {
-                controller.enqueue(new TextEncoder().encode('blob content'));
-                controller.close();
-              },
-            }),
-            headers: new Headers({
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        const blobStoreMockClient = mockAgent.get(
+          BLOB_STORE_BASE_URL_LOWERCASE,
+        );
+
+        // Mock the exact path without cache=0
+        blobStoreMockClient
+          .intercept({
+            path: '/foo.txt',
+            method: 'GET',
+          })
+          .reply(200, 'blob content', {
+            headers: {
               'content-type': 'text/plain',
               'content-length': '12',
-            }),
+            },
           });
+
+        const result = await get('foo.txt', {
+          access: 'public',
         });
-        const originalFetch = globalThis.fetch;
-        globalThis.fetch = mockFetch;
 
-        try {
-          const result = await get('foo.txt', {
-            access: 'public',
-          });
-
-          expect(result).not.toBeNull();
-          expect(result?.blob.pathname).toEqual('foo.txt');
-          // Verify cache=0 is NOT in the fetch URL
-          expect(requestedUrl).not.toContain('cache=0');
-        } finally {
-          globalThis.fetch = originalFetch;
-        }
+        // If the path included ?cache=0, the mock wouldn't match and test would fail
+        expect(result).not.toBeNull();
+        expect(result?.blob.pathname).toEqual('foo.txt');
       });
 
       it('should not include cache=0 in returned downloadUrl', async () => {
-        let requestedUrl = '';
-        const mockFetch = jest.fn().mockImplementation((url: string) => {
-          requestedUrl = url;
-          return Promise.resolve({
-            ok: true,
-            status: 200,
-            body: new ReadableStream({
-              start(controller) {
-                controller.enqueue(new TextEncoder().encode('blob content'));
-                controller.close();
-              },
-            }),
-            headers: new Headers({
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        const blobStoreMockClient = mockAgent.get(
+          BLOB_STORE_BASE_URL_LOWERCASE,
+        );
+
+        blobStoreMockClient
+          .intercept({
+            path: '/foo.txt?cache=0',
+            method: 'GET',
+          })
+          .reply(200, 'blob content', {
+            headers: {
               'content-type': 'text/plain',
               'content-length': '12',
-            }),
+            },
           });
+
+        const result = await get('foo.txt', {
+          access: 'public',
+          useCache: false,
         });
-        const originalFetch = globalThis.fetch;
-        globalThis.fetch = mockFetch;
 
-        try {
-          const result = await get('foo.txt', {
-            access: 'public',
-            useCache: false,
-          });
-
-          // Verify cache=0 is in the fetch URL but NOT in downloadUrl
-          expect(requestedUrl).toContain('cache=0');
-          expect(result?.blob.downloadUrl).not.toContain('cache=0');
-          expect(result?.blob.downloadUrl).toContain('download=1');
-        } finally {
-          globalThis.fetch = originalFetch;
-        }
+        // URL class normalizes hostnames to lowercase for downloadUrl
+        // but url keeps original casing from constructBlobUrl()
+        expect(result?.blob.downloadUrl).toEqual(
+          'https://12345fakestoreid.public.blob.vercel-storage.com/foo.txt?download=1',
+        );
+        expect(result?.blob.url).toEqual(
+          'https://12345fakeStoreId.public.blob.vercel-storage.com/foo.txt',
+        );
       });
 
       it('should work with URL input and useCache false', async () => {
-        let requestedUrl = '';
-        const mockFetch = jest.fn().mockImplementation((url: string) => {
-          requestedUrl = url;
-          return Promise.resolve({
-            ok: true,
-            status: 200,
-            body: new ReadableStream({
-              start(controller) {
-                controller.enqueue(new TextEncoder().encode('blob content'));
-                controller.close();
-              },
-            }),
-            headers: new Headers({
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        // Use lowercase since undici normalizes hostnames
+        const storeMock = mockAgent.get(BLOB_STORE_BASE_URL_STOREID_LOWERCASE);
+
+        storeMock
+          .intercept({
+            path: '/foo.txt?cache=0',
+            method: 'GET',
+          })
+          .reply(200, 'blob content', {
+            headers: {
               'content-type': 'text/plain',
               'content-length': '12',
-            }),
+            },
           });
+
+        const result = await get(`${BLOB_STORE_BASE_URL}/foo.txt`, {
+          access: 'public',
+          useCache: false,
         });
-        const originalFetch = globalThis.fetch;
-        globalThis.fetch = mockFetch;
 
-        try {
-          const result = await get(`${BLOB_STORE_BASE_URL}/foo.txt`, {
-            access: 'public',
-            useCache: false,
-          });
-
-          expect(result).not.toBeNull();
-          // Verify cache=0 is in the fetch URL
-          expect(requestedUrl).toContain('cache=0');
-        } finally {
-          globalThis.fetch = originalFetch;
-        }
+        // If the path didn't include ?cache=0, the mock wouldn't match and test would fail
+        expect(result).not.toBeNull();
       });
     });
   });

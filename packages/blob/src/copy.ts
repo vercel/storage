@@ -29,8 +29,8 @@ export async function copy(
     throw new BlobError('missing options, see usage');
   }
 
-  if (options.access !== 'public') {
-    throw new BlobError('access must be "public"');
+  if (options.access !== 'public' && options.access !== 'private') {
+    throw new BlobError('access must be "public" or "private"');
   }
 
   if (toPathname.length > MAXIMUM_PATHNAME_LENGTH) {
@@ -48,6 +48,9 @@ export async function copy(
   }
 
   const headers: Record<string, string> = {};
+
+  // access is always required, so always add it to headers
+  headers['x-vercel-blob-access'] = options.access;
 
   if (options.addRandomSuffix !== undefined) {
     headers['x-add-random-suffix'] = options.addRandomSuffix ? '1' : '0';

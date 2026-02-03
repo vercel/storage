@@ -987,9 +987,7 @@ describe('blob client', () => {
             access: 'public',
             ifMatch: '"old-etag"',
           }),
-        ).rejects.toThrow(
-          'Vercel Blob: The blob has been modified since you last read it (ETag mismatch). Fetch the latest version and retry.',
-        );
+        ).rejects.toThrow('Vercel Blob: Precondition failed: ETag mismatch.');
       });
     });
 

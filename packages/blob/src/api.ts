@@ -106,9 +106,7 @@ export class BlobRequestAbortedError extends BlobError {
 
 export class BlobPreconditionFailedError extends BlobError {
   constructor() {
-    super(
-      'The blob has been modified since you last read it (ETag mismatch). Fetch the latest version and retry.',
-    );
+    super('Precondition failed: ETag mismatch.');
   }
 }
 

@@ -33,6 +33,12 @@ export interface ClientCommonCreateBlobOptions {
    * `AbortSignal` to cancel the running request. See https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal
    */
   abortSignal?: AbortSignal;
+  /**
+   * Only perform the operation if the blob's current ETag matches this value.
+   * Use this for optimistic concurrency control to prevent overwriting changes made by others.
+   * If the ETag doesn't match, a `BlobPreconditionFailedError` will be thrown.
+   */
+  ifMatch?: string;
 }
 
 /**
@@ -106,7 +112,7 @@ export type ClientPutCommandOptions = ClientCommonPutOptions &
  * @returns A promise that resolves to the blob information, including pathname, contentType, contentDisposition, url, and downloadUrl.
  */
 export const put = createPutMethod<ClientPutCommandOptions>({
-  allowedOptions: ['contentType'],
+  allowedOptions: ['contentType', 'ifMatch'],
   extraChecks: createPutExtraChecks('client/`put`'),
 });
 
@@ -131,7 +137,7 @@ export type ClientCreateMultipartUploadCommandOptions =
  */
 export const createMultipartUpload =
   createCreateMultipartUploadMethod<ClientCreateMultipartUploadCommandOptions>({
-    allowedOptions: ['contentType'],
+    allowedOptions: ['contentType', 'ifMatch'],
     extraChecks: createPutExtraChecks('client/`createMultipartUpload`'),
   });
 
@@ -154,7 +160,7 @@ export const createMultipartUpload =
 export const createMultipartUploader =
   createCreateMultipartUploaderMethod<ClientCreateMultipartUploadCommandOptions>(
     {
-      allowedOptions: ['contentType'],
+      allowedOptions: ['contentType', 'ifMatch'],
       extraChecks: createPutExtraChecks('client/`createMultipartUpload`'),
     },
   );
@@ -267,7 +273,7 @@ export type UploadOptions = ClientCommonPutOptions & CommonUploadOptions;
  * @returns A promise that resolves to the blob information, including pathname, contentType, contentDisposition, url, and downloadUrl.
  */
 export const upload = createPutMethod<UploadOptions>({
-  allowedOptions: ['contentType'],
+  allowedOptions: ['contentType', 'ifMatch'],
   extraChecks(options) {
     if (options.handleUploadUrl === undefined) {
       throw new BlobError(

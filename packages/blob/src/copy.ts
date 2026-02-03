@@ -10,6 +10,10 @@ export interface CopyBlobResult {
   pathname: string;
   contentType: string;
   contentDisposition: string;
+  /**
+   * The ETag of the blob. Can be used with `ifMatch` for conditional writes.
+   */
+  etag?: string;
 }
 
 /**
@@ -65,6 +69,10 @@ export async function copy(
     headers['x-cache-control-max-age'] = options.cacheControlMaxAge.toString();
   }
 
+  if (options.ifMatch) {
+    headers['x-if-match'] = options.ifMatch;
+  }
+
   const params = new URLSearchParams({
     pathname: toPathname,
     fromUrl: fromUrlOrPathname,
@@ -86,5 +94,6 @@ export async function copy(
     pathname: response.pathname,
     contentType: response.contentType,
     contentDisposition: response.contentDisposition,
+    etag: response.etag,
   };
 }

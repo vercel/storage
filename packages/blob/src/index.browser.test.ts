@@ -42,6 +42,7 @@ describe('blob client', () => {
           "contentDisposition": "attachment; filename="foo.txt"",
           "contentType": "text/plain",
           "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo-id.txt?download=1",
+          "etag": undefined,
           "pathname": "foo.txt",
           "url": "https://storeId.public.blob.vercel-storage.com/foo-id.txt",
         }

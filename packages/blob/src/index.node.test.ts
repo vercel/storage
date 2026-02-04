@@ -609,6 +609,7 @@ describe('blob client', () => {
           "contentDisposition": "attachment; filename="foo.txt"",
           "contentType": "text/plain",
           "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo-id.txt?download=1",
+          "etag": ""abc123"",
           "pathname": "foo.txt",
           "url": "https://storeId.public.blob.vercel-storage.com/foo-id.txt",
         }
@@ -1078,6 +1079,7 @@ describe('blob client', () => {
         pathname: 'destination.txt',
         contentType: 'text/plain',
         contentDisposition: 'attachment; filename="destination.txt"',
+        etag: '"def456"',
       };
 
       mockClient
@@ -1099,6 +1101,7 @@ describe('blob client', () => {
           "contentDisposition": "attachment; filename="destination.txt"",
           "contentType": "text/plain",
           "downloadUrl": "https://storeId.public.blob.vercel-storage.com/destination.txt?download=1",
+          "etag": ""def456"",
           "pathname": "destination.txt",
           "url": "https://storeId.public.blob.vercel-storage.com/destination.txt",
         }

@@ -512,4 +512,21 @@ describe('client', () => {
       );
     });
   });
+
+  describe('rejects server-side options on upload()', () => {
+    it('should reject ifMatch option', async () => {
+      await expect(
+        upload('foo.txt', 'Test file data', {
+          access: 'public',
+          handleUploadUrl: '/api/upload',
+          // @ts-expect-error: Runtime check for DX
+          ifMatch: '"some-etag"',
+        }),
+      ).rejects.toThrow(
+        new Error(
+          "Vercel Blob: client/`upload` doesn't allow `addRandomSuffix`, `cacheControlMaxAge`, `allowOverwrite` or `ifMatch`. Configure these options at the server side when generating client tokens.",
+        ),
+      );
+    });
+  });
 });

@@ -26,6 +26,7 @@ const mockedFileMeta = {
   pathname: 'foo.txt',
   contentType: 'text/plain',
   contentDisposition: 'attachment; filename="foo.txt"',
+  etag: '"abc123"',
 };
 
 describe('blob client', () => {
@@ -66,7 +67,7 @@ describe('blob client', () => {
                 "contentDisposition": "attachment; filename="foo.txt"",
                 "contentType": "text/plain",
                 "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo-id.txt?download=1",
-                "etag": undefined,
+                "etag": ""abc123"",
                 "pathname": "foo.txt",
                 "size": 12345,
                 "uploadedAt": 2023-05-04T15:12:07.818Z,
@@ -273,6 +274,7 @@ describe('blob client', () => {
       pathname: mockedFileMeta.pathname,
       size: mockedFileMeta.size,
       uploadedAt: mockedFileMeta.uploadedAt,
+      etag: mockedFileMeta.etag,
     };
 
     it('should return a list of Blob metadata when calling `list()`', async () => {
@@ -300,7 +302,7 @@ describe('blob client', () => {
           "blobs": [
             {
               "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo-id.txt?download=1",
-              "etag": undefined,
+              "etag": ""abc123"",
               "pathname": "foo.txt",
               "size": 12345,
               "uploadedAt": 2023-05-04T15:12:07.818Z,
@@ -308,7 +310,7 @@ describe('blob client', () => {
             },
             {
               "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo-id.txt?download=1",
-              "etag": undefined,
+              "etag": ""abc123"",
               "pathname": "foo.txt",
               "size": 12345,
               "uploadedAt": 2023-05-04T15:12:07.818Z,
@@ -378,7 +380,7 @@ describe('blob client', () => {
           "blobs": [
             {
               "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo-id.txt?download=1",
-              "etag": undefined,
+              "etag": ""abc123"",
               "pathname": "foo.txt",
               "size": 12345,
               "uploadedAt": 2023-05-04T15:12:07.818Z,
@@ -405,6 +407,7 @@ describe('blob client', () => {
       pathname: mockedFileMeta.pathname,
       contentType: mockedFileMeta.contentType,
       contentDisposition: mockedFileMeta.contentDisposition,
+      etag: mockedFileMeta.etag,
     };
 
     it('has an onUploadProgress option', async () => {
@@ -429,7 +432,7 @@ describe('blob client', () => {
           "contentDisposition": "attachment; filename="foo.txt"",
           "contentType": "text/plain",
           "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo-id.txt?download=1",
-          "etag": undefined,
+          "etag": ""abc123"",
           "pathname": "foo.txt",
           "url": "https://storeId.public.blob.vercel-storage.com/foo-id.txt",
         }
@@ -463,7 +466,7 @@ describe('blob client', () => {
           "contentDisposition": "attachment; filename="foo.txt"",
           "contentType": "text/plain",
           "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo-id.txt?download=1",
-          "etag": undefined,
+          "etag": ""abc123"",
           "pathname": "foo.txt",
           "url": "https://storeId.public.blob.vercel-storage.com/foo-id.txt",
         }

@@ -212,6 +212,7 @@ export async function get(
       cacheControl: response.headers.get('cache-control') || '',
       size: contentLength ? parseInt(contentLength, 10) : 0,
       uploadedAt: lastModified ? new Date(lastModified) : new Date(),
+      etag: response.headers.get('etag') || '',
     },
   };
 }

@@ -104,6 +104,12 @@ export class BlobRequestAbortedError extends BlobError {
   }
 }
 
+export class BlobPreconditionFailedError extends BlobError {
+  constructor() {
+    super('Precondition failed: ETag mismatch.');
+  }
+}
+
 type BlobApiErrorCodes =
   | 'store_suspended'
   | 'forbidden'
@@ -117,7 +123,8 @@ type BlobApiErrorCodes =
   | 'content_type_not_allowed'
   | 'client_token_pathname_mismatch'
   | 'client_token_expired'
-  | 'file_too_large';
+  | 'file_too_large'
+  | 'precondition_failed';
 
 export interface BlobApiError {
   error?: { code?: BlobApiErrorCodes; message?: string };
@@ -126,7 +133,7 @@ export interface BlobApiError {
 // This version is used to ensure that the client and server are compatible
 // The server (Vercel Blob API) uses this information to change its behavior like the
 // response format
-const BLOB_API_VERSION = 11;
+const BLOB_API_VERSION = 12;
 
 function getApiVersion(): string {
   let versionOverride = null;
@@ -234,6 +241,9 @@ async function getBlobError(
       break;
     case 'rate_limited':
       error = createBlobServiceRateLimited(response);
+      break;
+    case 'precondition_failed':
+      error = new BlobPreconditionFailedError();
       break;
     case 'unknown_error':
     case 'not_allowed':

@@ -44,6 +44,11 @@ export interface HeadBlobResult {
    * The cache control header value.
    */
   cacheControl: string;
+
+  /**
+   * The ETag of the blob. Can be used with `ifMatch` for conditional writes.
+   */
+  etag: string;
 }
 
 interface HeadBlobApiResponse extends Omit<HeadBlobResult, 'uploadedAt'> {
@@ -82,5 +87,6 @@ export async function head(
     contentDisposition: response.contentDisposition,
     cacheControl: response.cacheControl,
     uploadedAt: new Date(response.uploadedAt),
+    etag: response.etag,
   };
 }

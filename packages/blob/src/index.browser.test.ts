@@ -17,6 +17,7 @@ jest.mock('undici', () => ({
           pathname: 'foo.txt',
           contentType: 'text/plain',
           contentDisposition: 'attachment; filename="foo.txt"',
+          etag: '"abc123"',
         }),
     }),
 }));
@@ -42,6 +43,7 @@ describe('blob client', () => {
           "contentDisposition": "attachment; filename="foo.txt"",
           "contentType": "text/plain",
           "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo-id.txt?download=1",
+          "etag": ""abc123"",
           "pathname": "foo.txt",
           "url": "https://storeId.public.blob.vercel-storage.com/foo-id.txt",
         }

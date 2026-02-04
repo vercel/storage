@@ -1,5 +1,9 @@
 import { type Interceptable, MockAgent, setGlobalDispatcher } from 'undici';
-import { BlobRequestAbortedError, BlobServiceNotAvailable } from './api';
+import {
+  BlobPreconditionFailedError,
+  BlobRequestAbortedError,
+  BlobServiceNotAvailable,
+} from './api';
 import {
   completeMultipartUpload,
   copy,
@@ -22,6 +26,7 @@ const mockedFileMeta = {
   pathname: 'foo.txt',
   contentType: 'text/plain',
   contentDisposition: 'attachment; filename="foo.txt"',
+  etag: '"abc123"',
 };
 
 describe('blob client', () => {
@@ -62,6 +67,7 @@ describe('blob client', () => {
                 "contentDisposition": "attachment; filename="foo.txt"",
                 "contentType": "text/plain",
                 "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo-id.txt?download=1",
+                "etag": ""abc123"",
                 "pathname": "foo.txt",
                 "size": 12345,
                 "uploadedAt": 2023-05-04T15:12:07.818Z,
@@ -268,6 +274,7 @@ describe('blob client', () => {
       pathname: mockedFileMeta.pathname,
       size: mockedFileMeta.size,
       uploadedAt: mockedFileMeta.uploadedAt,
+      etag: mockedFileMeta.etag,
     };
 
     it('should return a list of Blob metadata when calling `list()`', async () => {
@@ -295,6 +302,7 @@ describe('blob client', () => {
           "blobs": [
             {
               "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo-id.txt?download=1",
+              "etag": ""abc123"",
               "pathname": "foo.txt",
               "size": 12345,
               "uploadedAt": 2023-05-04T15:12:07.818Z,
@@ -302,6 +310,7 @@ describe('blob client', () => {
             },
             {
               "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo-id.txt?download=1",
+              "etag": ""abc123"",
               "pathname": "foo.txt",
               "size": 12345,
               "uploadedAt": 2023-05-04T15:12:07.818Z,
@@ -371,6 +380,7 @@ describe('blob client', () => {
           "blobs": [
             {
               "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo-id.txt?download=1",
+              "etag": ""abc123"",
               "pathname": "foo.txt",
               "size": 12345,
               "uploadedAt": 2023-05-04T15:12:07.818Z,
@@ -397,6 +407,7 @@ describe('blob client', () => {
       pathname: mockedFileMeta.pathname,
       contentType: mockedFileMeta.contentType,
       contentDisposition: mockedFileMeta.contentDisposition,
+      etag: mockedFileMeta.etag,
     };
 
     it('has an onUploadProgress option', async () => {
@@ -421,6 +432,7 @@ describe('blob client', () => {
           "contentDisposition": "attachment; filename="foo.txt"",
           "contentType": "text/plain",
           "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo-id.txt?download=1",
+          "etag": ""abc123"",
           "pathname": "foo.txt",
           "url": "https://storeId.public.blob.vercel-storage.com/foo-id.txt",
         }
@@ -454,6 +466,7 @@ describe('blob client', () => {
           "contentDisposition": "attachment; filename="foo.txt"",
           "contentType": "text/plain",
           "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo-id.txt?download=1",
+          "etag": ""abc123"",
           "pathname": "foo.txt",
           "url": "https://storeId.public.blob.vercel-storage.com/foo-id.txt",
         }
@@ -764,6 +777,212 @@ describe('blob client', () => {
       ).rejects.toThrow(
         new Error('Vercel Blob: pathname is too long, maximum length is 950'),
       );
+    });
+  });
+
+  describe('etag support', () => {
+    const mockedFileMetaWithEtag = {
+      ...mockedFileMeta,
+      etag: '"abc123"',
+    };
+
+    describe('put', () => {
+      it('should return etag in response', async () => {
+        mockClient
+          .intercept({
+            path: () => true,
+            method: 'PUT',
+          })
+          .reply(200, () => mockedFileMetaWithEtag);
+
+        const result = await put('foo.txt', 'Test Body', {
+          access: 'public',
+        });
+
+        expect(result.etag).toEqual('"abc123"');
+      });
+
+      it('should send x-if-match header when ifMatch option is provided', async () => {
+        let headers: Record<string, string> = {};
+        mockClient
+          .intercept({
+            path: () => true,
+            method: 'PUT',
+          })
+          .reply(200, (req) => {
+            headers = req.headers as Record<string, string>;
+            return mockedFileMetaWithEtag;
+          });
+
+        await put('foo.txt', 'Test Body', {
+          access: 'public',
+          ifMatch: '"abc123"',
+        });
+
+        expect(headers['x-if-match']).toEqual('"abc123"');
+      });
+    });
+
+    describe('head', () => {
+      it('should return etag in response', async () => {
+        mockClient
+          .intercept({
+            path: () => true,
+            method: 'GET',
+          })
+          .reply(200, () => ({
+            ...mockedFileMeta,
+            cacheControl: 'public, max-age=31536000',
+            etag: '"abc123"',
+          }));
+
+        const result = await head(`${BLOB_STORE_BASE_URL}/foo-id.txt`);
+
+        expect(result.etag).toEqual('"abc123"');
+      });
+    });
+
+    describe('list', () => {
+      it('should return etag for each blob in response', async () => {
+        mockClient
+          .intercept({
+            path: () => true,
+            method: 'GET',
+          })
+          .reply(200, () => ({
+            blobs: [
+              {
+                url: mockedFileMeta.url,
+                downloadUrl: mockedFileMeta.downloadUrl,
+                pathname: mockedFileMeta.pathname,
+                size: mockedFileMeta.size,
+                uploadedAt: mockedFileMeta.uploadedAt,
+                etag: '"blob1etag"',
+              },
+              {
+                url: mockedFileMeta.url,
+                downloadUrl: mockedFileMeta.downloadUrl,
+                pathname: mockedFileMeta.pathname,
+                size: mockedFileMeta.size,
+                uploadedAt: mockedFileMeta.uploadedAt,
+                etag: '"blob2etag"',
+              },
+            ],
+            cursor: undefined,
+            hasMore: false,
+          }));
+
+        const result = await list();
+
+        expect(result.blobs[0].etag).toEqual('"blob1etag"');
+        expect(result.blobs[1].etag).toEqual('"blob2etag"');
+      });
+    });
+
+    describe('copy', () => {
+      it('should return etag in response', async () => {
+        mockClient
+          .intercept({
+            path: () => true,
+            method: 'PUT',
+          })
+          .reply(200, () => ({
+            url: `${BLOB_STORE_BASE_URL}/destination.txt`,
+            downloadUrl: `${BLOB_STORE_BASE_URL}/destination.txt?download=1`,
+            pathname: 'destination.txt',
+            contentType: 'text/plain',
+            contentDisposition: 'attachment; filename="destination.txt"',
+            etag: '"copyetag"',
+          }));
+
+        const result = await copy('source.txt', 'destination.txt', {
+          access: 'public',
+        });
+
+        expect(result.etag).toEqual('"copyetag"');
+      });
+
+      it('should send x-if-match header when ifMatch option is provided', async () => {
+        let headers: Record<string, string> = {};
+        mockClient
+          .intercept({
+            path: () => true,
+            method: 'PUT',
+          })
+          .reply(200, (req) => {
+            headers = req.headers as Record<string, string>;
+            return {
+              url: `${BLOB_STORE_BASE_URL}/destination.txt`,
+              downloadUrl: `${BLOB_STORE_BASE_URL}/destination.txt?download=1`,
+              pathname: 'destination.txt',
+              contentType: 'text/plain',
+              contentDisposition: 'attachment; filename="destination.txt"',
+              etag: '"copyetag"',
+            };
+          });
+
+        await copy('source.txt', 'destination.txt', {
+          access: 'public',
+          ifMatch: '"source-etag"',
+        });
+
+        expect(headers['x-if-match']).toEqual('"source-etag"');
+      });
+    });
+
+    describe('BlobPreconditionFailedError', () => {
+      it('should throw BlobPreconditionFailedError on 412 response', async () => {
+        mockClient
+          .intercept({
+            path: () => true,
+            method: 'PUT',
+          })
+          .reply(412, { error: { code: 'precondition_failed' } });
+
+        await expect(
+          put('foo.txt', 'Test Body', {
+            access: 'public',
+            ifMatch: '"old-etag"',
+          }),
+        ).rejects.toThrow(BlobPreconditionFailedError);
+      });
+
+      it('should throw BlobPreconditionFailedError with correct message', async () => {
+        mockClient
+          .intercept({
+            path: () => true,
+            method: 'PUT',
+          })
+          .reply(412, { error: { code: 'precondition_failed' } });
+
+        await expect(
+          put('foo.txt', 'Test Body', {
+            access: 'public',
+            ifMatch: '"old-etag"',
+          }),
+        ).rejects.toThrow('Vercel Blob: Precondition failed: ETag mismatch.');
+      });
+    });
+
+    describe('API version', () => {
+      it('should send x-api-version header with value 12', async () => {
+        let headers: Record<string, string> = {};
+        mockClient
+          .intercept({
+            path: () => true,
+            method: 'PUT',
+          })
+          .reply(200, (req) => {
+            headers = req.headers as Record<string, string>;
+            return mockedFileMetaWithEtag;
+          });
+
+        await put('foo.txt', 'Test Body', {
+          access: 'public',
+        });
+
+        expect(headers['x-api-version']).toEqual('12');
+      });
     });
   });
 });

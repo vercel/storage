@@ -29,6 +29,11 @@ export interface ListBlobResultBlob {
    * The date when the blob was uploaded.
    */
   uploadedAt: Date;
+
+  /**
+   * The ETag of the blob. Can be used with `ifMatch` for conditional writes.
+   */
+  etag: string;
 }
 
 /**
@@ -189,5 +194,6 @@ function mapBlobResult(
     pathname: blobResult.pathname,
     size: blobResult.size,
     uploadedAt: new Date(blobResult.uploadedAt),
+    etag: blobResult.etag,
   };
 }

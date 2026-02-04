@@ -62,11 +62,12 @@ describe('api', () => {
         'https://vercel.com/api/blob/method',
         {
           body: '{"foo":"bar"}',
+          duplex: undefined,
           headers: {
             authorization: 'Bearer 123',
             'x-api-blob-request-attempt': '0',
             'x-api-blob-request-id': expect.any(String) as string,
-            'x-api-version': '11',
+            'x-api-version': '12',
           },
           method: 'POST',
         },

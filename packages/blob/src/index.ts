@@ -16,6 +16,7 @@ export {
   BlobFileTooLargeError,
   BlobNotFoundError,
   BlobPathnameMismatchError,
+  BlobPreconditionFailedError,
   BlobRequestAbortedError,
   BlobServiceNotAvailable,
   BlobServiceRateLimited,
@@ -63,6 +64,7 @@ export const put = createPutMethod<PutCommandOptions>({
     'addRandomSuffix',
     'allowOverwrite',
     'contentType',
+    'ifMatch',
   ],
 });
 
@@ -123,6 +125,7 @@ export const createMultipartUpload =
       'addRandomSuffix',
       'allowOverwrite',
       'contentType',
+      'ifMatch',
     ],
   });
 
@@ -152,6 +155,7 @@ export const createMultipartUploader =
       'addRandomSuffix',
       'allowOverwrite',
       'contentType',
+      'ifMatch',
     ],
   });
 

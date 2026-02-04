@@ -54,6 +54,7 @@ describe('client', () => {
                 pathname: 'foo.txt',
                 contentType: 'text/plain',
                 contentDisposition: 'attachment; filename="foo.txt"',
+                etag: '"abc123"',
               }),
           }),
       );
@@ -68,6 +69,7 @@ describe('client', () => {
         "contentDisposition": "attachment; filename="foo.txt"",
         "contentType": "text/plain",
         "downloadUrl": "https://storeId.public.blob.vercel-storage.com/superfoo.txt?download=1",
+        "etag": ""abc123"",
         "pathname": "foo.txt",
         "url": "https://storeId.public.blob.vercel-storage.com/superfoo.txt",
       }
@@ -92,7 +94,7 @@ describe('client', () => {
             authorization: 'Bearer vercel_blob_client_fake_123',
             'x-api-blob-request-attempt': '0',
             'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
-            'x-api-version': '11',
+            'x-api-version': '12',
             'x-vercel-blob-access': 'public',
           },
           method: 'PUT',
@@ -123,6 +125,7 @@ describe('client', () => {
                 pathname: 'foo.txt',
                 contentType: 'text/plain',
                 contentDisposition: 'attachment; filename="foo.txt"',
+                etag: '"abc123"',
               }),
           }),
       );
@@ -137,6 +140,7 @@ describe('client', () => {
         "contentDisposition": "attachment; filename="foo.txt"",
         "contentType": "text/plain",
         "downloadUrl": "https://storeId.public.blob.vercel-storage.com/superfoo.txt?download=1",
+        "etag": ""abc123"",
         "pathname": "foo.txt",
         "url": "https://storeId.public.blob.vercel-storage.com/superfoo.txt",
       }
@@ -152,7 +156,7 @@ describe('client', () => {
             authorization: 'Bearer vercel_blob_client_fake_123',
             'x-api-blob-request-attempt': '0',
             'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
-            'x-api-version': '11',
+            'x-api-version': '12',
             'x-vercel-blob-access': 'private',
           },
           method: 'PUT',
@@ -269,7 +273,7 @@ describe('client', () => {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
             'x-api-blob-request-attempt': '0',
             'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
-            'x-api-version': '11',
+            'x-api-version': '12',
             'x-mpu-action': 'create',
             'x-vercel-blob-access': 'public',
           },
@@ -288,7 +292,7 @@ describe('client', () => {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
             'x-api-blob-request-attempt': '0',
             'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
-            'x-api-version': '11',
+            'x-api-version': '12',
             'x-mpu-action': 'upload',
             'x-mpu-key': 'key',
             'x-mpu-upload-id': 'uploadId',
@@ -309,7 +313,7 @@ describe('client', () => {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
             'x-api-blob-request-attempt': '0',
             'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
-            'x-api-version': '11',
+            'x-api-version': '12',
             'x-mpu-action': 'upload',
             'x-mpu-key': 'key',
             'x-mpu-upload-id': 'uploadId',
@@ -334,7 +338,7 @@ describe('client', () => {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
             'x-api-blob-request-attempt': '0',
             'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
-            'x-api-version': '11',
+            'x-api-version': '12',
             'x-mpu-action': 'complete',
             'x-mpu-key': 'key',
             'x-mpu-upload-id': 'uploadId',
@@ -419,7 +423,7 @@ describe('client', () => {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
             'x-api-blob-request-attempt': '0',
             'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
-            'x-api-version': '11',
+            'x-api-version': '12',
             'x-mpu-action': 'create',
             'x-vercel-blob-access': 'public',
           },
@@ -438,7 +442,7 @@ describe('client', () => {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
             'x-api-blob-request-attempt': '0',
             'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
-            'x-api-version': '11',
+            'x-api-version': '12',
             'x-mpu-action': 'upload',
             'x-mpu-key': 'key',
             'x-mpu-upload-id': 'uploadId',
@@ -459,7 +463,7 @@ describe('client', () => {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
             'x-api-blob-request-attempt': '0',
             'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
-            'x-api-version': '11',
+            'x-api-version': '12',
             'x-mpu-action': 'upload',
             'x-mpu-key': 'key',
             'x-mpu-upload-id': 'uploadId',
@@ -484,7 +488,7 @@ describe('client', () => {
             authorization: 'Bearer vercel_blob_client_fake_token_for_test',
             'x-api-blob-request-attempt': '0',
             'x-api-blob-request-id': `fake:${Date.now()}:${requestId}`,
-            'x-api-version': '11',
+            'x-api-version': '12',
             'x-mpu-action': 'complete',
             'x-mpu-key': 'key',
             'x-mpu-upload-id': 'uploadId',
@@ -584,6 +588,23 @@ describe('client', () => {
       await expect(operation).rejects.toThrow(
         new Error(
           "Vercel Blob: Body must be a string, buffer or stream. You sent a plain JavaScript object, double check what you're trying to upload.",
+        ),
+      );
+    });
+  });
+
+  describe('rejects server-side options on upload()', () => {
+    it('should reject ifMatch option', async () => {
+      await expect(
+        upload('foo.txt', 'Test file data', {
+          access: 'public',
+          handleUploadUrl: '/api/upload',
+          // @ts-expect-error: Runtime check for DX
+          ifMatch: 'some-etag',
+        }),
+      ).rejects.toThrow(
+        new Error(
+          "Vercel Blob: client/`upload` doesn't allow `addRandomSuffix`, `cacheControlMaxAge`, `allowOverwrite` or `ifMatch`. Configure these options at the server side when generating client tokens.",
         ),
       );
     });

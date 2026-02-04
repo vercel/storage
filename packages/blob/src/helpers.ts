@@ -58,6 +58,12 @@ export interface CommonCreateBlobOptions extends BlobCommandOptions {
    * @defaultvalue 30 * 24 * 60 * 60 (1 Month)
    */
   cacheControlMaxAge?: number;
+  /**
+   * Only perform the operation if the blob's current ETag matches this value.
+   * Use this for optimistic concurrency control to prevent overwriting changes made by others.
+   * If the ETag doesn't match, a `BlobPreconditionFailedError` will be thrown.
+   */
+  ifMatch?: string;
 }
 
 /**

@@ -287,10 +287,12 @@ export const upload = createPutMethod<UploadOptions>({
       // @ts-expect-error -- Runtime check for DX.
       options.createPutExtraChecks !== undefined ||
       // @ts-expect-error -- Runtime check for DX.
-      options.cacheControlMaxAge !== undefined
+      options.cacheControlMaxAge !== undefined ||
+      // @ts-expect-error -- Runtime check for DX.
+      options.ifMatch !== undefined
     ) {
       throw new BlobError(
-        "client/`upload` doesn't allow `addRandomSuffix`, `cacheControlMaxAge` or `allowOverwrite`. Configure these options at the server side when generating client tokens.",
+        "client/`upload` doesn't allow `addRandomSuffix`, `cacheControlMaxAge`, `allowOverwrite` or `ifMatch`. Configure these options at the server side when generating client tokens.",
       );
     }
   },
@@ -531,6 +533,7 @@ export interface HandleUploadOptions {
       | 'addRandomSuffix'
       | 'allowOverwrite'
       | 'cacheControlMaxAge'
+      | 'ifMatch'
     > & { tokenPayload?: string | null; callbackUrl?: string }
   >;
 
@@ -739,6 +742,7 @@ function isAbsoluteUrl(url: string): boolean {
  *   - addRandomSuffix - (Optional) Whether to add a random suffix to the filename. Defaults to false.
  *   - allowOverwrite - (Optional) Whether to allow overwriting existing blobs. Defaults to false.
  *   - cacheControlMaxAge - (Optional) Number of seconds to configure cache duration. Defaults to one month.
+ *   - ifMatch - (Optional) Only write if the ETag matches (optimistic concurrency control).
  * @returns A promise that resolves to the generated client token string which can be used in client-side upload operations.
  */
 export async function generateClientTokenFromReadWriteToken({
@@ -831,6 +835,13 @@ export interface GenerateClientTokenOptions extends BlobCommandOptions {
    * @defaultvalue 30 * 24 * 60 * 60 (1 Month)
    */
   cacheControlMaxAge?: number;
+
+  /**
+   * Only write if the ETag matches (optimistic concurrency control).
+   * Use this for conditional writes to prevent overwriting changes made by others.
+   * If the ETag doesn't match, a `BlobPreconditionFailedError` will be thrown.
+   */
+  ifMatch?: string;
 }
 
 /**

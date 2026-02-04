@@ -14,6 +14,7 @@ export const putOptionHeaderMap = {
   allowOverwrite: 'x-allow-overwrite',
   contentType: 'x-content-type',
   access: 'x-vercel-blob-access',
+  ifMatch: 'x-if-match',
 };
 
 /**
@@ -40,6 +41,10 @@ export interface PutBlobResult {
    * The content disposition header value.
    */
   contentDisposition: string;
+  /**
+   * The ETag of the blob. Can be used with `ifMatch` for conditional writes.
+   */
+  etag: string;
 }
 
 export type PutBlobApiResponse = PutBlobResult;
@@ -103,6 +108,10 @@ export function createPutHeaders<TOptions extends CommonPutCommandOptions>(
   ) {
     headers[putOptionHeaderMap.cacheControlMaxAge] =
       options.cacheControlMaxAge.toString();
+  }
+
+  if (allowedOptions.includes('ifMatch') && options.ifMatch) {
+    headers[putOptionHeaderMap.ifMatch] = options.ifMatch;
   }
 
   return headers;

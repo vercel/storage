@@ -43,7 +43,7 @@ export interface PutBlobResult {
   /**
    * The ETag of the blob. Can be used with `ifMatch` for conditional writes.
    */
-  etag?: string;
+  etag: string;
 }
 
 export type PutBlobApiResponse = PutBlobResult;

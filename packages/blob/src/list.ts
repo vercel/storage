@@ -33,7 +33,7 @@ export interface ListBlobResultBlob {
   /**
    * The ETag of the blob. Can be used with `ifMatch` for conditional writes.
    */
-  etag?: string;
+  etag: string;
 }
 
 /**
@@ -71,9 +71,8 @@ export interface ListFoldedBlobResult extends ListBlobResult {
  * Maps the API response format where uploadedAt is a string, not a Date.
  */
 interface ListBlobApiResponseBlob
-  extends Omit<ListBlobResultBlob, 'uploadedAt' | 'etag'> {
+  extends Omit<ListBlobResultBlob, 'uploadedAt'> {
   uploadedAt: string;
-  etag?: string;
 }
 
 /**
@@ -195,7 +194,6 @@ function mapBlobResult(
     pathname: blobResult.pathname,
     size: blobResult.size,
     uploadedAt: new Date(blobResult.uploadedAt),
-    // Only include etag if present (API v12+)
-    ...(blobResult.etag ? { etag: blobResult.etag } : {}),
+    etag: blobResult.etag,
   };
 }

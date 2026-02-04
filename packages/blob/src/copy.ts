@@ -13,7 +13,7 @@ export interface CopyBlobResult {
   /**
    * The ETag of the blob. Can be used with `ifMatch` for conditional writes.
    */
-  etag?: string;
+  etag: string;
 }
 
 /**
@@ -94,7 +94,6 @@ export async function copy(
     pathname: response.pathname,
     contentType: response.contentType,
     contentDisposition: response.contentDisposition,
-    // Only include etag if present (API v12+)
-    ...(response.etag ? { etag: response.etag } : {}),
+    etag: response.etag,
   };
 }

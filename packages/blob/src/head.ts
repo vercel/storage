@@ -48,13 +48,11 @@ export interface HeadBlobResult {
   /**
    * The ETag of the blob. Can be used with `ifMatch` for conditional writes.
    */
-  etag?: string;
+  etag: string;
 }
 
-interface HeadBlobApiResponse
-  extends Omit<HeadBlobResult, 'uploadedAt' | 'etag'> {
+interface HeadBlobApiResponse extends Omit<HeadBlobResult, 'uploadedAt'> {
   uploadedAt: string; // when receiving data from our API, uploadedAt is a string
-  etag?: string;
 }
 
 /**
@@ -89,7 +87,6 @@ export async function head(
     contentDisposition: response.contentDisposition,
     cacheControl: response.cacheControl,
     uploadedAt: new Date(response.uploadedAt),
-    // Only include etag if present (API v12+)
-    ...(response.etag ? { etag: response.etag } : {}),
+    etag: response.etag,
   };
 }

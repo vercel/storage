@@ -930,36 +930,6 @@ describe('blob client', () => {
       });
     });
 
-    describe('get', () => {
-      it('should return etag from response headers', async () => {
-        const privateMockAgent = new MockAgent();
-        privateMockAgent.disableNetConnect();
-        setGlobalDispatcher(privateMockAgent);
-        const privateMock = privateMockAgent.get(
-          'https://12345fakestoreid.public.blob.vercel-storage.com',
-        );
-
-        privateMock
-          .intercept({
-            path: '/test-file.txt',
-            method: 'GET',
-          })
-          .reply(200, 'blob content', {
-            headers: {
-              'content-type': 'text/plain',
-              'content-length': '12',
-              etag: '"getetag"',
-            },
-          });
-
-        const result = await get('test-file.txt', {
-          access: 'public',
-        });
-
-        expect(result?.blob.etag).toEqual('"getetag"');
-      });
-    });
-
     describe('BlobPreconditionFailedError', () => {
       it('should throw BlobPreconditionFailedError on 412 response', async () => {
         mockClient

@@ -33,12 +33,6 @@ export interface ClientCommonCreateBlobOptions {
    * `AbortSignal` to cancel the running request. See https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal
    */
   abortSignal?: AbortSignal;
-  /**
-   * Only perform the operation if the blob's current ETag matches this value.
-   * Use this for optimistic concurrency control to prevent overwriting changes made by others.
-   * If the ETag doesn't match, a `BlobPreconditionFailedError` will be thrown.
-   */
-  ifMatch?: string;
 }
 
 /**
@@ -112,7 +106,7 @@ export type ClientPutCommandOptions = ClientCommonPutOptions &
  * @returns A promise that resolves to the blob information, including pathname, contentType, contentDisposition, url, and downloadUrl.
  */
 export const put = createPutMethod<ClientPutCommandOptions>({
-  allowedOptions: ['contentType', 'ifMatch'],
+  allowedOptions: ['contentType'],
   extraChecks: createPutExtraChecks('client/`put`'),
 });
 
@@ -137,7 +131,7 @@ export type ClientCreateMultipartUploadCommandOptions =
  */
 export const createMultipartUpload =
   createCreateMultipartUploadMethod<ClientCreateMultipartUploadCommandOptions>({
-    allowedOptions: ['contentType', 'ifMatch'],
+    allowedOptions: ['contentType'],
     extraChecks: createPutExtraChecks('client/`createMultipartUpload`'),
   });
 
@@ -160,7 +154,7 @@ export const createMultipartUpload =
 export const createMultipartUploader =
   createCreateMultipartUploaderMethod<ClientCreateMultipartUploadCommandOptions>(
     {
-      allowedOptions: ['contentType', 'ifMatch'],
+      allowedOptions: ['contentType'],
       extraChecks: createPutExtraChecks('client/`createMultipartUpload`'),
     },
   );
@@ -273,7 +267,7 @@ export type UploadOptions = ClientCommonPutOptions & CommonUploadOptions;
  * @returns A promise that resolves to the blob information, including pathname, contentType, contentDisposition, url, and downloadUrl.
  */
 export const upload = createPutMethod<UploadOptions>({
-  allowedOptions: ['contentType', 'ifMatch'],
+  allowedOptions: ['contentType'],
   extraChecks(options) {
     if (options.handleUploadUrl === undefined) {
       throw new BlobError(
@@ -533,6 +527,7 @@ export interface HandleUploadOptions {
       | 'addRandomSuffix'
       | 'allowOverwrite'
       | 'cacheControlMaxAge'
+      | 'ifMatch'
     > & { tokenPayload?: string | null; callbackUrl?: string }
   >;
 
@@ -741,6 +736,7 @@ function isAbsoluteUrl(url: string): boolean {
  *   - addRandomSuffix - (Optional) Whether to add a random suffix to the filename. Defaults to false.
  *   - allowOverwrite - (Optional) Whether to allow overwriting existing blobs. Defaults to false.
  *   - cacheControlMaxAge - (Optional) Number of seconds to configure cache duration. Defaults to one month.
+ *   - ifMatch - (Optional) Only write if the ETag matches (optimistic concurrency control).
  * @returns A promise that resolves to the generated client token string which can be used in client-side upload operations.
  */
 export async function generateClientTokenFromReadWriteToken({
@@ -833,6 +829,13 @@ export interface GenerateClientTokenOptions extends BlobCommandOptions {
    * @defaultvalue 30 * 24 * 60 * 60 (1 Month)
    */
   cacheControlMaxAge?: number;
+
+  /**
+   * Only write if the ETag matches (optimistic concurrency control).
+   * Use this for conditional writes to prevent overwriting changes made by others.
+   * If the ETag doesn't match, a `BlobPreconditionFailedError` will be thrown.
+   */
+  ifMatch?: string;
 }
 
 /**

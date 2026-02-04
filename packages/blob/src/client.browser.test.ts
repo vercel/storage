@@ -520,7 +520,7 @@ describe('client', () => {
           access: 'public',
           handleUploadUrl: '/api/upload',
           // @ts-expect-error: Runtime check for DX
-          ifMatch: '"some-etag"',
+          ifMatch: 'some-etag',
         }),
       ).rejects.toThrow(
         new Error(

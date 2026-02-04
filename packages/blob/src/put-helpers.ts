@@ -153,7 +153,9 @@ export async function createPutOptions<
   }
 
   if (options.access !== 'public' && options.access !== 'private') {
-    throw new BlobError('access must be "public" or "private"');
+    throw new BlobError(
+      'access must be "private" or "public", see https://vercel.com/docs/vercel-blob',
+    );
   }
 
   if (extraChecks) {

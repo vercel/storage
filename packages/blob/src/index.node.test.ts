@@ -580,7 +580,9 @@ describe('blob client', () => {
           access: 'invalid',
         }),
       ).rejects.toThrow(
-        new Error('Vercel Blob: access must be "public" or "private"'),
+        new Error(
+          'Vercel Blob: access must be "private" or "public", see https://vercel.com/docs/vercel-blob',
+        ),
       );
     });
 
@@ -886,7 +888,9 @@ describe('blob client', () => {
           access: 'invalid',
         }),
       ).rejects.toThrow(
-        new Error('Vercel Blob: access must be "public" or "private"'),
+        new Error(
+          'Vercel Blob: access must be "private" or "public", see https://vercel.com/docs/vercel-blob',
+        ),
       );
     });
   });
@@ -957,7 +961,9 @@ describe('blob client', () => {
           partNumber: 1,
         }),
       ).rejects.toThrow(
-        new Error('Vercel Blob: access must be "public" or "private"'),
+        new Error(
+          'Vercel Blob: access must be "private" or "public", see https://vercel.com/docs/vercel-blob',
+        ),
       );
     });
   });
@@ -1044,7 +1050,9 @@ describe('blob client', () => {
           },
         ),
       ).rejects.toThrow(
-        new Error('Vercel Blob: access must be "public" or "private"'),
+        new Error(
+          'Vercel Blob: access must be "private" or "public", see https://vercel.com/docs/vercel-blob',
+        ),
       );
     });
   });
@@ -1067,7 +1075,9 @@ describe('blob client', () => {
           access: 'invalid',
         }),
       ).rejects.toThrow(
-        new Error('Vercel Blob: access must be "public" or "private"'),
+        new Error(
+          'Vercel Blob: access must be "private" or "public", see https://vercel.com/docs/vercel-blob',
+        ),
       );
     });
 
@@ -1159,7 +1169,9 @@ describe('blob client', () => {
           access: 'invalid',
         }),
       ).rejects.toThrow(
-        new Error('Vercel Blob: access must be "public" or "private"'),
+        new Error(
+          'Vercel Blob: access must be "private" or "public", see https://vercel.com/docs/vercel-blob',
+        ),
       );
     });
 
@@ -1268,7 +1280,9 @@ describe('blob client', () => {
           access: 'invalid',
         }),
       ).rejects.toThrow(
-        new Error('Vercel Blob: access must be "public" or "private"'),
+        new Error(
+          'Vercel Blob: access must be "private" or "public", see https://vercel.com/docs/vercel-blob',
+        ),
       );
     });
 

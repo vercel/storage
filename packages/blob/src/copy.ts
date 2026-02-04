@@ -34,7 +34,9 @@ export async function copy(
   }
 
   if (options.access !== 'public' && options.access !== 'private') {
-    throw new BlobError('access must be "public" or "private"');
+    throw new BlobError(
+      'access must be "private" or "public", see https://vercel.com/docs/vercel-blob',
+    );
   }
 
   if (toPathname.length > MAXIMUM_PATHNAME_LENGTH) {

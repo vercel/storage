@@ -89,6 +89,7 @@ export async function head(
     contentDisposition: response.contentDisposition,
     cacheControl: response.cacheControl,
     uploadedAt: new Date(response.uploadedAt),
-    etag: response.etag,
+    // Only include etag if present (API v12+)
+    ...(response.etag ? { etag: response.etag } : {}),
   };
 }

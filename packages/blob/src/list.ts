@@ -195,6 +195,7 @@ function mapBlobResult(
     pathname: blobResult.pathname,
     size: blobResult.size,
     uploadedAt: new Date(blobResult.uploadedAt),
-    etag: blobResult.etag,
+    // Only include etag if present (API v12+)
+    ...(blobResult.etag ? { etag: blobResult.etag } : {}),
   };
 }

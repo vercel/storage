@@ -93,7 +93,15 @@ export async function completeMultipartUpload({
 
     debug('mpu: complete', response);
 
-    return response;
+    return {
+      url: response.url,
+      downloadUrl: response.downloadUrl,
+      pathname: response.pathname,
+      contentType: response.contentType,
+      contentDisposition: response.contentDisposition,
+      // Only include etag if present (API v12+)
+      ...(response.etag ? { etag: response.etag } : {}),
+    };
   } catch (error: unknown) {
     if (
       error instanceof TypeError &&

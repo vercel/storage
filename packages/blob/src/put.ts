@@ -80,7 +80,8 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
       pathname: response.pathname,
       contentType: response.contentType,
       contentDisposition: response.contentDisposition,
-      etag: response.etag,
+      // Only include etag if present (API v12+)
+      ...(response.etag ? { etag: response.etag } : {}),
     };
   };
 }

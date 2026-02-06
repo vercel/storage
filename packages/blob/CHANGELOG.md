@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 2.2.0
+
+### Minor Changes
+
+- 2b1cbbc: Add `ifMatch` option to `del()` for conditional deletes (optimistic concurrency control). Only works for single-URL deletes.
+
 ## 2.1.0
 
 ### Minor Changes

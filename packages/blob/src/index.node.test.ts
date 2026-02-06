@@ -266,6 +266,54 @@ describe('blob client', () => {
         ),
       );
     });
+
+    it('should send x-if-match header when ifMatch option is provided', async () => {
+      let headers: Record<string, string> = {};
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return null;
+        });
+
+      await del(`${BLOB_STORE_BASE_URL}/foo-id.txt`, {
+        ifMatch: '"abc123"',
+      });
+
+      expect(headers['x-if-match']).toEqual('"abc123"');
+    });
+
+    it('should throw BlobPreconditionFailedError on 412 response', async () => {
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(412, { error: { code: 'precondition_failed' } });
+
+      await expect(
+        del(`${BLOB_STORE_BASE_URL}/foo-id.txt`, {
+          ifMatch: '"old-etag"',
+        }),
+      ).rejects.toThrow(BlobPreconditionFailedError);
+    });
+
+    it('should throw when ifMatch is used with multiple URLs', async () => {
+      await expect(
+        del(
+          [
+            `${BLOB_STORE_BASE_URL}/foo-id1.txt`,
+            `${BLOB_STORE_BASE_URL}/foo-id2.txt`,
+          ],
+          { ifMatch: '"abc123"' },
+        ),
+      ).rejects.toThrow(
+        'Vercel Blob: ifMatch can only be used when deleting a single URL.',
+      );
+    });
   });
 
   describe('list', () => {

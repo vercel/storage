@@ -69,6 +69,7 @@ export const put = createPutMethod<PutCommandOptions>({
 
 //  vercelBlob.del()
 
+export type { DeleteCommandOptions } from './del';
 export { del } from './del';
 
 // vercelBlob.head()

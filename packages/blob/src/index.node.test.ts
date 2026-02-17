@@ -1334,26 +1334,6 @@ describe('blob client', () => {
       );
     });
 
-    it('should detect URL input correctly (https://)', () => {
-      // Test that https:// URLs are detected as URLs
-      const httpsUrl = 'https://example.com/foo.txt';
-      expect(httpsUrl.startsWith('https://')).toBe(true);
-    });
-
-    it('should detect URL input correctly (http://)', () => {
-      // Test that http:// URLs are detected as URLs
-      const httpUrl = 'http://example.com/foo.txt';
-      expect(httpUrl.startsWith('http://')).toBe(true);
-    });
-
-    it('should detect pathname input correctly', () => {
-      // Test that pathnames are NOT detected as URLs
-      const pathname = 'foo.txt';
-      expect(
-        pathname.startsWith('http://') || pathname.startsWith('https://'),
-      ).toBe(false);
-    });
-
     describe('useCache option', () => {
       // undici normalizes hostnames to lowercase
       const BLOB_STORE_BASE_URL_LOWERCASE =
@@ -1478,8 +1458,6 @@ describe('blob client', () => {
           useCache: false,
         });
 
-        // URL class normalizes hostnames to lowercase for downloadUrl
-        // but url keeps original casing from constructBlobUrl()
         expect(result?.blob.downloadUrl).toEqual(
           'https://12345fakestoreid.public.blob.vercel-storage.com/foo.txt?download=1',
         );

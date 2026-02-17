@@ -186,8 +186,8 @@ export async function get(
   // Fetch the blob content with authentication headers
   const requestHeaders: HeadersInit = {
     ...(options.ifNoneMatch ? { 'If-None-Match': options.ifNoneMatch } : {}),
-    ...options.headers, // low-level headers override ifNoneMatch
     authorization: `Bearer ${token}`,
+    ...options.headers, // low-level escape hatch, applied last to override anything
   };
 
   // Construct fetch URL with optional cache bypass
@@ -204,33 +204,34 @@ export async function get(
     signal: options.abortSignal,
   });
 
+  // Handle 304 Not Modified (fetch considers this !ok, but it's a valid conditional response)
+  if (response.status === 304) {
+    const downloadUrlObj = new URL(blobUrl);
+    downloadUrlObj.searchParams.set('download', '1');
+    const lastModified = response.headers.get('last-modified');
+    return {
+      statusCode: 304,
+      stream: null,
+      headers: response.headers,
+      blob: {
+        url: blobUrl,
+        downloadUrl: downloadUrlObj.toString(),
+        pathname,
+        contentType: null,
+        contentDisposition: response.headers.get('content-disposition') || '',
+        cacheControl: response.headers.get('cache-control') || '',
+        size: null,
+        uploadedAt: lastModified ? new Date(lastModified) : new Date(),
+        etag: response.headers.get('etag') || '',
+      },
+    };
+  }
+
+  if (response.status === 404) {
+    return null;
+  }
+
   if (!response.ok) {
-    if (response.status === 404) {
-      return null;
-    }
-
-    if (response.status === 304) {
-      const downloadUrl = new URL(blobUrl);
-      downloadUrl.searchParams.set('download', '1');
-      const lastModified = response.headers.get('last-modified');
-      return {
-        statusCode: 304,
-        stream: null,
-        headers: response.headers,
-        blob: {
-          url: blobUrl,
-          downloadUrl: downloadUrl.toString(),
-          pathname,
-          contentType: null,
-          contentDisposition: response.headers.get('content-disposition') || '',
-          cacheControl: response.headers.get('cache-control') || '',
-          size: null,
-          uploadedAt: lastModified ? new Date(lastModified) : new Date(),
-          etag: response.headers.get('etag') || '',
-        },
-      };
-    }
-
     throw new BlobError(
       `Failed to fetch blob: ${response.status} ${response.statusText}`,
     );

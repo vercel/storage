@@ -1,12 +1,15 @@
 import { requestApi } from './api';
-import type { CommonCreateBlobOptions } from './helpers';
+import type { BlobAccessType, CommonCreateBlobOptions } from './helpers';
 import { BlobError } from './helpers';
 import { type PutBlobApiResponse, putOptionHeaderMap } from './put-helpers';
 
 export type CreateFolderCommandOptions = Pick<
   CommonCreateBlobOptions,
-  'access' | 'token' | 'abortSignal'
->;
+  'token' | 'abortSignal'
+> & {
+  /** @defaultValue 'public' — kept for backward compatibility */
+  access?: BlobAccessType;
+};
 
 export interface CreateFolderResult {
   pathname: string;
@@ -20,25 +23,19 @@ export interface CreateFolderResult {
  * @param pathname - Can be user1/ or user1/avatars/
  * @param options - Additional options including required `access` ('public' or 'private') and optional `token`
  */
+// access defaults to 'public' for backward compatibility with callers
+// that don't pass options (pre-private-storage API)
 export async function createFolder(
   pathname: string,
-  options: CreateFolderCommandOptions,
+  options: CreateFolderCommandOptions = { access: 'public' },
 ): Promise<CreateFolderResult> {
-  if (!options) {
-    throw new BlobError('missing options, see usage');
-  }
-
-  if (options.access !== 'public' && options.access !== 'private') {
-    throw new BlobError(
-      'access must be "private" or "public", see https://vercel.com/docs/vercel-blob',
-    );
-  }
+  const access = options.access ?? 'public';
 
   const folderPathname = pathname.endsWith('/') ? pathname : `${pathname}/`;
 
   const headers: Record<string, string> = {};
 
-  headers[putOptionHeaderMap.access] = options.access;
+  headers[putOptionHeaderMap.access] = access;
   headers[putOptionHeaderMap.addRandomSuffix] = '0';
 
   const params = new URLSearchParams({ pathname: folderPathname });

@@ -111,7 +111,7 @@ export { copy } from './copy';
  *   - addRandomSuffix - (Optional) A boolean specifying whether to add a random suffix to the pathname. It defaults to true.
  *   - allowOverwrite - (Optional) A boolean to allow overwriting blobs. By default an error will be thrown if you try to overwrite a blob by using the same pathname for multiple blobs.
  *   - contentType - (Optional) The media type for the file. If not specified, it's derived from the file extension. Falls back to application/octet-stream when no extension exists or can't be matched.
- *   - cacheControlMaxAge - (Optional) A number in seconds to configure the edge and browser cache. Defaults to one year.
+ *   - cacheControlMaxAge - (Optional) A number in seconds to configure the edge and browser cache. Defaults to one month.
  *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel.
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
  * @returns A promise that resolves to an object containing:
@@ -139,7 +139,7 @@ export const createMultipartUpload =
  *   - addRandomSuffix - (Optional) A boolean specifying whether to add a random suffix to the pathname. It defaults to true.
  *   - allowOverwrite - (Optional) A boolean to allow overwriting blobs. By default an error will be thrown if you try to overwrite a blob by using the same pathname for multiple blobs.
  *   - contentType - (Optional) The media type for the file. If not specified, it's derived from the file extension. Falls back to application/octet-stream when no extension exists or can't be matched.
- *   - cacheControlMaxAge - (Optional) A number in seconds to configure the edge and browser cache. Defaults to one year.
+ *   - cacheControlMaxAge - (Optional) A number in seconds to configure the edge and browser cache. Defaults to one month.
  *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel.
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
  * @returns A promise that resolves to an uploader object with the following properties and methods:
@@ -206,7 +206,7 @@ export type { CompleteMultipartUploadCommandOptions };
  *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel.
  *   - addRandomSuffix - (Optional) A boolean specifying whether to add a random suffix to the pathname. It defaults to true.
  *   - allowOverwrite - (Optional) A boolean to allow overwriting blobs.
- *   - cacheControlMaxAge - (Optional) A number in seconds to configure the edge and browser cache. Defaults to one year.
+ *   - cacheControlMaxAge - (Optional) A number in seconds to configure the edge and browser cache. Defaults to one month.
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
  * @returns A promise that resolves to the finalized blob information, including pathname, contentType, contentDisposition, url, and downloadUrl.
  */

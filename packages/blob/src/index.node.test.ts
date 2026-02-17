@@ -1468,6 +1468,87 @@ describe('blob client', () => {
         expect(result).not.toBeNull();
       });
     });
+
+    describe('conditional requests (304 Not Modified)', () => {
+      const BLOB_STORE_BASE_URL_LOWERCASE =
+        'https://12345fakestoreid.private.blob.vercel-storage.com';
+
+      it('should return statusCode 304 and null stream when If-None-Match matches', async () => {
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        const blobStoreMockClient = mockAgent.get(
+          BLOB_STORE_BASE_URL_LOWERCASE,
+        );
+
+        blobStoreMockClient
+          .intercept({
+            path: '/foo.txt',
+            method: 'GET',
+          })
+          .reply(304, '', {
+            headers: {
+              etag: '"abc123"',
+              'last-modified': 'Wed, 01 Jan 2025 00:00:00 GMT',
+              'cache-control': 'public, max-age=31536000',
+              'content-disposition': 'attachment; filename="foo.txt"',
+            },
+          });
+
+        const result = await get('foo.txt', {
+          access: 'private',
+          headers: { 'If-None-Match': '"abc123"' },
+        });
+
+        expect(result).not.toBeNull();
+        expect(result?.statusCode).toEqual(304);
+        expect(result?.stream).toBeNull();
+        expect(result?.blob.etag).toEqual('"abc123"');
+        expect(result?.blob.contentType).toBeNull();
+        expect(result?.blob.size).toBeNull();
+        expect(result?.blob.cacheControl).toEqual('public, max-age=31536000');
+        expect(result?.blob.contentDisposition).toEqual(
+          'attachment; filename="foo.txt"',
+        );
+        expect(result?.blob.pathname).toEqual('foo.txt');
+        expect(result?.blob.uploadedAt).toEqual(
+          new Date('Wed, 01 Jan 2025 00:00:00 GMT'),
+        );
+      });
+
+      it('should return statusCode 200 with stream on normal response', async () => {
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        const blobStoreMockClient = mockAgent.get(
+          BLOB_STORE_BASE_URL_LOWERCASE,
+        );
+
+        blobStoreMockClient
+          .intercept({
+            path: '/foo.txt',
+            method: 'GET',
+          })
+          .reply(200, 'blob content', {
+            headers: {
+              'content-type': 'text/plain',
+              'content-length': '12',
+              etag: '"abc123"',
+            },
+          });
+
+        const result = await get('foo.txt', {
+          access: 'private',
+        });
+
+        expect(result).not.toBeNull();
+        expect(result?.statusCode).toEqual(200);
+        expect(result?.stream).not.toBeNull();
+        expect(result?.blob.contentType).toEqual('text/plain');
+        expect(result?.blob.size).toEqual(12);
+        expect(result?.blob.etag).toEqual('"abc123"');
+      });
+    });
   });
 
   describe('etag support', () => {

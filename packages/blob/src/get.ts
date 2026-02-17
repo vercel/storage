@@ -1,5 +1,4 @@
 import { fetch, type Headers } from 'undici';
-import type { HeadBlobResult } from './head';
 import type { BlobAccessType, BlobCommandOptions } from './helpers';
 import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
 
@@ -32,11 +31,18 @@ export interface GetCommandOptions extends BlobCommandOptions {
  */
 export interface GetBlobResult {
   /**
-   * The readable stream from the fetch response.
-   * This is the raw stream with no automatic buffering, allowing efficient
-   * streaming of large files without loading them entirely into memory.
+   * The HTTP status code of the response.
+   * - 200: Full response with stream and complete metadata.
+   * - 304: Not Modified. The blob hasn't changed since the conditional request.
+   *   Stream is null, contentType and size are null.
    */
-  stream: ReadableStream<Uint8Array>;
+  statusCode: number;
+
+  /**
+   * The readable stream from the fetch response.
+   * Null when statusCode is 304 (Not Modified).
+   */
+  stream: ReadableStream<Uint8Array> | null;
 
   /**
    * The raw headers from the fetch response.
@@ -45,10 +51,21 @@ export interface GetBlobResult {
   headers: Headers;
 
   /**
-   * The blob metadata object containing url, pathname, contentType, size,
-   * downloadUrl, contentDisposition, cacheControl, and uploadedAt.
+   * The blob metadata.
    */
-  blob: HeadBlobResult;
+  blob: {
+    url: string;
+    downloadUrl: string;
+    pathname: string;
+    /** Null on 304 responses (not included in the response headers). */
+    contentType: string | null;
+    contentDisposition: string;
+    cacheControl: string;
+    /** Null on 304 responses (not included in the response headers). */
+    size: number | null;
+    uploadedAt: Date;
+    etag: string;
+  };
 }
 
 /**
@@ -182,6 +199,29 @@ export async function get(
     if (response.status === 404) {
       return null;
     }
+
+    if (response.status === 304) {
+      const downloadUrl = new URL(blobUrl);
+      downloadUrl.searchParams.set('download', '1');
+      const lastModified = response.headers.get('last-modified');
+      return {
+        statusCode: 304,
+        stream: null,
+        headers: response.headers,
+        blob: {
+          url: blobUrl,
+          downloadUrl: downloadUrl.toString(),
+          pathname,
+          contentType: null,
+          contentDisposition: response.headers.get('content-disposition') || '',
+          cacheControl: response.headers.get('cache-control') || '',
+          size: null,
+          uploadedAt: lastModified ? new Date(lastModified) : new Date(),
+          etag: response.headers.get('etag') || '',
+        },
+      };
+    }
+
     throw new BlobError(
       `Failed to fetch blob: ${response.status} ${response.statusText}`,
     );
@@ -202,6 +242,7 @@ export async function get(
   downloadUrl.searchParams.set('download', '1');
 
   return {
+    statusCode: 200,
     stream,
     headers: response.headers,
     blob: {

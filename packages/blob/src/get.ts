@@ -20,53 +20,61 @@ export interface GetCommandOptions extends BlobCommandOptions {
    */
   useCache?: boolean;
   /**
+   * Only return the full response if the blob's ETag does not match this value.
+   * When the ETag matches (blob unchanged), returns statusCode 304 with stream: null.
+   * Use this to avoid re-downloading blobs the client already has cached.
+   */
+  ifNoneMatch?: string;
+  /**
    * Advanced: Additional headers to include in the fetch request.
    * You probably don't need this. The authorization header is automatically set.
    */
   headers?: HeadersInit;
 }
 
+interface GetBlobResultBlobBase {
+  url: string;
+  downloadUrl: string;
+  pathname: string;
+  contentDisposition: string;
+  cacheControl: string;
+  uploadedAt: Date;
+  etag: string;
+}
+
 /**
  * Result of the get method containing the stream and blob metadata.
+ * Discriminated union on `statusCode`:
+ * - `200`: Full response with stream and complete metadata.
+ * - `304`: Not Modified. Stream is null, contentType and size are null.
  */
-export interface GetBlobResult {
-  /**
-   * The HTTP status code of the response.
-   * - 200: Full response with stream and complete metadata.
-   * - 304: Not Modified. The blob hasn't changed since the conditional request.
-   *   Stream is null, contentType and size are null.
-   */
-  statusCode: number;
-
-  /**
-   * The readable stream from the fetch response.
-   * Null when statusCode is 304 (Not Modified).
-   */
-  stream: ReadableStream<Uint8Array> | null;
-
-  /**
-   * The raw headers from the fetch response.
-   * Useful for accessing additional response metadata like ETag, x-vercel-* headers, etc.
-   */
-  headers: Headers;
-
-  /**
-   * The blob metadata.
-   */
-  blob: {
-    url: string;
-    downloadUrl: string;
-    pathname: string;
-    /** Null on 304 responses (not included in the response headers). */
-    contentType: string | null;
-    contentDisposition: string;
-    cacheControl: string;
-    /** Null on 304 responses (not included in the response headers). */
-    size: number | null;
-    uploadedAt: Date;
-    etag: string;
-  };
-}
+export type GetBlobResult =
+  | {
+      /** HTTP 200: Full response with stream and complete metadata. */
+      statusCode: 200;
+      /** The readable stream from the fetch response. */
+      stream: ReadableStream<Uint8Array>;
+      /** The raw headers from the fetch response. */
+      headers: Headers;
+      /** The blob metadata. */
+      blob: GetBlobResultBlobBase & {
+        contentType: string;
+        size: number;
+      };
+    }
+  | {
+      /** HTTP 304: Not Modified. The blob hasn't changed since the conditional request. */
+      statusCode: 304;
+      /** Null for 304 responses — no body is returned. */
+      stream: null;
+      /** The raw headers from the fetch response. */
+      headers: Headers;
+      /** The blob metadata (contentType and size are null on 304 responses). */
+      blob: GetBlobResultBlobBase & {
+        contentType: null;
+        size: null;
+      };
+    };
 
 /**
  * Checks if the input is a URL (starts with http:// or https://).
@@ -177,7 +185,8 @@ export async function get(
 
   // Fetch the blob content with authentication headers
   const requestHeaders: HeadersInit = {
-    ...options.headers,
+    ...(options.ifNoneMatch ? { 'If-None-Match': options.ifNoneMatch } : {}),
+    ...options.headers, // low-level headers override ifNoneMatch
     authorization: `Bearer ${token}`,
   };
 

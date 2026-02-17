@@ -1545,7 +1545,7 @@ describe('blob client', () => {
 
         const result = await get('foo.txt', {
           access: 'private',
-          headers: { 'If-None-Match': '"abc123"' },
+          ifNoneMatch: '"abc123"',
         });
 
         expect(result).not.toBeNull();
@@ -1562,6 +1562,38 @@ describe('blob client', () => {
         expect(result?.blob.uploadedAt).toEqual(
           new Date('Wed, 01 Jan 2025 00:00:00 GMT'),
         );
+      });
+
+      it('should send If-None-Match request header when ifNoneMatch option is set', async () => {
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        const blobStoreMockClient = mockAgent.get(
+          BLOB_STORE_BASE_URL_LOWERCASE,
+        );
+
+        blobStoreMockClient
+          .intercept({
+            path: '/foo.txt',
+            method: 'GET',
+            headers: {
+              'If-None-Match': '"etag-value"',
+            },
+          })
+          .reply(304, '', {
+            headers: {
+              etag: '"etag-value"',
+              'last-modified': 'Wed, 01 Jan 2025 00:00:00 GMT',
+            },
+          });
+
+        const result = await get('foo.txt', {
+          access: 'private',
+          ifNoneMatch: '"etag-value"',
+        });
+
+        expect(result).not.toBeNull();
+        expect(result?.statusCode).toEqual(304);
       });
 
       it('should return statusCode 200 with stream on normal response', async () => {

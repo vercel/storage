@@ -1,6 +1,15 @@
 import { requestApi } from './api';
-import type { BlobCommandOptions } from './helpers';
+import type { BlobAccessType, CommonCreateBlobOptions } from './helpers';
+import { BlobError } from './helpers';
 import { type PutBlobApiResponse, putOptionHeaderMap } from './put-helpers';
+
+export type CreateFolderCommandOptions = Pick<
+  CommonCreateBlobOptions,
+  'token' | 'abortSignal'
+> & {
+  /** @defaultValue 'public' — kept for backward compatibility */
+  access?: BlobAccessType;
+};
 
 export interface CreateFolderResult {
   pathname: string;
@@ -12,16 +21,21 @@ export interface CreateFolderResult {
  *
  * Use the resulting `url` to delete the folder, just like you would delete a blob.
  * @param pathname - Can be user1/ or user1/avatars/
- * @param options - Additional options like `token`
+ * @param options - Additional options including required `access` ('public' or 'private') and optional `token`
  */
+// access defaults to 'public' for backward compatibility with callers
+// that don't pass options (pre-private-storage API)
 export async function createFolder(
   pathname: string,
-  options: BlobCommandOptions = {},
+  options: CreateFolderCommandOptions = { access: 'public' },
 ): Promise<CreateFolderResult> {
+  const access = options.access ?? 'public';
+
   const folderPathname = pathname.endsWith('/') ? pathname : `${pathname}/`;
 
   const headers: Record<string, string> = {};
 
+  headers[putOptionHeaderMap.access] = access;
   headers[putOptionHeaderMap.addRandomSuffix] = '0';
 
   const params = new URLSearchParams({ pathname: folderPathname });

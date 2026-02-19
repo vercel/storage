@@ -26,6 +26,7 @@ export {
 } from './api';
 // expose generic BlobError and download url util
 export {
+  type BlobAccessType,
   BlobError,
   getDownloadUrl,
   type OnUploadProgressCallback,
@@ -46,7 +47,7 @@ export type { PutCommandOptions };
  * @param pathname - The pathname to upload the blob to, including the extension. This will influence the URL of your blob like https://$storeId.public.blob.vercel-storage.com/$pathname.
  * @param body - The content of your blob, can be a: string, File, Blob, Buffer or Stream. We support almost everything fetch supports: https://developer.mozilla.org/en-US/docs/Web/API/RequestInit#body.
  * @param options - Configuration options including:
- *   - access - (Required) Must be 'public' as blobs are publicly accessible.
+ *   - access - (Required) Must be 'public' or 'private'. Public blobs are accessible via URL, private blobs require authentication.
  *   - addRandomSuffix - (Optional) A boolean specifying whether to add a random suffix to the pathname. It defaults to false. We recommend using this option to ensure there are no conflicts in your blob filenames.
  *   - allowOverwrite - (Optional) A boolean to allow overwriting blobs. By default an error will be thrown if you try to overwrite a blob by using the same pathname for multiple blobs.
  *   - contentType - (Optional) A string indicating the media type. By default, it's extracted from the pathname's extension.
@@ -77,6 +78,11 @@ export { del } from './del';
 export type { HeadBlobResult } from './head';
 export { head } from './head';
 
+// vercelBlob.get()
+
+export type { GetBlobResult, GetCommandOptions } from './get';
+export { get } from './get';
+
 // vercelBlob.list()
 
 export type {
@@ -102,11 +108,11 @@ export { copy } from './copy';
  *
  * @param pathname - A string specifying the path inside the blob store. This will be the base value of the return URL and includes the filename and extension.
  * @param options - Configuration options including:
- *   - access - (Required) Must be 'public' as blobs are publicly accessible.
+ *   - access - (Required) Must be 'public' or 'private'. Public blobs are accessible via URL, private blobs require authentication.
  *   - addRandomSuffix - (Optional) A boolean specifying whether to add a random suffix to the pathname. It defaults to true.
  *   - allowOverwrite - (Optional) A boolean to allow overwriting blobs. By default an error will be thrown if you try to overwrite a blob by using the same pathname for multiple blobs.
  *   - contentType - (Optional) The media type for the file. If not specified, it's derived from the file extension. Falls back to application/octet-stream when no extension exists or can't be matched.
- *   - cacheControlMaxAge - (Optional) A number in seconds to configure the edge and browser cache. Defaults to one year.
+ *   - cacheControlMaxAge - (Optional) A number in seconds to configure the edge and browser cache. Defaults to one month.
  *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel.
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
  * @returns A promise that resolves to an object containing:
@@ -130,11 +136,11 @@ export const createMultipartUpload =
  *
  * @param pathname - A string specifying the path inside the blob store. This will be the base value of the return URL and includes the filename and extension.
  * @param options - Configuration options including:
- *   - access - (Required) Must be 'public' as blobs are publicly accessible.
+ *   - access - (Required) Must be 'public' or 'private'. Public blobs are accessible via URL, private blobs require authentication.
  *   - addRandomSuffix - (Optional) A boolean specifying whether to add a random suffix to the pathname. It defaults to true.
  *   - allowOverwrite - (Optional) A boolean to allow overwriting blobs. By default an error will be thrown if you try to overwrite a blob by using the same pathname for multiple blobs.
  *   - contentType - (Optional) The media type for the file. If not specified, it's derived from the file extension. Falls back to application/octet-stream when no extension exists or can't be matched.
- *   - cacheControlMaxAge - (Optional) A number in seconds to configure the edge and browser cache. Defaults to one year.
+ *   - cacheControlMaxAge - (Optional) A number in seconds to configure the edge and browser cache. Defaults to one month.
  *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel.
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
  * @returns A promise that resolves to an uploader object with the following properties and methods:
@@ -163,7 +169,7 @@ export type { UploadPartCommandOptions };
  * @param pathname - Same value as the pathname parameter passed to createMultipartUpload. This will influence the final URL of your blob.
  * @param body - A blob object as ReadableStream, String, ArrayBuffer or Blob based on these supported body types. Each part must be a minimum of 5MB, except the last one which can be smaller.
  * @param options - Configuration options including:
- *   - access - (Required) Must be 'public' as blobs are publicly accessible.
+ *   - access - (Required) Must be 'public' or 'private'. Public blobs are accessible via URL, private blobs require authentication.
  *   - uploadId - (Required) A string returned from createMultipartUpload which identifies the multipart upload.
  *   - key - (Required) A string returned from createMultipartUpload which identifies the blob object.
  *   - partNumber - (Required) A number identifying which part is uploaded (1-based index).
@@ -194,14 +200,14 @@ export type { CompleteMultipartUploadCommandOptions };
  * @param pathname - Same value as the pathname parameter passed to createMultipartUpload.
  * @param parts - An array containing all the uploaded parts information from previous uploadPart calls. Each part must have properties etag and partNumber.
  * @param options - Configuration options including:
- *   - access - (Required) Must be 'public' as blobs are publicly accessible.
+ *   - access - (Required) Must be 'public' or 'private'. Public blobs are accessible via URL, private blobs require authentication.
  *   - uploadId - (Required) A string returned from createMultipartUpload which identifies the multipart upload.
  *   - key - (Required) A string returned from createMultipartUpload which identifies the blob object.
  *   - contentType - (Optional) The media type for the file. If not specified, it's derived from the file extension.
  *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel.
  *   - addRandomSuffix - (Optional) A boolean specifying whether to add a random suffix to the pathname. It defaults to true.
  *   - allowOverwrite - (Optional) A boolean to allow overwriting blobs.
- *   - cacheControlMaxAge - (Optional) A number in seconds to configure the edge and browser cache. Defaults to one year.
+ *   - cacheControlMaxAge - (Optional) A number in seconds to configure the edge and browser cache. Defaults to one month.
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
  * @returns A promise that resolves to the finalized blob information, including pathname, contentType, contentDisposition, url, and downloadUrl.
  */
@@ -215,5 +221,9 @@ export const completeMultipartUpload =
     ],
   });
 
+export type {
+  CreateFolderCommandOptions,
+  CreateFolderResult,
+} from './create-folder';
 export { createFolder } from './create-folder';
 export type { Part, PartInput } from './multipart/helpers';

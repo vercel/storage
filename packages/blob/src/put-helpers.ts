@@ -13,6 +13,7 @@ export const putOptionHeaderMap = {
   addRandomSuffix: 'x-add-random-suffix',
   allowOverwrite: 'x-allow-overwrite',
   contentType: 'x-content-type',
+  access: 'x-vercel-blob-access',
   ifMatch: 'x-if-match',
 };
 
@@ -75,6 +76,9 @@ export function createPutHeaders<TOptions extends CommonPutCommandOptions>(
   options: TOptions,
 ): Record<string, string> {
   const headers: Record<string, string> = {};
+
+  // access is always required, so always add it to headers
+  headers[putOptionHeaderMap.access] = options.access;
 
   if (allowedOptions.includes('contentType') && options.contentType) {
     headers[putOptionHeaderMap.contentType] = options.contentType;
@@ -148,8 +152,10 @@ export async function createPutOptions<
     throw new BlobError('missing options, see usage');
   }
 
-  if (options.access !== 'public') {
-    throw new BlobError('access must be "public"');
+  if (options.access !== 'public' && options.access !== 'private') {
+    throw new BlobError(
+      'access must be "private" or "public", see https://vercel.com/docs/vercel-blob',
+    );
   }
 
   if (extraChecks) {

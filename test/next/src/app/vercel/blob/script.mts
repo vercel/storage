@@ -471,7 +471,9 @@ async function fetchExampleMultipart(): Promise<string> {
 async function createFolder() {
   const start = Date.now();
 
-  const blob = await vercelBlob.createFolder(`foolder${Date.now()}/`);
+  const blob = await vercelBlob.createFolder(`foolder${Date.now()}/`, {
+    access: 'public',
+  });
 
   console.log('create folder example:', blob, `(${Date.now() - start}ms)`);
 

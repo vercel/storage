@@ -1,0 +1,214 @@
+# This workflow creates temporary snapshot builds and uploads them to Vercel Blob
+#
+# A snapshot build is useful when you want to try out changes on a pull request
+# before making a full release. Unlike release-snapshot.yaml, this workflow
+# uploads to Vercel Blob instead of npm, avoiding spam on the npm registry.
+#
+# How it works
+#
+# This workflow runs on every commit to a pull request. It requires manual
+# approval via GitHub Actions environment protection before proceeding.
+# Once approved, it builds snapshot versions using changesets (same as
+# release-snapshot.yaml) but instead of publishing to npm, it uploads the
+# built packages to Vercel Blob.
+#
+# Snapshot versions follow the format:
+# 0.4.0-579bd13-20230913164912 (version + short SHA + timestamp)
+#
+# Setup required
+#
+# 1. Create a GitHub environment called "snapshot-upload" in your repo settings
+# 2. Configure the environment to require manual approval
+# 3. Add BLOB_READ_WRITE_TOKEN secret to the environment or repository
+#
+# How to use
+#
+# Push commits to your pull request. The workflow will trigger automatically
+# and wait for approval. Once approved, it will build and upload snapshots.
+# The workflow run logs will show the uploaded package paths in Blob storage.
+
+name: Release Temporary Snapshot
+
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+  POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+  POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
+  EDGE_CONFIG: ${{ secrets.EDGE_CONFIG }}
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: snapshot-upload-${{ github.event.pull_request.number }}-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  upload-snapshot:
+    name: Build and Upload Snapshot
+    runs-on: ubuntu-latest
+    environment: snapshot-upload # This enables manual approval requirement
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch base branch
+        run: git fetch origin main:main
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".node-version"
+          cache: "pnpm"
+
+      - name: Install Dependencies
+        run: pnpm install
+
+      - name: Check for changed packages
+        id: check-changes
+        run: |
+          # Get status of packages with changesets
+          pnpm changeset status --output=status.json
+
+          # Extract package names that have changes
+          CHANGED_PACKAGES=$(node -e "
+            const status = require('./status.json');
+            const changed = status.releases
+              .filter(r => r.changesets.length > 0)
+              .map(r => r.name);
+            console.log(changed.join(','));
+          ")
+
+          echo "changed_packages=${CHANGED_PACKAGES}" >> $GITHUB_OUTPUT
+          echo "Changed packages: ${CHANGED_PACKAGES}"
+
+          if [ -z "${CHANGED_PACKAGES}" ]; then
+            echo "No packages with changesets found. Skipping snapshot build."
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Add SHORT_SHA env property with commit short sha
+        if: steps.check-changes.outputs.has_changes == 'true'
+        run: echo "SHORT_SHA=`echo ${{ github.sha }} | cut -c1-7`" >> $GITHUB_ENV
+
+      - name: Version Packages
+        if: steps.check-changes.outputs.has_changes == 'true'
+        run: pnpm changeset version --snapshot ${SHORT_SHA}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build
+        if: steps.check-changes.outputs.has_changes == 'true'
+        run: pnpm build
+
+      - name: Create tarball packages
+        if: steps.check-changes.outputs.has_changes == 'true'
+        run: |
+          mkdir -p snapshot-packages
+
+          # Get the list of changed packages from the previous step
+          CHANGED_PACKAGES="${{ steps.check-changes.outputs.changed_packages }}"
+          IFS=',' read -ra PACKAGES <<< "$CHANGED_PACKAGES"
+
+          # Create tarballs only for changed packages
+          for package_name in "${PACKAGES[@]}"; do
+            if [ -z "$package_name" ]; then
+              continue
+            fi
+
+            # Find the package directory by looking for package.json with matching name
+            for pkg in packages/*/package.json; do
+              if [ -f "$pkg" ]; then
+                pkg_name=$(node -e "console.log(require('./$pkg').name)")
+                if [ "$pkg_name" = "$package_name" ]; then
+                  pkg_dir=$(dirname "$pkg")
+                  echo "Creating tarball for $pkg_dir ($package_name)"
+                  cd "$pkg_dir"
+                  npm pack --pack-destination ../../snapshot-packages
+                  cd ../..
+                  break
+                fi
+              fi
+            done
+          done
+
+      - name: Upload to Vercel Blob
+        if: steps.check-changes.outputs.has_changes == 'true'
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+        run: |
+          echo "📦 Uploading snapshot packages to Vercel Blob..."
+          echo ""
+
+          # Store blob URLs for later
+          > blob-urls.txt
+
+          for file in snapshot-packages/*.tgz; do
+            if [ -f "$file" ]; then
+              filename=$(basename "$file")
+              echo "Uploading $filename..."
+
+              # Upload using Vercel Blob HTTP API
+              response=$(curl -X PUT \
+                "https://blob.vercel-storage.com/snapshots/${{ github.event.pull_request.number }}/$filename" \
+                -H "Authorization: Bearer $BLOB_READ_WRITE_TOKEN" \
+                -H "Content-Type: application/gzip" \
+                -H "x-vercel-blob-add-random-suffix: 0" \
+                --data-binary "@$file" \
+                --silent --show-error --fail-with-body)
+
+              blob_url=$(echo "$response" | node -e "
+                const data = JSON.parse(require('fs').readFileSync(0, 'utf-8'));
+                console.log(data.url);
+              ")
+
+              echo "✅ Uploaded: $blob_url"
+              echo "$filename|$blob_url" >> blob-urls.txt
+            fi
+          done
+
+          echo ""
+          echo "🎉 All snapshot packages uploaded successfully!"
+          echo ""
+          echo "To install a snapshot package, run:"
+          echo "  npm install <blob-url>"
+          echo "  pnpm add <blob-url>"
+
+      - name: Comment on PR
+        if: steps.check-changes.outputs.has_changes == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            // Read the blob URLs from the file created in the previous step
+            const blobUrlsContent = fs.readFileSync('blob-urls.txt', 'utf-8');
+            const blobUrls = blobUrlsContent.trim().split('\n').map(line => {
+              const [filename, url] = line.split('|');
+              return { filename, url };
+            });
+
+            const packageList = blobUrls.map(({ filename, url }) =>
+              `- \`${filename}\`\n  \`\`\`bash\n  pnpm add ${url}\n  \`\`\``
+            ).join('\n\n');
+
+            const comment = `## 📦 Snapshot packages uploaded
+
+            The following snapshot packages have been uploaded to Vercel Blob and are ready to install:
+
+            ${packageList}
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

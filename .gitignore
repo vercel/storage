@@ -12,3 +12,4 @@ npm-debug.log
 .vscode
 .vercel
 .env*.local
+status.json

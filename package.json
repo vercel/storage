@@ -32,7 +32,7 @@
     "husky": "9.1.7",
     "jest": "30.2.0",
     "lint-staged": "16.3.1",
-    "publint": "0.3.17",
+    "publint": "0.3.18",
     "ts-jest": "29.4.6",
     "turbo": "2.8.12",
     "typescript": "5.9.3"

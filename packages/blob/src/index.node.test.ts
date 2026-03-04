@@ -1334,6 +1334,67 @@ describe('blob client', () => {
       );
     });
 
+    it('should throw when URL points to an external domain', async () => {
+      await expect(
+        get('https://evil.com/xss.html', { access: 'private' }),
+      ).rejects.toThrow(
+        new Error(
+          'Vercel Blob: Invalid URL: the URL does not point to a Vercel Blob store. Use a pathname instead, see https://vercel.com/docs/vercel-blob',
+        ),
+      );
+    });
+
+    it('should throw when URL points to an external domain with public access', async () => {
+      await expect(
+        get('https://evil.com/xss.html', { access: 'public' }),
+      ).rejects.toThrow(
+        new Error(
+          'Vercel Blob: Invalid URL: the URL does not point to a Vercel Blob store. Use a pathname instead, see https://vercel.com/docs/vercel-blob',
+        ),
+      );
+    });
+
+    it('should throw when URL uses subdomain spoofing', async () => {
+      await expect(
+        get('https://blob.vercel-storage.com.evil.com/f.txt', {
+          access: 'private',
+        }),
+      ).rejects.toThrow(
+        new Error(
+          'Vercel Blob: Invalid URL: the URL does not point to a Vercel Blob store. Use a pathname instead, see https://vercel.com/docs/vercel-blob',
+        ),
+      );
+    });
+
+    it('should allow valid blob store URL', async () => {
+      const mockAgent = new MockAgent();
+      mockAgent.disableNetConnect();
+      setGlobalDispatcher(mockAgent);
+      const blobStoreMock = mockAgent.get(
+        'https://storeid.public.blob.vercel-storage.com',
+      );
+
+      blobStoreMock
+        .intercept({
+          path: '/file.txt',
+          method: 'GET',
+        })
+        .reply(200, 'blob content', {
+          headers: {
+            'content-type': 'text/plain',
+            'content-length': '12',
+          },
+        });
+
+      const result = await get(
+        'https://storeId.public.blob.vercel-storage.com/file.txt',
+        { access: 'public' },
+      );
+
+      expect(result).not.toBeNull();
+      expect(result?.blob.pathname).toEqual('file.txt');
+    });
+
     describe('useCache option', () => {
       // undici normalizes hostnames to lowercase
       const BLOB_STORE_BASE_URL_LOWERCASE =

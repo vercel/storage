@@ -173,6 +173,18 @@ export async function get(
   if (isUrl(urlOrPathname)) {
     blobUrl = urlOrPathname;
     pathname = extractPathnameFromUrl(urlOrPathname);
+
+    try {
+      const { hostname } = new URL(blobUrl);
+      if (!hostname.endsWith('.blob.vercel-storage.com')) {
+        throw new BlobError(
+          'Invalid URL: the URL does not point to a Vercel Blob store. Use a pathname instead, see https://vercel.com/docs/vercel-blob',
+        );
+      }
+    } catch (error) {
+      if (error instanceof BlobError) throw error;
+      throw new BlobError('Invalid URL: unable to parse the provided URL');
+    }
   } else {
     // Construct the URL from the token's storeId and the pathname
     const storeId = getStoreIdFromToken(token);

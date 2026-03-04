@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 2.3.1
+
+### Patch Changes
+
+- a9a733a: fix: validate URL domain in `get()` to prevent sending the token to arbitrary hosts
+
 ## 2.3.0
 
 ### Minor Changes

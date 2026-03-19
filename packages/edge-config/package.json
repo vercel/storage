@@ -56,7 +56,7 @@
     "@types/node": "24.12.0",
     "jest": "30.3.0",
     "jest-fetch-mock": "3.0.3",
-    "next": "16.1.7",
+    "next": "16.2.0",
     "node-domexception": "2.0.2",
     "ts-jest": "29.4.6",
     "tsconfig": "workspace:*",

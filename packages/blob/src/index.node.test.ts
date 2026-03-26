@@ -1711,6 +1711,61 @@ describe('blob client', () => {
 
         expect(headers['x-if-match']).toEqual('"abc123"');
       });
+
+      it('should implicitly set x-allow-overwrite when ifMatch is provided without allowOverwrite', async () => {
+        let headers: Record<string, string> = {};
+        mockClient
+          .intercept({
+            path: () => true,
+            method: 'PUT',
+          })
+          .reply(200, (req) => {
+            headers = req.headers as Record<string, string>;
+            return mockedFileMetaWithEtag;
+          });
+
+        await put('foo.txt', 'Test Body', {
+          access: 'public',
+          ifMatch: '"abc123"',
+        });
+
+        expect(headers['x-if-match']).toEqual('"abc123"');
+        expect(headers['x-allow-overwrite']).toEqual('1');
+      });
+
+      it('should throw when ifMatch is used with allowOverwrite: false', async () => {
+        await expect(
+          put('foo.txt', 'Test Body', {
+            access: 'public',
+            ifMatch: '"abc123"',
+            allowOverwrite: false,
+          }),
+        ).rejects.toThrow(
+          'ifMatch and allowOverwrite: false are contradictory. ifMatch is used for conditional overwrites, which requires allowOverwrite to be true.',
+        );
+      });
+
+      it('should work normally when ifMatch is used with allowOverwrite: true', async () => {
+        let headers: Record<string, string> = {};
+        mockClient
+          .intercept({
+            path: () => true,
+            method: 'PUT',
+          })
+          .reply(200, (req) => {
+            headers = req.headers as Record<string, string>;
+            return mockedFileMetaWithEtag;
+          });
+
+        await put('foo.txt', 'Test Body', {
+          access: 'public',
+          ifMatch: '"abc123"',
+          allowOverwrite: true,
+        });
+
+        expect(headers['x-if-match']).toEqual('"abc123"');
+        expect(headers['x-allow-overwrite']).toEqual('1');
+      });
     });
 
     describe('head', () => {

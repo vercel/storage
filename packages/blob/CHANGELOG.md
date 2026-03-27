@@ -1,5 +1,12 @@
 # @vercel/blob
 
+## 2.3.2
+
+### Patch Changes
+
+- c9d9a1a: Apply `ifMatch`/`allowOverwrite` validation to `handleUpload` and `generateClientTokenFromReadWriteToken`. When `ifMatch` is set via `onBeforeGenerateToken` or direct token generation, `allowOverwrite` is now implicitly enabled. Explicitly passing `allowOverwrite: false` with `ifMatch` throws a clear error.
+- 6dcecb8: Make `ifMatch` imply `allowOverwrite: true` on `put()`. Previously, using `ifMatch` without explicitly setting `allowOverwrite: true` would cause the server to send conflicting conditional headers to S3, resulting in 500 errors. Now the SDK implicitly enables `allowOverwrite` when `ifMatch` is set, and throws a clear error if `allowOverwrite: false` is explicitly combined with `ifMatch`.
+
 ## 2.3.1
 
 ### Patch Changes

@@ -43,7 +43,8 @@ describe('client uploads', () => {
       await expect(
         generateClientTokenFromReadWriteToken({
           pathname: 'foo.txt',
-          token: 'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678',
+          token:
+            'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678',
           ifMatch: '"abc123"',
           allowOverwrite: false,
         }),

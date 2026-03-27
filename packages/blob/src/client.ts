@@ -766,7 +766,10 @@ export async function generateClientTokenFromReadWriteToken({
   // Implicitly enable allowOverwrite when ifMatch is set and allowOverwrite
   // was not explicitly provided, to prevent the server from sending
   // conflicting If-Match + If-None-Match headers to S3.
-  if (argsWithoutToken.ifMatch && argsWithoutToken.allowOverwrite === undefined) {
+  if (
+    argsWithoutToken.ifMatch &&
+    argsWithoutToken.allowOverwrite === undefined
+  ) {
     argsWithoutToken.allowOverwrite = true;
   }
 

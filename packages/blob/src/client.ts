@@ -755,6 +755,24 @@ export async function generateClientTokenFromReadWriteToken({
     );
   }
 
+  // ifMatch implies allowOverwrite — updating a blob by ETag inherently requires
+  // overwriting. Throw if the user explicitly contradicts this.
+  if (argsWithoutToken.ifMatch && argsWithoutToken.allowOverwrite === false) {
+    throw new BlobError(
+      'ifMatch and allowOverwrite: false are contradictory. ifMatch is used for conditional overwrites, which requires allowOverwrite to be true.',
+    );
+  }
+
+  // Implicitly enable allowOverwrite when ifMatch is set and allowOverwrite
+  // was not explicitly provided, to prevent the server from sending
+  // conflicting If-Match + If-None-Match headers to S3.
+  if (
+    argsWithoutToken.ifMatch &&
+    argsWithoutToken.allowOverwrite === undefined
+  ) {
+    argsWithoutToken.allowOverwrite = true;
+  }
+
   const timestamp = new Date();
   timestamp.setSeconds(timestamp.getSeconds() + 30);
   const readWriteToken = getTokenFromOptionsOrEnv({ token });

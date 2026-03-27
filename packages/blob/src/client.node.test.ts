@@ -39,6 +39,34 @@ describe('client uploads', () => {
       });
     });
 
+    it('throws when ifMatch is used with allowOverwrite: false', async () => {
+      await expect(
+        generateClientTokenFromReadWriteToken({
+          pathname: 'foo.txt',
+          token:
+            'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678',
+          ifMatch: '"abc123"',
+          allowOverwrite: false,
+        }),
+      ).rejects.toThrow(
+        'ifMatch and allowOverwrite: false are contradictory. ifMatch is used for conditional overwrites, which requires allowOverwrite to be true.',
+      );
+    });
+
+    it('implicitly sets allowOverwrite when ifMatch is provided', async () => {
+      const uploadToken = await generateClientTokenFromReadWriteToken({
+        pathname: 'foo.txt',
+        token: 'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678',
+        ifMatch: '"abc123"',
+      });
+
+      expect(getPayloadFromClientToken(uploadToken)).toMatchObject({
+        pathname: 'foo.txt',
+        ifMatch: '"abc123"',
+        allowOverwrite: true,
+      });
+    });
+
     it('accepts a tokenPayload property', async () => {
       const uploadToken = await generateClientTokenFromReadWriteToken({
         pathname: 'foo.txt',

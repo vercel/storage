@@ -93,6 +93,27 @@ export function createPutHeaders<TOptions extends CommonPutCommandOptions>(
       : '0';
   }
 
+  // ifMatch implies allowOverwrite — updating a blob by ETag inherently requires
+  // overwriting. Throw if the user explicitly contradicts this.
+  if (allowedOptions.includes('ifMatch') && options.ifMatch) {
+    if (options.allowOverwrite === false) {
+      throw new BlobError(
+        'ifMatch and allowOverwrite: false are contradictory. ifMatch is used for conditional overwrites, which requires allowOverwrite to be true.',
+      );
+    }
+
+    headers[putOptionHeaderMap.ifMatch] = options.ifMatch;
+    // Implicitly enable allowOverwrite when ifMatch is set and allowOverwrite
+    // was not explicitly provided, to prevent the server from sending
+    // conflicting If-Match + If-None-Match headers to S3.
+    if (
+      allowedOptions.includes('allowOverwrite') &&
+      options.allowOverwrite === undefined
+    ) {
+      headers[putOptionHeaderMap.allowOverwrite] = '1';
+    }
+  }
+
   if (
     allowedOptions.includes('allowOverwrite') &&
     options.allowOverwrite !== undefined
@@ -108,10 +129,6 @@ export function createPutHeaders<TOptions extends CommonPutCommandOptions>(
   ) {
     headers[putOptionHeaderMap.cacheControlMaxAge] =
       options.cacheControlMaxAge.toString();
-  }
-
-  if (allowedOptions.includes('ifMatch') && options.ifMatch) {
-    headers[putOptionHeaderMap.ifMatch] = options.ifMatch;
   }
 
   return headers;

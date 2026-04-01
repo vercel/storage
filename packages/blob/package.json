@@ -73,7 +73,7 @@
     "@types/node": "24.12.0",
     "jest": "30.3.0",
     "jest-environment-jsdom": "30.3.0",
-    "ts-jest": "29.4.6",
+    "ts-jest": "29.4.9",
     "tsconfig": "workspace:*",
     "tsup": "8.5.1"
   },

@@ -2,12 +2,14 @@
 
 ## Packages
 
-- `@vercel/edge-config` Ultra-low latency data at the edge — [Documentation](https://vercel.com/docs/storage/edge-config) | [Source](./packages/edge-config)
+- `@vercel/edge-config` Ultra-low latency data reads — [Documentation](https://vercel.com/docs/storage/edge-config) | [Source](./packages/edge-config)
 - `@vercel/blob` Fast object storage — [Documentation](https://vercel.com/docs/storage/vercel-blob) | [Source](./packages/blob)
 
 ## Deprecated Packages
 
-> **Note:** Vercel Postgres and Vercel KV products are now sunset. You can install other postgres and KV storage solutions from the [Vercel Marketplace](https://vercel.com/marketplace) as native integrations to your Vercel project.
+The packages `@vercel/postgres` and `@vercel/kv` have been deprecated and the associated products Vercel Postgres and Vercel KV no longer exist.
+
+> **Note:** You can install other postgres and KV storage solutions from the [Vercel Marketplace](https://vercel.com/marketplace) as [native integrations](https://vercel.com/docs/integrations#native-integrations) to your Vercel project.
 >
 > The source code for these deprecated packages is preserved in the [`vercel-kv-vercel-postgres-archive`](https://github.com/vercel/storage/tree/vercel-kv-vercel-postgres-archive) branch.
 

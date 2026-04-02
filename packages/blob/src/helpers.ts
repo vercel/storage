@@ -261,31 +261,27 @@ export const createChunkTransformStream = (
 
   return new TransformStream<ArrayBuffer, Uint8Array>({
     transform(chunk, controller) {
-      queueMicrotask(() => {
-        // Combine the new chunk with any leftover data
-        const newBuffer = new Uint8Array(buffer.length + chunk.byteLength);
-        newBuffer.set(buffer);
-        newBuffer.set(new Uint8Array(chunk), buffer.length);
-        buffer = newBuffer;
+      // Combine the new chunk with any leftover data
+      const newBuffer = new Uint8Array(buffer.length + chunk.byteLength);
+      newBuffer.set(buffer);
+      newBuffer.set(new Uint8Array(chunk), buffer.length);
+      buffer = newBuffer;
 
-        // Output complete chunks
-        while (buffer.length >= chunkSize) {
-          const newChunk = buffer.slice(0, chunkSize);
-          controller.enqueue(newChunk);
-          onProgress?.(newChunk.byteLength);
-          buffer = buffer.slice(chunkSize);
-        }
-      });
+      // Output complete chunks
+      while (buffer.length >= chunkSize) {
+        const newChunk = buffer.slice(0, chunkSize);
+        controller.enqueue(newChunk);
+        onProgress?.(newChunk.byteLength);
+        buffer = buffer.slice(chunkSize);
+      }
     },
 
     flush(controller) {
-      queueMicrotask(() => {
-        // Send any remaining data
-        if (buffer.length > 0) {
-          controller.enqueue(buffer);
-          onProgress?.(buffer.byteLength);
-        }
-      });
+      // Send any remaining data
+      if (buffer.length > 0) {
+        controller.enqueue(buffer);
+        onProgress?.(buffer.byteLength);
+      }
     },
   });
 };

@@ -64,6 +64,14 @@ export interface CommonCreateBlobOptions extends BlobCommandOptions {
    * If the ETag doesn't match, a `BlobPreconditionFailedError` will be thrown.
    */
   ifMatch?: string;
+  /**
+   * Maximum size in bytes allowed for this upload. Currently only enforced
+   * client-side for multipart uploads (`put(..., { multipart: true })`).
+   * For bodies with a known size (Blob, File, Buffer, etc.) the check is
+   * performed before the upload starts. Streams cannot be checked upfront.
+   * The maximum allowed value is 5TB.
+   */
+  maximumSizeInBytes?: number;
 }
 
 /**

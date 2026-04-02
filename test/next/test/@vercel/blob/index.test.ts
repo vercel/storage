@@ -37,6 +37,27 @@ test.describe('@vercel/blob', () => {
     });
   });
 
+  test.describe('empty stream multipart', () => {
+    test('does not deadlock on empty ReadableStream with multipart: true', async ({
+      request,
+      extraHTTPHeaders,
+    }) => {
+      const res = await request.post(
+        `vercel/blob/api/app/empty-stream-multipart?filename=${prefix}/empty-stream.bin`,
+        {
+          headers: {
+            cookie: `clientUpload=${process.env.BLOB_UPLOAD_SECRET ?? ''}`,
+            ...extraHTTPHeaders,
+          },
+          timeout: 15000, // Should resolve fast, not deadlock
+        },
+      );
+      // The upload resolves (no deadlock). The server may reject the empty
+      // multipart upload, but the important thing is it doesn't hang.
+      expect(res.status()).toBeLessThan(500);
+    });
+  });
+
   test.describe('page', () => {
     test('serverless', async ({ page }) => {
       await page.goto(`vercel/pages/blob?filename=${prefix}/test-page.txt`);

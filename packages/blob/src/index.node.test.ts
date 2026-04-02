@@ -791,6 +791,33 @@ describe('blob client', () => {
       }
     });
 
+    it('resolves (does not hang) when multipart body is an empty ReadableStream', async () => {
+      const emptyStream = new ReadableStream({
+        start(controller) {
+          controller.close();
+        },
+      });
+
+      // createMultipartUpload
+      mockClient
+        .intercept({ path: () => true, method: 'POST' })
+        .reply(200, { uploadId: 'upload-123', key: 'foo.txt' });
+
+      // completeMultipartUpload (called with 0 parts for an empty stream)
+      mockClient.intercept({ path: () => true, method: 'POST' }).reply(200, {
+        url: `${BLOB_STORE_BASE_URL}/foo.txt`,
+        downloadUrl: `${BLOB_STORE_BASE_URL}/foo.txt?download=1`,
+        pathname: 'foo.txt',
+        contentType: 'text/plain',
+        contentDisposition: 'attachment; filename="foo.txt"',
+        etag: '"empty"',
+      });
+
+      await expect(
+        put('foo.txt', emptyStream, { access: 'public', multipart: true }),
+      ).resolves.toMatchObject({ pathname: 'foo.txt' });
+    });
+
     const table: [string, (signal: AbortSignal) => Promise<unknown>][] = [
       [
         'put',

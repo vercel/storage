@@ -9,7 +9,11 @@ import type {
   PutBlobResult,
   PutBody,
 } from './put-helpers';
-import { createPutHeaders, createPutOptions } from './put-helpers';
+import {
+  createPutHeaders,
+  createPutOptions,
+  normalizeContentDisposition,
+} from './put-helpers';
 
 export interface PutCommandOptions
   extends CommonCreateBlobOptions,
@@ -19,27 +23,6 @@ export interface PutCommandOptions
    * @defaultvalue false
    */
   multipart?: boolean;
-}
-
-function normalizeContentDisposition(
-  contentDisposition: string,
-  originalPathname: string,
-  responsePathname: string,
-): string {
-  const originalFilename =
-    originalPathname.split('/').pop() ?? originalPathname;
-  const responseFilename =
-    responsePathname.split('/').pop() ?? responsePathname;
-  if (
-    originalFilename !== responseFilename &&
-    contentDisposition.includes(`"${responseFilename}"`)
-  ) {
-    return contentDisposition.replace(
-      `"${responseFilename}"`,
-      `"${originalFilename}"`,
-    );
-  }
-  return contentDisposition;
 }
 
 export function createPutMethod<TOptions extends PutCommandOptions>({

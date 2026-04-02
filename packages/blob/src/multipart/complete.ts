@@ -6,7 +6,11 @@ import type {
   PutBlobApiResponse,
   PutBlobResult,
 } from '../put-helpers';
-import { createPutHeaders, createPutOptions } from '../put-helpers';
+import {
+  createPutHeaders,
+  createPutOptions,
+  normalizeContentDisposition,
+} from '../put-helpers';
 import type { Part } from './helpers';
 
 /**
@@ -43,7 +47,7 @@ export function createCompleteMultipartUploadMethod<
 
     const headers = createPutHeaders(allowedOptions, options);
 
-    return completeMultipartUpload({
+    const response = await completeMultipartUpload({
       uploadId: options.uploadId,
       key: options.key,
       pathname,
@@ -51,6 +55,15 @@ export function createCompleteMultipartUploadMethod<
       options,
       parts,
     });
+
+    return {
+      ...response,
+      contentDisposition: normalizeContentDisposition(
+        response.contentDisposition,
+        pathname,
+        response.pathname,
+      ),
+    };
   };
 }
 

@@ -65,6 +65,30 @@ export type PutBody =
 export type CommonPutCommandOptions = CommonCreateBlobOptions &
   ClientCommonCreateBlobOptions;
 
+export function normalizeContentDisposition(
+  contentDisposition: string,
+  originalPathname: string,
+  responsePathname: string,
+): string {
+  const originalFilename =
+    originalPathname.split('/').pop() ?? originalPathname;
+  const responseFilename =
+    responsePathname.split('/').pop() ?? responsePathname;
+
+  if (originalFilename === responseFilename) {
+    return contentDisposition;
+  }
+
+  return contentDisposition.replace(
+    new RegExp(`filename="${escapeRegExp(responseFilename)}"`),
+    `filename="${originalFilename}"`,
+  );
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export interface CreatePutMethodOptions<TOptions> {
   allowedOptions: (keyof typeof putOptionHeaderMap)[];
   getToken?: (pathname: string, options: TOptions) => Promise<string>;

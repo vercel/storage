@@ -519,6 +519,104 @@ describe('client uploads', () => {
       process.env = originalEnv;
     });
 
+    it('should infer callbackUrl from forwarded host headers for node requests', async () => {
+      const originalEnv = process.env;
+      process.env = {
+        NODE_ENV: 'test',
+      };
+
+      const token =
+        'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
+
+      const jsonResponse = await handleUpload({
+        token,
+        request: {
+          url: '/api/upload?via=node',
+          headers: {
+            host: 'internal.local:3000',
+            'x-forwarded-host': 'uploads.example.com',
+            'x-forwarded-proto': 'https',
+          },
+        } as unknown as IncomingMessage,
+        body: {
+          type: 'blob.generate-client-token',
+          payload: {
+            pathname: 'newfile.txt',
+            multipart: false,
+            clientPayload: null,
+          },
+        },
+        onBeforeGenerateToken: async () => {
+          return Promise.resolve({
+            addRandomSuffix: false,
+          });
+        },
+        onUploadCompleted: async () => {
+          await Promise.resolve();
+        },
+      });
+
+      const decodedPayload = getPayloadFromClientToken(
+        (jsonResponse.type === 'blob.generate-client-token' &&
+          jsonResponse.clientToken) ||
+          '',
+      );
+
+      expect(decodedPayload.onUploadCompleted?.callbackUrl).toBe(
+        'https://uploads.example.com/api/upload?via=node',
+      );
+
+      process.env = originalEnv;
+    });
+
+    it('should infer http callbackUrl for localhost node requests', async () => {
+      const originalEnv = process.env;
+      process.env = {
+        NODE_ENV: 'test',
+      };
+
+      const token =
+        'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
+
+      const jsonResponse = await handleUpload({
+        token,
+        request: {
+          url: '/api/upload',
+          headers: {
+            host: 'localhost:3000',
+          },
+        } as unknown as IncomingMessage,
+        body: {
+          type: 'blob.generate-client-token',
+          payload: {
+            pathname: 'newfile.txt',
+            multipart: false,
+            clientPayload: null,
+          },
+        },
+        onBeforeGenerateToken: async () => {
+          return Promise.resolve({
+            addRandomSuffix: false,
+          });
+        },
+        onUploadCompleted: async () => {
+          await Promise.resolve();
+        },
+      });
+
+      const decodedPayload = getPayloadFromClientToken(
+        (jsonResponse.type === 'blob.generate-client-token' &&
+          jsonResponse.clientToken) ||
+          '',
+      );
+
+      expect(decodedPayload.onUploadCompleted?.callbackUrl).toBe(
+        'http://localhost:3000/api/upload',
+      );
+
+      process.env = originalEnv;
+    });
+
     it('should warn when callbackUrl provided but onUploadCompleted not defined', async () => {
       const originalConsoleWarn = console.warn;
       const mockConsoleWarn = jest.fn();

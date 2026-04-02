@@ -518,7 +518,7 @@ export interface HandleUploadOptions {
    * @param clientPayload - A string payload specified on the client when calling upload()
    * @param multipart - A boolean specifying whether the file is a multipart upload
    *
-   * @returns An object with configuration options for the client token including the optional callbackUrl
+   * @returns An object with configuration options for the client token including optional callbackUrl and pathname overrides
    */
   onBeforeGenerateToken: (
     pathname: string,
@@ -534,6 +534,7 @@ export interface HandleUploadOptions {
       | 'allowOverwrite'
       | 'cacheControlMaxAge'
       | 'ifMatch'
+      | 'pathname'
     > & { tokenPayload?: string | null; callbackUrl?: string }
   >;
 

@@ -52,9 +52,10 @@ test.describe('@vercel/blob', () => {
           timeout: 15000, // Should resolve fast, not deadlock
         },
       );
-      // The upload resolves (no deadlock). The server may reject the empty
-      // multipart upload, but the important thing is it doesn't hang.
-      expect(res.status()).toBeLessThan(500);
+      // The server rejects the empty multipart upload (400) which is fine.
+      // The important thing is it resolved instead of hanging (15s timeout).
+      const data = (await res.json()) as { resolved: boolean };
+      expect(data.resolved).toBe(true);
     });
   });
 

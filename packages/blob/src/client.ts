@@ -592,7 +592,11 @@ export async function handleUpload({
         multipart,
       );
       const tokenPayload = payload.tokenPayload ?? clientPayload;
-      const { callbackUrl: providedCallbackUrl, ...tokenOptions } = payload;
+      const {
+        callbackUrl: providedCallbackUrl,
+        pathname: overriddenPathname,
+        ...tokenOptions
+      } = payload;
       let callbackUrl = providedCallbackUrl;
 
       // If onUploadCompleted is provided but no callbackUrl was provided, try to infer it from environment
@@ -619,7 +623,7 @@ export async function handleUpload({
         clientToken: await generateClientTokenFromReadWriteToken({
           ...tokenOptions,
           token: resolvedToken,
-          pathname,
+          pathname: overriddenPathname ?? pathname,
           onUploadCompleted: callbackUrl
             ? {
                 callbackUrl,

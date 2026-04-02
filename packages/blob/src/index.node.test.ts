@@ -478,7 +478,7 @@ describe('blob client', () => {
         }),
       ).resolves.toMatchInlineSnapshot(`
         {
-          "contentDisposition": "attachment; filename="foo.txt"",
+          "contentDisposition": "attachment; filename="progress.txt"",
           "contentType": "text/plain",
           "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo-id.txt?download=1",
           "etag": ""abc123"",
@@ -709,6 +709,38 @@ describe('blob client', () => {
         addRandomSuffix: false,
       });
       expect(headers['x-add-random-suffix']).toEqual('0');
+    });
+
+    it('normalizes contentDisposition to use original filename when API adds random suffix', async () => {
+      mockClient.intercept({ path: () => true, method: 'PUT' }).reply(200, {
+        url: `${BLOB_STORE_BASE_URL}/foo-abc123.txt`,
+        downloadUrl: `${BLOB_STORE_BASE_URL}/foo-abc123.txt?download=1`,
+        pathname: 'foo-abc123.txt',
+        contentType: 'text/plain',
+        contentDisposition: 'attachment; filename="foo-abc123.txt"',
+        etag: '"abc123"',
+      });
+
+      const result = await put('foo.txt', 'Test Body', {
+        access: 'public',
+        addRandomSuffix: true,
+      });
+
+      expect(result.contentDisposition).toBe('attachment; filename="foo.txt"');
+      expect(result.pathname).toBe('foo-abc123.txt');
+    });
+
+    it('does not modify contentDisposition when pathname is unchanged', async () => {
+      mockClient
+        .intercept({ path: () => true, method: 'PUT' })
+        .reply(200, mockedFileMetaPut);
+
+      const result = await put('foo.txt', 'Test Body', {
+        access: 'public',
+        addRandomSuffix: false,
+      });
+
+      expect(result.contentDisposition).toBe('attachment; filename="foo.txt"');
     });
 
     it('sets the correct header when using the cacheControlMaxAge option', async () => {

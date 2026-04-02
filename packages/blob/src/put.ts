@@ -21,6 +21,27 @@ export interface PutCommandOptions
   multipart?: boolean;
 }
 
+function normalizeContentDisposition(
+  contentDisposition: string,
+  originalPathname: string,
+  responsePathname: string,
+): string {
+  const originalFilename =
+    originalPathname.split('/').pop() ?? originalPathname;
+  const responseFilename =
+    responsePathname.split('/').pop() ?? responsePathname;
+  if (
+    originalFilename !== responseFilename &&
+    contentDisposition.includes(`"${responseFilename}"`)
+  ) {
+    return contentDisposition.replace(
+      `"${responseFilename}"`,
+      `"${originalFilename}"`,
+    );
+  }
+  return contentDisposition;
+}
+
 export function createPutMethod<TOptions extends PutCommandOptions>({
   allowedOptions,
   getToken,
@@ -51,7 +72,20 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
     const headers = createPutHeaders(allowedOptions, options);
 
     if (options.multipart === true) {
-      return uncontrolledMultipartUpload(pathname, body, headers, options);
+      const result = await uncontrolledMultipartUpload(
+        pathname,
+        body,
+        headers,
+        options,
+      );
+      return {
+        ...result,
+        contentDisposition: normalizeContentDisposition(
+          result.contentDisposition,
+          pathname,
+          result.pathname,
+        ),
+      };
     }
 
     const onUploadProgress = options.onUploadProgress
@@ -79,7 +113,11 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
       downloadUrl: response.downloadUrl,
       pathname: response.pathname,
       contentType: response.contentType,
-      contentDisposition: response.contentDisposition,
+      contentDisposition: normalizeContentDisposition(
+        response.contentDisposition,
+        pathname,
+        response.pathname,
+      ),
       etag: response.etag,
     };
   };

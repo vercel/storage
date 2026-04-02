@@ -1,5 +1,12 @@
 # @vercel/blob
 
+## 2.3.3
+
+### Patch Changes
+
+- d2ea7cf: Enforce `maximumSizeInBytes` client-side for multipart uploads. Bodies with a known size (Blob, File, Buffer) are now checked before the upload starts, avoiding wasted API calls.
+- 949e994: Fix multipart upload hanging forever on empty streams, and fix `createChunkTransformStream` bypassing backpressure by removing incorrect `queueMicrotask` wrapping.
+
 ## 2.3.2
 
 ### Patch Changes

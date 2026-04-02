@@ -245,6 +245,11 @@ export function uploadAllParts({
               });
 
               sendParts();
+            } else if (activeUploads === 0) {
+              // Stream was empty or ended exactly on a part boundary with no
+              // in-flight uploads. Nothing will call resolve() later, so do it here.
+              reader.releaseLock();
+              resolve(completedParts);
             }
             reading = false;
             return;

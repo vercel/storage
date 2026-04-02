@@ -753,6 +753,44 @@ describe('blob client', () => {
       );
     });
 
+    it('throws when body exceeds maximumSizeInBytes in a multipart put', async () => {
+      const largeBody = new Blob([new Uint8Array(1024)]); // 1 KB
+      await expect(
+        put('foo.txt', largeBody, {
+          access: 'public',
+          multipart: true,
+          maximumSizeInBytes: 512, // 512 bytes limit
+        }),
+      ).rejects.toThrow(
+        new Error(
+          'Vercel Blob: Body size of 1024 bytes exceeds the maximum allowed size of 512 bytes',
+        ),
+      );
+    });
+
+    it('does not throw client-side size error for stream body with maximumSizeInBytes in a multipart put', async () => {
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('hello'));
+          controller.close();
+        },
+      });
+
+      // Should not throw the client-side size error — streams have unknown
+      // length, so maximumSizeInBytes enforcement is deferred to the server.
+      try {
+        await put('foo.txt', stream, {
+          access: 'public',
+          multipart: true,
+          maximumSizeInBytes: 1,
+        });
+      } catch (error) {
+        expect((error as Error).message).not.toMatch(
+          /Body size of .* bytes exceeds the maximum allowed size/,
+        );
+      }
+    });
+
     const table: [string, (signal: AbortSignal) => Promise<unknown>][] = [
       [
         'put',

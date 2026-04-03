@@ -1192,6 +1192,53 @@ describe('blob client', () => {
       });
       expect(headers['x-vercel-blob-access']).toEqual('public');
     });
+
+    it('normalizes contentDisposition to use original toPathname when API adds random suffix', async () => {
+      const mockedCopyResult = {
+        url: `${BLOB_STORE_BASE_URL}/destination-abc123.txt`,
+        downloadUrl: `${BLOB_STORE_BASE_URL}/destination-abc123.txt?download=1`,
+        pathname: 'destination-abc123.txt',
+        contentType: 'text/plain',
+        contentDisposition: 'attachment; filename="destination-abc123.txt"',
+        etag: '"def456"',
+      };
+
+      mockClient
+        .intercept({ path: () => true, method: 'PUT' })
+        .reply(200, mockedCopyResult);
+
+      const result = await copy('source.txt', 'destination.txt', {
+        access: 'public',
+        addRandomSuffix: true,
+      });
+
+      expect(result.contentDisposition).toBe(
+        'attachment; filename="destination.txt"',
+      );
+    });
+
+    it('does not modify contentDisposition when copy pathname is unchanged', async () => {
+      const mockedCopyResult = {
+        url: `${BLOB_STORE_BASE_URL}/destination.txt`,
+        downloadUrl: `${BLOB_STORE_BASE_URL}/destination.txt?download=1`,
+        pathname: 'destination.txt',
+        contentType: 'text/plain',
+        contentDisposition: 'attachment; filename="destination.txt"',
+        etag: '"def456"',
+      };
+
+      mockClient
+        .intercept({ path: () => true, method: 'PUT' })
+        .reply(200, mockedCopyResult);
+
+      const result = await copy('source.txt', 'destination.txt', {
+        access: 'public',
+      });
+
+      expect(result.contentDisposition).toBe(
+        'attachment; filename="destination.txt"',
+      );
+    });
   });
 
   describe('get', () => {

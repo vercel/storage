@@ -8,6 +8,33 @@ import type { ClientCommonCreateBlobOptions } from './client';
 import type { CommonCreateBlobOptions } from './helpers';
 import { BlobError, disallowedPathnameCharacters } from './helpers';
 
+/**
+ * Normalizes contentDisposition to use the original requested filename
+ * instead of the API-returned pathname (which may include a random suffix).
+ * This ensures `contentDisposition` always reflects the name the caller
+ * provided, regardless of `addRandomSuffix` being enabled.
+ */
+export function normalizeContentDisposition(
+  contentDisposition: string,
+  originalPathname: string,
+  responsePathname: string,
+): string {
+  const originalFilename =
+    originalPathname.split('/').pop() ?? originalPathname;
+  const responseFilename =
+    responsePathname.split('/').pop() ?? responsePathname;
+  if (
+    originalFilename !== responseFilename &&
+    contentDisposition.includes(`"${responseFilename}"`)
+  ) {
+    return contentDisposition.replace(
+      `"${responseFilename}"`,
+      `"${originalFilename}"`,
+    );
+  }
+  return contentDisposition;
+}
+
 export const putOptionHeaderMap = {
   cacheControlMaxAge: 'x-cache-control-max-age',
   addRandomSuffix: 'x-add-random-suffix',

@@ -1,6 +1,7 @@
 import { MAXIMUM_PATHNAME_LENGTH, requestApi } from './api';
 import type { CommonCreateBlobOptions } from './helpers';
 import { BlobError, disallowedPathnameCharacters } from './helpers';
+import { normalizeContentDisposition } from './put-helpers';
 
 export type CopyCommandOptions = CommonCreateBlobOptions;
 
@@ -98,7 +99,11 @@ export async function copy(
     downloadUrl: response.downloadUrl,
     pathname: response.pathname,
     contentType: response.contentType,
-    contentDisposition: response.contentDisposition,
+    contentDisposition: normalizeContentDisposition(
+      response.contentDisposition,
+      toPathname,
+      response.pathname,
+    ),
     etag: response.etag,
   };
 }

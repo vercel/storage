@@ -6,11 +6,18 @@ env:
   POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
   POSTGRES_URL_NON_POOLING: ${{ secrets.POSTGRES_URL_NON_POOLING }}
   EDGE_CONFIG: ${{ secrets.EDGE_CONFIG }}
+  CI: "true"
+  NPM_CONFIG_PROVENANCE: "true"   # npm reads NPM_CONFIG_* env; pnpm delegates to npm publish
 
 on:
   push:
     branches:
       - main
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write          # required for Sigstore provenance via npm OIDC
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
@@ -43,3 +50,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN_ELEVATED }}
+          NPM_CONFIG_PROVENANCE: "true"

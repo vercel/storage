@@ -302,7 +302,7 @@ export async function requestApi<TResponse>(
             headers: {
               'x-api-blob-request-id': requestId,
               // Store ID is not encoded in OIDC token, so pass it separately as a header
-              'x-api-blob-store-id': auth.storeId,
+              'x-vercel-blob-store-id': auth.storeId,
               'x-api-blob-request-attempt': String(retryCount),
               'x-api-version': apiVersion,
               ...(sendBodyLength

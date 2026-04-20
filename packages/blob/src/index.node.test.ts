@@ -34,6 +34,8 @@ describe('blob client', () => {
   let mockClient: Interceptable;
 
   beforeEach(() => {
+    delete process.env.BLOB_STORE_ID;
+    delete process.env.VERCEL_OIDC_TOKEN;
     process.env.BLOB_READ_WRITE_TOKEN =
       'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
     const mockAgent = new MockAgent();
@@ -128,10 +130,12 @@ describe('blob client', () => {
 
     it('should throw when the token is not set', async () => {
       process.env.BLOB_READ_WRITE_TOKEN = '';
+      delete process.env.BLOB_STORE_ID;
+      delete process.env.VERCEL_OIDC_TOKEN;
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
-          'Vercel Blob: No token found. Either configure the `BLOB_READ_WRITE_TOKEN` environment variable, or pass a `token` option to your calls.',
+          'Vercel Blob: No blob credentials found. With `VERCEL_OIDC_TOKEN`, set `storeId` or `BLOB_STORE_ID`. Otherwise set `BLOB_READ_WRITE_TOKEN` or pass a `token` option.',
         ),
       );
     });
@@ -1290,6 +1294,8 @@ describe('blob client', () => {
 
     it('should throw when token is not set', async () => {
       process.env.BLOB_READ_WRITE_TOKEN = '';
+      delete process.env.BLOB_STORE_ID;
+      delete process.env.VERCEL_OIDC_TOKEN;
 
       await expect(
         get('foo.txt', {
@@ -1297,7 +1303,7 @@ describe('blob client', () => {
         }),
       ).rejects.toThrow(
         new Error(
-          'Vercel Blob: No token found. Either configure the `BLOB_READ_WRITE_TOKEN` environment variable, or pass a `token` option to your calls.',
+          'Vercel Blob: No blob credentials found. With `VERCEL_OIDC_TOKEN`, set `storeId` or `BLOB_STORE_ID`. Otherwise set `BLOB_READ_WRITE_TOKEN` or pass a `token` option.',
         ),
       );
     });

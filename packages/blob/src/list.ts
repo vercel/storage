@@ -126,7 +126,8 @@ type ListCommandResult<
  * Fetches a paginated list of blob objects from your store.
  *
  * @param options - Configuration options including:
- *   - token - (Optional) A string specifying the read-write token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel.
+ *   - storeId - (Optional) Store id when using `VERCEL_OIDC_TOKEN`; overrides `BLOB_STORE_ID`.
+ *   - token - (Optional) Read-write token when not using OIDC with a store id, or set `BLOB_READ_WRITE_TOKEN`.
  *   - limit - (Optional) The maximum number of blobs to return. Defaults to 1000.
  *   - prefix - (Optional) Filters the result to only include blobs that start with this prefix. If used with mode: 'folded', include a trailing slash after the folder name.
  *   - cursor - (Optional) The cursor to use for pagination. Can be obtained from the response of a previous list request.

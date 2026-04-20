@@ -9,7 +9,11 @@ import type {
   BlobCommandOptions,
   WithUploadProgress,
 } from './helpers';
-import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
+import {
+  BlobError,
+  getReadWriteBlobTokenFromOptionsOrEnv,
+  parseStoreIdFromReadWriteToken,
+} from './helpers';
 import type { CommonCompleteMultipartUploadOptions } from './multipart/complete';
 import { createCompleteMultipartUploadMethod } from './multipart/complete';
 import { createCreateMultipartUploadMethod } from './multipart/create';
@@ -547,7 +551,7 @@ export interface HandleUploadOptions {
 
   /**
    * A string specifying the read-write token to use when making requests.
-   * It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel.
+   * Defaults to `BLOB_READ_WRITE_TOKEN`. When using `BLOB_STORE_ID` with OIDC, pass this explicitly for client-token flows.
    */
   token?: string;
 
@@ -567,7 +571,7 @@ export interface HandleUploadOptions {
  *   - body - (Required) The request body containing upload information.
  *   - onBeforeGenerateToken - (Required) Function called before generating the client token for uploads.
  *   - onUploadCompleted - (Optional) Function called by Vercel Blob when the client upload finishes.
- *   - token - (Optional) A string specifying the read-write token to use when making requests. Defaults to process.env.BLOB_READ_WRITE_TOKEN.
+ *   - token - (Optional) Read-write token. Defaults to `BLOB_READ_WRITE_TOKEN`; required explicitly when only `BLOB_STORE_ID` + OIDC is configured.
  * @returns A promise that resolves to either a client token generation result or an upload completion result
  */
 export async function handleUpload({
@@ -580,7 +584,7 @@ export async function handleUpload({
   | { type: 'blob.generate-client-token'; clientToken: string }
   | { type: 'blob.upload-completed'; response: 'ok' }
 > {
-  const resolvedToken = getTokenFromOptionsOrEnv({ token });
+  const resolvedToken = getReadWriteBlobTokenFromOptionsOrEnv({ token });
 
   const type = body.type;
   switch (type) {
@@ -734,7 +738,7 @@ function isAbsoluteUrl(url: string): boolean {
  *
  * @param options - Options for generating the client token
  *   - pathname - (Required) The destination path for the blob.
- *   - token - (Optional) A string specifying the read-write token to use. Defaults to process.env.BLOB_READ_WRITE_TOKEN.
+ *   - token - (Optional) Read-write token. Defaults to `BLOB_READ_WRITE_TOKEN`; required explicitly when only `BLOB_STORE_ID` + OIDC is configured.
  *   - onUploadCompleted - (Optional) Configuration for upload completion callback.
  *   - maximumSizeInBytes - (Optional) A number specifying the maximum size in bytes that can be uploaded (max 5TB).
  *   - allowedContentTypes - (Optional) An array of media types that are allowed to be uploaded. Wildcards are supported (text/*).
@@ -775,9 +779,9 @@ export async function generateClientTokenFromReadWriteToken({
 
   const timestamp = new Date();
   timestamp.setSeconds(timestamp.getSeconds() + 30);
-  const readWriteToken = getTokenFromOptionsOrEnv({ token });
+  const readWriteToken = getReadWriteBlobTokenFromOptionsOrEnv({ token });
 
-  const [, , , storeId = null] = readWriteToken.split('_');
+  const storeId = parseStoreIdFromReadWriteToken(readWriteToken) || null;
 
   if (!storeId) {
     throw new BlobError(

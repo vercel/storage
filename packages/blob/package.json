@@ -65,6 +65,14 @@
     "throttleit": "^2.1.0",
     "undici": "^6.23.0"
   },
+  "peerDependencies": {
+    "@vercel/oidc": ">=3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@vercel/oidc": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@edge-runtime/jest-environment": "4.0.0",
     "@edge-runtime/types": "4.0.0",

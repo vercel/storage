@@ -11,7 +11,7 @@ import {
   BlobError,
   computeBodyLength,
   getApiUrl,
-  getTokenFromOptionsOrEnv,
+  resolveBlobAuth,
 } from './helpers';
 import isNetworkError from './is-network-error';
 import { blobRequest } from './request';
@@ -261,11 +261,11 @@ export async function requestApi<TResponse>(
   commandOptions: (BlobCommandOptions & WithUploadProgress) | undefined,
 ): Promise<TResponse> {
   const apiVersion = getApiVersion();
-  const token = getTokenFromOptionsOrEnv(commandOptions);
+  const auth = resolveBlobAuth(commandOptions);
+  const bearerToken = auth.kind === 'readWrite' ? auth.token : auth.oidcToken;
   const extraHeaders = getProxyThroughAlternativeApiHeaderFromEnv();
 
-  const [, , , storeId = ''] = token.split('_');
-  const requestId = `${storeId}:${Date.now()}:${Math.random().toString(16).slice(2)}`;
+  const requestId = `${auth.storeId}:${Date.now()}:${Math.random().toString(16).slice(2)}`;
   let retryCount = 0;
   let bodyLength = 0;
   let totalLoaded = 0;
@@ -301,12 +301,14 @@ export async function requestApi<TResponse>(
             ...init,
             headers: {
               'x-api-blob-request-id': requestId,
+              // Store ID is not encoded in OIDC token, so pass it separately as a header
+              'x-api-blob-store-id': auth.storeId,
               'x-api-blob-request-attempt': String(retryCount),
               'x-api-version': apiVersion,
               ...(sendBodyLength
                 ? { 'x-content-length': String(bodyLength) }
                 : {}),
-              authorization: `Bearer ${token}`,
+              authorization: `Bearer ${bearerToken}`,
               ...extraHeaders,
               ...init.headers,
             },

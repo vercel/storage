@@ -14,11 +14,14 @@ const defaultVercelBlobApiUrl = 'https://vercel.com/api/blob';
 
 export interface BlobCommandOptions {
   /**
-   * Read-write token (`vercel_blob_rw_...`) for the legacy auth path when OIDC is not used.
+   * Define your blob API token.
+   * If process.env.VERCEL_OIDC_TOKEN is set and either process.env.BLOB_STORE_ID or options.storeId is set, this will be ignored
+   * @defaultvalue process.env.BLOB_READ_WRITE_TOKEN
    */
   token?: string;
   /**
-   * Store id for OIDC (`VERCEL_OIDC_TOKEN`); overrides `BLOB_STORE_ID` when both apply.
+   * Blob store id. Used to override process.env.BLOB_STORE_ID when Vercel OIDC token is available.
+   * @defaultvalue process.env.BLOB_STORE_ID
    */
   storeId?: string;
   /**

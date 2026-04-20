@@ -216,7 +216,7 @@ describe('api', () => {
             authorization: 'Bearer 123',
             'x-api-blob-request-attempt': '0',
             'x-api-blob-request-id': expect.any(String) as string,
-            'x-api-blob-store-id': '',
+            'x-vercel-blob-store-id': '',
             'x-api-version': '12',
           },
           method: 'POST',

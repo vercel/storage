@@ -192,6 +192,27 @@ function objectPathnameFromUrl(url: URL): string {
 }
 
 /**
+ * `URL#pathname` is often percent-encoded per segment; `issueSignedToken` scope
+ * `pathname` is the logical key (e.g. spaces, parens as Unicode). Compare after
+ * decoding each segment.
+ */
+function decodeBlobObjectPath(path: string): string {
+  if (!path) {
+    return path;
+  }
+  return path
+    .split('/')
+    .map((segment) => {
+      try {
+        return decodeURIComponent(segment);
+      } catch {
+        return segment;
+      }
+    })
+    .join('/');
+}
+
+/**
  * @internal
  */
 function uint8ToBase64(bytes: Uint8Array): string {
@@ -241,6 +262,13 @@ async function hmacSha256Base64Url(key: string, data: string): Promise<string> {
  */
 function toBase64Url(base64: string): string {
   return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function normalizeStoreId(storeId: string): string {
+  const lowercase = storeId.toLowerCase();
+  return lowercase.startsWith('store_')
+    ? lowercase.slice('store_'.length)
+    : lowercase;
 }
 
 /**
@@ -298,15 +326,17 @@ export async function presignUrl(
   if (!scope) {
     throw new BlobError('Invalid or unreadable `delegationToken` payload.');
   }
-  if (scope.storeId && scope.storeId !== hostStoreId) {
+
+  if (normalizeStoreId(scope.storeId) !== normalizeStoreId(hostStoreId)) {
     throw new BlobError(
       'Store id in the URL does not match the delegation token.',
     );
   }
-  const opPath = objectPathnameFromUrl(u);
+  const opPath = decodeBlobObjectPath(objectPathnameFromUrl(u));
   const p = scope.pathname;
   if (p && p !== '*') {
-    if (opPath !== p) {
+    const pNorm = decodeBlobObjectPath(p);
+    if (opPath !== pNorm) {
       throw new BlobError(
         'Blob path does not match the signed token scope; expected `' +
           p +

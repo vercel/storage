@@ -3,6 +3,7 @@ import { BlobError } from './helpers';
 import {
   BLOB_PRESIGN_QUERY_DELEGATION,
   BLOB_PRESIGN_QUERY_SIGNATURE,
+  BLOB_PRESIGN_QUERY_URL_EXPIRES,
   presignUrl,
 } from './signed-token';
 import {
@@ -111,6 +112,86 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
           clientSigningToken: client,
         }),
       ).rejects.toThrow(BlobError);
+    });
+
+    it('adds signed `vercel-blob-url-expires` when `ttlSeconds` is set', async () => {
+      const fixedNow = 1_700_000_000_000;
+      const spy = jest.spyOn(Date, 'now').mockReturnValue(fixedNow);
+      try {
+        const pathnameTtl = 'images/a.png';
+        const validUntil = fixedNow + 3_600_000;
+        const delegation = createDelegationToken(
+          {
+            storeId: `store_${storeId}`,
+            ownerId: 'owner_1',
+            pathname: pathnameTtl,
+            operations: ['get', 'head'],
+            validUntil,
+            iat: fixedNow,
+          },
+          blobSigningSecret,
+        );
+        const client = deriveClientSigningToken(blobSigningSecret, delegation);
+        const base = `https://store_${storeId}.public.blob.vercel-storage.com/${pathnameTtl}`;
+        const ttlSec = 90;
+        const presigned = await presignUrl(
+          base,
+          { delegationToken: delegation, clientSigningToken: client },
+          'GET',
+          { ttlSeconds: ttlSec },
+        );
+        const u = new URL(presigned);
+        const expMs = fixedNow + ttlSec * 1000;
+        expect(u.searchParams.get(BLOB_PRESIGN_QUERY_URL_EXPIRES)).toBe(
+          String(Math.trunc(expMs)),
+        );
+        const canonical = `GET\nhttps://store_${storeId}.public.blob.vercel-storage.com/${pathnameTtl}?vercel-blob-url-expires=${String(Math.trunc(expMs))}`;
+        const expected = createHmac('sha256', client)
+          .update(canonical, 'utf8')
+          .digest('base64url');
+        expect(u.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE)).toBe(expected);
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it('caps `ttlSeconds` to the delegation `validUntil`', async () => {
+      const fixedNow = 2_000_000_000_000;
+      const spy = jest.spyOn(Date, 'now').mockReturnValue(fixedNow);
+      try {
+        const validUntil = fixedNow + 120_000; // 2 min (cap)
+        const delegation = createDelegationToken(
+          {
+            storeId: `store_${storeId}`,
+            ownerId: 'o',
+            pathname: 'a.png',
+            operations: ['get'],
+            validUntil,
+            iat: fixedNow,
+          },
+          blobSigningSecret,
+        );
+        const client = deriveClientSigningToken(blobSigningSecret, delegation);
+        const base = `https://store_${storeId}.public.blob.vercel-storage.com/a.png`;
+        const u = new URL(
+          await presignUrl(
+            base,
+            { delegationToken: delegation, clientSigningToken: client },
+            'GET',
+            { ttlSeconds: 3600 },
+          ),
+        );
+        expect(u.searchParams.get(BLOB_PRESIGN_QUERY_URL_EXPIRES)).toBe(
+          String(validUntil),
+        );
+        const canonical = `GET\nhttps://store_${storeId}.public.blob.vercel-storage.com/a.png?vercel-blob-url-expires=${String(validUntil)}`;
+        const expected = createHmac('sha256', client)
+          .update(canonical, 'utf8')
+          .digest('base64url');
+        expect(u.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE)).toBe(expected);
+      } finally {
+        spy.mockRestore();
+      }
     });
   });
 }

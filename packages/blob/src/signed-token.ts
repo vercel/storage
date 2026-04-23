@@ -9,6 +9,9 @@ export const BLOB_PRESIGN_QUERY_DELEGATION = 'vercel-blob-delegation' as const;
 /** @public for CDN / tooling alignment */
 export const BLOB_PRESIGN_QUERY_SIGNATURE = 'vercel-blob-signature' as const;
 
+export const BLOB_PRESIGN_QUERY_URL_EXPIRES =
+  'vercel-blob-url-expires' as const;
+
 const PRESIGN_EXCLUDE = new Set<string>([
   BLOB_PRESIGN_QUERY_DELEGATION,
   BLOB_PRESIGN_QUERY_SIGNATURE,
@@ -241,16 +244,31 @@ function toBase64Url(base64: string): string {
 }
 
 /**
+ * Optional settings for {@link presignUrl}.
+ */
+export type PresignUrlOptions = {
+  /**
+   * Shorter lifetime for this specific URL, in **seconds** from the time
+   * `presignUrl` runs. Capped to the delegation payload’s `validUntil`.
+   * When set, a `vercel-blob-url-expires` query param (ms since epoch) is
+   * added and included in the HMAC. Omit to rely only on delegation scope.
+   */
+  ttlSeconds?: number;
+};
+
+/**
  * Builds a **presigned read URL** by HMACing a canonical string with
  * `clientSigningToken` and appending the delegation and signature
  * as query parameters. The CDN re-derives the signing key from
  * `delegationToken` and validates the HMAC, scope, and expiry.
  *
  * **Canonical string** (must match the verification implementation on the edge):
- * `<METHOD in upper case>\\n<origin><pathname>[?<sorted query without presign parameters>]`
+ * `<METHOD in upper case>\\n<origin><pathname>[?<sorted query without delegation/signature parameters>]`
  *
- * Query pairs are sorted lexicographically by key, then value. Delegation and
- * signature parameters are **omitted** from the string-to-sign, then appended
+ * Query pairs are sorted lexicographically by key, then value. The optional
+ * `vercel-blob-url-expires` (when using `options.ttlSeconds`) is part of the
+ * signed string. Delegation and signature parameters are **omitted** from the
+ * string-to-sign, then appended
  * to the final URL. Callers or browsers use this URL to **fetch the blob** without
  * a bearer.
  */
@@ -258,6 +276,7 @@ export async function presignUrl(
   blobUrl: string,
   issued: Pick<IssuedSignedToken, 'clientSigningToken' | 'delegationToken'>,
   method: 'GET' | 'HEAD' = 'GET',
+  options?: PresignUrlOptions,
 ): Promise<string> {
   if (!blobUrl) {
     throw new BlobError('A blob URL is required.');
@@ -269,6 +288,10 @@ export async function presignUrl(
   }
 
   const u = new URL(blobUrl);
+  u.searchParams.delete(BLOB_PRESIGN_QUERY_DELEGATION);
+  u.searchParams.delete(BLOB_PRESIGN_QUERY_SIGNATURE);
+  u.searchParams.delete(BLOB_PRESIGN_QUERY_URL_EXPIRES);
+
   const { storeId: hostStoreId } = assertBlobHost(u.hostname);
 
   const scope = tryDecodePayload(issued.delegationToken);
@@ -308,6 +331,32 @@ export async function presignUrl(
   if (m === 'GET' && !scope.operations?.includes('get')) {
     throw new BlobError(
       'The delegation token is not valid for `GET` requests. Include `"get"` in `operations` when calling `issueSignedToken`.',
+    );
+  }
+
+  if (options?.ttlSeconds !== undefined) {
+    if (
+      typeof options.ttlSeconds !== 'number' ||
+      !Number.isFinite(options.ttlSeconds) ||
+      options.ttlSeconds <= 0
+    ) {
+      throw new BlobError(
+        '`options.ttlSeconds` must be a positive finite number.',
+      );
+    }
+    const t = Date.now();
+    let expiresAt = t + options.ttlSeconds * 1000;
+    if (Number.isFinite(scope.validUntil)) {
+      expiresAt = Math.min(expiresAt, scope.validUntil);
+    }
+    if (expiresAt <= t) {
+      throw new BlobError(
+        '`ttlSeconds` would expire at or before the current time, or the delegation is already at `validUntil`. Use a larger ttl or a fresh `issueSignedToken` result.',
+      );
+    }
+    u.searchParams.set(
+      BLOB_PRESIGN_QUERY_URL_EXPIRES,
+      String(Math.trunc(expiresAt)),
     );
   }
 

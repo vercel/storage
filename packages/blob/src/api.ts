@@ -118,6 +118,7 @@ type BlobApiErrorCodes =
   | 'bad_request'
   | 'store_not_found'
   | 'not_allowed'
+  | 'client_token_not_allowed'
   | 'service_unavailable'
   | 'rate_limited'
   | 'content_type_not_allowed'
@@ -229,6 +230,12 @@ async function getBlobError(
       break;
     case 'not_found':
       error = new BlobNotFoundError();
+      break;
+    case 'client_token_not_allowed':
+      error = new BlobError(
+        message ??
+          'This operation is not available when using a client token. Use a read–write or OIDC token on the server.',
+      );
       break;
     case 'store_not_found':
       error = new BlobStoreNotFoundError();

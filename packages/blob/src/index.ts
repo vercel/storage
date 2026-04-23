@@ -236,10 +236,12 @@ export type {
   DelegationOperation,
   IssuedSignedToken,
   IssueSignedTokenOptions,
+  PresignUrlOptions,
 } from './signed-token';
 export {
   BLOB_PRESIGN_QUERY_DELEGATION,
   BLOB_PRESIGN_QUERY_SIGNATURE,
+  BLOB_PRESIGN_QUERY_URL_EXPIRES,
   issueSignedToken,
   presignUrl,
   SIGNED_TOKEN_MAX_TTL_SECONDS,

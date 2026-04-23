@@ -47,7 +47,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       const d = u.searchParams.get(BLOB_PRESIGN_QUERY_DELEGATION) ?? '';
       expect(d).toBe(delegation);
 
-      const canonical = `GET\nhttps://store_${storeId}.public.blob.vercel-storage.com/${pathname}`;
+      const canonical = `GET\n/${pathname}`;
       const expected = createHmac('sha256', client)
         .update(canonical, 'utf8')
         .digest('base64url');
@@ -84,7 +84,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       expect(u1.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE)).toBe(
         u2.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE),
       );
-      const canonical = `GET\nhttps://store_${storeId}.private.blob.vercel-storage.com/${pathname}?a=1&b=2`;
+      const canonical = `GET\n/${pathname}?a=1&b=2`;
       expect(
         createHmac('sha256', client)
           .update(canonical, 'utf8')
@@ -114,7 +114,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         'GET',
       );
       const u = new URL(presigned);
-      const canonical = `GET\n${u.origin}${u.pathname}`;
+      const canonical = `GET\n${u.pathname}`;
       const expected = createHmac('sha256', client)
         .update(canonical, 'utf8')
         .digest('base64url');
@@ -174,7 +174,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         expect(u.searchParams.get(BLOB_PRESIGN_QUERY_URL_EXPIRES)).toBe(
           String(Math.trunc(expMs)),
         );
-        const canonical = `GET\nhttps://store_${storeId}.public.blob.vercel-storage.com/${pathnameTtl}?vercel-blob-url-expires=${String(Math.trunc(expMs))}`;
+        const canonical = `GET\n/${pathnameTtl}?vercel-blob-url-expires=${String(Math.trunc(expMs))}`;
         const expected = createHmac('sha256', client)
           .update(canonical, 'utf8')
           .digest('base64url');
@@ -213,7 +213,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         expect(u.searchParams.get(BLOB_PRESIGN_QUERY_URL_EXPIRES)).toBe(
           String(validUntil),
         );
-        const canonical = `GET\nhttps://store_${storeId}.public.blob.vercel-storage.com/a.png?vercel-blob-url-expires=${String(validUntil)}`;
+        const canonical = `GET\n/a.png?vercel-blob-url-expires=${String(validUntil)}`;
         const expected = createHmac('sha256', client)
           .update(canonical, 'utf8')
           .digest('base64url');

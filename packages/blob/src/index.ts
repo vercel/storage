@@ -232,3 +232,16 @@ export type {
 } from './create-folder';
 export { createFolder } from './create-folder';
 export type { Part, PartInput } from './multipart/helpers';
+export type {
+  DelegationOperation,
+  IssuedSignedToken,
+  IssueSignedTokenOptions,
+} from './signed-token';
+export {
+  BLOB_PRESIGN_QUERY_DELEGATION,
+  BLOB_PRESIGN_QUERY_SIGNATURE,
+  issueSignedToken,
+  presignUrl,
+  SIGNED_TOKEN_MAX_TTL_SECONDS,
+  SIGNED_TOKEN_MIN_TTL_SECONDS,
+} from './signed-token';

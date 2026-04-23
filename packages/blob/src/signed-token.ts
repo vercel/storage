@@ -232,7 +232,8 @@ function uint8ToBase64(bytes: Uint8Array): string {
 }
 
 /**
- * HMAC-SHA256 with a UTF-8 string key, Base64 (standard) in, then Base64url out.
+ * HMAC-SHA256 with the `clientSigningToken` string as the UTF-8 key; signature
+ * digest is base64url (no padding), i.e. `vercel-blob-signature`.
  * Uses the Web Crypto API (Node 20+, browsers, Edge).
  */
 async function hmacSha256Base64Url(key: string, data: string): Promise<string> {
@@ -290,15 +291,20 @@ export type PresignUrlOptions = {
  * as query parameters. The CDN re-derives the signing key from
  * `delegationToken` and validates the HMAC, scope, and expiry.
  *
- * **Canonical string** (must match the verification implementation on the edge):
- * `<METHOD in upper case>\\n<origin><pathname>[?<sorted query without delegation/signature parameters>]`
+ * **Canonical string** (must match the verification service on the edge/Go; no
+ * host or scheme; routing already selects the store):
  *
- * Query pairs are sorted lexicographically by key, then value. The optional
- * `vercel-blob-url-expires` (when using `options.ttlSeconds`) is part of the
- * signed string. Delegation and signature parameters are **omitted** from the
- * string-to-sign, then appended
- * to the final URL. Callers or browsers use this URL to **fetch the blob** without
- * a bearer.
+ * - Line 1: HTTP method (`GET` or `HEAD`, uppercase).
+ * - Line 2: `pathname` only, as from `new URL(href).pathname` (includes a leading
+ *   `/` and percent-encoded segments; no origin or port), optionally followed by
+ *   `?` and a query string.
+ *
+ * Query string for signing: all params except `vercel-blob-delegation` and
+ * `vercel-blob-signature` (e.g. `vercel-blob-url-expires` when
+ * `options.ttlSeconds` is set), sorted by UTF-8 key ascending then value ascending,
+ * and encoded as in Go’s `url.Values` from those pairs, then `Encode()`.
+ * Delegation and signature are **appended to the final URL** after the HMAC is
+ * computed.
  */
 export async function presignUrl(
   blobUrl: string,
@@ -419,8 +425,27 @@ function canonicalStringForUrl(u: URL, method: 'GET' | 'HEAD'): string {
   }
   const q = sortSearchParams(us.searchParams);
   const path = us.pathname;
-  const base = `${us.origin}${path}`;
-  return q ? `${method}\n${base}?${q}` : `${method}\n${base}`;
+  return q ? `${method}\n${path}?${q}` : `${method}\n${path}`;
+}
+
+const utf8Encoder = new TextEncoder();
+
+/**
+ * Lexicographic order of UTF-8 bytewise (matches Go `string` comparison and
+ * `url.Values` key / pair ordering in practice).
+ * @internal
+ */
+function compareUtf8(a: string, b: string): number {
+  const ab = utf8Encoder.encode(a);
+  const bb = utf8Encoder.encode(b);
+  const n = Math.min(ab.length, bb.length);
+  for (let i = 0; i < n; i++) {
+    const d = (ab[i]! - bb[i]!) as number;
+    if (d !== 0) {
+      return d;
+    }
+  }
+  return ab.length - bb.length;
 }
 
 /**
@@ -432,8 +457,8 @@ function sortSearchParams(input: URLSearchParams): string {
     parts.push([k, v]);
   }
   parts.sort((a, b) => {
-    const c = a[0].localeCompare(b[0]);
-    return c !== 0 ? c : a[1].localeCompare(b[1]);
+    const c = compareUtf8(a[0]!, b[0]!);
+    return c !== 0 ? c : compareUtf8(a[1]!, b[1]!);
   });
   return new URLSearchParams(parts).toString();
 }

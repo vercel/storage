@@ -92,6 +92,35 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       ).toBe(u1.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE));
     });
 
+    it('accepts a percent-encoded URL path when the token scope is the decoded object key', async () => {
+      const logicalName = 'Image Background Removed (1).png';
+      const encodedSegment = encodeURIComponent(logicalName);
+      const delegation = createDelegationToken(
+        {
+          storeId: `store_${storeId}`,
+          ownerId: 'owner_1',
+          pathname: logicalName,
+          operations: ['get', 'head'],
+          validUntil: now + 3600_000,
+          iat: now,
+        },
+        blobSigningSecret,
+      );
+      const client = deriveClientSigningToken(blobSigningSecret, delegation);
+      const base = `https://store_${storeId}.public.blob.vercel-storage.com/${encodedSegment}`;
+      const presigned = await presignUrl(
+        base,
+        { delegationToken: delegation, clientSigningToken: client },
+        'GET',
+      );
+      const u = new URL(presigned);
+      const canonical = `GET\n${u.origin}${u.pathname}`;
+      const expected = createHmac('sha256', client)
+        .update(canonical, 'utf8')
+        .digest('base64url');
+      expect(u.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE)).toBe(expected);
+    });
+
     it('rejects path mismatch for scoped non-wildcard tokens', async () => {
       const delegation = createDelegationToken(
         {

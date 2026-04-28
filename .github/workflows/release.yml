@@ -1,3 +1,34 @@
+# This workflow handles two flows (due to Trusted Publishing only supporting one workflow):
+#
+# 1. Normal release (default)
+#    Triggered by pushes to `main`. Uses changesets/action to either open a
+#    "Version Packages" PR or, when such a PR is merged, publish to npm.
+#
+# 2. Snapshot release (manual, opt-in)
+#    Triggered by running this workflow via workflow_dispatch with the
+#    `snapshot` input set to true.
+#
+#    A snapshot release is useful when you want to try out changes on a pull
+#    request before making a full release and without entering pre-release mode.
+#    Changesets force pre-release mode across all packages in the monorepo,
+#    which blocks stable releases of every package until pre-release is exited,
+#    so we use snapshots instead.
+#
+#    Snapshot releases are published under the `snapshot` dist-tag with versions
+#    like 0.4.0-579bd13f-20230913164912 (the version that would be generated,
+#    the commit short sha, and a timestamp).
+#
+#    How to create one:
+#      - Push your branch to GitHub.
+#      - Make sure the branch has a changeset committed (`pnpm changeset`).
+#      - Open Actions > Release > "Run workflow", select your branch, tick
+#        "snapshot", and run.
+#      - In the run's logs find the "Create Snapshot Release" step. The last
+#        line shows the published version, e.g.
+#          @vercel/blob@2.3.4-579bd13-20230913164912
+#      - Install with `pnpm add @vercel/blob@<that version>` or
+#        `pnpm add @vercel/blob@snapshot` for the latest snapshot.
+
 name: Release
 
 env:
@@ -11,6 +42,12 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      snapshot:
+        description: "Publish a snapshot release from the selected branch (under the `snapshot` dist-tag) instead of running the normal release flow. Requires a changeset on the branch."
+        type: boolean
+        default: false
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
@@ -33,13 +70,44 @@ jobs:
       - name: Install Dependencies
         run: pnpm install
 
+      # ----- Normal release (push to main, or manual run without snapshot) -----
       - name: Create Release Pull Request or Publish to npm
+        if: ${{ inputs.snapshot != true }}
         id: changesets
         uses: changesets/action@v1
         with:
           # This expects you to have a script called release which does a build for your packages and calls changeset publish
           publish: pnpm release
           version: pnpm version-packages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN_ELEVATED }}
+
+      # ----- Snapshot release (manual, when `snapshot` input is true) -----
+      - name: Add npm auth token to pnpm
+        if: ${{ inputs.snapshot == true }}
+        run: pnpm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN_ELEVATED}"
+        env:
+          NPM_TOKEN_ELEVATED: ${{ secrets.NPM_TOKEN_ELEVATED }}
+
+      - name: Add SHORT_SHA env property with commit short sha
+        if: ${{ inputs.snapshot == true }}
+        run: echo "SHORT_SHA=`echo ${{ github.sha }} | cut -c1-7`" >> $GITHUB_ENV
+
+      - name: Version Packages (snapshot)
+        if: ${{ inputs.snapshot == true }}
+        run: pnpm changeset version --snapshot ${SHORT_SHA}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN_ELEVATED }}
+
+      - name: Build (snapshot)
+        if: ${{ inputs.snapshot == true }}
+        run: pnpm build
+
+      - name: Create Snapshot Release
+        if: ${{ inputs.snapshot == true }}
+        run: pnpm changeset publish --no-git-tag --tag snapshot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN_ELEVATED }}

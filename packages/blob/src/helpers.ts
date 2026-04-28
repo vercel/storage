@@ -15,7 +15,7 @@ const defaultVercelBlobApiUrl = 'https://vercel.com/api/blob';
 export interface BlobCommandOptions {
   /**
    * Define your blob API token.
-   * If process.env.VERCEL_OIDC_TOKEN is set and either process.env.BLOB_STORE_ID or options.storeId is set, this will be ignored
+   * When supplied, this takes priority over process.env.VERCEL_OIDC_TOKEN and process.env.BLOB_READ_WRITE_TOKEN.
    * @defaultvalue process.env.BLOB_READ_WRITE_TOKEN
    */
   token?: string;
@@ -156,13 +156,20 @@ export function parseStoreIdFromReadWriteToken(token: string): string {
 }
 
 /**
- * Resolves credentials: with `VERCEL_OIDC_TOKEN`, use `storeId` option if set,
- * else `BLOB_STORE_ID` if set. Otherwise use read-write `token` option or
- * `BLOB_READ_WRITE_TOKEN`.
+ * Resolves credentials in the following priority order:
+ * 1. An explicit read-write `token` passed via options.
+ * 2. `VERCEL_OIDC_TOKEN` paired with `storeId` option (or `BLOB_STORE_ID`).
+ * 3. `BLOB_READ_WRITE_TOKEN` from the environment.
  */
 export function resolveBlobAuth(
   options?: BlobCommandOptions,
 ): ResolvedBlobAuth {
+  // An explicitly supplied token always wins over OIDC and env-based tokens.
+  if (options?.token) {
+    const storeId = parseStoreIdFromReadWriteToken(options.token);
+    return { kind: 'readWrite', token: options.token, storeId };
+  }
+
   const oidcToken = getVercelOidcToken();
   if (oidcToken) {
     // Try to get storeId from the supplied options
@@ -178,11 +185,6 @@ export function resolveBlobAuth(
     }
   }
 
-  if (options?.token) {
-    const storeId = parseStoreIdFromReadWriteToken(options.token);
-    return { kind: 'readWrite', token: options.token, storeId };
-  }
-
   const readWrite = readEnv('BLOB_READ_WRITE_TOKEN');
   if (readWrite) {
     const storeId = parseStoreIdFromReadWriteToken(readWrite);
@@ -190,7 +192,7 @@ export function resolveBlobAuth(
   }
 
   throw new BlobError(
-    'No blob credentials found. With `VERCEL_OIDC_TOKEN`, set `storeId` or `BLOB_STORE_ID`. Otherwise set `BLOB_READ_WRITE_TOKEN` or pass a `token` option.',
+    'No blob credentials found. Pass a `token` option, set `BLOB_READ_WRITE_TOKEN`, or use `VERCEL_OIDC_TOKEN` with `storeId` or `BLOB_STORE_ID`.',
   );
 }
 

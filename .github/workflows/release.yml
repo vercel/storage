@@ -1,4 +1,4 @@
-# This workflow handles two flows (due to Trusted Publishing only supporting one workflow):
+# This workflow handles two flows:
 #
 # 1. Normal release (default)
 #    Triggered by pushes to `main`. Uses changesets/action to either open a
@@ -28,6 +28,15 @@
 #          @vercel/blob@2.3.4-579bd13-20230913164912
 #      - Install with `pnpm add @vercel/blob@<that version>` or
 #        `pnpm add @vercel/blob@snapshot` for the latest snapshot.
+#
+# Authentication: this workflow publishes to npm via Trusted Publishing (OIDC),
+# not a long-lived NPM_TOKEN. Each package that should be published from this
+# workflow must have a Trusted Publisher configured on npmjs.com pointing at
+# this repo and the `release.yml` workflow filename. See:
+#   https://docs.npmjs.com/trusted-publishers
+# Trusted publishing requires Node >= 22.14.0 and npm >= 11.5.1, which is why
+# we pin `node-version: latest` here. The `id-token: write` permission below
+# is what allows GitHub Actions to mint the OIDC token npm uses to verify us.
 
 name: Release
 
@@ -51,6 +60,11 @@ on:
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
+permissions:
+  contents: write       # version commits + GitHub releases (changesets/action)
+  pull-requests: write  # "Version Packages" PR (changesets/action)
+  id-token: write       # OIDC token for npm Trusted Publishing
+
 jobs:
   release:
     name: Release
@@ -64,8 +78,9 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version-file: '.node-version'
-          cache: 'pnpm'
+          node-version: latest
+          registry-url: "https://registry.npmjs.org"
+          cache: "pnpm"
 
       - name: Install Dependencies
         run: pnpm install
@@ -81,15 +96,8 @@ jobs:
           version: pnpm version-packages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN_ELEVATED }}
 
       # ----- Snapshot release (manual, when `snapshot` input is true) -----
-      - name: Add npm auth token to pnpm
-        if: ${{ inputs.snapshot == true }}
-        run: pnpm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN_ELEVATED}"
-        env:
-          NPM_TOKEN_ELEVATED: ${{ secrets.NPM_TOKEN_ELEVATED }}
-
       - name: Add SHORT_SHA env property with commit short sha
         if: ${{ inputs.snapshot == true }}
         run: echo "SHORT_SHA=`echo ${{ github.sha }} | cut -c1-7`" >> $GITHUB_ENV
@@ -99,7 +107,6 @@ jobs:
         run: pnpm changeset version --snapshot ${SHORT_SHA}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN_ELEVATED }}
 
       - name: Build (snapshot)
         if: ${{ inputs.snapshot == true }}
@@ -110,4 +117,3 @@ jobs:
         run: pnpm changeset publish --no-git-tag --tag snapshot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN_ELEVATED }}

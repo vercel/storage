@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       - uses: actions/setup-node@v6
         with:
@@ -57,7 +57,7 @@ jobs:
         env:
           PLAYWRIGHT_TEST_BASE_URL: ${{inputs.PLAYWRIGHT_TEST_BASE_URL || 'https://storage-rho.vercel.app' }}
       - name: Datadog report Fail
-        uses: masci/datadog@v1
+        uses: masci/datadog@v2
         if: failure()
         with:
           api-key: ${{ secrets.DATADOG_API_KEY }}
@@ -69,7 +69,7 @@ jobs:
               tags:
                 - "project:${{ github.repository }}"
       - name: Datadog report Success
-        uses: masci/datadog@v1
+        uses: masci/datadog@v2
         with:
           api-key: ${{ secrets.DATADOG_API_KEY }}
           service-checks: |
@@ -81,7 +81,7 @@ jobs:
                 - "project:${{ github.repository }}"
       - name: Upload Snpashot results
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-snapshot
           path: test/next/test-results

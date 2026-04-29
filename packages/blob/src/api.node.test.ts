@@ -9,7 +9,7 @@ import {
   BlobUnknownError,
   requestApi,
 } from './api';
-import { BlobError } from './helpers';
+import { BlobError, createChunkTransformStream } from './helpers';
 
 describe('api', () => {
   describe('request api', () => {
@@ -131,5 +131,76 @@ describe('api', () => {
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
+  });
+});
+
+describe('createChunkTransformStream', () => {
+  async function collectChunks(
+    stream: ReadableStream<Uint8Array>,
+  ): Promise<Uint8Array[]> {
+    const chunks: Uint8Array[] = [];
+    const reader = stream.getReader();
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+    }
+    return chunks;
+  }
+
+  it('accumulates small chunks and emits full-sized chunks', async () => {
+    const chunkSize = 4;
+    const stream = new ReadableStream<ArrayBuffer>({
+      start(controller) {
+        controller.enqueue(new Uint8Array([1, 2]).buffer);
+        controller.enqueue(new Uint8Array([3, 4, 5, 6]).buffer);
+        controller.enqueue(new Uint8Array([7]).buffer);
+        controller.close();
+      },
+    });
+
+    const chunks = await collectChunks(
+      stream.pipeThrough(createChunkTransformStream(chunkSize)),
+    );
+
+    expect(chunks).toHaveLength(2);
+    expect(Array.from(chunks[0]!)).toEqual([1, 2, 3, 4]);
+    expect(Array.from(chunks[1]!)).toEqual([5, 6, 7]);
+  });
+
+  it('calls onProgress for each emitted chunk', async () => {
+    const chunkSize = 3;
+    const progress: number[] = [];
+    const stream = new ReadableStream<ArrayBuffer>({
+      start(controller) {
+        controller.enqueue(new Uint8Array([1, 2, 3, 4, 5]).buffer);
+        controller.close();
+      },
+    });
+
+    await collectChunks(
+      stream.pipeThrough(
+        createChunkTransformStream(chunkSize, (bytes) => progress.push(bytes)),
+      ),
+    );
+
+    expect(progress).toEqual([3, 2]);
+  });
+
+  it('flushes remaining bytes when stream ends', async () => {
+    const chunkSize = 10;
+    const stream = new ReadableStream<ArrayBuffer>({
+      start(controller) {
+        controller.enqueue(new Uint8Array([1, 2, 3]).buffer);
+        controller.close();
+      },
+    });
+
+    const chunks = await collectChunks(
+      stream.pipeThrough(createChunkTransformStream(chunkSize)),
+    );
+
+    expect(chunks).toHaveLength(1);
+    expect(Array.from(chunks[0]!)).toEqual([1, 2, 3]);
   });
 });

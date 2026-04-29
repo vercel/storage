@@ -49,14 +49,14 @@
     "@vercel/edge-config-fs": "workspace:*"
   },
   "devDependencies": {
-    "@changesets/cli": "2.30.0",
-    "@edge-runtime/jest-environment": "2.3.10",
+    "@changesets/cli": "2.31.0",
+    "@edge-runtime/jest-environment": "4.0.0",
     "@edge-runtime/types": "4.0.0",
     "@types/jest": "30.0.0",
-    "@types/node": "24.12.0",
+    "@types/node": "24.12.2",
     "jest": "30.3.0",
     "jest-fetch-mock": "3.0.3",
-    "next": "16.2.2",
+    "next": "16.2.4",
     "node-domexception": "2.0.2",
     "ts-jest": "29.4.9",
     "tsconfig": "workspace:*",

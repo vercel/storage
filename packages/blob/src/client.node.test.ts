@@ -276,6 +276,45 @@ describe('client uploads', () => {
       });
     });
 
+    it('uses pathname returned by onBeforeGenerateToken in the generated client token', async () => {
+      const token =
+        'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
+
+      const jsonResponse = await handleUpload({
+        token,
+        request: {
+          headers: { 'x-vercel-signature': '123' },
+        } as unknown as IncomingMessage,
+        body: {
+          type: 'blob.generate-client-token',
+          payload: {
+            pathname: 'client-supplied.txt',
+            clientPayload: null,
+            multipart: false,
+          },
+        },
+        onBeforeGenerateToken: async () => {
+          return Promise.resolve({
+            pathname: 'server-controlled/final-name.txt',
+            callbackUrl: 'https://example.com',
+          });
+        },
+        onUploadCompleted: async () => {
+          await Promise.resolve();
+        },
+      });
+
+      expect(jsonResponse.type).toEqual('blob.generate-client-token');
+      expect(
+        getPayloadFromClientToken((jsonResponse as any).clientToken),
+      ).toMatchObject({
+        pathname: 'server-controlled/final-name.txt',
+        onUploadCompleted: {
+          callbackUrl: 'https://example.com',
+        },
+      });
+    });
+
     it('ignores client callbackUrl when server provides one', async () => {
       const token =
         'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';

@@ -163,6 +163,25 @@ describe('client', () => {
         },
       );
     });
+
+    it('throws with HTTP status when handleUploadUrl returns an error', async () => {
+      jest.spyOn(undici, 'fetch').mockImplementation(
+        jest.fn().mockResolvedValueOnce({
+          status: 403,
+          statusText: 'Forbidden',
+          ok: false,
+        }),
+      );
+
+      await expect(
+        upload('foo.txt', 'Test file data', {
+          access: 'public',
+          handleUploadUrl: '/api/upload',
+        }),
+      ).rejects.toThrow(
+        'Vercel Blob: Failed to retrieve the client token: 403 Forbidden',
+      );
+    });
   });
 
   describe('multipart upload', () => {

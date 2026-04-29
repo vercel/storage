@@ -698,7 +698,9 @@ async function retrieveClientToken(options: {
   });
 
   if (!res.ok) {
-    throw new BlobError('Failed to  retrieve the client token');
+    throw new BlobError(
+      `Failed to retrieve the client token: ${res.status} ${res.statusText}`,
+    );
   }
 
   try {

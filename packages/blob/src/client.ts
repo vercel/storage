@@ -881,6 +881,11 @@ function getCallbackUrl(request: RequestType): string | undefined {
     return `${process.env.VERCEL_BLOB_CALLBACK_URL}${reqPath}`;
   }
 
+  const callbackUrlFromHeaders = getCallbackUrlFromHeaders(request, reqPath);
+  if (callbackUrlFromHeaders) {
+    return callbackUrlFromHeaders;
+  }
+
   // Not hosted on Vercel and no VERCEL_BLOB_CALLBACK_URL
   if (process.env.VERCEL !== '1') {
     console.warn(
@@ -908,6 +913,58 @@ function getCallbackUrl(request: RequestType): string | undefined {
   }
 
   return undefined;
+}
+
+function getCallbackUrlFromHeaders(
+  request: RequestType,
+  reqPath: string,
+): string | undefined {
+  if (!request.headers) {
+    return undefined;
+  }
+
+  const rawHost = hasHeadersGet(request.headers)
+    ? request.headers.get('x-forwarded-host') ??
+      request.headers.get('host') ??
+      undefined
+    : getFirstHeaderValue(
+        request.headers['x-forwarded-host'] ?? request.headers.host,
+      );
+
+  if (!rawHost) {
+    return undefined;
+  }
+
+  const host = rawHost.split(',')[0]?.trim();
+  if (!host) {
+    return undefined;
+  }
+
+  const rawProtocol = hasHeadersGet(request.headers)
+    ? request.headers.get('x-forwarded-proto') ?? undefined
+    : getFirstHeaderValue(request.headers['x-forwarded-proto']);
+
+  const protocol = rawProtocol?.split(',')[0]?.trim() || inferProtocol(host);
+
+  return `${protocol}://${host}${reqPath}`;
+}
+
+function getFirstHeaderValue(
+  headerValue: string | string[] | undefined,
+): string | undefined {
+  return Array.isArray(headerValue) ? headerValue[0] : headerValue;
+}
+
+function hasHeadersGet(
+  headers: IncomingMessage['headers'] | Headers | undefined,
+): headers is Headers {
+  return typeof headers === 'object' && headers !== null && 'get' in headers;
+}
+
+function inferProtocol(host: string): 'http' | 'https' {
+  return host.startsWith('localhost') || host.startsWith('127.0.0.1')
+    ? 'http'
+    : 'https';
 }
 
 /**

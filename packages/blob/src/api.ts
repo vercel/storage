@@ -269,8 +269,10 @@ export async function requestApi<TResponse>(
 ): Promise<TResponse> {
   const apiVersion = getApiVersion();
   const auth = resolveBlobAuth(commandOptions);
-  const bearerToken = auth.kind === 'readWrite' ? auth.token : auth.oidcToken;
+  const bearerToken = auth.kind === 'presigned' ? undefined : auth.token;
   const extraHeaders = getProxyThroughAlternativeApiHeaderFromEnv();
+
+  const requestInput = commandOptions?.presignedUrl ?? getApiUrl(pathname);
 
   const requestId = `${auth.storeId}:${Date.now()}:${Math.random().toString(16).slice(2)}`;
   let retryCount = 0;
@@ -296,6 +298,8 @@ export async function requestApi<TResponse>(
     });
   }
 
+  console.log('requestInput', requestInput);
+
   const apiResponse = await retry(
     async (bail) => {
       let res: Response;
@@ -303,7 +307,7 @@ export async function requestApi<TResponse>(
       // try/catch here to treat certain errors as not-retryable
       try {
         res = await blobRequest({
-          input: getApiUrl(pathname),
+          input: requestInput,
           init: {
             ...init,
             headers: {
@@ -315,7 +319,9 @@ export async function requestApi<TResponse>(
               ...(sendBodyLength
                 ? { 'x-content-length': String(bodyLength) }
                 : {}),
-              authorization: `Bearer ${bearerToken}`,
+              ...(bearerToken !== undefined
+                ? { authorization: `Bearer ${bearerToken}` }
+                : {}),
               ...extraHeaders,
               ...init.headers,
             },

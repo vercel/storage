@@ -820,8 +820,11 @@ export async function handleUploadPresigned({
         clientPayload,
         multipart,
       );
+      console.log('signedToken', signedToken);
       const url = controlPlaneBlobPutUrl(pathname);
+      console.log('url', url);
       const presignedUrl = await presignUrl(url, signedToken, 'PUT');
+      console.log('presignedUrl', presignedUrl);
       return { type: body.type, presignedUrl };
     }
     case 'blob.upload-completed': {

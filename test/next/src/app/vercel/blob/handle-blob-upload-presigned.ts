@@ -32,7 +32,6 @@ const getCachedToken = async (
   multipart: boolean,
 ) => {
   // fake: get from cache if it's there
-  console.log('in getCachedToken');
   return await issueSignedToken({
     pathname,
     allowedContentTypes: ['image/png', 'image/jpeg'],

@@ -30,6 +30,7 @@ export {
   BlobError,
   getDownloadUrl,
   type OnUploadProgressCallback,
+  parseStoreIdFromPresignedUrl,
   type UploadProgressEvent,
 } from './helpers';
 

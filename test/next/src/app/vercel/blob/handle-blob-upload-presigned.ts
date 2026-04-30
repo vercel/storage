@@ -58,7 +58,6 @@ export async function handleUploadPresignedHandler(
   try {
     const jsonResponse = await handleUploadPresigned({
       body,
-      request,
       getSignedToken: async (pathname, clientPayload, multipart) => {
         const { userCanUpload } = await auth(request, pathname);
 

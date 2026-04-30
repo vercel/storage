@@ -28,6 +28,8 @@ export interface BlobCommandOptions {
    * `AbortSignal` to cancel the running request. See https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal
    */
   abortSignal?: AbortSignal;
+
+  presignedUrl?: string;
 }
 
 /**

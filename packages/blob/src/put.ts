@@ -24,6 +24,7 @@ export interface PutCommandOptions
 export function createPutMethod<TOptions extends PutCommandOptions>({
   allowedOptions,
   getToken,
+  getPresignedUrl,
   extraChecks,
 }: CreatePutMethodOptions<TOptions>) {
   return async function put(
@@ -41,11 +42,14 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
       );
     }
 
+    console.log('going to createPutOptions');
+
     const options = await createPutOptions({
       pathname,
       options: optionsInput,
       extraChecks,
       getToken,
+      getPresignedUrl,
     });
 
     const headers = createPutHeaders(allowedOptions, options);
@@ -58,10 +62,14 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
       ? throttle(options.onUploadProgress, 100)
       : undefined;
 
-    const params = new URLSearchParams({ pathname });
+    const url =
+      options.presignedUrl ??
+      `/?${new URLSearchParams({ pathname }).toString()}`;
+
+    console.log('url', url);
 
     const response = await requestApi<PutBlobApiResponse>(
-      `/?${params.toString()}`,
+      url,
       {
         method: 'PUT',
         body,

@@ -172,7 +172,7 @@ function createBlobServiceRateLimited(
 }
 
 // reads the body of a error response
-async function getBlobError(
+export async function getBlobError(
   response: Response,
 ): Promise<{ code: string; error: BlobError }> {
   let code: BlobApiErrorCodes;

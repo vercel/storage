@@ -298,8 +298,6 @@ export async function requestApi<TResponse>(
     });
   }
 
-  console.log('requestInput', requestInput);
-
   const apiResponse = await retry(
     async (bail) => {
       let res: Response;

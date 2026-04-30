@@ -30,7 +30,7 @@ export default function AppPresignedUpload(): React.JSX.Element {
 
           try {
             const blobResult = await uploadPresigned(file.name, file, {
-              access: 'public',
+              access: 'private',
               multipart: searchParams?.get('multipart') === '1',
               handleUploadUrl: `/vercel/blob/api/app/handle-blob-upload-presigned/serverless`,
               // Example of using the new headers parameter to send an authorization header

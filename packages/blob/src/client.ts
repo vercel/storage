@@ -361,7 +361,6 @@ export const uploadPresigned = createPutMethod<UploadOptions>({
     }
   },
   async getPresignedUrl(pathname, options) {
-    console.log('in getPresignedUrl');
     return retrievePresignedUrl({
       pathname,
       handleUploadUrl: options.handleUploadUrl,
@@ -780,9 +779,6 @@ export type HandleUploadPresignedSignedTokenPayload = Pick<
  */
 export interface HandleUploadPresignedOptions {
   body: HandleUploadPresignedBody;
-  request: RequestType;
-  token?: string;
-  storeId?: string;
   /**
    * Produce signed-token material (e.g. via `issueSignedToken`) from the constraints returned by `onBeforeGenerateToken`.
    */
@@ -799,9 +795,6 @@ export interface HandleUploadPresignedOptions {
  * and verifies upload-completed callbacks the same way as {@link handleUpload}.
  */
 export async function handleUploadPresigned({
-  token,
-  storeId,
-  request,
   body,
   getSignedToken,
   onUploadCompleted,
@@ -809,51 +802,22 @@ export async function handleUploadPresigned({
   | { type: 'blob.generate-presigned-url'; presignedUrl: string }
   | { type: 'blob.upload-completed'; response: 'ok' }
 > {
-  // const resolvedToken = getReadWriteBlobTokenFromOptionsOrEnv({ token });
-
   switch (body.type) {
     case 'blob.generate-presigned-url': {
-      console.log('in handleUploadPresigned');
       const { pathname, clientPayload, multipart } = body.payload;
       const signedToken = await getSignedToken(
         pathname,
         clientPayload,
         multipart,
       );
-      console.log('signedToken', signedToken);
       const url = controlPlaneBlobPutUrl(pathname);
-      console.log('url', url);
       const presignedUrl = await presignUrl(url, signedToken, 'PUT');
-      console.log('presignedUrl', presignedUrl);
       return { type: body.type, presignedUrl };
     }
     case 'blob.upload-completed': {
-      throw new BlobError('TODO NOT IMPLEMENTED');
-      // const signatureHeader = 'x-vercel-signature';
-      // const signature = (
-      //   'credentials' in request
-      //     ? (request.headers.get(signatureHeader) ?? '')
-      //     : (request.headers[signatureHeader] ?? '')
-      // ) as string;
-
-      // if (!signature) {
-      //   throw new BlobError('Missing callback signature');
-      // }
-
-      // const isVerified = await verifyCallbackSignature({
-      //   token: resolvedToken,
-      //   signature,
-      //   body: JSON.stringify(body),
-      // });
-
-      // if (!isVerified) {
-      //   throw new BlobError('Invalid callback signature');
-      // }
-
-      // if (onUploadCompleted) {
-      //   await onUploadCompleted(body.payload);
-      // }
-      // return { type: body.type, response: 'ok' };
+      // todo: implement
+      console.warn('blob.upload-completed is not yet implemented');
+      return { type: body.type, response: 'ok' };
     }
     default:
       throw new BlobError('Invalid event type');

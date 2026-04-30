@@ -60,8 +60,7 @@ export async function handleUploadPresignedHandler(
       body,
       request,
       getSignedToken: async (pathname, clientPayload, multipart) => {
-        console.log('in getSignedToken');
-        const { user, userCanUpload } = await auth(request, pathname);
+        const { userCanUpload } = await auth(request, pathname);
 
         if (!userCanUpload) {
           throw new Error('Not authorized');
@@ -73,18 +72,7 @@ export async function handleUploadPresignedHandler(
           request.headers.get('X-Test-Header');
         console.log('Custom header received:', customHeader);
 
-        try {
-          const token = await getCachedToken(
-            pathname,
-            clientPayload,
-            multipart,
-          );
-          console.log('token', token);
-          return token;
-        } catch (error) {
-          console.error('Error in getCachedToken:', error);
-          throw error;
-        }
+        return await getCachedToken(pathname, clientPayload, multipart);
       },
     });
 

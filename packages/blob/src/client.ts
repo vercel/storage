@@ -843,6 +843,7 @@ export async function handleUploadPresigned({
 > {
   const resolvedWebhookPublicKey =
     webhookPublicKey ?? process.env.BLOB_WEBHOOK_PUBLIC_KEY;
+
   if (!resolvedWebhookPublicKey) {
     throw new BlobError('Missing webhook public key');
   }

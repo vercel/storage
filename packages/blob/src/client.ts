@@ -332,7 +332,7 @@ export const upload = createPutMethod<UploadOptions>({
  *   - clientPayload - (Optional) A string to be sent to your handleUpload server code. Example use-case: attaching the post id an image relates to.
  *   - headers - (Optional) An object containing custom headers to be sent with the request to your handleUpload route. Example use-case: sending Authorization headers.
  *   - contentType - (Optional) A string indicating the media type. By default, it's extracted from the pathname's extension.
- *   - multipart - (Optional) Whether to use multipart upload for large files. It will split the file into multiple parts, upload them in parallel and retry failed parts. When true, your `handleUploadPresigned` route must return a presigned `POST` URL for `/mpu` (e.g. `presignUrl(controlPlaneBlobMpuUrl(pathname), issued, 'POST')` from `@vercel/blob`; use the same `operations: ['put']` delegation as for single-object presigned `PUT`).
+ *   - multipart - (Optional) Whether to use multipart upload for large files. When true, your `handleUploadPresigned` route must return a presigned `POST` URL for `/mpu` (e.g. `presignUrl(controlPlaneBlobMpuUrl(pathname), issued, 'POST')` from `@vercel/blob`; use the same `operations: ['upload']` delegation as for single-object presigned `PUT`).
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
  *   - onUploadProgress - (Optional) Callback to track upload progress: onUploadProgress(\{loaded: number, total: number, percentage: number\})
  * @returns A promise that resolves to the blob information, including pathname, contentType, contentDisposition, url, and downloadUrl.
@@ -796,7 +796,7 @@ export interface HandleUploadPresignedOptions {
   body: HandleUploadPresignedBody;
   /**
    * Produce signed-token material (e.g. via `issueSignedToken`) for {@link presignUrl}.
-   * Presigned writes (single `PUT` or multipart `POST /mpu`) use the same `"put"` operation.
+   * Presigned writes (single `PUT` or multipart `POST /mpu`) use the same `"upload"` operation.
    */
   getSignedToken: (
     pathname: string,
@@ -860,11 +860,7 @@ export async function handleUploadPresigned({
       const base = multipart
         ? controlPlaneBlobMpuUrl(pathname)
         : controlPlaneBlobPutUrl(pathname);
-      const presignedUrl = await presignUrl(
-        base,
-        signedToken,
-        multipart ? 'POST' : 'PUT',
-      );
+      const presignedUrl = await presignUrl(base, signedToken, 'upload');
       return { type, presignedUrl };
     }
     case 'blob.upload-completed': {

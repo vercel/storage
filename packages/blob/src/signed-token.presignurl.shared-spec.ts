@@ -24,51 +24,54 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
     const blobSigningSecret = randomBytes(32).toString('base64');
     const now = Date.now();
 
-    it('PUT: HMACs the same control-API URL as `put()` and appends query params', async () => {
+    it('PUT: HMACs control-plane URL; same canonical pathname as POST /mpu', async () => {
       const pathname = 'images/a.png';
       const delegation = createDelegationToken(
         {
           storeId: `store_${storeId}`,
           ownerId: 'owner_1',
           pathname,
-          operations: ['put'],
+          operations: ['upload'],
           validUntil: now + 3600_000,
           iat: now,
         },
         blobSigningSecret,
       );
       const client = deriveClientSigningToken(blobSigningSecret, delegation);
-      const base = controlPlaneBlobPutUrl(pathname);
-      const presigned = await presignUrl(
-        base,
+      const basePut = controlPlaneBlobPutUrl(pathname);
+      const baseMpu = controlPlaneBlobMpuUrl(pathname);
+      const presignedPut = await presignUrl(
+        basePut,
         { delegationToken: delegation, clientSigningToken: client },
-        'PUT',
+        'upload',
       );
-      const u = new URL(presigned);
-      const u0 = new URL(base);
-      const pairs: [string, string][] = [];
-      for (const [k, v] of u0.searchParams) {
-        pairs.push([k, v]);
-      }
-      pairs.sort(
-        (a, b) => a[0]!.localeCompare(b[0]!) || a[1]!.localeCompare(b[1]!),
+      const presignedMpu = await presignUrl(
+        baseMpu,
+        { delegationToken: delegation, clientSigningToken: client },
+        'upload',
       );
-      const qString = new URLSearchParams(pairs).toString();
-      const canonical = `PUT\n${u0.pathname}?${qString}`;
+      const uPut = new URL(presignedPut);
+      const uMpu = new URL(presignedMpu);
+      expect(uPut.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE)).toBe(
+        uMpu.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE),
+      );
+      const canonical = `operation=upload\npathname=${pathname}`;
       const expected = createHmac('sha256', client)
         .update(canonical, 'utf8')
         .digest('base64url');
-      expect(u.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE)).toBe(expected);
+      expect(uPut.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE)).toBe(
+        expected,
+      );
     });
 
-    it('POST /mpu: HMACs the control-plane MPU URL and appends query params', async () => {
+    it('POST /mpu: matches PUT canonical for the same pathname', async () => {
       const pathname = 'images/a.png';
       const delegation = createDelegationToken(
         {
           storeId: `store_${storeId}`,
           ownerId: 'owner_1',
           pathname,
-          operations: ['put'],
+          operations: ['upload'],
           validUntil: now + 3600_000,
           iat: now,
         },
@@ -79,19 +82,10 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       const presigned = await presignUrl(
         base,
         { delegationToken: delegation, clientSigningToken: client },
-        'POST',
+        'upload',
       );
       const u = new URL(presigned);
-      const u0 = new URL(base);
-      const pairs: [string, string][] = [];
-      for (const [k, v] of u0.searchParams) {
-        pairs.push([k, v]);
-      }
-      pairs.sort(
-        (a, b) => a[0]!.localeCompare(b[0]!) || a[1]!.localeCompare(b[1]!),
-      );
-      const qString = new URLSearchParams(pairs).toString();
-      const canonical = `POST\n${u0.pathname}?${qString}`;
+      const canonical = `operation=upload\npathname=${pathname}`;
       const expected = createHmac('sha256', client)
         .update(canonical, 'utf8')
         .digest('base64url');
@@ -116,14 +110,14 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       const presigned = await presignUrl(
         base,
         { delegationToken: delegation, clientSigningToken: client },
-        'GET',
+        'get',
       );
       const u = new URL(presigned);
       const sig = u.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE) ?? '';
       const d = u.searchParams.get(BLOB_PRESIGN_QUERY_DELEGATION) ?? '';
       expect(d).toBe(delegation);
 
-      const canonical = `method=GET\npathname=${pathname}`;
+      const canonical = `operation=get\npathname=${pathname}`;
       const expected = createHmac('sha256', client)
         .update(canonical, 'utf8')
         .digest('base64url');
@@ -148,19 +142,19 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       const first = await presignUrl(
         base,
         { delegationToken: delegation, clientSigningToken: client },
-        'GET',
+        'get',
       );
       const second = await presignUrl(
         `https://store_${storeId}.private.blob.vercel-storage.com/${pathname}?a=1&b=2`,
         { delegationToken: delegation, clientSigningToken: client },
-        'GET',
+        'get',
       );
       const u1 = new URL(first);
       const u2 = new URL(second);
       expect(u1.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE)).toBe(
         u2.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE),
       );
-      const canonical = `method=GET\npathname=${pathname}`;
+      const canonical = `operation=get\npathname=${pathname}`;
       expect(
         createHmac('sha256', client)
           .update(canonical, 'utf8')
@@ -187,10 +181,10 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       const presigned = await presignUrl(
         base,
         { delegationToken: delegation, clientSigningToken: client },
-        'GET',
+        'get',
       );
       const u = new URL(presigned);
-      const canonical = `method=GET\npathname=${logicalName}`;
+      const canonical = `operation=get\npathname=${logicalName}`;
       const expected = createHmac('sha256', client)
         .update(canonical, 'utf8')
         .digest('base64url');
@@ -204,7 +198,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
           storeId: `store_${storeId}`,
           ownerId: 'o',
           pathname,
-          operations: ['put'],
+          operations: ['upload'],
           validUntil: now + 3600_000,
           iat: now,
         },
@@ -216,7 +210,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         presignUrl(
           objectUrl,
           { delegationToken: delegation, clientSigningToken: client },
-          'PUT',
+          'upload',
         ),
       ).rejects.toThrow(BlobError);
     });
@@ -266,7 +260,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         const presigned = await presignUrl(
           base,
           { delegationToken: delegation, clientSigningToken: client },
-          'GET',
+          'get',
           { ttlSeconds: ttlSec },
         );
         const u = new URL(presigned);
@@ -274,7 +268,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         expect(u.searchParams.get(BLOB_PRESIGN_QUERY_URL_EXPIRES)).toBe(
           String(Math.trunc(expMs)),
         );
-        const canonical = `method=GET\npathname=${pathnameTtl}\nvercel-blob-url-expires=${String(Math.trunc(expMs))}`;
+        const canonical = `operation=get\npathname=${pathnameTtl}\nvercel-blob-url-expires=${String(Math.trunc(expMs))}`;
         const expected = createHmac('sha256', client)
           .update(canonical, 'utf8')
           .digest('base64url');
@@ -306,14 +300,14 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
           await presignUrl(
             base,
             { delegationToken: delegation, clientSigningToken: client },
-            'GET',
+            'get',
             { ttlSeconds: 3600 },
           ),
         );
         expect(u.searchParams.get(BLOB_PRESIGN_QUERY_URL_EXPIRES)).toBe(
           String(validUntil),
         );
-        const canonical = `method=GET\npathname=a.png\nvercel-blob-url-expires=${String(validUntil)}`;
+        const canonical = `operation=get\npathname=a.png\nvercel-blob-url-expires=${String(validUntil)}`;
         const expected = createHmac('sha256', client)
           .update(canonical, 'utf8')
           .digest('base64url');

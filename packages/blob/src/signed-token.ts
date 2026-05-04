@@ -4,10 +4,10 @@ import { type BlobCommandOptions, BlobError, getApiUrl } from './helpers';
 
 /**
  * Operations that may be encoded in a delegation token (e.g. read: `get` / `head`,
- * write: `put` for presigned control-plane writes — both single-object `PUT`
+ * write: `upload` for presigned control-plane writes — both single-object `PUT`
  * ({@link controlPlaneBlobPutUrl}) and multipart `POST` ({@link controlPlaneBlobMpuUrl})).
  */
-export type DelegationOperation = 'get' | 'head' | 'put';
+export type DelegationOperation = 'get' | 'head' | 'upload';
 
 /** Excluded from the string-to-sign; added after signing. @public for CDN / tooling alignment */
 export const BLOB_PRESIGN_QUERY_DELEGATION = 'vercel-blob-delegation' as const;
@@ -16,11 +16,6 @@ export const BLOB_PRESIGN_QUERY_SIGNATURE = 'vercel-blob-signature' as const;
 
 export const BLOB_PRESIGN_QUERY_URL_EXPIRES =
   'vercel-blob-url-expires' as const;
-
-const PRESIGN_EXCLUDE = new Set<string>([
-  BLOB_PRESIGN_QUERY_DELEGATION,
-  BLOB_PRESIGN_QUERY_SIGNATURE,
-]);
 
 /**
  * Min/max TTL the API allows for signed tokens (seconds). Matches the blob API
@@ -63,7 +58,7 @@ export type IssueSignedTokenOptions = BlobCommandOptions &
     pathname?: string;
     /**
      * Allowed operations (e.g. `get` / `head` for reads to `*.blob.vercel-storage.com`,
-     * `put` for presigned writes: control-plane `PUT` and multipart `POST /mpu`).
+     * `upload` for presigned control-plane `PUT` and multipart `POST /mpu`).
      * When omitted, the API defaults to read (`get`) only.
      */
     operations?: DelegationOperation[];
@@ -444,9 +439,10 @@ export type PresignUrlOptions = {
  *
  * Sorted newline-separated `key=value` pairs (UTF-8 byte order of whole lines):
  *
- * - `method=GET` or `method=HEAD` (uppercase).
- * - `pathname=<object key>` from the URL path only (no leading `/`; segments
- *   decoded like the delegation scope check).
+ * - `operation=get`, `operation=head`, or `operation=upload` (implicit from URL
+ *   target: object host + GET/HEAD vs control-plane PUT/POST for uploads).
+ * - `pathname=<object key>`: from the URL path (reads) or the `pathname` query
+ *   (control-plane `PUT` / `POST` uploads).
  * - `vercel-blob-url-expires=<ms>` when `options.ttlSeconds` is set.
  *
  * Only these keys participate. Other query params are ignored. Delegation and
@@ -455,7 +451,7 @@ export type PresignUrlOptions = {
 export async function presignUrl(
   blobUrl: string,
   issued: Pick<IssuedSignedToken, 'clientSigningToken' | 'delegationToken'>,
-  method: 'GET' | 'HEAD' | 'PUT' | 'POST' = 'GET',
+  operation: DelegationOperation = 'get',
   options?: PresignUrlOptions,
 ): Promise<string> {
   if (!blobUrl) {
@@ -467,19 +463,10 @@ export async function presignUrl(
     );
   }
 
-  if (
-    method !== 'GET' &&
-    method !== 'HEAD' &&
-    method !== 'PUT' &&
-    method !== 'POST'
-  ) {
-    throw new BlobError('`method` must be `GET`, `HEAD`, `PUT`, or `POST`.');
-  }
-
-  const u = new URL(blobUrl);
-  u.searchParams.delete(BLOB_PRESIGN_QUERY_DELEGATION);
-  u.searchParams.delete(BLOB_PRESIGN_QUERY_SIGNATURE);
-  u.searchParams.delete(BLOB_PRESIGN_QUERY_URL_EXPIRES);
+  const url = new URL(blobUrl);
+  url.searchParams.delete(BLOB_PRESIGN_QUERY_DELEGATION);
+  url.searchParams.delete(BLOB_PRESIGN_QUERY_SIGNATURE);
+  url.searchParams.delete(BLOB_PRESIGN_QUERY_URL_EXPIRES);
 
   const scope = tryDecodePayload(issued.delegationToken);
   if (!scope) {
@@ -487,42 +474,28 @@ export async function presignUrl(
   }
 
   let opPath: string;
-  if (method === 'PUT') {
-    if (isBlobObjectHostName(u.hostname)) {
+  if (operation === 'upload') {
+    if (isBlobObjectHostName(url.hostname)) {
       throw new BlobError(
         'PUT presigning must use the control-plane URL from `controlPlaneBlobPutUrl`, not a `*.blob.vercel-storage.com` object URL (use `publicBlobObjectUrl` for GET/HEAD).',
       );
     }
-    assertControlPlaneApiUrl(u);
-    const fromQuery = u.searchParams.get('pathname');
+
+    const fromQuery = url.searchParams.get('pathname');
     if (fromQuery === null || fromQuery === '') {
       throw new BlobError(
-        'The `PUT` URL must include a non-empty `pathname` query, the same as `put()` and `controlPlaneBlobPutUrl`.',
-      );
-    }
-    opPath = decodeBlobObjectPath(fromQuery);
-  } else if (method === 'POST') {
-    if (isBlobObjectHostName(u.hostname)) {
-      throw new BlobError(
-        'POST MPU presigning must use `controlPlaneBlobMpuUrl`, not a `*.blob.vercel-storage.com` object URL.',
-      );
-    }
-    assertControlPlaneMpuApiUrl(u);
-    const fromQuery = u.searchParams.get('pathname');
-    if (fromQuery === null || fromQuery === '') {
-      throw new BlobError(
-        'The MPU POST URL must include a non-empty `pathname` query, the same as `controlPlaneBlobMpuUrl`.',
+        'The `PUT` URL must include a non-empty `pathname` query.',
       );
     }
     opPath = decodeBlobObjectPath(fromQuery);
   } else {
-    const { storeId: hostStoreId } = assertBlobHost(u.hostname);
+    const { storeId: hostStoreId } = assertBlobHost(url.hostname);
     if (normalizeStoreId(scope.storeId) !== normalizeStoreId(hostStoreId)) {
       throw new BlobError(
         'Store id in the URL does not match the delegation token.',
       );
     }
-    opPath = decodeBlobObjectPath(objectPathnameFromUrl(u));
+    opPath = decodeBlobObjectPath(objectPathnameFromUrl(url));
   }
   const p = scope.pathname;
   if (p && p !== '*') {
@@ -530,10 +503,10 @@ export async function presignUrl(
     if (opPath !== pNorm) {
       throw new BlobError(
         'Blob path does not match the signed token scope; expected `' +
-        p +
-        '`, got `' +
-        opPath +
-        '`.',
+          p +
+          '`, got `' +
+          opPath +
+          '`.',
       );
     }
   }
@@ -543,22 +516,19 @@ export async function presignUrl(
     );
   }
 
-  if (method === 'HEAD' && !scope.operations?.includes('head')) {
+  if (operation === 'head' && !scope.operations?.includes('head')) {
     throw new BlobError(
       'The delegation token is not valid for `HEAD` requests. Include `"head"` in `operations` when calling `issueSignedToken`.',
     );
   }
-  if (method === 'GET' && !scope.operations?.includes('get')) {
+  if (operation === 'get' && !scope.operations?.includes('get')) {
     throw new BlobError(
       'The delegation token is not valid for `GET` requests. Include `"get"` in `operations` when calling `issueSignedToken`.',
     );
   }
-  if (
-    (method === 'PUT' || method === 'POST') &&
-    !scope.operations?.includes('put')
-  ) {
+  if (operation === 'upload' && !scope.operations?.includes('upload')) {
     throw new BlobError(
-      'The delegation token is not valid for presigned write requests. Include `"put"` in `operations` when calling `issueSignedToken` (covers control-plane `PUT` and multipart `POST /mpu`).',
+      'The delegation token is not valid for presigned write requests. Include `"upload"` in `operations` when calling `issueSignedToken`.',
     );
   }
 
@@ -582,24 +552,19 @@ export async function presignUrl(
         '`ttlSeconds` would expire at or before the current time, or the delegation is already at `validUntil`. Use a larger ttl or a fresh `issueSignedToken` result.',
       );
     }
-    u.searchParams.set(
+    url.searchParams.set(
       BLOB_PRESIGN_QUERY_URL_EXPIRES,
       String(Math.trunc(expiresAt)),
     );
   }
 
-  const canonical = canonicalStringForUrl(u, method);
+  const canonical = canonicalStringForUrl(url, operation);
   const signature = await hmacSha256Base64Url(
     issued.clientSigningToken,
     canonical,
   );
 
-  const out = new URL(u.toString());
-  for (const k of [...out.searchParams.keys()]) {
-    if (PRESIGN_EXCLUDE.has(k)) {
-      out.searchParams.delete(k);
-    }
-  }
+  const out = new URL(url.toString());
   out.searchParams.set(BLOB_PRESIGN_QUERY_DELEGATION, issued.delegationToken);
   out.searchParams.set(BLOB_PRESIGN_QUERY_SIGNATURE, signature);
   return out.toString();
@@ -609,19 +574,18 @@ export async function presignUrl(
  * @internal
  */
 function canonicalStringForUrl(
-  u: URL,
-  method: 'GET' | 'HEAD' | 'PUT' | 'POST',
+  url: URL,
+  operation: DelegationOperation,
 ): string {
-  const us = new URL(u.toString());
-  for (const k of [...us.searchParams.keys()]) {
-    if (PRESIGN_EXCLUDE.has(k)) {
-      us.searchParams.delete(k);
-    }
-  }
-  const m = method.toUpperCase() === 'HEAD' ? 'HEAD' : 'GET';
-  const pathnameValue = decodeBlobObjectPath(objectPathnameFromUrl(us));
-  const lines: string[] = [`method=${m}`, `pathname=${pathnameValue}`];
-  const exp = us.searchParams.get(BLOB_PRESIGN_QUERY_URL_EXPIRES);
+  const pathnameValue =
+    operation === 'upload'
+      ? decodeBlobObjectPath(url.searchParams.get('pathname') ?? '')
+      : decodeBlobObjectPath(objectPathnameFromUrl(url));
+  const lines: string[] = [
+    `operation=${operation}`,
+    `pathname=${pathnameValue}`,
+  ];
+  const exp = url.searchParams.get(BLOB_PRESIGN_QUERY_URL_EXPIRES);
   if (exp !== null && exp !== '') {
     lines.push(`${BLOB_PRESIGN_QUERY_URL_EXPIRES}=${exp}`);
   }

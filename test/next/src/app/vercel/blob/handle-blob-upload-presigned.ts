@@ -39,7 +39,7 @@ const getCachedToken = async (
     addRandomSuffix: true,
     allowOverwrite: false,
     cacheControlMaxAge: 30 * 24 * 60 * 60, // 30 days
-    operations: ['put'],
+    operations: ['upload'],
   });
 };
 

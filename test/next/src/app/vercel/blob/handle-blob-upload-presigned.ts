@@ -29,7 +29,6 @@ async function auth(
 const getCachedToken = async (
   pathname: string,
   clientPayload: string | null,
-  multipart: boolean,
 ) => {
   // fake: get from cache if it's there
   return await issueSignedToken({
@@ -71,7 +70,7 @@ export async function handleUploadPresignedHandler(
           request.headers.get('X-Test-Header');
         console.log('Custom header received:', customHeader);
 
-        return await getCachedToken(pathname, clientPayload, multipart);
+        return await getCachedToken(pathname, clientPayload);
       },
     });
 

@@ -30,6 +30,7 @@ export {
   BlobError,
   getDownloadUrl,
   type OnUploadProgressCallback,
+  parseStoreIdFromDelegationToken,
   parseStoreIdFromPresignedUrl,
   type UploadProgressEvent,
 } from './helpers';
@@ -246,6 +247,7 @@ export {
   BLOB_PRESIGN_QUERY_DELEGATION,
   BLOB_PRESIGN_QUERY_SIGNATURE,
   BLOB_PRESIGN_QUERY_URL_EXPIRES,
+  controlPlaneBlobMpuUrl,
   controlPlaneBlobPutUrl,
   issueSignedToken,
   presignUrl,

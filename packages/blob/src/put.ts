@@ -42,8 +42,6 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
       );
     }
 
-    console.log('going to createPutOptions');
-
     const options = await createPutOptions({
       pathname,
       options: optionsInput,

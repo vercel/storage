@@ -24,6 +24,7 @@ import { createUploadPartMethod } from './multipart/upload';
 import { createPutMethod } from './put';
 import type { PutBlobResult } from './put-helpers';
 import {
+  controlPlaneBlobMpuUrl,
   controlPlaneBlobPutUrl,
   type IssuedSignedToken,
   presignUrl,
@@ -331,7 +332,7 @@ export const upload = createPutMethod<UploadOptions>({
  *   - clientPayload - (Optional) A string to be sent to your handleUpload server code. Example use-case: attaching the post id an image relates to.
  *   - headers - (Optional) An object containing custom headers to be sent with the request to your handleUpload route. Example use-case: sending Authorization headers.
  *   - contentType - (Optional) A string indicating the media type. By default, it's extracted from the pathname's extension.
- *   - multipart - (Optional) Whether to use multipart upload for large files. It will split the file into multiple parts, upload them in parallel and retry failed parts.
+ *   - multipart - (Optional) Whether to use multipart upload for large files. It will split the file into multiple parts, upload them in parallel and retry failed parts. When true, your `handleUploadPresigned` route must return a presigned `POST` URL for `/mpu` (e.g. `presignUrl(controlPlaneBlobMpuUrl(pathname), issued, 'POST')` from `@vercel/blob`; use the same `operations: ['put']` delegation as for single-object presigned `PUT`).
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
  *   - onUploadProgress - (Optional) Callback to track upload progress: onUploadProgress(\{loaded: number, total: number, percentage: number\})
  * @returns A promise that resolves to the blob information, including pathname, contentType, contentDisposition, url, and downloadUrl.
@@ -775,12 +776,14 @@ export type HandleUploadPresignedSignedTokenPayload = Pick<
 
 /**
  * Options for {@link handleUploadPresigned} — same upload-completion flow as {@link handleUpload},
- * but `blob.generate-presigned-url` returns a presigned control-plane `PUT` URL instead of a client token.
+ * but `blob.generate-presigned-url` returns a presigned control-plane URL: `PUT` to `/?pathname=…`
+ * for single upload, or `POST` to `/mpu?pathname=…` when the client requested multipart.
  */
 export interface HandleUploadPresignedOptions {
   body: HandleUploadPresignedBody;
   /**
-   * Produce signed-token material (e.g. via `issueSignedToken`) from the constraints returned by `onBeforeGenerateToken`.
+   * Produce signed-token material (e.g. via `issueSignedToken`) for {@link presignUrl}.
+   * Presigned writes (single `PUT` or multipart `POST /mpu`) use the same `"put"` operation.
    */
   getSignedToken: (
     pathname: string,
@@ -791,8 +794,9 @@ export interface HandleUploadPresignedOptions {
 }
 
 /**
- * Server route helper for **presigned** client uploads: issues a presigned `PUT` URL (not a client token)
- * and verifies upload-completed callbacks the same way as {@link handleUpload}.
+ * Server route helper for **presigned** client uploads: returns a presigned control-plane
+ * `PUT` URL for single-object uploads, or a presigned `POST` URL for `/mpu` when multipart.
+ * Verifies upload-completed callbacks the same way as {@link handleUpload} when implemented.
  */
 export async function handleUploadPresigned({
   body,
@@ -810,8 +814,14 @@ export async function handleUploadPresigned({
         clientPayload,
         multipart,
       );
-      const url = controlPlaneBlobPutUrl(pathname);
-      const presignedUrl = await presignUrl(url, signedToken, 'PUT');
+      const base = multipart
+        ? controlPlaneBlobMpuUrl(pathname)
+        : controlPlaneBlobPutUrl(pathname);
+      const presignedUrl = await presignUrl(
+        base,
+        signedToken,
+        multipart ? 'POST' : 'PUT',
+      );
       return { type: body.type, presignedUrl };
     }
     case 'blob.upload-completed': {
@@ -912,8 +922,14 @@ async function retrievePresignedUrl(options: {
 
   try {
     const { presignedUrl } = (await res.json()) as { presignedUrl: string };
-    return presignedUrl;
-  } catch {
+    if (typeof presignedUrl === 'string' && presignedUrl !== '') {
+      return presignedUrl;
+    }
+    throw new BlobError('Missing presignedUrl');
+  } catch (error) {
+    if (error instanceof BlobError) {
+      throw error;
+    }
     throw new BlobError('Failed to retrieve the presigned URL');
   }
 }

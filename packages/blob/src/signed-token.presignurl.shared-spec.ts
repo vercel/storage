@@ -4,6 +4,7 @@ import {
   BLOB_PRESIGN_QUERY_DELEGATION,
   BLOB_PRESIGN_QUERY_SIGNATURE,
   BLOB_PRESIGN_QUERY_URL_EXPIRES,
+  controlPlaneBlobMpuUrl,
   controlPlaneBlobPutUrl,
   presignUrl,
 } from './signed-token';
@@ -54,6 +55,43 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       );
       const qString = new URLSearchParams(pairs).toString();
       const canonical = `PUT\n${u0.pathname}?${qString}`;
+      const expected = createHmac('sha256', client)
+        .update(canonical, 'utf8')
+        .digest('base64url');
+      expect(u.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE)).toBe(expected);
+    });
+
+    it('POST /mpu: HMACs the control-plane MPU URL and appends query params', async () => {
+      const pathname = 'images/a.png';
+      const delegation = createDelegationToken(
+        {
+          storeId: `store_${storeId}`,
+          ownerId: 'owner_1',
+          pathname,
+          operations: ['put'],
+          validUntil: now + 3600_000,
+          iat: now,
+        },
+        blobSigningSecret,
+      );
+      const client = deriveClientSigningToken(blobSigningSecret, delegation);
+      const base = controlPlaneBlobMpuUrl(pathname);
+      const presigned = await presignUrl(
+        base,
+        { delegationToken: delegation, clientSigningToken: client },
+        'POST',
+      );
+      const u = new URL(presigned);
+      const u0 = new URL(base);
+      const pairs: [string, string][] = [];
+      for (const [k, v] of u0.searchParams) {
+        pairs.push([k, v]);
+      }
+      pairs.sort(
+        (a, b) => a[0]!.localeCompare(b[0]!) || a[1]!.localeCompare(b[1]!),
+      );
+      const qString = new URLSearchParams(pairs).toString();
+      const canonical = `POST\n${u0.pathname}?${qString}`;
       const expected = createHmac('sha256', client)
         .update(canonical, 'utf8')
         .digest('base64url');

@@ -29,6 +29,10 @@ export interface BlobCommandOptions {
    */
   abortSignal?: AbortSignal;
 
+  /**
+   * Presigned URL. Takes precedence over token and storeId.
+   * No additional authentication is needed when using a presigned URL.
+   */
   presignedUrl?: string;
 }
 
@@ -188,6 +192,35 @@ function base64UrlDecodeDelegationSegment(segment: string): string {
  * Reads `storeId` from the delegation JWT embedded in a presigned blob URL’s
  * `vercel-blob-delegation` query parameter (same payload shape as `issueSignedToken` delegations).
  */
+/**
+ * Reads `storeId` from a delegation JWT’s payload segment (same format as
+ * embedded in a presigned URL’s `vercel-blob-delegation` query parameter).
+ */
+export function parseStoreIdFromDelegationToken(
+  delegationToken: string,
+): string {
+  const dot = delegationToken.indexOf('.');
+  if (dot < 0) {
+    throw new BlobError('Invalid delegation token format.');
+  }
+
+  const payloadSeg = delegationToken.slice(0, dot);
+  let parsed: { storeId?: unknown };
+  try {
+    parsed = JSON.parse(base64UrlDecodeDelegationSegment(payloadSeg)) as {
+      storeId?: unknown;
+    };
+  } catch {
+    throw new BlobError('Invalid delegation token payload.');
+  }
+
+  if (!parsed.storeId || typeof parsed.storeId !== 'string') {
+    throw new BlobError('Delegation token payload is missing `storeId`.');
+  }
+
+  return normalizeDelegationStoreId(parsed.storeId);
+}
+
 export function parseStoreIdFromPresignedUrl(presignedUrl: string): string {
   let u: URL;
   try {
@@ -203,26 +236,7 @@ export function parseStoreIdFromPresignedUrl(presignedUrl: string): string {
     );
   }
 
-  const dot = delegation.indexOf('.');
-  if (dot < 0) {
-    throw new BlobError('Invalid delegation token format in presigned URL.');
-  }
-
-  const payloadSeg = delegation.slice(0, dot);
-  let parsed: { storeId?: unknown };
-  try {
-    parsed = JSON.parse(base64UrlDecodeDelegationSegment(payloadSeg)) as {
-      storeId?: unknown;
-    };
-  } catch {
-    throw new BlobError('Invalid delegation token payload in presigned URL.');
-  }
-
-  if (!parsed.storeId || typeof parsed.storeId !== 'string') {
-    throw new BlobError('Delegation token payload is missing `storeId`.');
-  }
-
-  return normalizeDelegationStoreId(parsed.storeId);
+  return parseStoreIdFromDelegationToken(delegation);
 }
 
 /**

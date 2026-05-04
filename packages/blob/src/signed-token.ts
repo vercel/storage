@@ -4,7 +4,8 @@ import { type BlobCommandOptions, BlobError, getApiUrl } from './helpers';
 
 /**
  * Operations that may be encoded in a delegation token (e.g. read: `get` / `head`,
- * write: `put` for presigned uploads via the same URL as `put` / `requestApi` (`controlPlaneBlobPutUrl`)).
+ * write: `put` for presigned control-plane writes — both single-object `PUT`
+ * ({@link controlPlaneBlobPutUrl}) and multipart `POST` ({@link controlPlaneBlobMpuUrl})).
  */
 export type DelegationOperation = 'get' | 'head' | 'put';
 
@@ -30,8 +31,8 @@ export const SIGNED_TOKEN_MAX_TTL_SECONDS = 24 * 60 * 60;
 
 /**
  * Result of `issueSignedToken` — the same values returned from `POST /signed-token` on
- * the Blob API. Use with {@link presignUrl} to build a URL that can authorize GET/HEAD
- * without a bearer token when verified by the CDN.
+ * the Blob API. Use with {@link presignUrl} to build a URL that can authorize GET/HEAD,
+ * presigned `PUT`, or presigned multipart `POST` without a bearer token when verified by the CDN.
  */
 export interface IssuedSignedToken {
   /**
@@ -61,9 +62,9 @@ export type IssueSignedTokenOptions = BlobCommandOptions &
      */
     pathname?: string;
     /**
-     * Allowed operations (e.g. `get` / `head` for reads to `*.blob.vercel-storage.com`, `put`
-     * for presigned uploads to the same URL as `put` / `controlPlaneBlobPutUrl`). When
-     * omitted, the API defaults to read (`get`) only.
+     * Allowed operations (e.g. `get` / `head` for reads to `*.blob.vercel-storage.com`,
+     * `put` for presigned writes: control-plane `PUT` and multipart `POST /mpu`).
+     * When omitted, the API defaults to read (`get`) only.
      */
     operations?: DelegationOperation[];
     /**
@@ -208,7 +209,8 @@ function tryDecodePayload(
 /**
  * Builds a blob object URL for `pathname` and store from `delegationToken` for use with
  * {@link presignUrl} for `GET` / `HEAD` only (to `*.public|*.private.blob.vercel-storage.com`).
- * For `PUT` / presigned uploads, use {@link controlPlaneBlobPutUrl} instead.
+ * For `PUT` / presigned single uploads, use {@link controlPlaneBlobPutUrl}.
+ * For multipart presigned `POST` requests, use {@link controlPlaneBlobMpuUrl}.
  */
 export function publicBlobObjectUrl(
   access: 'public' | 'private',
@@ -235,6 +237,16 @@ export function publicBlobObjectUrl(
 export function controlPlaneBlobPutUrl(objectPathname: string): string {
   const params = new URLSearchParams({ pathname: objectPathname });
   return getApiUrl(`/?${params.toString()}`);
+}
+
+/**
+ * Multipart control-plane base URL: `POST /mpu?pathname=…` on the blob API
+ * (same shape as the SDK’s multipart create call). Use with {@link presignUrl}
+ * and `method: 'POST'`.
+ */
+export function controlPlaneBlobMpuUrl(objectPathname: string): string {
+  const params = new URLSearchParams({ pathname: objectPathname });
+  return getApiUrl(`/mpu?${params.toString()}`);
 }
 
 /**
@@ -267,6 +279,34 @@ function assertControlPlaneApiUrl(u: URL): void {
   if (u.searchParams.get('pathname') == null) {
     throw new BlobError(
       'The blob API `PUT` URL must include a `pathname` query, like `controlPlaneBlobPutUrl`.',
+    );
+  }
+}
+
+/**
+ * @internal
+ */
+function assertControlPlaneMpuApiUrl(u: URL): void {
+  const ref = new URL(getApiUrl(''));
+  if (u.origin !== ref.origin) {
+    throw new BlobError(
+      'POST MPU presign URL must use the same origin as the blob control API (see `getApiUrl` / `controlPlaneBlobMpuUrl`).',
+    );
+  }
+  const normalize = (p: string) => p.replace(/\/$/, '') || '/';
+  const refBase = normalize(ref.pathname);
+  const expectedMpuPath = refBase === '/' ? '/mpu' : `${refBase}/mpu`;
+  if (normalize(u.pathname) !== normalize(expectedMpuPath)) {
+    throw new BlobError(
+      `POST MPU presign URL must target the blob API \`/mpu\` path (expected \`${expectedMpuPath}\`, got \`${u.pathname}\`).`,
+    );
+  }
+  if (
+    u.searchParams.get('pathname') == null ||
+    u.searchParams.get('pathname') === ''
+  ) {
+    throw new BlobError(
+      'The MPU URL must include a non-empty `pathname` query, like `controlPlaneBlobMpuUrl`.',
     );
   }
 }
@@ -394,10 +434,9 @@ export type PresignUrlOptions = {
 
 /**
  * Builds a **presigned URL** (read: `GET` / `HEAD` to `publicBlobObjectUrl`, or write:
- * `PUT` to `controlPlaneBlobPutUrl` — same as `put()`) by HMACing a canonical string
- * with
- * `clientSigningToken` and appending the delegation and signature
- * as query parameters. The CDN re-derives the signing key from
+ * `PUT` to {@link controlPlaneBlobPutUrl}, or multipart `POST` to {@link controlPlaneBlobMpuUrl})
+ * by HMACing a canonical string with `clientSigningToken` and appending the delegation
+ * and signature as query parameters. The CDN re-derives the signing key from
  * `delegationToken` and validates the HMAC, scope, and expiry.
  *
  * **Canonical string** (must match the verification service on the edge/Go; no
@@ -416,7 +455,7 @@ export type PresignUrlOptions = {
 export async function presignUrl(
   blobUrl: string,
   issued: Pick<IssuedSignedToken, 'clientSigningToken' | 'delegationToken'>,
-  method: 'GET' | 'HEAD' | 'PUT' = 'GET',
+  method: 'GET' | 'HEAD' | 'PUT' | 'POST' = 'GET',
   options?: PresignUrlOptions,
 ): Promise<string> {
   if (!blobUrl) {
@@ -428,15 +467,14 @@ export async function presignUrl(
     );
   }
 
-  const methodUpper = method.toUpperCase();
   if (
-    methodUpper !== 'GET' &&
-    methodUpper !== 'HEAD' &&
-    methodUpper !== 'PUT'
+    method !== 'GET' &&
+    method !== 'HEAD' &&
+    method !== 'PUT' &&
+    method !== 'POST'
   ) {
-    throw new BlobError('`method` must be `GET`, `HEAD`, or `PUT`.');
+    throw new BlobError('`method` must be `GET`, `HEAD`, `PUT`, or `POST`.');
   }
-  const m = methodUpper as 'GET' | 'HEAD' | 'PUT';
 
   const u = new URL(blobUrl);
   u.searchParams.delete(BLOB_PRESIGN_QUERY_DELEGATION);
@@ -449,7 +487,7 @@ export async function presignUrl(
   }
 
   let opPath: string;
-  if (m === 'PUT') {
+  if (method === 'PUT') {
     if (isBlobObjectHostName(u.hostname)) {
       throw new BlobError(
         'PUT presigning must use the control-plane URL from `controlPlaneBlobPutUrl`, not a `*.blob.vercel-storage.com` object URL (use `publicBlobObjectUrl` for GET/HEAD).',
@@ -460,6 +498,20 @@ export async function presignUrl(
     if (fromQuery === null || fromQuery === '') {
       throw new BlobError(
         'The `PUT` URL must include a non-empty `pathname` query, the same as `put()` and `controlPlaneBlobPutUrl`.',
+      );
+    }
+    opPath = decodeBlobObjectPath(fromQuery);
+  } else if (method === 'POST') {
+    if (isBlobObjectHostName(u.hostname)) {
+      throw new BlobError(
+        'POST MPU presigning must use `controlPlaneBlobMpuUrl`, not a `*.blob.vercel-storage.com` object URL.',
+      );
+    }
+    assertControlPlaneMpuApiUrl(u);
+    const fromQuery = u.searchParams.get('pathname');
+    if (fromQuery === null || fromQuery === '') {
+      throw new BlobError(
+        'The MPU POST URL must include a non-empty `pathname` query, the same as `controlPlaneBlobMpuUrl`.',
       );
     }
     opPath = decodeBlobObjectPath(fromQuery);
@@ -491,19 +543,22 @@ export async function presignUrl(
     );
   }
 
-  if (m === 'HEAD' && !scope.operations?.includes('head')) {
+  if (method === 'HEAD' && !scope.operations?.includes('head')) {
     throw new BlobError(
       'The delegation token is not valid for `HEAD` requests. Include `"head"` in `operations` when calling `issueSignedToken`.',
     );
   }
-  if (m === 'GET' && !scope.operations?.includes('get')) {
+  if (method === 'GET' && !scope.operations?.includes('get')) {
     throw new BlobError(
       'The delegation token is not valid for `GET` requests. Include `"get"` in `operations` when calling `issueSignedToken`.',
     );
   }
-  if (m === 'PUT' && !scope.operations?.includes('put')) {
+  if (
+    (method === 'PUT' || method === 'POST') &&
+    !scope.operations?.includes('put')
+  ) {
     throw new BlobError(
-      'The delegation token is not valid for `PUT` requests. Include `"put"` in `operations` when calling `issueSignedToken`.',
+      'The delegation token is not valid for presigned write requests. Include `"put"` in `operations` when calling `issueSignedToken` (covers control-plane `PUT` and multipart `POST /mpu`).',
     );
   }
 
@@ -533,7 +588,7 @@ export async function presignUrl(
     );
   }
 
-  const canonical = canonicalStringForUrl(u, m);
+  const canonical = canonicalStringForUrl(u, method);
   const signature = await hmacSha256Base64Url(
     issued.clientSigningToken,
     canonical,
@@ -553,7 +608,10 @@ export async function presignUrl(
 /**
  * @internal
  */
-function canonicalStringForUrl(u: URL, method: 'GET' | 'HEAD' | 'PUT'): string {
+function canonicalStringForUrl(
+  u: URL,
+  method: 'GET' | 'HEAD' | 'PUT' | 'POST',
+): string {
   const us = new URL(u.toString());
   for (const k of [...us.searchParams.keys()]) {
     if (PRESIGN_EXCLUDE.has(k)) {

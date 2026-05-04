@@ -40,8 +40,6 @@ export {
 
 export type { PutBlobResult } from './put-helpers';
 export type { PutCommandOptions };
-export type { PresignedPutWithIssuedTokenOptions } from './presigned-put';
-export { putWithIssuedSignedToken } from './presigned-put';
 
 /**
  * Uploads a blob into your store from your server.

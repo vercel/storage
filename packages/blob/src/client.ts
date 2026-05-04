@@ -1167,13 +1167,3 @@ function getPathFromRequestUrl(url: string): string | null {
 }
 
 export { createFolder } from './create-folder';
-/**
- * Upload with `IssuedSignedToken` material (include `"put"` in `operations` from
- * `issueSignedToken`). Presigns and `PUT`s the same `?pathname=…` control-API URL
- * as `put()` (not a `*.blob.vercel-storage.com` read URL), and sends no bearer
- * token.
- */
-export {
-  type PresignedPutWithIssuedTokenOptions as UploadWithSignedTokenOptions,
-  putWithIssuedSignedToken as uploadWithSignedToken,
-} from './presigned-put';

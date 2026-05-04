@@ -31,6 +31,19 @@ export interface BlobCommandOptions {
 }
 
 /**
+ * Presigned control-plane URL for writes (`put`, `copy`, multipart) and other
+ * methods built on {@link CommonCreateBlobOptions}. When set, it is used as the
+ * fetch target instead of composing `getApiUrl` with a bearer token.
+ * Not applicable to `get` (unsupported), `list`, `del`, or `head` in this SDK.
+ */
+export interface BlobPresignedUrlOptions {
+  /**
+   * Takes precedence over `token` and store credentials for supported calls.
+   */
+  presignedUrl?: string;
+}
+
+/**
  * The access level of a blob.
  * - 'public': The blob is publicly accessible via its URL.
  * - 'private': The blob requires authentication to access.
@@ -38,7 +51,9 @@ export interface BlobCommandOptions {
 export type BlobAccessType = 'public' | 'private';
 
 // shared interface for put, copy and multipart upload
-export interface CommonCreateBlobOptions extends BlobCommandOptions {
+export interface CommonCreateBlobOptions
+  extends BlobCommandOptions,
+    BlobPresignedUrlOptions {
   /**
    * Whether the blob should be publicly accessible.
    * - 'public': The blob will be publicly accessible via its URL.
@@ -147,12 +162,90 @@ function readEnv(name: string): string | undefined {
 }
 
 export type ResolvedBlobAuth =
-  | { kind: 'readWrite'; token: string; storeId: string }
-  | { kind: 'oidc'; oidcToken: string; storeId: string };
+  | { kind: 'readWrite' | 'oidc'; token: string; storeId: string }
+  | { kind: 'presigned'; storeId: string };
 
 export function parseStoreIdFromReadWriteToken(token: string): string {
   const [, , , storeId = ''] = token.split('_');
   return storeId;
+}
+
+/** Same query name as {@link import('./signed-token').BLOB_PRESIGN_QUERY_DELEGATION} (avoid circular import). */
+// TODO: JUST MOVE THIS
+const BLOB_PRESIGN_QUERY_DELEGATION = 'vercel-blob-delegation' as const;
+
+function normalizeDelegationStoreId(storeId: string): string {
+  const lowercase = storeId.toLowerCase();
+  return lowercase.startsWith('store_')
+    ? lowercase.slice('store_'.length)
+    : lowercase;
+}
+
+function base64UrlDecodeDelegationSegment(segment: string): string {
+  let base64 = segment.replace(/-/g, '+').replace(/_/g, '/');
+  const padding = 4 - (base64.length % 4);
+  if (padding !== 4) {
+    base64 += '='.repeat(padding);
+  }
+  if (typeof atob === 'function') {
+    return atob(base64);
+  }
+  if (typeof Buffer !== 'undefined') {
+    // eslint-disable-next-line no-restricted-globals
+    return Buffer.from(base64, 'base64').toString('utf8');
+  }
+  throw new BlobError('Cannot decode base64: no atob or Buffer available.');
+}
+
+/**
+ * Reads `storeId` from the delegation JWT embedded in a presigned blob URL’s
+ * `vercel-blob-delegation` query parameter (same payload shape as `issueSignedToken` delegations).
+ */
+/**
+ * Reads `storeId` from a delegation JWT’s payload segment (same format as
+ * embedded in a presigned URL’s `vercel-blob-delegation` query parameter).
+ */
+export function parseStoreIdFromDelegationToken(
+  delegationToken: string,
+): string {
+  const dot = delegationToken.indexOf('.');
+  if (dot < 0) {
+    throw new BlobError('Invalid delegation token format.');
+  }
+
+  const payloadSeg = delegationToken.slice(0, dot);
+  let parsed: { storeId?: unknown };
+  try {
+    parsed = JSON.parse(base64UrlDecodeDelegationSegment(payloadSeg)) as {
+      storeId?: unknown;
+    };
+  } catch {
+    throw new BlobError('Invalid delegation token payload.');
+  }
+
+  if (!parsed.storeId || typeof parsed.storeId !== 'string') {
+    throw new BlobError('Delegation token payload is missing `storeId`.');
+  }
+
+  return normalizeDelegationStoreId(parsed.storeId);
+}
+
+export function parseStoreIdFromPresignedUrl(presignedUrl: string): string {
+  let u: URL;
+  try {
+    u = new URL(presignedUrl);
+  } catch {
+    throw new BlobError('Invalid presigned URL.');
+  }
+
+  const delegation = u.searchParams.get(BLOB_PRESIGN_QUERY_DELEGATION);
+  if (!delegation || delegation.trim() === '') {
+    throw new BlobError(
+      `Presigned URL is missing the \`${BLOB_PRESIGN_QUERY_DELEGATION}\` query parameter.`,
+    );
+  }
+
+  return parseStoreIdFromDelegationToken(delegation);
 }
 
 /**
@@ -175,8 +268,12 @@ export function normalizeStoreId(storeId: string): string {
  * 3. `BLOB_READ_WRITE_TOKEN` from the environment.
  */
 export function resolveBlobAuth(
-  options?: BlobCommandOptions,
+  options?: BlobCommandOptions & BlobPresignedUrlOptions,
 ): ResolvedBlobAuth {
+  if (options?.presignedUrl) {
+    const storeId = parseStoreIdFromPresignedUrl(options.presignedUrl);
+    return { kind: 'presigned', storeId };
+  }
   // An explicitly supplied token always wins over OIDC and env-based tokens.
   if (options?.token) {
     const storeId = parseStoreIdFromReadWriteToken(options.token);
@@ -190,7 +287,7 @@ export function resolveBlobAuth(
     if (manualStoreId) {
       return {
         kind: 'oidc',
-        oidcToken,
+        token: oidcToken,
         storeId: normalizeStoreId(manualStoreId),
       };
     }
@@ -200,7 +297,7 @@ export function resolveBlobAuth(
     if (blobStoreId) {
       return {
         kind: 'oidc',
-        oidcToken,
+        token: oidcToken,
         storeId: normalizeStoreId(blobStoreId),
       };
     }

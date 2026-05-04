@@ -156,7 +156,10 @@ export async function get(
   }
 
   const auth = resolveBlobAuth(options);
-  const bearerToken = auth.kind === 'readWrite' ? auth.token : auth.oidcToken;
+  if (auth.kind === 'presigned') {
+    throw new BlobError('Presigned URLs are not supported for the get method');
+  }
+  const bearerToken = auth.token;
 
   let blobUrl: string;
   let pathname: string;

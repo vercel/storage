@@ -24,6 +24,7 @@ export interface PutCommandOptions
 export function createPutMethod<TOptions extends PutCommandOptions>({
   allowedOptions,
   getToken,
+  getPresignedUrl,
   extraChecks,
 }: CreatePutMethodOptions<TOptions>) {
   return async function put(
@@ -46,6 +47,7 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
       options: optionsInput,
       extraChecks,
       getToken,
+      getPresignedUrl,
     });
 
     const headers = createPutHeaders(allowedOptions, options);

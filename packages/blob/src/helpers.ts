@@ -156,16 +156,16 @@ export function parseStoreIdFromReadWriteToken(token: string): string {
 }
 
 /**
- * Returns the canonical store id form used in API request headers and blob
- * URLs (host subdomain): bare id, lowercase. `BLOB_STORE_ID` and the
- * `storeId` option are accepted in either `store_<id>` or `<id>` form, and
- * Vercel-issued values may be mixed case — both are normalized here.
+ * Strips the optional `store_` prefix from a store id. `BLOB_STORE_ID` (what
+ * `vercel env pull` writes) and the `storeId` option are accepted in either
+ * `store_<id>` or `<id>` form; downstream consumers (CDN host subdomain,
+ * `x-vercel-blob-store-id` header) want the bare form. Case is preserved
+ * because the API is case-sensitive on this value.
  */
 export function normalizeStoreId(storeId: string): string {
-  const lowercase = storeId.toLowerCase();
-  return lowercase.startsWith('store_')
-    ? lowercase.slice('store_'.length)
-    : lowercase;
+  return storeId.startsWith('store_')
+    ? storeId.slice('store_'.length)
+    : storeId;
 }
 
 /**

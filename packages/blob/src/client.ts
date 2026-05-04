@@ -404,6 +404,27 @@ async function signPayload(
   return Buffer.from(new Uint8Array(signature)).toString('hex');
 }
 
+/**
+ * Decodes PEM `-----BEGIN PUBLIC KEY----- …` (SPKI) to DER bytes.
+ */
+function publicKeyDerFromPem(pem: string): Buffer | undefined {
+  const match = pem
+    .trim()
+    .match(/-----BEGIN PUBLIC KEY-----([^-]*)-----END PUBLIC KEY-----/s);
+  const b64 = match?.[1]?.replace(/\s+/g, '');
+  if (!b64) {
+    return undefined;
+  }
+  try {
+    return Buffer.from(b64, 'base64');
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * @internal Internal function to verify a callback signature for presigned uploads.
+ */
 async function verifyCallbackSignaturePresigned({
   webhookPublicKey,
   signature,
@@ -413,8 +434,53 @@ async function verifyCallbackSignaturePresigned({
   signature: string;
   body: string;
 }): Promise<boolean> {
-  console.warn('verifyCallbackSignaturePresigned is not yet implemented');
-  return false;
+  if (
+    typeof signature !== 'string' ||
+    !/^[0-9a-fA-F]+$/.test(signature) ||
+    signature.length !== 128
+  ) {
+    return false;
+  }
+
+  const signatureBuf = Buffer.from(signature, 'hex');
+
+  const bodyBuf = Buffer.from(body, 'utf8');
+
+  if (typeof crypto.createPublicKey === 'function') {
+    try {
+      const key = crypto.createPublicKey(webhookPublicKey.trim());
+      return crypto.verify(null, bodyBuf, key, signatureBuf);
+    } catch {
+      return false;
+    }
+  }
+
+  const der = publicKeyDerFromPem(webhookPublicKey);
+  if (!der) {
+    return false;
+  }
+
+  try {
+    const derCopy = Uint8Array.from(der);
+    const verifyKey = await globalThis.crypto.subtle.importKey(
+      'spki',
+      derCopy,
+      { name: 'Ed25519' },
+      false,
+      ['verify'],
+    );
+    const sigBytes = new Uint8Array(64);
+    sigBytes.set(signatureBuf.subarray(0, 64), 0);
+    const ok = await globalThis.crypto.subtle.verify(
+      'Ed25519',
+      verifyKey,
+      sigBytes,
+      new TextEncoder().encode(body),
+    );
+    return ok;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -829,7 +895,8 @@ export interface HandleUploadPresignedOptions {
 /**
  * Server route helper for **presigned** client uploads: returns a presigned control-plane
  * `PUT` URL for single-object uploads, or a presigned `POST` URL for `/mpu` when multipart.
- * Verifies upload-completed callbacks the same way as {@link handleUpload} when implemented.
+ * Verifies upload-completed callbacks with Ed25519 (`BLOB_WEBHOOK_PUBLIC_KEY`) over `x-vercel-signature`,
+ * matching outbound `webhook_keypair` signing from api-storage when sending the callback.
  */
 export async function handleUploadPresigned({
   body,
@@ -875,7 +942,6 @@ export async function handleUploadPresigned({
         throw new BlobError('Missing callback signature');
       }
 
-      // todo: implement
       const isVerified = await verifyCallbackSignaturePresigned({
         webhookPublicKey: resolvedWebhookPublicKey,
         signature,

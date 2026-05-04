@@ -1,9 +1,11 @@
+import { generateKeyPairSync, sign as nodeCryptoSign } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
 import type { PutBlobResult } from '.';
 import {
   generateClientTokenFromReadWriteToken,
   getPayloadFromClientToken,
   handleUpload,
+  handleUploadPresigned,
 } from './client';
 
 describe('client uploads', () => {
@@ -881,6 +883,117 @@ describe('client uploads', () => {
       );
 
       process.env = originalEnv;
+    });
+  });
+
+  describe('handleUploadPresigned', () => {
+    const dummyIssuedSignedToken = {
+      delegationToken: '',
+      clientSigningToken: '',
+      validUntil: 0,
+    };
+
+    it('runs onCompleted when Ed25519 x-vercel-signature verifies against BLOB webhook public key', async () => {
+      const spy = jest.fn();
+      const { privateKey, publicKey } = generateKeyPairSync('ed25519');
+      const webhookPublicKey = publicKey
+        .export({ type: 'spki', format: 'pem' })
+        .toString();
+
+      const body = {
+        type: 'blob.upload-completed' as const,
+        payload: {
+          blob: { pathname: 'newfile.txt' } as PutBlobResult,
+          tokenPayload: 'custom-metadata',
+        },
+      };
+      const wireUtf8 = JSON.stringify(body);
+
+      await expect(
+        handleUploadPresigned({
+          webhookPublicKey,
+          request: {
+            headers: {
+              'x-vercel-signature': Buffer.from(
+                nodeCryptoSign(null, Buffer.from(wireUtf8, 'utf8'), privateKey),
+              ).toString('hex'),
+            },
+          } as unknown as IncomingMessage,
+          body,
+          getSignedToken: async () => dummyIssuedSignedToken,
+          onUploadCompleted: spy,
+        }),
+      ).resolves.toEqual({
+        response: 'ok',
+        type: 'blob.upload-completed',
+      });
+      expect(spy).toHaveBeenCalledWith(body.payload);
+    });
+
+    it('rejects webhook when Ed25519 signature does not verify', async () => {
+      const { privateKey, publicKey } = generateKeyPairSync('ed25519');
+      const webhookPublicKey = publicKey
+        .export({ type: 'spki', format: 'pem' })
+        .toString();
+
+      const body = {
+        type: 'blob.upload-completed' as const,
+        payload: {
+          blob: { pathname: 'newfile.txt' } as PutBlobResult,
+          tokenPayload: 'custom-metadata',
+        },
+      };
+
+      const wrongBody = JSON.stringify({
+        ...body,
+        payload: { ...body.payload, forged: true },
+      });
+      const wrongSigHex = Buffer.from(
+        nodeCryptoSign(null, Buffer.from(wrongBody, 'utf8'), privateKey),
+      ).toString('hex');
+
+      await expect(
+        handleUploadPresigned({
+          webhookPublicKey,
+          request: {
+            headers: { 'x-vercel-signature': wrongSigHex },
+          } as unknown as IncomingMessage,
+          body,
+          getSignedToken: async () => dummyIssuedSignedToken,
+          onUploadCompleted: async () => {
+            await Promise.resolve();
+          },
+        }),
+      ).rejects.toThrow(/Invalid callback signature/);
+    });
+
+    it('rejects HMAC-shaped signatures (must be hex Ed25519, 128 chars)', async () => {
+      const { publicKey } = generateKeyPairSync('ed25519');
+      const webhookPublicKey = publicKey
+        .export({ type: 'spki', format: 'pem' })
+        .toString();
+
+      await expect(
+        handleUploadPresigned({
+          webhookPublicKey,
+          request: {
+            headers: {
+              'x-vercel-signature':
+                'a4eac582498d4548d701eb8ff3e754f33f078e75298b9a1a0cdbac128981b28d',
+            },
+          } as unknown as IncomingMessage,
+          body: {
+            type: 'blob.upload-completed',
+            payload: {
+              blob: { pathname: 'x' } as PutBlobResult,
+            },
+          },
+          getSignedToken: async () => dummyIssuedSignedToken,
+          onUploadCompleted: async () => {
+            await Promise.resolve();
+          },
+        }),
+      ).rejects.toThrow(/Invalid callback signature/);
     });
   });
 });

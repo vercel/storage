@@ -75,7 +75,7 @@ describe('api', () => {
       );
 
       process.env.BLOB_READ_WRITE_TOKEN = undefined;
-      process.env.BLOB_STORE_ID = 'oidcStore';
+      process.env.BLOB_STORE_ID = 'oidcstore';
       process.env.VERCEL_OIDC_TOKEN = 'oidc-jwt';
 
       const res = await requestApi<{ success: boolean }>(
@@ -91,7 +91,7 @@ describe('api', () => {
       ];
       expect(call[1].headers.authorization).toBe('Bearer oidc-jwt');
       expect(call[1].headers['x-api-blob-request-id']).toMatch(
-        /^oidcStore:\d+:[a-f0-9]+$/,
+        /^oidcstore:\d+:[a-f0-9]+$/,
       );
       expect(res).toEqual({ success: true });
     });
@@ -107,7 +107,7 @@ describe('api', () => {
 
       process.env.BLOB_READ_WRITE_TOKEN =
         'vercel_blob_rw_fromRwToken_30FakeRandomCharacters12345678';
-      process.env.BLOB_STORE_ID = 'oidcStore';
+      process.env.BLOB_STORE_ID = 'oidcstore';
       process.env.VERCEL_OIDC_TOKEN = 'oidc-jwt';
 
       await requestApi<{ success: boolean }>(
@@ -123,7 +123,7 @@ describe('api', () => {
       ];
       expect(call[1].headers.authorization).toBe('Bearer oidc-jwt');
       expect(call[1].headers['x-api-blob-request-id']).toMatch(
-        /^oidcStore:\d+:[a-f0-9]+$/,
+        /^oidcstore:\d+:[a-f0-9]+$/,
       );
     });
 
@@ -143,7 +143,7 @@ describe('api', () => {
       await requestApi<{ success: boolean }>(
         '/method',
         { method: 'POST', body: JSON.stringify({}) },
-        { storeId: 'fromOption' },
+        { storeId: 'fromoption' },
       );
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -153,8 +153,68 @@ describe('api', () => {
       ];
       expect(call[1].headers.authorization).toBe('Bearer oidc-jwt');
       expect(call[1].headers['x-api-blob-request-id']).toMatch(
-        /^fromOption:\d+:[a-f0-9]+$/,
+        /^fromoption:\d+:[a-f0-9]+$/,
       );
+    });
+
+    it('should strip "store_" prefix and lowercase the OIDC store id', async () => {
+      const fetchMock = jest.spyOn(undici, 'fetch').mockImplementation(
+        jest.fn().mockResolvedValue({
+          status: 200,
+          ok: true,
+          json: () => Promise.resolve({ success: true }),
+        }),
+      );
+
+      process.env.BLOB_READ_WRITE_TOKEN = undefined;
+      // Vercel-issued env value: prefixed and mixed case.
+      process.env.BLOB_STORE_ID = 'store_WdsHBk1w9fDO4vPW';
+      process.env.VERCEL_OIDC_TOKEN = 'oidc-jwt';
+
+      await requestApi<{ success: boolean }>(
+        '/method',
+        { method: 'POST', body: JSON.stringify({}) },
+        undefined,
+      );
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const call = fetchMock.mock.calls[0] as [
+        string,
+        { headers: Record<string, string> },
+      ];
+      expect(call[1].headers['x-vercel-blob-store-id']).toBe(
+        'wdshbk1w9fdo4vpw',
+      );
+      expect(call[1].headers['x-api-blob-request-id']).toMatch(
+        /^wdshbk1w9fdo4vpw:\d+:[a-f0-9]+$/,
+      );
+    });
+
+    it('should normalize the OIDC storeId option', async () => {
+      const fetchMock = jest.spyOn(undici, 'fetch').mockImplementation(
+        jest.fn().mockResolvedValue({
+          status: 200,
+          ok: true,
+          json: () => Promise.resolve({ success: true }),
+        }),
+      );
+
+      process.env.BLOB_READ_WRITE_TOKEN = undefined;
+      delete process.env.BLOB_STORE_ID;
+      process.env.VERCEL_OIDC_TOKEN = 'oidc-jwt';
+
+      await requestApi<{ success: boolean }>(
+        '/method',
+        { method: 'POST', body: JSON.stringify({}) },
+        { storeId: 'Store_AbCDef' },
+      );
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const call = fetchMock.mock.calls[0] as [
+        string,
+        { headers: Record<string, string> },
+      ];
+      expect(call[1].headers['x-vercel-blob-store-id']).toBe('abcdef');
     });
 
     it('should fall back to BLOB_READ_WRITE_TOKEN when OIDC is set but store id is missing', async () => {

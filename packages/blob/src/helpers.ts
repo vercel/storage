@@ -156,6 +156,19 @@ export function parseStoreIdFromReadWriteToken(token: string): string {
 }
 
 /**
+ * Returns the canonical store id form used in API request headers and blob
+ * URLs (host subdomain): bare id, lowercase. `BLOB_STORE_ID` and the
+ * `storeId` option are accepted in either `store_<id>` or `<id>` form, and
+ * Vercel-issued values may be mixed case — both are normalized here.
+ */
+export function normalizeStoreId(storeId: string): string {
+  const lowercase = storeId.toLowerCase();
+  return lowercase.startsWith('store_')
+    ? lowercase.slice('store_'.length)
+    : lowercase;
+}
+
+/**
  * Resolves credentials in the following priority order:
  * 1. An explicit read-write `token` passed via options.
  * 2. `VERCEL_OIDC_TOKEN` paired with `storeId` option (or `BLOB_STORE_ID`).
@@ -175,13 +188,21 @@ export function resolveBlobAuth(
     // Try to get storeId from the supplied options
     const manualStoreId = options?.storeId?.trim();
     if (manualStoreId) {
-      return { kind: 'oidc', oidcToken, storeId: manualStoreId };
+      return {
+        kind: 'oidc',
+        oidcToken,
+        storeId: normalizeStoreId(manualStoreId),
+      };
     }
 
     // If not supplied manually, try to get storeId from the environment variable
     const blobStoreId = readEnv('BLOB_STORE_ID');
     if (blobStoreId) {
-      return { kind: 'oidc', oidcToken, storeId: blobStoreId };
+      return {
+        kind: 'oidc',
+        oidcToken,
+        storeId: normalizeStoreId(blobStoreId),
+      };
     }
   }
 

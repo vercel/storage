@@ -4,6 +4,7 @@ import { debug } from './debug';
 import { DOMException } from './dom-exception';
 import type {
   BlobCommandOptions,
+  BlobPresignedUrlOptions,
   BlobRequestInit,
   WithUploadProgress,
 } from './helpers';
@@ -172,7 +173,7 @@ function createBlobServiceRateLimited(
 }
 
 // reads the body of a error response
-async function getBlobError(
+export async function getBlobError(
   response: Response,
 ): Promise<{ code: string; error: BlobError }> {
   let code: BlobApiErrorCodes;
@@ -265,12 +266,16 @@ async function getBlobError(
 export async function requestApi<TResponse>(
   pathname: string,
   init: BlobRequestInit,
-  commandOptions: (BlobCommandOptions & WithUploadProgress) | undefined,
+  commandOptions:
+    | (BlobCommandOptions & BlobPresignedUrlOptions & WithUploadProgress)
+    | undefined,
 ): Promise<TResponse> {
   const apiVersion = getApiVersion();
   const auth = resolveBlobAuth(commandOptions);
-  const bearerToken = auth.kind === 'readWrite' ? auth.token : auth.oidcToken;
+  const bearerToken = auth.kind === 'presigned' ? undefined : auth.token;
   const extraHeaders = getProxyThroughAlternativeApiHeaderFromEnv();
+
+  const requestInput = commandOptions?.presignedUrl ?? getApiUrl(pathname);
 
   const requestId = `${auth.storeId}:${Date.now()}:${Math.random().toString(16).slice(2)}`;
   let retryCount = 0;
@@ -303,7 +308,7 @@ export async function requestApi<TResponse>(
       // try/catch here to treat certain errors as not-retryable
       try {
         res = await blobRequest({
-          input: getApiUrl(pathname),
+          input: requestInput,
           init: {
             ...init,
             headers: {
@@ -315,7 +320,9 @@ export async function requestApi<TResponse>(
               ...(sendBodyLength
                 ? { 'x-content-length': String(bodyLength) }
                 : {}),
-              authorization: `Bearer ${bearerToken}`,
+              ...(bearerToken !== undefined
+                ? { authorization: `Bearer ${bearerToken}` }
+                : {}),
               ...extraHeaders,
               ...init.headers,
             },

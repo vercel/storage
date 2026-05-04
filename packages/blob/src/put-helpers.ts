@@ -68,6 +68,7 @@ export type CommonPutCommandOptions = CommonCreateBlobOptions &
 export interface CreatePutMethodOptions<TOptions> {
   allowedOptions: (keyof typeof putOptionHeaderMap)[];
   getToken?: (pathname: string, options: TOptions) => Promise<string>;
+  getPresignedUrl?: (pathname: string, options: TOptions) => Promise<string>;
   extraChecks?: (options: TOptions) => void;
 }
 
@@ -141,11 +142,13 @@ export async function createPutOptions<
   options,
   extraChecks,
   getToken,
+  getPresignedUrl,
 }: {
   pathname: string;
   options?: TOptions;
   extraChecks?: CreatePutMethodOptions<TOptions>['extraChecks'];
   getToken?: CreatePutMethodOptions<TOptions>['getToken'];
+  getPresignedUrl?: CreatePutMethodOptions<TOptions>['getPresignedUrl'];
 }): Promise<TOptions> {
   if (!pathname) {
     throw new BlobError('pathname is required');
@@ -181,6 +184,10 @@ export async function createPutOptions<
 
   if (getToken) {
     options.token = await getToken(pathname, options);
+  }
+
+  if (getPresignedUrl) {
+    options.presignedUrl = await getPresignedUrl(pathname, options);
   }
 
   return options;

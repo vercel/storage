@@ -28,8 +28,11 @@ export {
 export {
   type BlobAccessType,
   BlobError,
+  type BlobPresignedUrlOptions,
   getDownloadUrl,
   type OnUploadProgressCallback,
+  parseStoreIdFromDelegationToken,
+  parseStoreIdFromPresignedUrl,
   type UploadProgressEvent,
 } from './helpers';
 
@@ -231,6 +234,7 @@ export const completeMultipartUpload =
     ],
   });
 
+export type { BlobClientTokenConstraintOptions } from './client-token-constraints';
 export type {
   CreateFolderCommandOptions,
   CreateFolderResult,
@@ -247,8 +251,11 @@ export {
   BLOB_PRESIGN_QUERY_DELEGATION,
   BLOB_PRESIGN_QUERY_SIGNATURE,
   BLOB_PRESIGN_QUERY_URL_EXPIRES,
+  controlPlaneBlobMpuUrl,
+  controlPlaneBlobPutUrl,
   issueSignedToken,
   presignUrl,
+  publicBlobObjectUrl,
   SIGNED_TOKEN_MAX_TTL_SECONDS,
   SIGNED_TOKEN_MIN_TTL_SECONDS,
 } from './signed-token';

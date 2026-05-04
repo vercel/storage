@@ -1,6 +1,6 @@
 import { BlobServiceNotAvailable, requestApi } from '../api';
 import { debug } from '../debug';
-import type { BlobCommandOptions, CommonCreateBlobOptions } from '../helpers';
+import type { CommonCreateBlobOptions } from '../helpers';
 import type { CreatePutMethodOptions } from '../put-helpers';
 import { createPutHeaders, createPutOptions } from '../put-helpers';
 
@@ -38,7 +38,7 @@ interface CreateMultipartUploadApiResponse {
 export async function createMultipartUpload(
   pathname: string,
   headers: Record<string, string>,
-  options: BlobCommandOptions,
+  options: CommonCreateBlobOptions,
 ): Promise<CreateMultipartUploadApiResponse> {
   debug('mpu: create', 'pathname:', pathname);
 

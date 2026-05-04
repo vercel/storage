@@ -51,6 +51,12 @@ export default function Home(): React.JSX.Element {
           <a href="/vercel/blob/app/client-multipart">/app/client-multipart</a>
         </li>
         <li>
+          Client Upload (Presigned Upload) →{' '}
+          <a href="/vercel/blob/app/presigned-upload/client">
+            /app/presigned-upload/client
+          </a>
+        </li>
+        <li>
           List blob items → <a href="/vercel/blob/app/list">/app/list</a>
         </li>
       </ul>

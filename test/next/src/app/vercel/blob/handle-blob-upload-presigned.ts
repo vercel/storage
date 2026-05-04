@@ -57,6 +57,8 @@ export async function handleUploadPresignedHandler(
   try {
     const jsonResponse = await handleUploadPresigned({
       body,
+      request,
+      webhookPublicKey: process.env.BLOB_WEBHOOK_PUBLIC_KEY,
       getSignedToken: async (pathname, clientPayload, multipart) => {
         const { userCanUpload } = await auth(request, pathname);
 
@@ -68,6 +70,8 @@ export async function handleUploadPresignedHandler(
         const customHeader =
           request.headers.get('X-Custom-Header') ||
           request.headers.get('X-Test-Header');
+
+        console.log('customHeader', customHeader);
 
         return await getCachedToken(pathname, clientPayload);
       },

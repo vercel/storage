@@ -28,10 +28,17 @@ export interface BlobCommandOptions {
    * `AbortSignal` to cancel the running request. See https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal
    */
   abortSignal?: AbortSignal;
+}
 
+/**
+ * Presigned control-plane URL for writes (`put`, `copy`, multipart) and other
+ * methods built on {@link CommonCreateBlobOptions}. When set, it is used as the
+ * fetch target instead of composing `getApiUrl` with a bearer token.
+ * Not applicable to `get` (unsupported), `list`, `del`, or `head` in this SDK.
+ */
+export interface BlobPresignedUrlOptions {
   /**
-   * Presigned URL. Takes precedence over token and storeId.
-   * No additional authentication is needed when using a presigned URL.
+   * Takes precedence over `token` and store credentials for supported calls.
    */
   presignedUrl?: string;
 }
@@ -44,7 +51,9 @@ export interface BlobCommandOptions {
 export type BlobAccessType = 'public' | 'private';
 
 // shared interface for put, copy and multipart upload
-export interface CommonCreateBlobOptions extends BlobCommandOptions {
+export interface CommonCreateBlobOptions
+  extends BlobCommandOptions,
+    BlobPresignedUrlOptions {
   /**
    * Whether the blob should be publicly accessible.
    * - 'public': The blob will be publicly accessible via its URL.
@@ -259,7 +268,7 @@ export function normalizeStoreId(storeId: string): string {
  * 3. `BLOB_READ_WRITE_TOKEN` from the environment.
  */
 export function resolveBlobAuth(
-  options?: BlobCommandOptions,
+  options?: BlobCommandOptions & BlobPresignedUrlOptions,
 ): ResolvedBlobAuth {
   if (options?.presignedUrl) {
     const storeId = parseStoreIdFromPresignedUrl(options.presignedUrl);

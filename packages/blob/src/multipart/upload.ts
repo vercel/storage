@@ -1,11 +1,7 @@
 import throttle from 'throttleit';
 import { BlobServiceNotAvailable, requestApi } from '../api';
 import { debug } from '../debug';
-import type {
-  BlobCommandOptions,
-  CommonCreateBlobOptions,
-  WithUploadProgress,
-} from '../helpers';
+import type { CommonCreateBlobOptions, WithUploadProgress } from '../helpers';
 import { BlobError, bytes, isPlainObject } from '../helpers';
 import type { CreatePutMethodOptions, PutBody } from '../put-helpers';
 import { createPutHeaders, createPutOptions } from '../put-helpers';
@@ -91,7 +87,7 @@ export async function uploadPart({
   key: string;
   pathname: string;
   headers: Record<string, string>;
-  options: BlobCommandOptions & WithUploadProgress;
+  options: CommonCreateBlobOptions & WithUploadProgress;
   internalAbortController?: AbortController;
   part: PartInput;
 }): Promise<UploadPartApiResponse> {
@@ -167,7 +163,7 @@ export function uploadAllParts({
   pathname: string;
   stream: ReadableStream<ArrayBuffer>;
   headers: Record<string, string>;
-  options: BlobCommandOptions & WithUploadProgress;
+  options: CommonCreateBlobOptions & WithUploadProgress;
   totalToLoad: number;
 }): Promise<Part[]> {
   debug('mpu: upload init', 'key:', key);

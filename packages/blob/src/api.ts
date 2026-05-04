@@ -4,6 +4,7 @@ import { debug } from './debug';
 import { DOMException } from './dom-exception';
 import type {
   BlobCommandOptions,
+  BlobPresignedUrlOptions,
   BlobRequestInit,
   WithUploadProgress,
 } from './helpers';
@@ -265,7 +266,9 @@ export async function getBlobError(
 export async function requestApi<TResponse>(
   pathname: string,
   init: BlobRequestInit,
-  commandOptions: (BlobCommandOptions & WithUploadProgress) | undefined,
+  commandOptions:
+    | (BlobCommandOptions & BlobPresignedUrlOptions & WithUploadProgress)
+    | undefined,
 ): Promise<TResponse> {
   const apiVersion = getApiVersion();
   const auth = resolveBlobAuth(commandOptions);

@@ -36,7 +36,7 @@ const getCachedToken = async (
     allowedContentTypes: ['image/png', 'image/jpeg'],
     maximumSizeInBytes: 1024 * 1024 * 10, // 10MB
     validUntil: Date.now() + 1000 * 60 * 60 * 24, // 1 day
-    addRandomSuffix: true,
+    addRandomSuffix: false,
     allowOverwrite: false,
     cacheControlMaxAge: 30 * 24 * 60 * 60, // 30 days
     operations: ['upload'],

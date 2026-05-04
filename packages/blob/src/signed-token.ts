@@ -294,17 +294,15 @@ export type PresignUrlOptions = {
  * **Canonical string** (must match the verification service on the edge/Go; no
  * host or scheme; routing already selects the store):
  *
- * - Line 1: HTTP method (`GET` or `HEAD`, uppercase).
- * - Line 2: `pathname` only, as from `new URL(href).pathname` (includes a leading
- *   `/` and percent-encoded segments; no origin or port), optionally followed by
- *   `?` and a query string.
+ * Sorted newline-separated `key=value` pairs (UTF-8 byte order of whole lines):
  *
- * Query string for signing: all params except `vercel-blob-delegation` and
- * `vercel-blob-signature` (e.g. `vercel-blob-url-expires` when
- * `options.ttlSeconds` is set), sorted by UTF-8 key ascending then value ascending,
- * and encoded as in Go’s `url.Values` from those pairs, then `Encode()`.
- * Delegation and signature are **appended to the final URL** after the HMAC is
- * computed.
+ * - `method=GET` or `method=HEAD` (uppercase).
+ * - `pathname=<object key>` from the URL path only (no leading `/`; segments
+ *   decoded like the delegation scope check).
+ * - `vercel-blob-url-expires=<ms>` when `options.ttlSeconds` is set.
+ *
+ * Only these keys participate. Other query params are ignored. Delegation and
+ * signature are **appended to the final URL** after the HMAC is computed.
  */
 export async function presignUrl(
   blobUrl: string,
@@ -423,9 +421,15 @@ function canonicalStringForUrl(u: URL, method: 'GET' | 'HEAD'): string {
       us.searchParams.delete(k);
     }
   }
-  const q = sortSearchParams(us.searchParams);
-  const path = us.pathname;
-  return q ? `${method}\n${path}?${q}` : `${method}\n${path}`;
+  const m = method.toUpperCase() === 'HEAD' ? 'HEAD' : 'GET';
+  const pathnameValue = decodeBlobObjectPath(objectPathnameFromUrl(us));
+  const lines: string[] = [`method=${m}`, `pathname=${pathnameValue}`];
+  const exp = us.searchParams.get(BLOB_PRESIGN_QUERY_URL_EXPIRES);
+  if (exp !== null && exp !== '') {
+    lines.push(`${BLOB_PRESIGN_QUERY_URL_EXPIRES}=${exp}`);
+  }
+  lines.sort((a, b) => compareUtf8(a, b));
+  return lines.join('\n');
 }
 
 const utf8Encoder = new TextEncoder();
@@ -446,19 +450,4 @@ function compareUtf8(a: string, b: string): number {
     }
   }
   return ab.length - bb.length;
-}
-
-/**
- * @internal
- */
-function sortSearchParams(input: URLSearchParams): string {
-  const parts: [string, string][] = [];
-  for (const [k, v] of input) {
-    parts.push([k, v]);
-  }
-  parts.sort((a, b) => {
-    const c = compareUtf8(a[0]!, b[0]!);
-    return c !== 0 ? c : compareUtf8(a[1]!, b[1]!);
-  });
-  return new URLSearchParams(parts).toString();
 }

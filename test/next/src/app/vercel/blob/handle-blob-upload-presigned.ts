@@ -68,7 +68,6 @@ export async function handleUploadPresignedHandler(
         const customHeader =
           request.headers.get('X-Custom-Header') ||
           request.headers.get('X-Test-Header');
-        console.log('Custom header received:', customHeader);
 
         return await getCachedToken(pathname, clientPayload);
       },

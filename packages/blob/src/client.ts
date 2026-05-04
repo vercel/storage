@@ -404,6 +404,19 @@ async function signPayload(
   return Buffer.from(new Uint8Array(signature)).toString('hex');
 }
 
+async function verifyCallbackSignaturePresigned({
+  webhookPublicKey,
+  signature,
+  body,
+}: {
+  webhookPublicKey: string;
+  signature: string;
+  body: string;
+}): Promise<boolean> {
+  console.warn('verifyCallbackSignaturePresigned is not yet implemented');
+  return false;
+}
+
 /**
  * @internal Internal function to verify a callback signature.
  */
@@ -790,7 +803,27 @@ export interface HandleUploadPresignedOptions {
     clientPayload: string | null,
     multipart: boolean,
   ) => Promise<IssuedSignedToken>;
+
+  /**
+   * Public key for verifying webhook signatures.
+   * This is used to verify the signature of the webhook request.
+   *
+   * @default process.env.BLOB_WEBHOOK_PUBLIC_KEY
+   */
+  webhookPublicKey?: string;
+
+  /**
+   * Function called by Vercel Blob when the client upload finishes.
+   * This is useful to update your database with the blob URL that was uploaded.
+   *
+   * @param body - Contains information about the completed upload including the blob details
+   */
   onUploadCompleted?: HandleUploadOptions['onUploadCompleted'];
+
+  /**
+   * An IncomingMessage or Request object to be used to determine the action to take.
+   */
+  request: RequestType;
 }
 
 /**
@@ -800,13 +833,22 @@ export interface HandleUploadPresignedOptions {
  */
 export async function handleUploadPresigned({
   body,
+  request,
+  webhookPublicKey,
   getSignedToken,
   onUploadCompleted,
 }: HandleUploadPresignedOptions): Promise<
   | { type: 'blob.generate-presigned-url'; presignedUrl: string }
   | { type: 'blob.upload-completed'; response: 'ok' }
 > {
-  switch (body.type) {
+  const resolvedWebhookPublicKey =
+    webhookPublicKey ?? process.env.BLOB_WEBHOOK_PUBLIC_KEY;
+  if (!resolvedWebhookPublicKey) {
+    throw new BlobError('Missing webhook public key');
+  }
+
+  const type = body.type;
+  switch (type) {
     case 'blob.generate-presigned-url': {
       const { pathname, clientPayload, multipart } = body.payload;
       const signedToken = await getSignedToken(
@@ -822,12 +864,35 @@ export async function handleUploadPresigned({
         signedToken,
         multipart ? 'POST' : 'PUT',
       );
-      return { type: body.type, presignedUrl };
+      return { type, presignedUrl };
     }
     case 'blob.upload-completed': {
+      const signatureHeader = 'x-vercel-signature';
+      const signature = (
+        'credentials' in request
+          ? (request.headers.get(signatureHeader) ?? '')
+          : (request.headers[signatureHeader] ?? '')
+      ) as string;
+
+      if (!signature) {
+        throw new BlobError('Missing callback signature');
+      }
+
       // todo: implement
-      console.warn('blob.upload-completed is not yet implemented');
-      return { type: body.type, response: 'ok' };
+      const isVerified = await verifyCallbackSignaturePresigned({
+        webhookPublicKey: resolvedWebhookPublicKey,
+        signature,
+        body: JSON.stringify(body),
+      });
+
+      if (!isVerified) {
+        throw new BlobError('Invalid callback signature');
+      }
+
+      if (onUploadCompleted) {
+        await onUploadCompleted(body.payload);
+      }
+      return { type, response: 'ok' };
     }
     default:
       throw new BlobError('Invalid event type');

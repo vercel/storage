@@ -477,14 +477,14 @@ export async function presignUrl(
   if (operation === 'upload') {
     if (isBlobObjectHostName(url.hostname)) {
       throw new BlobError(
-        'PUT presigning must use the control-plane URL from `controlPlaneBlobPutUrl`, not a `*.blob.vercel-storage.com` object URL (use `publicBlobObjectUrl` for GET/HEAD).',
+        'upload presigning must use the control-plane URL from `controlPlaneBlobPutUrl` or `controlPlaneBlobMpuUrl`, not a `*.blob.vercel-storage.com` object URL (use `publicBlobObjectUrl` for GET/HEAD).',
       );
     }
 
     const fromQuery = url.searchParams.get('pathname');
     if (fromQuery === null || fromQuery === '') {
       throw new BlobError(
-        'The `PUT` URL must include a non-empty `pathname` query.',
+        'The `upload` URL must include a non-empty `pathname` query.',
       );
     }
     opPath = decodeBlobObjectPath(fromQuery);

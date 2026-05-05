@@ -446,6 +446,34 @@ async function verifyCallbackSignaturePresigned({
 
   const bodyBuf = Buffer.from(body, 'utf8');
 
+  const der = publicKeyDerFromPem(webhookPublicKey);
+
+  // Prefer Web Crypto when available so browser bundles (which replace `crypto`
+  // with a small shim) never take the Node `createPublicKey` branch.
+  if (globalThis.crypto?.subtle && der) {
+    try {
+      const derCopy = Uint8Array.from(der);
+      const verifyKey = await globalThis.crypto.subtle.importKey(
+        'spki',
+        derCopy,
+        { name: 'Ed25519' },
+        false,
+        ['verify'],
+      );
+      const sigBytes = new Uint8Array(64);
+      sigBytes.set(signatureBuf.subarray(0, 64), 0);
+      const ok = await globalThis.crypto.subtle.verify(
+        'Ed25519',
+        verifyKey,
+        sigBytes,
+        new TextEncoder().encode(body),
+      );
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+
   if (typeof crypto.createPublicKey === 'function') {
     try {
       const key = crypto.createPublicKey(webhookPublicKey.trim());
@@ -455,32 +483,7 @@ async function verifyCallbackSignaturePresigned({
     }
   }
 
-  const der = publicKeyDerFromPem(webhookPublicKey);
-  if (!der) {
-    return false;
-  }
-
-  try {
-    const derCopy = Uint8Array.from(der);
-    const verifyKey = await globalThis.crypto.subtle.importKey(
-      'spki',
-      derCopy,
-      { name: 'Ed25519' },
-      false,
-      ['verify'],
-    );
-    const sigBytes = new Uint8Array(64);
-    sigBytes.set(signatureBuf.subarray(0, 64), 0);
-    const ok = await globalThis.crypto.subtle.verify(
-      'Ed25519',
-      verifyKey,
-      sigBytes,
-      new TextEncoder().encode(body),
-    );
-    return ok;
-  } catch {
-    return false;
-  }
+  return false;
 }
 
 /**

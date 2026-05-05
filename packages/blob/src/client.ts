@@ -9,7 +9,11 @@ import type {
   BlobCommandOptions,
   WithUploadProgress,
 } from './helpers';
-import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
+import {
+  BlobError,
+  getReadWriteBlobTokenFromOptionsOrEnv,
+  parseStoreIdFromReadWriteToken,
+} from './helpers';
 import type { CommonCompleteMultipartUploadOptions } from './multipart/complete';
 import { createCompleteMultipartUploadMethod } from './multipart/complete';
 import { createCreateMultipartUploadMethod } from './multipart/create';
@@ -580,7 +584,7 @@ export async function handleUpload({
   | { type: 'blob.generate-client-token'; clientToken: string }
   | { type: 'blob.upload-completed'; response: 'ok' }
 > {
-  const resolvedToken = getTokenFromOptionsOrEnv({ token });
+  const resolvedToken = getReadWriteBlobTokenFromOptionsOrEnv({ token });
 
   const type = body.type;
   switch (type) {
@@ -775,9 +779,9 @@ export async function generateClientTokenFromReadWriteToken({
 
   const timestamp = new Date();
   timestamp.setSeconds(timestamp.getSeconds() + 30);
-  const readWriteToken = getTokenFromOptionsOrEnv({ token });
+  const readWriteToken = getReadWriteBlobTokenFromOptionsOrEnv({ token });
 
-  const [, , , storeId = null] = readWriteToken.split('_');
+  const storeId = parseStoreIdFromReadWriteToken(readWriteToken) || null;
 
   if (!storeId) {
     throw new BlobError(

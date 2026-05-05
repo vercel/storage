@@ -6,6 +6,7 @@ import { isNodeProcess } from 'is-node-process';
 import type { RequestInit, Response } from 'undici';
 import { isNodeJsReadableStream } from './multipart/helpers';
 import type { PutBody } from './put-helpers';
+import { getVercelOidcToken } from './vercel-oidc-token';
 
 export { bytes } from './bytes';
 
@@ -14,9 +15,15 @@ const defaultVercelBlobApiUrl = 'https://vercel.com/api/blob';
 export interface BlobCommandOptions {
   /**
    * Define your blob API token.
+   * When supplied, this takes priority over process.env.VERCEL_OIDC_TOKEN and process.env.BLOB_READ_WRITE_TOKEN.
    * @defaultvalue process.env.BLOB_READ_WRITE_TOKEN
    */
   token?: string;
+  /**
+   * Blob store id. Used to override process.env.BLOB_STORE_ID when Vercel OIDC token is available.
+   * @defaultvalue process.env.BLOB_STORE_ID
+   */
+  storeId?: string;
   /**
    * `AbortSignal` to cancel the running request. See https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal
    */
@@ -128,17 +135,106 @@ export interface WithUploadProgress {
   onUploadProgress?: OnUploadProgressCallback;
 }
 
-export function getTokenFromOptionsOrEnv(options?: BlobCommandOptions): string {
+function readEnv(name: string): string | undefined {
+  try {
+    const value = process.env[name];
+    return typeof value === 'string' && value.trim() !== ''
+      ? value.trim()
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export type ResolvedBlobAuth =
+  | { kind: 'readWrite'; token: string; storeId: string }
+  | { kind: 'oidc'; oidcToken: string; storeId: string };
+
+export function parseStoreIdFromReadWriteToken(token: string): string {
+  const [, , , storeId = ''] = token.split('_');
+  return storeId;
+}
+
+/**
+ * Strips the optional `store_` prefix from a store id. `BLOB_STORE_ID` (what
+ * `vercel env pull` writes) and the `storeId` option are accepted in either
+ * `store_<id>` or `<id>` form; downstream consumers (CDN host subdomain,
+ * `x-vercel-blob-store-id` header) want the bare form. Case is preserved
+ * because the API is case-sensitive on this value.
+ */
+export function normalizeStoreId(storeId: string): string {
+  return storeId.startsWith('store_')
+    ? storeId.slice('store_'.length)
+    : storeId;
+}
+
+/**
+ * Resolves credentials in the following priority order:
+ * 1. An explicit read-write `token` passed via options.
+ * 2. `VERCEL_OIDC_TOKEN` paired with `storeId` option (or `BLOB_STORE_ID`).
+ * 3. `BLOB_READ_WRITE_TOKEN` from the environment.
+ */
+export function resolveBlobAuth(
+  options?: BlobCommandOptions,
+): ResolvedBlobAuth {
+  // An explicitly supplied token always wins over OIDC and env-based tokens.
+  if (options?.token) {
+    const storeId = parseStoreIdFromReadWriteToken(options.token);
+    return { kind: 'readWrite', token: options.token, storeId };
+  }
+
+  const oidcToken = getVercelOidcToken();
+  if (oidcToken) {
+    // Try to get storeId from the supplied options
+    const manualStoreId = options?.storeId?.trim();
+    if (manualStoreId) {
+      return {
+        kind: 'oidc',
+        oidcToken,
+        storeId: normalizeStoreId(manualStoreId),
+      };
+    }
+
+    // If not supplied manually, try to get storeId from the environment variable
+    const blobStoreId = readEnv('BLOB_STORE_ID');
+    if (blobStoreId) {
+      return {
+        kind: 'oidc',
+        oidcToken,
+        storeId: normalizeStoreId(blobStoreId),
+      };
+    }
+  }
+
+  const readWrite = readEnv('BLOB_READ_WRITE_TOKEN');
+  if (readWrite) {
+    const storeId = parseStoreIdFromReadWriteToken(readWrite);
+    return { kind: 'readWrite', token: readWrite, storeId };
+  }
+
+  throw new BlobError(
+    'No blob credentials found. Pass a `token` option, set `BLOB_READ_WRITE_TOKEN`, or use `VERCEL_OIDC_TOKEN` with `storeId` or `BLOB_STORE_ID`.',
+  );
+}
+
+/**
+ * Returns the read-write token for signing and callback verification.
+ * OIDC-only configuration is not sufficient; pass `token` or set `BLOB_READ_WRITE_TOKEN`.
+ */
+export function getReadWriteBlobTokenFromOptionsOrEnv(
+  options?: Pick<BlobCommandOptions, 'token'>,
+): string {
   if (options?.token) {
     return options.token;
   }
 
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    return process.env.BLOB_READ_WRITE_TOKEN;
+  const readWrite = readEnv('BLOB_READ_WRITE_TOKEN');
+  if (readWrite) {
+    return readWrite;
   }
 
   throw new BlobError(
-    'No token found. Either configure the `BLOB_READ_WRITE_TOKEN` environment variable, or pass a `token` option to your calls.',
+    'No read-write token found. Either configure the `BLOB_READ_WRITE_TOKEN` environment variable, or pass a `token` option to your calls.',
   );
 }
 

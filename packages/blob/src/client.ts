@@ -27,6 +27,7 @@ import {
   controlPlaneBlobMpuUrl,
   controlPlaneBlobPutUrl,
   type IssuedSignedToken,
+  type PresignUrlOptions,
   presignUrl,
 } from './signed-token';
 
@@ -892,8 +893,7 @@ export interface HandleUploadPresignedOptions {
     pathname: string,
     clientPayload: string | null,
     multipart: boolean,
-    issuanceContext?: HandleUploadPresignedIssuanceContext,
-  ) => Promise<IssuedSignedToken>;
+  ) => Promise<{ token: IssuedSignedToken; urlOpts: PresignUrlOptions }>;
 
   /**
    * Public key for verifying webhook signatures.
@@ -950,32 +950,36 @@ export async function handleUploadPresigned({
     case 'blob.generate-presigned-url': {
       const { pathname, clientPayload, multipart } = body.payload;
 
+      const { token, urlOpts } = await getSignedToken(
+        pathname,
+        clientPayload,
+        multipart,
+      );
+
       let callbackUrl: string | undefined;
       if (onUploadCompleted) {
         callbackUrl = getCallbackUrl(request);
       }
 
-      const tokenPayload = clientPayload;
-      const issuanceContext: HandleUploadPresignedIssuanceContext | undefined =
-        onUploadCompleted && callbackUrl
+      const urlOptsWithCallback = {
+        ...urlOpts,
+        onUploadCompleted: callbackUrl
           ? {
-              onUploadCompleted: {
-                callbackUrl,
-                tokenPayload,
-              },
+              callbackUrl,
+              tokenPayload: clientPayload,
             }
-          : undefined;
+          : undefined,
+      };
 
-      const signedToken = await getSignedToken(
-        pathname,
-        clientPayload,
-        multipart,
-        issuanceContext,
-      );
       const base = multipart
         ? controlPlaneBlobMpuUrl(pathname)
         : controlPlaneBlobPutUrl(pathname);
-      const presignedUrl = await presignUrl(base, signedToken, 'upload');
+      const presignedUrl = await presignUrl(
+        base,
+        token,
+        'upload',
+        urlOptsWithCallback,
+      );
       return { type, presignedUrl };
     }
     case 'blob.upload-completed': {

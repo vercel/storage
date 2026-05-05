@@ -48,26 +48,29 @@ export interface IssuedSignedToken {
 /**
  * Options for {@link issueSignedToken}.
  */
-export type IssueSignedTokenOptions = BlobCommandOptions &
-  BlobClientTokenConstraintOptions & {
-    /**
-     * Blob object pathname to scope the token to, e.g. `media/photo.png`.
-     * Use `"*"` to allow any pathname in the store. When omitted, the API defaults
-     * to a whole-store `"*"` wildcard.
-     */
-    pathname?: string;
-    /**
-     * Allowed operations (e.g. `get` / `head` for reads to `*.blob.vercel-storage.com`,
-     * `upload` for presigned control-plane `PUT` and multipart `POST /mpu`).
-     * When omitted, the API defaults to read (`get`) only.
-     */
-    operations?: DelegationOperation[];
-    /**
-     * Time-to-live in seconds, between {@link SIGNED_TOKEN_MIN_TTL_SECONDS} and
-     * {@link SIGNED_TOKEN_MAX_TTL_SECONDS}. When omitted, the API uses the minimum (1h).
-     */
-    ttlSeconds?: number;
-  };
+export type IssueSignedTokenOptions = BlobCommandOptions & {
+  /**
+   * Blob object pathname to scope the token to, e.g. `media/photo.png`.
+   * Use `"*"` to allow any pathname in the store. When omitted, the API defaults
+   * to a whole-store `"*"` wildcard.
+   */
+  pathname?: string;
+  /**
+   * Allowed operations (e.g. `get` / `head` for reads to `*.blob.vercel-storage.com`,
+   * `upload` for presigned control-plane `PUT` and multipart `POST /mpu`).
+   * When omitted, the API defaults to read (`get`) only.
+   */
+  operations?: DelegationOperation[];
+  /**
+   * Time-to-live in seconds, between {@link SIGNED_TOKEN_MIN_TTL_SECONDS} and
+   * {@link SIGNED_TOKEN_MAX_TTL_SECONDS}. When omitted, the API uses the minimum (1h).
+   */
+  ttlSeconds?: number;
+
+  allowedContentTypes?: string[];
+
+  maximumSizeInBytes?: number;
+};
 
 interface IssuedSignedTokenResponse {
   delegationToken: string;
@@ -92,16 +95,16 @@ export async function issueSignedToken(
     throw new BlobError('`issueSignedToken` requires an options object');
   }
 
-  if (options.ifMatch && options.allowOverwrite === false) {
-    throw new BlobError(
-      'ifMatch and allowOverwrite: false are contradictory. ifMatch is used for conditional overwrites, which requires allowOverwrite to be true.',
-    );
-  }
+  // if (options.ifMatch && options.allowOverwrite === false) {
+  //   throw new BlobError(
+  //     'ifMatch and allowOverwrite: false are contradictory. ifMatch is used for conditional overwrites, which requires allowOverwrite to be true.',
+  //   );
+  // }
 
-  let effectiveAllowOverwrite = options.allowOverwrite;
-  if (options.ifMatch && effectiveAllowOverwrite === undefined) {
-    effectiveAllowOverwrite = true;
-  }
+  // let effectiveAllowOverwrite = options.allowOverwrite;
+  // if (options.ifMatch && effectiveAllowOverwrite === undefined) {
+  //   effectiveAllowOverwrite = true;
+  // }
 
   const body: Record<string, unknown> = {};
   if (options.pathname !== undefined) {
@@ -122,27 +125,27 @@ export async function issueSignedToken(
   if (options.allowedContentTypes !== undefined) {
     body.allowedContentTypes = options.allowedContentTypes;
   }
-  if (options.validUntil !== undefined) {
-    body.validUntil = options.validUntil;
-  }
-  if (options.addRandomSuffix !== undefined) {
-    body.addRandomSuffix = options.addRandomSuffix;
-  }
-  if (effectiveAllowOverwrite !== undefined) {
-    body.allowOverwrite = effectiveAllowOverwrite;
-  }
-  if (options.cacheControlMaxAge !== undefined) {
-    body.cacheControlMaxAge = options.cacheControlMaxAge;
-  }
-  if (options.ifMatch !== undefined) {
-    body.ifMatch = options.ifMatch;
-  }
-  if (options.onUploadCompleted !== undefined) {
-    body.onUploadCompleted = {
-      callbackUrl: options.onUploadCompleted.callbackUrl,
-      tokenPayload: options.onUploadCompleted.tokenPayload ?? undefined,
-    };
-  }
+  // if (options.validUntil !== undefined) {
+  //   body.validUntil = options.validUntil;
+  // }
+  // if (options.addRandomSuffix !== undefined) {
+  //   body.addRandomSuffix = options.addRandomSuffix;
+  // }
+  // if (effectiveAllowOverwrite !== undefined) {
+  //   body.allowOverwrite = effectiveAllowOverwrite;
+  // }
+  // if (options.cacheControlMaxAge !== undefined) {
+  //   body.cacheControlMaxAge = options.cacheControlMaxAge;
+  // }
+  // if (options.ifMatch !== undefined) {
+  //   body.ifMatch = options.ifMatch;
+  // }
+  // if (options.onUploadCompleted !== undefined) {
+  //   body.onUploadCompleted = {
+  //     callbackUrl: options.onUploadCompleted.callbackUrl,
+  //     tokenPayload: options.onUploadCompleted.tokenPayload ?? undefined,
+  //   };
+  // }
 
   return requestApi<IssuedSignedTokenResponse>(
     '/signed-token',
@@ -426,8 +429,27 @@ export type PresignUrlOptions = {
    * `presignUrl` runs. Capped to the delegation payload’s `validUntil`.
    * When set, a `vercel-blob-url-expires` query param (ms since epoch) is
    * added and included in the HMAC. Omit to rely only on delegation scope.
+   *
+   * TODO: this should probably be validUntil
    */
   ttlSeconds?: number;
+
+  allowedContentTypes?: string[];
+
+  maximumSizeInBytes?: number;
+
+  onUploadCompleted?: {
+    callbackUrl: string;
+    tokenPayload?: string | null;
+  };
+
+  allowOverwrite?: boolean;
+
+  addRandomSuffix?: boolean;
+
+  cacheControlMaxAge?: number;
+
+  ifMatch?: string;
 };
 
 /**

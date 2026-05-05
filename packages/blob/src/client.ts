@@ -844,7 +844,10 @@ export async function handleUpload({
   }
 }
 
-/** Constraints passed from {@link handleUploadPresigned} `onBeforeGenerateToken` into {@link handleUploadPresignedOptions.getSignedToken}. */
+/**
+ * Constraints commonly forwarded from your route into {@link issueSignedToken} inside
+ * {@link HandleUploadPresignedOptions.getSignedToken}.
+ */
 export type HandleUploadPresignedSignedTokenPayload = Pick<
   GenerateClientTokenOptions,
   | 'allowedContentTypes'
@@ -857,6 +860,20 @@ export type HandleUploadPresignedSignedTokenPayload = Pick<
 >;
 
 /**
+ * Optional fourth argument to {@link HandleUploadPresignedOptions.getSignedToken}.
+ * When {@link handleUploadPresigned} is configured with `onUploadCompleted`, it resolves a
+ * callback URL the same way as {@link handleUpload} (via `VERCEL_BLOB_CALLBACK_URL` / Vercel
+ * host envs and the incoming request path) and passes it here so you can set
+ * `issueSignedToken({ ..., onUploadCompleted })`.
+ */
+export interface HandleUploadPresignedIssuanceContext {
+  onUploadCompleted?: {
+    callbackUrl: string;
+    tokenPayload?: string | null;
+  };
+}
+
+/**
  * Options for {@link handleUploadPresigned} — same upload-completion flow as {@link handleUpload},
  * but `blob.generate-presigned-url` returns a presigned control-plane URL: `PUT` to `/?pathname=…`
  * for single upload, or `POST` to `/mpu?pathname=…` when the client requested multipart.
@@ -866,11 +883,16 @@ export interface HandleUploadPresignedOptions {
   /**
    * Produce signed-token material (e.g. via `issueSignedToken`) for {@link presignUrl}.
    * Presigned writes (single `PUT` or multipart `POST /mpu`) use the same `"upload"` operation.
+   *
+   * When `onUploadCompleted` is set on {@link handleUploadPresigned}, the fourth argument is
+   * populated with a resolved `callbackUrl` (and `tokenPayload` from the client payload) so you
+   * can pass them to {@link issueSignedToken}'s `onUploadCompleted`.
    */
   getSignedToken: (
     pathname: string,
     clientPayload: string | null,
     multipart: boolean,
+    issuanceContext?: HandleUploadPresignedIssuanceContext,
   ) => Promise<IssuedSignedToken>;
 
   /**
@@ -900,6 +922,11 @@ export interface HandleUploadPresignedOptions {
  * `PUT` URL for single-object uploads, or a presigned `POST` URL for `/mpu` when multipart.
  * Verifies upload-completed callbacks with Ed25519 (`BLOB_WEBHOOK_PUBLIC_KEY`) over `x-vercel-signature`,
  * matching outbound `webhook_keypair` signing from api-storage when sending the callback.
+ *
+ * If `onUploadCompleted` is set, the callback target URL is resolved like {@link handleUpload}
+ * (same `VERCEL_BLOB_CALLBACK_URL` / Vercel URL rules) and passed as
+ * {@link HandleUploadPresignedIssuanceContext} to `getSignedToken` so you can include it in
+ * `issueSignedToken`.
  */
 export async function handleUploadPresigned({
   body,
@@ -922,10 +949,28 @@ export async function handleUploadPresigned({
   switch (type) {
     case 'blob.generate-presigned-url': {
       const { pathname, clientPayload, multipart } = body.payload;
+
+      let callbackUrl: string | undefined;
+      if (onUploadCompleted) {
+        callbackUrl = getCallbackUrl(request);
+      }
+
+      const tokenPayload = clientPayload;
+      const issuanceContext: HandleUploadPresignedIssuanceContext | undefined =
+        onUploadCompleted && callbackUrl
+          ? {
+              onUploadCompleted: {
+                callbackUrl,
+                tokenPayload,
+              },
+            }
+          : undefined;
+
       const signedToken = await getSignedToken(
         pathname,
         clientPayload,
         multipart,
+        issuanceContext,
       );
       const base = multipart
         ? controlPlaneBlobMpuUrl(pathname)

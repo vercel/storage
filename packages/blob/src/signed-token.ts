@@ -138,7 +138,10 @@ export async function issueSignedToken(
     body.ifMatch = options.ifMatch;
   }
   if (options.onUploadCompleted !== undefined) {
-    body.onUploadCompleted = options.onUploadCompleted;
+    body.onUploadCompleted = {
+      callbackUrl: options.onUploadCompleted.callbackUrl,
+      tokenPayload: options.onUploadCompleted.tokenPayload ?? undefined,
+    };
   }
 
   return requestApi<IssuedSignedTokenResponse>(

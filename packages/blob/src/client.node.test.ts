@@ -7,6 +7,7 @@ import {
   handleUpload,
   handleUploadPresigned,
 } from './client';
+import * as signedTokenModule from './signed-token';
 
 describe('client uploads', () => {
   describe('generateClientTokenFromReadWriteToken', () => {
@@ -994,6 +995,55 @@ describe('client uploads', () => {
           },
         }),
       ).rejects.toThrow(/Invalid callback signature/);
+    });
+
+    it('resolves callback URL and passes it to getSignedToken when onUploadCompleted is set', async () => {
+      const presignSpy = jest
+        .spyOn(signedTokenModule, 'presignUrl')
+        .mockResolvedValue('https://signed.example/put');
+
+      const originalEnv = { ...process.env };
+      process.env.VERCEL_BLOB_CALLBACK_URL =
+        'https://callback-base.example.com';
+
+      const getSignedToken = jest
+        .fn()
+        .mockResolvedValue(dummyIssuedSignedToken);
+
+      const result = await handleUploadPresigned({
+        webhookPublicKey: 'test-webhook-public-key',
+        request: new Request(
+          'http://localhost:3000/vercel/blob/api/app/handle-blob-upload-presigned',
+        ),
+        body: {
+          type: 'blob.generate-presigned-url',
+          payload: {
+            pathname: 'a.png',
+            clientPayload: 'cp',
+            multipart: false,
+          },
+        },
+        getSignedToken,
+        onUploadCompleted: async () => {
+          await Promise.resolve();
+        },
+      });
+
+      expect(result).toEqual({
+        type: 'blob.generate-presigned-url',
+        presignedUrl: 'https://signed.example/put',
+      });
+
+      expect(getSignedToken).toHaveBeenCalledWith('a.png', 'cp', false, {
+        onUploadCompleted: {
+          callbackUrl:
+            'https://callback-base.example.com/vercel/blob/api/app/handle-blob-upload-presigned',
+          tokenPayload: 'cp',
+        },
+      });
+
+      presignSpy.mockRestore();
+      process.env = originalEnv;
     });
   });
 });

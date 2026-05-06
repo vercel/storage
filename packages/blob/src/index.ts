@@ -62,7 +62,9 @@ export type { PutCommandOptions };
  *   - onUploadProgress - (Optional) Callback to track upload progress: onUploadProgress(\{loaded: number, total: number, percentage: number\})
  * @returns A promise that resolves to the blob information, including pathname, contentType, contentDisposition, url, and downloadUrl.
  */
-export const put = createPutMethod<PutCommandOptions>({
+export const put = createPutMethod<
+  Omit<PutCommandOptions, 'presignedUrlPayload'>
+>({
   allowedOptions: [
     'cacheControlMaxAge',
     'addRandomSuffix',

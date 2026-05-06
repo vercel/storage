@@ -295,7 +295,10 @@ function normalizeStoreId(storeId: string): string {
  * Presign URL options for {@link presignUrl} when `operation` is `get`, `head`, or `delete`.
  * Only `validUntil` is honored for these operations; upload-only fields are rejected at the type level.
  */
-export type PresignSimpleUrlOptions = {
+export type PresignGetUrlOptions = {
+  operation: 'get' | 'head';
+
+  pathname: string;
   /**
    * Absolute URL expiry (ms since epoch), capped to the delegation `validUntil`.
    * Omitted on the wire when equal to the delegation ceiling (server defaults to delegation).
@@ -303,11 +306,20 @@ export type PresignSimpleUrlOptions = {
   validUntil?: number;
 };
 
+/** @public Alias for {@link PresignGetUrlOptions} (read / `HEAD` presign). */
+export type PresignSimpleUrlOptions = PresignGetUrlOptions;
+
 /**
  * Presign URL options for {@link presignUrl} when `operation` is `put` (single `PUT` or multipart `POST`).
  * Serialized as individual `vercel-blob-*` query params (see {@link PRESIGN_CANONICAL_QUERY_KEYS}).
  */
-export type PresignPutUrlOptions = PresignSimpleUrlOptions & {
+export type PresignPutUrlOptions = {
+  operation: 'put';
+
+  pathname: string;
+
+  validUntil?: number;
+
   allowedContentTypes?: string[];
 
   maximumSizeInBytes?: number;
@@ -326,24 +338,17 @@ export type PresignPutUrlOptions = PresignSimpleUrlOptions & {
   ifMatch?: string;
 };
 
-/**
- * Optional settings for {@link presignUrl}, narrowed by `operation`.
- */
-export type PresignUrlOptions<
-  TOperation extends DelegationOperation = DelegationOperation,
-> = TOperation extends 'put' ? PresignPutUrlOptions : PresignSimpleUrlOptions;
+export type PresignUrlOptions = PresignGetUrlOptions | PresignPutUrlOptions;
 
 /**
  * Builds the payload for a presigned URL
  */
-export async function presignUrl<TOperation extends DelegationOperation>(
-  pathname: string,
+export async function presignUrl(
   signedToken: Pick<
     IssuedSignedToken,
     'clientSigningToken' | 'delegationToken'
   >,
-  operation: TOperation,
-  options?: PresignUrlOptions<TOperation>,
+  options: PresignUrlOptions,
 ): Promise<PresignedUrlPayload> {
   if (!signedToken?.clientSigningToken || !signedToken?.delegationToken) {
     throw new BlobError(
@@ -358,9 +363,9 @@ export async function presignUrl<TOperation extends DelegationOperation>(
 
   const p = scope.pathname;
   if (p && p !== '*') {
-    if (pathname !== p) {
+    if (options.pathname !== p) {
       throw new BlobError(
-        `Blob path does not match the signed token scope; expected \`${p}\`, got \`${pathname}\`.`,
+        `Blob path does not match the signed token scope; expected \`${p}\`, got \`${options.pathname}\`.`,
       );
     }
   }
@@ -370,17 +375,17 @@ export async function presignUrl<TOperation extends DelegationOperation>(
     );
   }
 
-  if (operation === 'head' && !scope.operations?.includes('head')) {
+  if (options.operation === 'head' && !scope.operations?.includes('head')) {
     throw new BlobError(
       'The delegation token is not valid for `HEAD` requests. Include `"head"` in `operations` when calling `issueSignedToken`.',
     );
   }
-  if (operation === 'get' && !scope.operations?.includes('get')) {
+  if (options.operation === 'get' && !scope.operations?.includes('get')) {
     throw new BlobError(
       'The delegation token is not valid for `GET` requests. Include `"get"` in `operations` when calling `issueSignedToken`.',
     );
   }
-  if (operation === 'put' && !scope.operations?.includes('put')) {
+  if (options.operation === 'put' && !scope.operations?.includes('put')) {
     throw new BlobError(
       'The delegation token is not valid for presigned write requests. Include `"put"` in `operations` when calling `issueSignedToken`.',
     );
@@ -395,7 +400,7 @@ export async function presignUrl<TOperation extends DelegationOperation>(
   let presignEntries: [string, string][];
   try {
     presignEntries = buildPresignCanonicalQueryEntries({
-      operation,
+      operation: options.operation,
       delegation: delegationForOptions,
       urlOptions: options,
       nowMs: Date.now(),
@@ -405,7 +410,11 @@ export async function presignUrl<TOperation extends DelegationOperation>(
     throw new BlobError(msg);
   }
 
-  const canonical = canonicalString(pathname, presignEntries, operation);
+  const canonical = canonicalString(
+    options.pathname,
+    presignEntries,
+    options.operation,
+  );
   const signature = await hmacSha256Base64Url(
     signedToken.clientSigningToken,
     canonical,

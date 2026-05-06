@@ -4,7 +4,11 @@ import {
   BLOB_PRESIGN_QUERY_VALID_UNTIL,
   buildPresignCanonicalQueryEntries,
 } from './presign-query-params';
-import { canonicalString, presignUrl } from './signed-token';
+import {
+  canonicalString,
+  type PresignUrlOptions,
+  presignUrl,
+} from './signed-token';
 import {
   createDelegationToken,
   deriveClientSigningToken,
@@ -30,22 +34,32 @@ function readDelegationPayload(delegationToken: string): DelegationPayload {
 }
 
 async function expectSignatureMatches(
-  pathname: string,
   delegationToken: string,
   clientSigningToken: string,
-  operation: Parameters<typeof presignUrl>[2],
+  options: PresignUrlOptions,
   nowMs: number,
-  urlOptions?: Parameters<typeof presignUrl>[3],
 ): Promise<void> {
   const spy = jest.spyOn(Date, 'now').mockReturnValue(nowMs);
   try {
     const payload = await presignUrl(
-      pathname,
       { delegationToken, clientSigningToken },
-      operation,
-      urlOptions,
+      options,
     );
     const scope = readDelegationPayload(delegationToken);
+    const { pathname, operation } = options;
+    const urlOptions =
+      operation === 'put'
+        ? {
+            validUntil: options.validUntil,
+            allowedContentTypes: options.allowedContentTypes,
+            maximumSizeInBytes: options.maximumSizeInBytes,
+            addRandomSuffix: options.addRandomSuffix,
+            allowOverwrite: options.allowOverwrite,
+            cacheControlMaxAge: options.cacheControlMaxAge,
+            ifMatch: options.ifMatch,
+            onUploadCompleted: options.onUploadCompleted,
+          }
+        : { validUntil: options.validUntil };
     const presignEntries = buildPresignCanonicalQueryEntries({
       operation,
       delegation: {
@@ -93,18 +107,21 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       );
       const client = deriveClientSigningToken(blobSigningSecret, delegation);
       const presignedPut = await presignUrl(
-        pathname,
         { delegationToken: delegation, clientSigningToken: client },
-        'put',
+        { operation: 'put', pathname },
       );
       const presignedMpu = await presignUrl(
-        pathname,
         { delegationToken: delegation, clientSigningToken: client },
-        'put',
+        { operation: 'put', pathname },
       );
       expect(presignedPut.signature).toBe(presignedMpu.signature);
       expect(presignedPut.options).toEqual(presignedMpu.options);
-      await expectSignatureMatches(pathname, delegation, client, 'put', now);
+      await expectSignatureMatches(
+        delegation,
+        client,
+        { operation: 'put', pathname },
+        now,
+      );
       expect(
         presignedPut.options[BLOB_PRESIGN_QUERY_VALID_UNTIL],
       ).toBeUndefined();
@@ -125,7 +142,12 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       );
       const client = deriveClientSigningToken(blobSigningSecret, delegation);
       // URLs are only for documentation parity with real uploads; presign is pathname-based.
-      await expectSignatureMatches(pathname, delegation, client, 'put', now);
+      await expectSignatureMatches(
+        delegation,
+        client,
+        { operation: 'put', pathname },
+        now,
+      );
     });
 
     it('HMACs the documented canonical string and returns payload fields', async () => {
@@ -142,7 +164,12 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         blobSigningSecret,
       );
       const client = deriveClientSigningToken(blobSigningSecret, delegation);
-      await expectSignatureMatches(pathname, delegation, client, 'get', now);
+      await expectSignatureMatches(
+        delegation,
+        client,
+        { operation: 'get', pathname },
+        now,
+      );
     });
 
     it('same pathname yields identical presign payloads (deterministic)', async () => {
@@ -160,14 +187,12 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       );
       const client = deriveClientSigningToken(blobSigningSecret, delegation);
       const first = await presignUrl(
-        pathname,
         { delegationToken: delegation, clientSigningToken: client },
-        'get',
+        { operation: 'get', pathname },
       );
       const second = await presignUrl(
-        pathname,
         { delegationToken: delegation, clientSigningToken: client },
-        'get',
+        { operation: 'get', pathname },
       );
       expect(first).toEqual(second);
     });
@@ -186,7 +211,15 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         blobSigningSecret,
       );
       const client = deriveClientSigningToken(blobSigningSecret, delegation);
-      await expectSignatureMatches(logicalName, delegation, client, 'get', now);
+      await expectSignatureMatches(
+        delegation,
+        client,
+        {
+          operation: 'get',
+          pathname: logicalName,
+        },
+        now,
+      );
     });
 
     it('rejects path mismatch for scoped non-wildcard tokens', async () => {
@@ -204,12 +237,11 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       const client = deriveClientSigningToken(blobSigningSecret, delegation);
       await expect(
         presignUrl(
-          'b.png',
           {
             delegationToken: delegation,
             clientSigningToken: client,
           },
-          'get',
+          { operation: 'get', pathname: 'b.png' },
         ),
       ).rejects.toThrow(BlobError);
     });
@@ -234,21 +266,25 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       const spy = jest.spyOn(Date, 'now').mockReturnValue(fixedNow);
       try {
         const payload = await presignUrl(
-          pathnameTtl,
           { delegationToken: delegation, clientSigningToken: client },
-          'get',
-          { validUntil: presignedUntil },
+          {
+            operation: 'get',
+            pathname: pathnameTtl,
+            validUntil: presignedUntil,
+          },
         );
         expect(payload.options[BLOB_PRESIGN_QUERY_VALID_UNTIL]).toBe(
           String(presignedUntil),
         );
         await expectSignatureMatches(
-          pathnameTtl,
           delegation,
           client,
-          'get',
+          {
+            operation: 'get',
+            pathname: pathnameTtl,
+            validUntil: presignedUntil,
+          },
           fixedNow,
-          { validUntil: presignedUntil },
         );
       } finally {
         spy.mockRestore();
@@ -274,19 +310,15 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       const spy = jest.spyOn(Date, 'now').mockReturnValue(fixedNow);
       try {
         const payload = await presignUrl(
-          pathname,
           { delegationToken: delegation, clientSigningToken: client },
-          'get',
-          { validUntil },
+          { operation: 'get', pathname, validUntil },
         );
         expect(payload.options[BLOB_PRESIGN_QUERY_VALID_UNTIL]).toBeUndefined();
         await expectSignatureMatches(
-          pathname,
           delegation,
           client,
-          'get',
+          { operation: 'get', pathname, validUntil },
           fixedNow,
-          { validUntil },
         );
       } finally {
         spy.mockRestore();

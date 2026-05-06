@@ -271,7 +271,7 @@ export function resolvePresignUrlValidUntilMs(args: {
  * defaults to delegation expiry).
  */
 export function buildPresignCanonicalQueryEntries(args: {
-  operation: 'get' | 'head' | 'upload' | 'delete';
+  operation: 'get' | 'head' | 'put' | 'delete';
   delegation: DelegationScopeForPresign;
   urlOptions?: {
     validUntil?: number;
@@ -299,7 +299,7 @@ export function buildPresignCanonicalQueryEntries(args: {
     entries.push([BLOB_PRESIGN_QUERY_VALID_UNTIL, String(resolvedUntil)]);
   }
 
-  if (operation !== 'upload' || !urlOptions) {
+  if (operation !== 'put' || !urlOptions) {
     return entries;
   }
 

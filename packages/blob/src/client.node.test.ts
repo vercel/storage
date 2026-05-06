@@ -1043,7 +1043,7 @@ describe('client uploads', () => {
       expect(presignSpy).toHaveBeenCalledWith(
         expect.any(String),
         dummyIssuedSignedToken,
-        'upload',
+        'put',
         expect.objectContaining({
           onUploadCompleted: {
             callbackUrl:

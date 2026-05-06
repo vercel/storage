@@ -38,7 +38,7 @@ const getCachedToken = async () => {
     pathname: '*',
     allowedContentTypes: ['image/png', 'image/jpeg', 'video/mp4'],
     maximumSizeInBytes: 1024 * 1024 * 10, // 10MB,
-    operations: ['upload'],
+    operations: ['put'],
     validUntil: Date.now() + 60 * 60 * 1000, // 1 hour
   });
 };

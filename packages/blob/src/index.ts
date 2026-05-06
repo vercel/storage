@@ -243,9 +243,6 @@ export type {
   PresignUrlOptions,
 } from './signed-token';
 export {
-  BLOB_PRESIGN_QUERY_DELEGATION,
-  BLOB_PRESIGN_QUERY_SIGNATURE,
-  BLOB_PRESIGN_QUERY_URL_EXPIRES,
   controlPlaneBlobMpuUrl,
   controlPlaneBlobPutUrl,
   issueSignedToken,

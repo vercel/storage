@@ -1,6 +1,11 @@
 import { requestApi } from './api';
-import type { BlobClientTokenConstraintOptions } from './client-token-constraints';
 import { type BlobCommandOptions, BlobError, getApiUrl } from './helpers';
+import {
+  buildPresignCanonicalQueryEntries,
+  deletePresignCanonicalParams,
+  PRESIGN_CANONICAL_QUERY_KEYS,
+  type PresignOptionsOnUploadCompletedWire,
+} from './presign-query-params';
 
 /**
  * Operations that may be encoded in a delegation token (e.g. read: `get` / `head`,
@@ -14,9 +19,6 @@ export type DelegationOperation = 'get' | 'head' | 'upload' | 'delete';
 export const BLOB_PRESIGN_QUERY_DELEGATION = 'vercel-blob-delegation' as const;
 /** @public for CDN / tooling alignment */
 export const BLOB_PRESIGN_QUERY_SIGNATURE = 'vercel-blob-signature' as const;
-
-export const BLOB_PRESIGN_QUERY_URL_EXPIRES =
-  'vercel-blob-url-expires' as const;
 
 /**
  * Min/max TTL the API allows for signed tokens (seconds). Matches the blob API
@@ -49,27 +51,30 @@ export interface IssuedSignedToken {
 /**
  * Options for {@link issueSignedToken}.
  */
-export type IssueSignedTokenOptions = BlobCommandOptions &
-  BlobClientTokenConstraintOptions & {
-    /**
-     * Blob object pathname to scope the token to, e.g. `media/photo.png`.
-     * Use `"*"` to allow any pathname in the store. When omitted, the API defaults
-     * to a whole-store `"*"` wildcard.
-     */
-    pathname?: string;
-    /**
-     * Allowed operations (e.g. `get` / `head` for reads to `*.blob.vercel-storage.com`,
-     * `upload` for presigned control-plane `PUT` and multipart `POST /mpu`,
-     * `delete` for presigned `DELETE` against `*.blob.vercel-storage.com`).
-     * When omitted, the API defaults to read (`get`) only.
-     */
-    operations?: DelegationOperation[];
-    /**
-     * Time-to-live in seconds, between {@link SIGNED_TOKEN_MIN_TTL_SECONDS} and
-     * {@link SIGNED_TOKEN_MAX_TTL_SECONDS}. When omitted, the API uses the minimum (1h).
-     */
-    ttlSeconds?: number;
-  };
+export type IssueSignedTokenOptions = BlobCommandOptions & {
+  /**
+   * Blob object pathname to scope the token to, e.g. `media/photo.png`.
+   * Use `"*"` to allow any pathname in the store. When omitted, the API defaults
+   * to a whole-store `"*"` wildcard.
+   */
+  pathname?: string;
+  /**
+   * Allowed operations (e.g. `get` / `head` for reads to `*.blob.vercel-storage.com`,
+   * `upload` for presigned control-plane `PUT` and multipart `POST /mpu`,
+   * `delete` for presigned `DELETE` against `*.blob.vercel-storage.com`).
+   * When omitted, the API defaults to read (`get`) only.
+   */
+  operations?: DelegationOperation[];
+  /**
+   * Time-to-live in seconds, between {@link SIGNED_TOKEN_MIN_TTL_SECONDS} and
+   * {@link SIGNED_TOKEN_MAX_TTL_SECONDS}. When omitted, the API uses the minimum (1h).
+   */
+  ttlSeconds?: number;
+
+  allowedContentTypes?: string[];
+
+  maximumSizeInBytes?: number;
+};
 
 interface IssuedSignedTokenResponse {
   delegationToken: string;
@@ -83,9 +88,13 @@ interface IssuedSignedTokenResponse {
  * or a read–write token like other SDK control-plane calls. Client (browser) tokens
  * are not allowed by the server for this operation.
  *
- * Optional fields from {@link BlobClientTokenConstraintOptions} are sent in the JSON
- * body with the same names as for client-token generation (`generateClientTokenFromReadWriteToken`),
- * when the control API supports them for signed tokens.
+ * JSON body fields supported by the API (delegation payload / `issue_signed_token`):
+ * `pathname`, `operations`, `ttlSeconds`, `maximumSizeInBytes`, `allowedContentTypes`.
+ * Optional `maximumSizeInBytes` and `allowedContentTypes` narrow upload scope in the
+ * delegation token. Everything else for presigned writes (`addRandomSuffix`, `ifMatch`,
+ * `onUploadCompleted`, shorter `validUntil`, …) is **URL query only** — use
+ * {@link presignUrl} / {@link PresignUrlOptions} (see `BLOB_PRESIGN_QUERY_*` in
+ * `./presign-query-params`).
  */
 export async function issueSignedToken(
   options: IssueSignedTokenOptions,
@@ -94,16 +103,16 @@ export async function issueSignedToken(
     throw new BlobError('`issueSignedToken` requires an options object');
   }
 
-  if (options.ifMatch && options.allowOverwrite === false) {
-    throw new BlobError(
-      'ifMatch and allowOverwrite: false are contradictory. ifMatch is used for conditional overwrites, which requires allowOverwrite to be true.',
-    );
-  }
+  // if (options.ifMatch && options.allowOverwrite === false) {
+  //   throw new BlobError(
+  //     'ifMatch and allowOverwrite: false are contradictory. ifMatch is used for conditional overwrites, which requires allowOverwrite to be true.',
+  //   );
+  // }
 
-  let effectiveAllowOverwrite = options.allowOverwrite;
-  if (options.ifMatch && effectiveAllowOverwrite === undefined) {
-    effectiveAllowOverwrite = true;
-  }
+  // let effectiveAllowOverwrite = options.allowOverwrite;
+  // if (options.ifMatch && effectiveAllowOverwrite === undefined) {
+  //   effectiveAllowOverwrite = true;
+  // }
 
   const body: Record<string, unknown> = {};
   if (options.pathname !== undefined) {
@@ -124,27 +133,27 @@ export async function issueSignedToken(
   if (options.allowedContentTypes !== undefined) {
     body.allowedContentTypes = options.allowedContentTypes;
   }
-  if (options.validUntil !== undefined) {
-    body.validUntil = options.validUntil;
-  }
-  if (options.addRandomSuffix !== undefined) {
-    body.addRandomSuffix = options.addRandomSuffix;
-  }
-  if (effectiveAllowOverwrite !== undefined) {
-    body.allowOverwrite = effectiveAllowOverwrite;
-  }
-  if (options.cacheControlMaxAge !== undefined) {
-    body.cacheControlMaxAge = options.cacheControlMaxAge;
-  }
-  if (options.ifMatch !== undefined) {
-    body.ifMatch = options.ifMatch;
-  }
-  if (options.onUploadCompleted !== undefined) {
-    body.onUploadCompleted = {
-      callbackUrl: options.onUploadCompleted.callbackUrl,
-      tokenPayload: options.onUploadCompleted.tokenPayload ?? undefined,
-    };
-  }
+  // if (options.validUntil !== undefined) {
+  //   body.validUntil = options.validUntil;
+  // }
+  // if (options.addRandomSuffix !== undefined) {
+  //   body.addRandomSuffix = options.addRandomSuffix;
+  // }
+  // if (effectiveAllowOverwrite !== undefined) {
+  //   body.allowOverwrite = effectiveAllowOverwrite;
+  // }
+  // if (options.cacheControlMaxAge !== undefined) {
+  //   body.cacheControlMaxAge = options.cacheControlMaxAge;
+  // }
+  // if (options.ifMatch !== undefined) {
+  //   body.ifMatch = options.ifMatch;
+  // }
+  // if (options.onUploadCompleted !== undefined) {
+  //   body.onUploadCompleted = {
+  //     callbackUrl: options.onUploadCompleted.callbackUrl,
+  //     tokenPayload: options.onUploadCompleted.tokenPayload ?? undefined,
+  //   };
+  // }
 
   return requestApi<IssuedSignedTokenResponse>(
     '/signed-token',
@@ -171,6 +180,8 @@ interface DecodedDelegationPayload {
   operations: string[];
   validUntil: number;
   iat: number;
+  maximumSizeInBytes?: number;
+  allowedContentTypes?: string[];
 }
 
 function base64UrlDecodeToString(segment: string): string {
@@ -421,15 +432,31 @@ function normalizeStoreId(storeId: string): string {
 
 /**
  * Optional settings for {@link presignUrl}.
+ * Serialized as individual `vercel-blob-*` query params (see {@link PRESIGN_CANONICAL_QUERY_KEYS}).
  */
 export type PresignUrlOptions = {
   /**
-   * Shorter lifetime for this specific URL, in **seconds** from the time
-   * `presignUrl` runs. Capped to the delegation payload’s `validUntil`.
-   * When set, a `vercel-blob-url-expires` query param (ms since epoch) is
-   * added and included in the HMAC. Omit to rely only on delegation scope.
+   * Absolute URL expiry (ms since epoch), capped to the delegation `validUntil`.
+   * Omitted on the wire when equal to the delegation ceiling (server defaults to delegation).
    */
-  ttlSeconds?: number;
+  validUntil?: number;
+
+  allowedContentTypes?: string[];
+
+  maximumSizeInBytes?: number;
+
+  onUploadCompleted?: {
+    callbackUrl: string;
+    tokenPayload?: string | null;
+  };
+
+  allowOverwrite?: boolean;
+
+  addRandomSuffix?: boolean;
+
+  cacheControlMaxAge?: number;
+
+  ifMatch?: string;
 };
 
 /**
@@ -450,10 +477,13 @@ export type PresignUrlOptions = {
  *   PUT/POST for uploads).
  * - `pathname=<object key>`: from the URL path (reads / deletes) or the
  *   `pathname` query (control-plane `PUT` / `POST` uploads).
- * - `vercel-blob-url-expires=<ms>` when `options.ttlSeconds` is set.
+ * - Optional `vercel-blob-*` constraint params (see `@vercel/blob` / proxy): each present
+ *   param becomes one `key=value` line. URL expiry uses optional
+ *   `vercel-blob-valid-until` (ms); when omitted, the server treats the URL as expiring
+ *   with the delegation. Callback wiring uses `vercel-blob-callback-url` and optional
+ *   `vercel-blob-callback-token-payload`.
  *
- * Only these keys participate. Other query params are ignored. Delegation and
- * signature are **appended to the final URL** after the HMAC is computed.
+ * Delegation and signature are **appended to the final URL** after the HMAC is computed.
  */
 export async function presignUrl(
   blobUrl: string,
@@ -473,7 +503,7 @@ export async function presignUrl(
   const url = new URL(blobUrl);
   url.searchParams.delete(BLOB_PRESIGN_QUERY_DELEGATION);
   url.searchParams.delete(BLOB_PRESIGN_QUERY_SIGNATURE);
-  url.searchParams.delete(BLOB_PRESIGN_QUERY_URL_EXPIRES);
+  deletePresignCanonicalParams(url);
 
   const scope = tryDecodePayload(issued.delegationToken);
   if (!scope) {
@@ -544,30 +574,26 @@ export async function presignUrl(
     );
   }
 
-  if (options?.ttlSeconds !== undefined) {
-    if (
-      typeof options.ttlSeconds !== 'number' ||
-      !Number.isFinite(options.ttlSeconds) ||
-      options.ttlSeconds <= 0
-    ) {
-      throw new BlobError(
-        '`options.ttlSeconds` must be a positive finite number.',
-      );
-    }
-    const t = Date.now();
-    let expiresAt = t + options.ttlSeconds * 1000;
-    if (Number.isFinite(scope.validUntil)) {
-      expiresAt = Math.min(expiresAt, scope.validUntil);
-    }
-    if (expiresAt <= t) {
-      throw new BlobError(
-        '`ttlSeconds` would expire at or before the current time, or the delegation is already at `validUntil`. Use a larger ttl or a fresh `issueSignedToken` result.',
-      );
-    }
-    url.searchParams.set(
-      BLOB_PRESIGN_QUERY_URL_EXPIRES,
-      String(Math.trunc(expiresAt)),
-    );
+  const delegationForOptions = {
+    validUntil: scope.validUntil,
+    maximumSizeInBytes: scope.maximumSizeInBytes,
+    allowedContentTypes: scope.allowedContentTypes,
+  };
+
+  let presignEntries: [string, string][];
+  try {
+    presignEntries = buildPresignCanonicalQueryEntries({
+      operation,
+      delegation: delegationForOptions,
+      urlOptions: options,
+      nowMs: Date.now(),
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new BlobError(msg);
+  }
+  for (const [k, v] of presignEntries) {
+    url.searchParams.set(k, v);
   }
 
   const canonical = canonicalStringForUrl(url, operation);
@@ -582,10 +608,8 @@ export async function presignUrl(
   return out.toString();
 }
 
-/**
- * @internal
- */
-function canonicalStringForUrl(
+/** @internal Exported for presign URL contract tests (must match proxy / api-blob). */
+export function canonicalStringForUrl(
   url: URL,
   operation: DelegationOperation,
 ): string {
@@ -597,9 +621,11 @@ function canonicalStringForUrl(
     `operation=${operation}`,
     `pathname=${pathnameValue}`,
   ];
-  const exp = url.searchParams.get(BLOB_PRESIGN_QUERY_URL_EXPIRES);
-  if (exp !== null && exp !== '') {
-    lines.push(`${BLOB_PRESIGN_QUERY_URL_EXPIRES}=${exp}`);
+  for (const k of PRESIGN_CANONICAL_QUERY_KEYS) {
+    const v = url.searchParams.get(k);
+    if (v !== null && v !== '') {
+      lines.push(`${k}=${v}`);
+    }
   }
   lines.sort((a, b) => compareUtf8(a, b));
   return lines.join('\n');

@@ -8,11 +8,11 @@ import {
 
 /**
  * Operations that may be encoded in a delegation token (e.g. read: `get` / `head`,
- * write: `upload` for presigned control-plane writes — both single-object `PUT`
- * ({@link controlPlaneBlobPutUrl}) and multipart `POST` ({@link controlPlaneBlobMpuUrl}),
+ * write: `put` for presigned control-plane writes — both single-object `PUT`
+ * ({@link controlPlaneBlobPutUrl}) and multipart `POST` ({@link controlPlaneBlobMpuUrl})).
  * destructive: `delete` for presigned `DELETE` against the blob object URL).
  */
-export type DelegationOperation = 'get' | 'head' | 'upload' | 'delete';
+export type DelegationOperation = 'get' | 'head' | 'put' | 'delete';
 
 /** Excluded from the string-to-sign; added after signing. @public for CDN / tooling alignment */
 export const BLOB_PRESIGN_QUERY_DELEGATION = 'vercel-blob-delegation' as const;
@@ -58,7 +58,7 @@ export type IssueSignedTokenOptions = BlobCommandOptions & {
   pathname?: string;
   /**
    * Allowed operations (e.g. `get` / `head` for reads to `*.blob.vercel-storage.com`,
-   * `upload` for presigned control-plane `PUT` and multipart `POST /mpu`,
+   * `put` for presigned control-plane `PUT` and multipart `POST /mpu`,
    * `delete` for presigned `DELETE` against `*.blob.vercel-storage.com`).
    * When omitted, the API defaults to read (`get`) only.
    */
@@ -439,7 +439,7 @@ export type PresignUrlOptions = {
  *
  * Sorted newline-separated `key=value` pairs (UTF-8 byte order of whole lines):
  *
- * - `operation=get`, `operation=head`, `operation=upload`, or `operation=delete`
+ * - `operation=get`, `operation=head`, `operation=put`, or `operation=delete`
  *   (implicit from URL target: object host + GET/HEAD/DELETE vs control-plane
  *   PUT/POST for uploads).
  * - `pathname=<object key>`: from the URL path (reads / deletes) or the
@@ -477,17 +477,17 @@ export async function presignUrl(
   }
 
   let opPath: string;
-  if (operation === 'upload') {
+  if (operation === 'put') {
     if (isBlobObjectHostName(url.hostname)) {
       throw new BlobError(
-        'upload presigning must use the control-plane URL from `controlPlaneBlobPutUrl` or `controlPlaneBlobMpuUrl`, not a `*.blob.vercel-storage.com` object URL (use `publicBlobObjectUrl` for GET/HEAD).',
+        'put presigning must use the control-plane URL from `controlPlaneBlobPutUrl` or `controlPlaneBlobMpuUrl`, not a `*.blob.vercel-storage.com` object URL (use `publicBlobObjectUrl` for GET/HEAD).',
       );
     }
 
     const fromQuery = url.searchParams.get('pathname');
     if (fromQuery === null || fromQuery === '') {
       throw new BlobError(
-        'The `upload` URL must include a non-empty `pathname` query.',
+        'The presigned `put` URL must include a non-empty `pathname` query.',
       );
     }
     opPath = decodeBlobObjectPath(fromQuery);
@@ -529,9 +529,9 @@ export async function presignUrl(
       'The delegation token is not valid for `GET` requests. Include `"get"` in `operations` when calling `issueSignedToken`.',
     );
   }
-  if (operation === 'upload' && !scope.operations?.includes('upload')) {
+  if (operation === 'put' && !scope.operations?.includes('put')) {
     throw new BlobError(
-      'The delegation token is not valid for presigned write requests. Include `"upload"` in `operations` when calling `issueSignedToken`.',
+      'The delegation token is not valid for presigned write requests. Include `"put"` in `operations` when calling `issueSignedToken`.',
     );
   }
   if (operation === 'delete' && !scope.operations?.includes('delete')) {
@@ -583,7 +583,7 @@ export function canonicalStringForUrl(
   operation: DelegationOperation,
 ): string {
   const pathnameValue =
-    operation === 'upload'
+    operation === 'put'
       ? decodeBlobObjectPath(url.searchParams.get('pathname') ?? '')
       : decodeBlobObjectPath(objectPathnameFromUrl(url));
   const lines: string[] = [

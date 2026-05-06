@@ -39,7 +39,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
           storeId: `store_${storeId}`,
           ownerId: 'owner_1',
           pathname,
-          operations: ['upload'],
+          operations: ['put'],
           validUntil: now + 3600_000,
           iat: now,
         },
@@ -51,12 +51,12 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       const presignedPut = await presignUrl(
         basePut,
         { delegationToken: delegation, clientSigningToken: client },
-        'upload',
+        'put',
       );
       const presignedMpu = await presignUrl(
         baseMpu,
         { delegationToken: delegation, clientSigningToken: client },
-        'upload',
+        'put',
       );
       const uPut = new URL(presignedPut);
       const uMpu = new URL(presignedMpu);
@@ -65,7 +65,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       );
       const canonical = canonicalStringForUrl(
         stripDelegationAndSig(uPut),
-        'upload',
+        'put',
       );
       const expected = createHmac('sha256', client)
         .update(canonical, 'utf8')
@@ -83,7 +83,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
           storeId: `store_${storeId}`,
           ownerId: 'owner_1',
           pathname,
-          operations: ['upload'],
+          operations: ['put'],
           validUntil: now + 3600_000,
           iat: now,
         },
@@ -94,13 +94,10 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       const presigned = await presignUrl(
         base,
         { delegationToken: delegation, clientSigningToken: client },
-        'upload',
+        'put',
       );
       const u = new URL(presigned);
-      const canonical = canonicalStringForUrl(
-        stripDelegationAndSig(u),
-        'upload',
-      );
+      const canonical = canonicalStringForUrl(stripDelegationAndSig(u), 'put');
       const expected = createHmac('sha256', client)
         .update(canonical, 'utf8')
         .digest('base64url');
@@ -268,7 +265,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
           storeId: `store_${storeId}`,
           ownerId: 'o',
           pathname,
-          operations: ['upload'],
+          operations: ['put'],
           validUntil: now + 3600_000,
           iat: now,
         },
@@ -280,7 +277,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         presignUrl(
           objectUrl,
           { delegationToken: delegation, clientSigningToken: client },
-          'upload',
+          'put',
         ),
       ).rejects.toThrow(BlobError);
     });

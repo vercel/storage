@@ -27,7 +27,7 @@ import type { PutBlobResult } from './put-helpers';
 import {
   type IssuedSignedToken,
   type IssueSignedTokenOptions,
-  type PresignUrlOptions,
+  type PresignPutUrlOptions,
   presignUrl,
 } from './signed-token';
 
@@ -891,7 +891,10 @@ export interface HandleUploadPresignedOptions {
     pathname: string,
     clientPayload: string | null,
     multipart: boolean,
-  ) => Promise<{ token: IssuedSignedToken; urlOpts: PresignUrlOptions<'put'> }>;
+  ) => Promise<{
+    token: IssuedSignedToken;
+    urlOpts: Omit<PresignPutUrlOptions, 'operation'>;
+  }>;
 
   /**
    * Public key for verifying webhook signatures.
@@ -971,12 +974,11 @@ export async function handleUploadPresigned({
           : undefined,
       };
 
-      const presignedUrlPayload = await presignUrl(
+      const presignedUrlPayload = await presignUrl(token, {
+        ...urlOptsWithCallback,
+        operation: 'put',
         pathname,
-        token,
-        'put',
-        urlOptsWithCallback,
-      );
+      });
       return { type, presignedUrlPayload };
     }
     case 'blob.upload-completed': {

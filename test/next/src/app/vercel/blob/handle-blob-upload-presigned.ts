@@ -75,6 +75,8 @@ export async function handleUploadPresignedHandler(
         return {
           token,
           urlOpts: {
+            operation: 'put' as const,
+            pathname,
             allowedContentTypes,
             maximumSizeInBytes,
             validUntil: Date.now() + 60 * 10 * 1000, // 10 minutes (≤ delegation; may set vercel-blob-valid-until)

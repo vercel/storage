@@ -895,7 +895,10 @@ describe('client uploads', () => {
     };
     const dummyGetSignedTokenResult = {
       token: dummyIssuedSignedToken,
-      urlOpts: {} as const,
+      urlOpts: {
+        operation: 'put' as const,
+        pathname: 'a.png',
+      },
     };
 
     it('runs onCompleted when Ed25519 x-vercel-signature verifies against BLOB webhook public key', async () => {
@@ -1046,10 +1049,10 @@ describe('client uploads', () => {
       expect(getSignedToken).toHaveBeenCalledWith('a.png', 'cp', false);
 
       expect(presignSpy).toHaveBeenCalledWith(
-        'a.png',
         dummyIssuedSignedToken,
-        'put',
         expect.objectContaining({
+          operation: 'put',
+          pathname: 'a.png',
           onUploadCompleted: {
             callbackUrl:
               'https://callback-base.example.com/vercel/blob/api/app/handle-blob-upload-presigned',

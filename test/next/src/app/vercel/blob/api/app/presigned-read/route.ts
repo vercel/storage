@@ -48,16 +48,15 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   try {
-    const issued = await issueSignedToken({
+    const token = await issueSignedToken({
       pathname: parsed.pathname,
       operations: ['get'],
       validUntil: Date.now() + 60 * 60 * 1000, // 1 hour
     });
-    const presignedUrlPayload = await presignUrl(
-      parsed.pathname,
-      issued,
-      'get',
-    );
+    const presignedUrlPayload = await presignUrl(token, {
+      operation: 'get',
+      pathname: parsed.pathname,
+    });
     return NextResponse.json({
       pathname: parsed.pathname,
       access: parsed.access,

@@ -1,11 +1,15 @@
 import { fetch, type Headers } from 'undici';
-import type { BlobAccessType, BlobCommandOptions } from './helpers';
+import type {
+  BlobAccessType,
+  BlobPresignedCommandOptions,
+  PresignedUrlPayload,
+} from './helpers';
 import { BlobError, resolveBlobAuth } from './helpers';
 
 /**
  * Options for the get method.
  */
-export interface GetCommandOptions extends BlobCommandOptions {
+export interface GetCommandOptions extends BlobPresignedCommandOptions {
   /**
    * Whether the blob is publicly accessible or private.
    * - 'public': The blob is publicly accessible via its URL.
@@ -105,8 +109,22 @@ function constructBlobUrl(
   storeId: string,
   pathname: string,
   access: BlobAccessType,
+  presignedUrlPayload?: PresignedUrlPayload,
 ): string {
-  return `https://${storeId}.${access}.blob.vercel-storage.com/${pathname}`;
+  const baseUrl = `https://${storeId}.${access}.blob.vercel-storage.com/${pathname}`;
+  if (presignedUrlPayload) {
+    const searchParams = new URLSearchParams();
+    searchParams.set(
+      'vercel-blob-delegation',
+      presignedUrlPayload.delegationToken,
+    );
+    searchParams.set('vercel-blob-signature', presignedUrlPayload.signature);
+    for (const [key, value] of Object.entries(presignedUrlPayload.options)) {
+      searchParams.set(key, value);
+    }
+    return `${baseUrl}?${searchParams.toString()}`;
+  }
+  return baseUrl;
 }
 
 /**
@@ -156,10 +174,7 @@ export async function get(
   }
 
   const auth = resolveBlobAuth(options);
-  if (auth.kind === 'presigned') {
-    throw new BlobError('Presigned URLs are not supported for the get method');
-  }
-  const bearerToken = auth.token;
+  const bearerToken = auth.kind === 'presigned' ? undefined : auth.token;
 
   let blobUrl: string;
   let pathname: string;
@@ -186,13 +201,18 @@ export async function get(
       throw new BlobError('Invalid token: unable to extract store ID');
     }
     pathname = urlOrPathname;
-    blobUrl = constructBlobUrl(auth.storeId, pathname, access);
+    blobUrl = constructBlobUrl(
+      auth.storeId,
+      pathname,
+      access,
+      options.presignedUrlPayload,
+    );
   }
 
   // Fetch the blob content with authentication headers
   const requestHeaders: HeadersInit = {
     ...(options.ifNoneMatch ? { 'If-None-Match': options.ifNoneMatch } : {}),
-    authorization: `Bearer ${bearerToken}`,
+    ...(bearerToken ? { authorization: `Bearer ${bearerToken}` } : {}),
     ...options.headers, // low-level escape hatch, applied last to override anything
   };
 

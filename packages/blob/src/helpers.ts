@@ -30,17 +30,22 @@ export interface BlobCommandOptions {
   abortSignal?: AbortSignal;
 }
 
+export interface PresignedUrlPayload {
+  delegationToken: string;
+  signature: string;
+  options: Record<string, string>;
+}
+
 /**
  * Presigned control-plane URL for writes (`put`, `copy`, multipart) and other
  * methods built on {@link CommonCreateBlobOptions}. When set, it is used as the
  * fetch target instead of composing `getApiUrl` with a bearer token.
- * Not applicable to `get` (unsupported), `list`, `del`, or `head` in this SDK.
  */
-export interface BlobPresignedUrlOptions {
+export interface BlobPresignedCommandOptions extends BlobCommandOptions {
   /**
    * Takes precedence over `token` and store credentials for supported calls.
    */
-  presignedUrl?: string;
+  presignedUrlPayload?: PresignedUrlPayload;
 }
 
 /**
@@ -51,9 +56,7 @@ export interface BlobPresignedUrlOptions {
 export type BlobAccessType = 'public' | 'private';
 
 // shared interface for put, copy and multipart upload
-export interface CommonCreateBlobOptions
-  extends BlobCommandOptions,
-    BlobPresignedUrlOptions {
+export interface CommonCreateBlobOptions extends BlobPresignedCommandOptions {
   /**
    * Whether the blob should be publicly accessible.
    * - 'public': The blob will be publicly accessible via its URL.
@@ -229,21 +232,10 @@ export function parseStoreIdFromDelegationToken(
   return normalizeDelegationStoreId(parsed.storeId);
 }
 
-export function parseStoreIdFromPresignedUrl(presignedUrl: string): string {
-  let u: URL;
-  try {
-    u = new URL(presignedUrl);
-  } catch {
-    throw new BlobError('Invalid presigned URL.');
-  }
-
-  const delegation = u.searchParams.get(BLOB_PRESIGN_QUERY_DELEGATION);
-  if (!delegation || delegation.trim() === '') {
-    throw new BlobError(
-      `Presigned URL is missing the \`${BLOB_PRESIGN_QUERY_DELEGATION}\` query parameter.`,
-    );
-  }
-
+export function parseStoreIdFromPresignedUrl(
+  presignedUrlPayload: PresignedUrlPayload,
+): string {
+  const delegation = presignedUrlPayload.delegationToken;
   return parseStoreIdFromDelegationToken(delegation);
 }
 
@@ -267,10 +259,12 @@ export function normalizeStoreId(storeId: string): string {
  * 3. `BLOB_READ_WRITE_TOKEN` from the environment.
  */
 export function resolveBlobAuth(
-  options?: BlobCommandOptions & BlobPresignedUrlOptions,
+  options?: BlobCommandOptions & BlobPresignedCommandOptions,
 ): ResolvedBlobAuth {
-  if (options?.presignedUrl) {
-    const storeId = parseStoreIdFromPresignedUrl(options.presignedUrl);
+  if (options?.presignedUrlPayload) {
+    const storeId = parseStoreIdFromDelegationToken(
+      options.presignedUrlPayload.delegationToken,
+    );
     return { kind: 'presigned', storeId };
   }
   // An explicitly supplied token always wins over OIDC and env-based tokens.

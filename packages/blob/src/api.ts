@@ -3,9 +3,9 @@ import type { Response } from 'undici';
 import { debug } from './debug';
 import { DOMException } from './dom-exception';
 import type {
-  BlobCommandOptions,
-  BlobPresignedUrlOptions,
+  BlobPresignedCommandOptions,
   BlobRequestInit,
+  PresignedUrlPayload,
   WithUploadProgress,
 } from './helpers';
 import {
@@ -263,11 +263,30 @@ export async function getBlobError(
   return { code, error };
 }
 
+const addPresignedParams = (
+  url: string,
+  presignedUrlPayload: PresignedUrlPayload,
+): string => {
+  const urlObj = new URL(url);
+  urlObj.searchParams.set(
+    'vercel-blob-delegation',
+    presignedUrlPayload.delegationToken,
+  );
+  urlObj.searchParams.set(
+    'vercel-blob-signature',
+    presignedUrlPayload.signature,
+  );
+  for (const [key, value] of Object.entries(presignedUrlPayload.options)) {
+    urlObj.searchParams.set(key, value);
+  }
+  return urlObj.toString();
+};
+
 export async function requestApi<TResponse>(
   pathname: string,
   init: BlobRequestInit,
   commandOptions:
-    | (BlobCommandOptions & BlobPresignedUrlOptions & WithUploadProgress)
+    | (BlobPresignedCommandOptions & WithUploadProgress)
     | undefined,
 ): Promise<TResponse> {
   const apiVersion = getApiVersion();
@@ -275,7 +294,13 @@ export async function requestApi<TResponse>(
   const bearerToken = auth.kind === 'presigned' ? undefined : auth.token;
   const extraHeaders = getProxyThroughAlternativeApiHeaderFromEnv();
 
-  const requestInput = commandOptions?.presignedUrl ?? getApiUrl(pathname);
+  let requestInput = getApiUrl(pathname);
+  if (commandOptions?.presignedUrlPayload) {
+    requestInput = addPresignedParams(
+      requestInput,
+      commandOptions.presignedUrlPayload,
+    );
+  }
 
   const requestId = `${auth.storeId}:${Date.now()}:${Math.random().toString(16).slice(2)}`;
   let retryCount = 0;

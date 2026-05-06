@@ -1,8 +1,12 @@
 import { requestApi } from './api';
-import { type BlobCommandOptions, BlobError, getApiUrl } from './helpers';
+import {
+  type BlobCommandOptions,
+  BlobError,
+  getApiUrl,
+  type PresignedUrlPayload,
+} from './helpers';
 import {
   buildPresignCanonicalQueryEntries,
-  deletePresignCanonicalParams,
   PRESIGN_CANONICAL_QUERY_KEYS,
 } from './presign-query-params';
 
@@ -127,17 +131,6 @@ export async function issueSignedToken(
     throw new BlobError('`issueSignedToken` requires an options object');
   }
 
-  // if (options.ifMatch && options.allowOverwrite === false) {
-  //   throw new BlobError(
-  //     'ifMatch and allowOverwrite: false are contradictory. ifMatch is used for conditional overwrites, which requires allowOverwrite to be true.',
-  //   );
-  // }
-
-  // let effectiveAllowOverwrite = options.allowOverwrite;
-  // if (options.ifMatch && effectiveAllowOverwrite === undefined) {
-  //   effectiveAllowOverwrite = true;
-  // }
-
   const body: Record<string, unknown> = {};
   if (options.pathname !== undefined) {
     body.pathname = options.pathname;
@@ -158,24 +151,6 @@ export async function issueSignedToken(
   if (options.allowedContentTypes !== undefined) {
     body.allowedContentTypes = options.allowedContentTypes;
   }
-  // if (options.addRandomSuffix !== undefined) {
-  //   body.addRandomSuffix = options.addRandomSuffix;
-  // }
-  // if (effectiveAllowOverwrite !== undefined) {
-  //   body.allowOverwrite = effectiveAllowOverwrite;
-  // }
-  // if (options.cacheControlMaxAge !== undefined) {
-  //   body.cacheControlMaxAge = options.cacheControlMaxAge;
-  // }
-  // if (options.ifMatch !== undefined) {
-  //   body.ifMatch = options.ifMatch;
-  // }
-  // if (options.onUploadCompleted !== undefined) {
-  //   body.onUploadCompleted = {
-  //     callbackUrl: options.onUploadCompleted.callbackUrl,
-  //     tokenPayload: options.onUploadCompleted.tokenPayload ?? undefined,
-  //   };
-  // }
 
   return requestApi<IssuedSignedTokenResponse>(
     '/signed-token',
@@ -295,64 +270,6 @@ export function controlPlaneBlobDeleteUrl(objectPathname: string): string {
 /**
  * @internal
  */
-function isBlobObjectHostName(hostname: string): boolean {
-  return (
-    hostname.endsWith('.public.blob.vercel-storage.com') ||
-    hostname.endsWith('.private.blob.vercel-storage.com')
-  );
-}
-
-/**
- * @internal
- */
-function assertBlobHost(hostname: string): { storeId: string } {
-  if (!isBlobObjectHostName(hostname)) {
-    throw new BlobError(
-      'The URL must use a Vercel Blob host (*.public|*.private.blob.vercel-storage.com), or use `controlPlaneBlobPutUrl` / `controlPlaneBlobMpuUrl` for `put` presigns or `controlPlaneBlobDeleteUrl` for `delete` presigns.',
-    );
-  }
-  const isPublic = hostname.endsWith('.public.blob.vercel-storage.com');
-  const sub = isPublic
-    ? hostname.slice(0, -'.public.blob.vercel-storage.com'.length)
-    : hostname.slice(0, -'.private.blob.vercel-storage.com'.length);
-  if (!sub) {
-    throw new BlobError('Could not read store id from the blob host.');
-  }
-  return { storeId: sub };
-}
-
-/**
- * @internal
- */
-function objectPathnameFromUrl(url: URL): string {
-  // pathname is e.g. /my/file.png → "my/file.png" (no leading slash)
-  return url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
-}
-
-/**
- * `URL#pathname` is often percent-encoded per segment; `issueSignedToken` scope
- * `pathname` is the logical key (e.g. spaces, parens as Unicode). Compare after
- * decoding each segment.
- */
-function decodeBlobObjectPath(path: string): string {
-  if (!path) {
-    return path;
-  }
-  return path
-    .split('/')
-    .map((segment) => {
-      try {
-        return decodeURIComponent(segment);
-      } catch {
-        return segment;
-      }
-    })
-    .join('/');
-}
-
-/**
- * @internal
- */
 function uint8ToBase64(bytes: Uint8Array): string {
   if (typeof Buffer !== 'undefined') {
     // eslint-disable-next-line no-restricted-globals
@@ -461,81 +378,30 @@ export type PresignUrlOptions<
  * `delegationToken` and validates the HMAC, scope, and expiry.
  */
 export async function presignUrl<TOperation extends DelegationOperation>(
-  blobUrl: string,
+  pathname: string,
   signedToken: Pick<
     IssuedSignedToken,
     'clientSigningToken' | 'delegationToken'
   >,
   operation: TOperation,
   options?: PresignUrlOptions<TOperation>,
-): Promise<string> {
-  if (!blobUrl) {
-    throw new BlobError('A blob URL is required.');
-  }
+): Promise<PresignedUrlPayload> {
   if (!signedToken?.clientSigningToken || !signedToken?.delegationToken) {
     throw new BlobError(
       '`clientSigningToken` and `delegationToken` from `issueSignedToken` are required.',
     );
   }
 
-  const url = new URL(blobUrl);
-  url.searchParams.delete(BLOB_PRESIGN_QUERY_DELEGATION);
-  url.searchParams.delete(BLOB_PRESIGN_QUERY_SIGNATURE);
-  deletePresignCanonicalParams(url);
-
   const scope = tryDecodePayload(signedToken.delegationToken);
   if (!scope) {
     throw new BlobError('Invalid or unreadable `delegationToken` payload.');
   }
 
-  let opPath: string;
-  if (operation === 'put') {
-    if (isBlobObjectHostName(url.hostname)) {
-      throw new BlobError(
-        'put presigning must use the control-plane URL from `controlPlaneBlobPutUrl` or `controlPlaneBlobMpuUrl`, not a `*.blob.vercel-storage.com` object URL (use `publicBlobObjectUrl` for GET/HEAD).',
-      );
-    }
-
-    const fromQuery = url.searchParams.get('pathname');
-    if (fromQuery === null || fromQuery === '') {
-      throw new BlobError(
-        'The presigned `put` URL must include a non-empty `pathname` query.',
-      );
-    }
-    opPath = decodeBlobObjectPath(fromQuery);
-  } else if (operation === 'delete') {
-    if (isBlobObjectHostName(url.hostname)) {
-      throw new BlobError(
-        'delete presigning must use the control-plane URL from `controlPlaneBlobDeleteUrl` (`POST /api/blob/delete`), not a `*.blob.vercel-storage.com` object URL.',
-      );
-    }
-
-    const fromQuery = url.searchParams.get('pathname');
-    if (fromQuery === null || fromQuery === '') {
-      throw new BlobError(
-        'The presigned `delete` URL must include a non-empty `pathname` query.',
-      );
-    }
-    opPath = decodeBlobObjectPath(fromQuery);
-  } else {
-    const { storeId: hostStoreId } = assertBlobHost(url.hostname);
-    if (normalizeStoreId(scope.storeId) !== normalizeStoreId(hostStoreId)) {
-      throw new BlobError(
-        'Store id in the URL does not match the delegation token.',
-      );
-    }
-    opPath = decodeBlobObjectPath(objectPathnameFromUrl(url));
-  }
   const p = scope.pathname;
   if (p && p !== '*') {
-    const pNorm = decodeBlobObjectPath(p);
-    if (opPath !== pNorm) {
+    if (pathname !== p) {
       throw new BlobError(
-        'Blob path does not match the signed token scope; expected `' +
-          p +
-          '`, got `' +
-          opPath +
-          '`.',
+        `Blob path does not match the signed token scope; expected \`${p}\`, got \`${pathname}\`.`,
       );
     }
   }
@@ -584,40 +450,29 @@ export async function presignUrl<TOperation extends DelegationOperation>(
     const msg = e instanceof Error ? e.message : String(e);
     throw new BlobError(msg);
   }
-  for (const [k, v] of presignEntries) {
-    url.searchParams.set(k, v);
-  }
 
-  const canonical = canonicalStringForUrl(url, operation);
+  const canonical = canonicalString(pathname, presignEntries, operation);
   const signature = await hmacSha256Base64Url(
     signedToken.clientSigningToken,
     canonical,
   );
 
-  const out = new URL(url.toString());
-  out.searchParams.set(
-    BLOB_PRESIGN_QUERY_DELEGATION,
-    signedToken.delegationToken,
-  );
-  out.searchParams.set(BLOB_PRESIGN_QUERY_SIGNATURE, signature);
-  return out.toString();
+  return {
+    delegationToken: signedToken.delegationToken,
+    signature,
+    options: Object.fromEntries(presignEntries),
+  };
 }
 
 /** @internal Exported for presign URL contract tests (must match proxy / api-blob). */
-export function canonicalStringForUrl(
-  url: URL,
+export function canonicalString(
+  pathname: string,
+  presignEntries: [string, string][],
   operation: DelegationOperation,
 ): string {
-  const pathnameValue =
-    operation === 'put' || operation === 'delete'
-      ? decodeBlobObjectPath(url.searchParams.get('pathname') ?? '')
-      : decodeBlobObjectPath(objectPathnameFromUrl(url));
-  const lines: string[] = [
-    `operation=${operation}`,
-    `pathname=${pathnameValue}`,
-  ];
+  const lines: string[] = [`operation=${operation}`, `pathname=${pathname}`];
   for (const k of PRESIGN_CANONICAL_QUERY_KEYS) {
-    const v = url.searchParams.get(k);
+    const v = presignEntries.find(([key]) => key === k)?.[1];
     if (v !== null && v !== '') {
       lines.push(`${k}=${v}`);
     }

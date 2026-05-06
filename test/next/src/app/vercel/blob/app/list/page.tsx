@@ -124,27 +124,23 @@ export default function AppList(): React.JSX.Element {
         });
         return;
       }
-      if (
-        typeof data.pathname !== 'string' ||
-        (data.access !== 'public' && data.access !== 'private') ||
-        !data.presignedUrlPayload ||
-        typeof data.presignedUrlPayload.delegationToken !== 'string' ||
-        typeof data.presignedUrlPayload.signature !== 'string' ||
-        typeof data.presignedUrlPayload.options !== 'object' ||
-        data.presignedUrlPayload.options === null
-      ) {
+      if (!data.presignedUrlPayload) {
         setPresignedPreview({
           pathname: blob.pathname,
           resolvedBlobUrl: '',
           loading: false,
-          fetchError: 'Missing pathname, access, or presignedUrlPayload',
+          fetchError: 'Missing presignedUrlPayload',
           imageError: true,
         });
         return;
       }
 
-      const getResult = await get(data.pathname, {
-        access: data.access,
+      const access = blob.url.includes('.public.blob.vercel-storage.com')
+        ? 'public'
+        : 'private';
+
+      const getResult = await get(blob.pathname, {
+        access,
         presignedUrlPayload: data.presignedUrlPayload,
       });
 

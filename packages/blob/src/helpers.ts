@@ -173,10 +173,6 @@ export function parseStoreIdFromReadWriteToken(token: string): string {
   return storeId;
 }
 
-/** Same query name as {@link import('./signed-token').BLOB_PRESIGN_QUERY_DELEGATION} (avoid circular import). */
-// TODO: JUST MOVE THIS
-const BLOB_PRESIGN_QUERY_DELEGATION = 'vercel-blob-delegation' as const;
-
 function normalizeDelegationStoreId(storeId: string): string {
   return storeId.startsWith('store_')
     ? storeId.slice('store_'.length)
@@ -498,3 +494,22 @@ export function isStream(value: PutBody): value is ReadableStream | Readable {
 
   return false;
 }
+
+export const addPresignedParams = (
+  url: string,
+  presignedUrlPayload: PresignedUrlPayload,
+): string => {
+  const urlObj = new URL(url);
+  urlObj.searchParams.set(
+    'vercel-blob-delegation',
+    presignedUrlPayload.delegationToken,
+  );
+  urlObj.searchParams.set(
+    'vercel-blob-signature',
+    presignedUrlPayload.signature,
+  );
+  for (const [key, value] of Object.entries(presignedUrlPayload.options)) {
+    urlObj.searchParams.set(key, value);
+  }
+  return urlObj.toString();
+};

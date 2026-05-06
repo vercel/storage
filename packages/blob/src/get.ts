@@ -4,7 +4,7 @@ import type {
   BlobPresignedCommandOptions,
   PresignedUrlPayload,
 } from './helpers';
-import { BlobError, resolveBlobAuth } from './helpers';
+import { addPresignedParams, BlobError, resolveBlobAuth } from './helpers';
 
 /**
  * Options for the get method.
@@ -109,22 +109,8 @@ function constructBlobUrl(
   storeId: string,
   pathname: string,
   access: BlobAccessType,
-  presignedUrlPayload?: PresignedUrlPayload,
 ): string {
-  const baseUrl = `https://${storeId}.${access}.blob.vercel-storage.com/${pathname}`;
-  if (presignedUrlPayload) {
-    const searchParams = new URLSearchParams();
-    searchParams.set(
-      'vercel-blob-delegation',
-      presignedUrlPayload.delegationToken,
-    );
-    searchParams.set('vercel-blob-signature', presignedUrlPayload.signature);
-    for (const [key, value] of Object.entries(presignedUrlPayload.options)) {
-      searchParams.set(key, value);
-    }
-    return `${baseUrl}?${searchParams.toString()}`;
-  }
-  return baseUrl;
+  return `https://${storeId}.${access}.blob.vercel-storage.com/${pathname}`;
 }
 
 /**
@@ -201,12 +187,11 @@ export async function get(
       throw new BlobError('Invalid token: unable to extract store ID');
     }
     pathname = urlOrPathname;
-    blobUrl = constructBlobUrl(
-      auth.storeId,
-      pathname,
-      access,
-      options.presignedUrlPayload,
-    );
+    blobUrl = constructBlobUrl(auth.storeId, pathname, access);
+  }
+
+  if (options.presignedUrlPayload) {
+    blobUrl = addPresignedParams(blobUrl, options.presignedUrlPayload);
   }
 
   // Fetch the blob content with authentication headers

@@ -506,6 +506,9 @@ export const addPresignedParams = (
   presignedUrlPayload: PresignedUrlPayload,
 ): string => {
   const urlObj = new URL(url);
+  for (const [key, value] of Object.entries(presignedUrlPayload.options)) {
+    urlObj.searchParams.set(key, value);
+  }
   urlObj.searchParams.set(
     'vercel-blob-delegation',
     presignedUrlPayload.delegationToken,
@@ -514,8 +517,5 @@ export const addPresignedParams = (
     'vercel-blob-signature',
     presignedUrlPayload.signature,
   );
-  for (const [key, value] of Object.entries(presignedUrlPayload.options)) {
-    urlObj.searchParams.set(key, value);
-  }
   return urlObj.toString();
 };

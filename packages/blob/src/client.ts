@@ -893,7 +893,7 @@ export interface HandleUploadPresignedOptions {
     multipart: boolean,
   ) => Promise<{
     token: IssuedSignedToken;
-    urlOpts: Omit<PresignPutUrlOptions, 'operation'>;
+    urlOpts: Omit<PresignPutUrlOptions, 'operation' | 'pathname'>;
   }>;
 
   /**

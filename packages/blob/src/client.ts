@@ -8,6 +8,7 @@ import type { BlobClientTokenConstraintOptions } from './client-token-constraint
 import type {
   BlobAccessType,
   BlobCommandOptions,
+  PresignedUrlPayload,
   WithUploadProgress,
 } from './helpers';
 import {
@@ -363,8 +364,8 @@ export const uploadPresigned = createPutMethod<UploadOptions>({
       );
     }
   },
-  async getPresignedUrl(pathname, options) {
-    return retrievePresignedUrl({
+  async getPresignedUrlPayload(pathname, options) {
+    return retrievePresignedUrlPayload({
       pathname,
       handleUploadUrl: options.handleUploadUrl,
       clientPayload: options.clientPayload ?? null,
@@ -933,7 +934,10 @@ export async function handleUploadPresigned({
   getSignedToken,
   onUploadCompleted,
 }: HandleUploadPresignedOptions): Promise<
-  | { type: 'blob.generate-presigned-url'; presignedUrl: string }
+  | {
+      type: 'blob.generate-presigned-url';
+      presignedUrlPayload: PresignedUrlPayload;
+    }
   | { type: 'blob.upload-completed'; response: 'ok' }
 > {
   const resolvedWebhookPublicKey =
@@ -969,16 +973,13 @@ export async function handleUploadPresigned({
           : undefined,
       };
 
-      const base = multipart
-        ? controlPlaneBlobMpuUrl(pathname)
-        : controlPlaneBlobPutUrl(pathname);
-      const presignedUrl = await presignUrl(
-        base,
+      const presignedUrlPayload = await presignUrl(
+        pathname,
         token,
         'put',
         urlOptsWithCallback,
       );
-      return { type, presignedUrl };
+      return { type, presignedUrlPayload };
     }
     case 'blob.upload-completed': {
       const signatureHeader = 'x-vercel-signature';
@@ -1062,14 +1063,14 @@ async function retrieveClientToken(options: {
 /**
  * @internal Internal function to retrieve a presigned URL from server.
  */
-async function retrievePresignedUrl(options: {
+async function retrievePresignedUrlPayload(options: {
   pathname: string;
   handleUploadUrl: string;
   clientPayload: string | null;
   multipart: boolean;
   abortSignal?: AbortSignal;
   headers?: Record<string, string>;
-}): Promise<string> {
+}): Promise<PresignedUrlPayload> {
   const { handleUploadUrl, pathname } = options;
   const url = isAbsoluteUrl(handleUploadUrl)
     ? handleUploadUrl
@@ -1099,11 +1100,13 @@ async function retrievePresignedUrl(options: {
   }
 
   try {
-    const { presignedUrl } = (await res.json()) as { presignedUrl: string };
-    if (typeof presignedUrl === 'string' && presignedUrl !== '') {
-      return presignedUrl;
+    const { presignedUrlPayload } = (await res.json()) as {
+      presignedUrlPayload: PresignedUrlPayload;
+    };
+    if (presignedUrlPayload) {
+      return presignedUrlPayload;
     }
-    throw new BlobError('Missing presignedUrl');
+    throw new BlobError('Missing presignedUrlPayload');
   } catch (error) {
     if (error instanceof BlobError) {
       throw error;

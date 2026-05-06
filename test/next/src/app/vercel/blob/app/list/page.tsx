@@ -146,8 +146,6 @@ export default function AppList(): React.JSX.Element {
       const getResult = await get(data.pathname, {
         access: data.access,
         presignedUrlPayload: data.presignedUrlPayload,
-      } as vercelBlob.GetCommandOptions & {
-        presignedUrlPayload: PresignedUrlPayloadWire;
       });
 
       if (getResult === null) {

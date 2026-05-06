@@ -28,9 +28,9 @@ export {
 export {
   type BlobAccessType,
   BlobError,
-  type BlobPresignedUrlOptions,
   getDownloadUrl,
   type OnUploadProgressCallback,
+  type PresignedUrlPayload,
   parseStoreIdFromDelegationToken,
   parseStoreIdFromPresignedUrl,
   type UploadProgressEvent,

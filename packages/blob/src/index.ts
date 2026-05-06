@@ -253,6 +253,4 @@ export {
   issueSignedToken,
   presignUrl,
   publicBlobObjectUrl,
-  SIGNED_TOKEN_MAX_TTL_SECONDS,
-  SIGNED_TOKEN_MIN_TTL_SECONDS,
 } from './signed-token';

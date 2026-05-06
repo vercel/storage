@@ -55,7 +55,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     const issued = await issueSignedToken({
       pathname: parsed.pathname,
       operations: ['get'],
-      ttlSeconds: 60 * 60,
+      validUntil: Date.now() + 60 * 60 * 1000, // 1 hour
     });
     const objectUrl = publicBlobObjectUrl(
       parsed.access,

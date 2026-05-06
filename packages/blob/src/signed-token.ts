@@ -1,11 +1,9 @@
 import { requestApi } from './api';
-import type { BlobClientTokenConstraintOptions } from './client-token-constraints';
 import { type BlobCommandOptions, BlobError, getApiUrl } from './helpers';
 import {
   buildPresignCanonicalQueryEntries,
   deletePresignCanonicalParams,
   PRESIGN_CANONICAL_QUERY_KEYS,
-  type PresignOptionsOnUploadCompletedWire,
 } from './presign-query-params';
 
 /**
@@ -21,11 +19,10 @@ export const BLOB_PRESIGN_QUERY_DELEGATION = 'vercel-blob-delegation' as const;
 export const BLOB_PRESIGN_QUERY_SIGNATURE = 'vercel-blob-signature' as const;
 
 /**
- * Min/max TTL the API allows for signed tokens (seconds). Matches the blob API
- * `issue_signed_token` handler.
+ * Maximum ms from request time until `validUntil` when the client supplies `validUntil`.
+ * Matches the blob API `issue_signed_token` handler.
  */
-export const SIGNED_TOKEN_MIN_TTL_SECONDS = 60 * 60;
-export const SIGNED_TOKEN_MAX_TTL_SECONDS = 24 * 60 * 60;
+export const SIGNED_TOKEN_MAX_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * Result of `issueSignedToken` — the same values returned from `POST /signed-token` on
@@ -65,10 +62,10 @@ export type IssueSignedTokenOptions = BlobCommandOptions & {
    */
   operations?: DelegationOperation[];
   /**
-   * Time-to-live in seconds, between {@link SIGNED_TOKEN_MIN_TTL_SECONDS} and
-   * {@link SIGNED_TOKEN_MAX_TTL_SECONDS}. When omitted, the API uses the minimum (1h).
+   * Absolute delegation expiry (ms since epoch). Must be after `now` and at most
+   * `now + {@link SIGNED_TOKEN_MAX_DURATION_MS}`. When omitted, the API uses `now + 1 hour`.
    */
-  ttlSeconds?: number;
+  validUntil?: number;
 
   allowedContentTypes?: string[];
 
@@ -81,6 +78,30 @@ interface IssuedSignedTokenResponse {
   validUntil: number;
 }
 
+function assertIssueSignedTokenValidUntilOption(validUntil: number): void {
+  const now = Date.now();
+  if (
+    typeof validUntil !== 'number' ||
+    !Number.isInteger(validUntil) ||
+    !Number.isFinite(validUntil)
+  ) {
+    throw new BlobError(
+      '`issueSignedToken`: validUntil must be an integer milliseconds timestamp.',
+    );
+  }
+  if (validUntil <= now) {
+    throw new BlobError(
+      '`issueSignedToken`: validUntil must be in the future.',
+    );
+  }
+  const maxUntil = now + SIGNED_TOKEN_MAX_DURATION_MS;
+  if (validUntil > maxUntil) {
+    throw new BlobError(
+      '`issueSignedToken`: validUntil cannot be more than 7 days after the current time.',
+    );
+  }
+}
+
 /**
  * Requests short-lived signed-token material from the Blob control API
  * (`POST /signed-token`). Use OIDC (`VERCEL_OIDC_TOKEN` + `storeId` / `BLOB_STORE_ID`)
@@ -88,7 +109,7 @@ interface IssuedSignedTokenResponse {
  * are not allowed by the server for this operation.
  *
  * JSON body fields supported by the API (delegation payload / `issue_signed_token`):
- * `pathname`, `operations`, `ttlSeconds`, `maximumSizeInBytes`, `allowedContentTypes`.
+ * `pathname`, `operations`, `validUntil`, `maximumSizeInBytes`, `allowedContentTypes`.
  * Optional `maximumSizeInBytes` and `allowedContentTypes` narrow upload scope in the
  * delegation token. Everything else for presigned writes (`addRandomSuffix`, `ifMatch`,
  * `onUploadCompleted`, shorter `validUntil`, …) is **URL query only** — use
@@ -123,8 +144,9 @@ export async function issueSignedToken(
     }
     body.operations = dedupeOps(options.operations);
   }
-  if (options.ttlSeconds !== undefined) {
-    body.ttlSeconds = options.ttlSeconds;
+  if (options.validUntil !== undefined) {
+    assertIssueSignedTokenValidUntilOption(options.validUntil);
+    body.validUntil = options.validUntil;
   }
   if (options.maximumSizeInBytes !== undefined) {
     body.maximumSizeInBytes = options.maximumSizeInBytes;
@@ -132,9 +154,6 @@ export async function issueSignedToken(
   if (options.allowedContentTypes !== undefined) {
     body.allowedContentTypes = options.allowedContentTypes;
   }
-  // if (options.validUntil !== undefined) {
-  //   body.validUntil = options.validUntil;
-  // }
   // if (options.addRandomSuffix !== undefined) {
   //   body.addRandomSuffix = options.addRandomSuffix;
   // }

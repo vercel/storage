@@ -858,7 +858,7 @@ export type HandleUploadPresignedSignedTokenPayload = Pick<
   | 'maximumSizeInBytes'
   | 'operations'
   | 'pathname'
-  | 'ttlSeconds'
+  | 'validUntil'
 >;
 
 /**

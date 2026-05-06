@@ -27,6 +27,7 @@ import {
   controlPlaneBlobMpuUrl,
   controlPlaneBlobPutUrl,
   type IssuedSignedToken,
+  type IssueSignedTokenOptions,
   type PresignUrlOptions,
   presignUrl,
 } from './signed-token';
@@ -846,26 +847,24 @@ export async function handleUpload({
 }
 
 /**
- * Constraints commonly forwarded from your route into {@link issueSignedToken} inside
- * {@link HandleUploadPresignedOptions.getSignedToken}.
+ * Delegation fields accepted by {@link issueSignedToken}, i.e.
+ * JSON embedded in `vercel-blob-delegation`. Upload-behavior options belong in
+ * {@link PresignUrlOptions} (`urlOpts` from {@link HandleUploadPresignedOptions.getSignedToken}),
+ * not in the delegation body.
  */
 export type HandleUploadPresignedSignedTokenPayload = Pick<
-  GenerateClientTokenOptions,
+  IssueSignedTokenOptions,
   | 'allowedContentTypes'
   | 'maximumSizeInBytes'
-  | 'validUntil'
-  | 'addRandomSuffix'
-  | 'allowOverwrite'
-  | 'cacheControlMaxAge'
-  | 'ifMatch'
+  | 'operations'
+  | 'pathname'
+  | 'ttlSeconds'
 >;
 
 /**
- * Optional fourth argument to {@link HandleUploadPresignedOptions.getSignedToken}.
- * When {@link handleUploadPresigned} is configured with `onUploadCompleted`, it resolves a
- * callback URL the same way as {@link handleUpload} (via `VERCEL_BLOB_CALLBACK_URL` / Vercel
- * host envs and the incoming request path) and passes it here so you can set
- * `issueSignedToken({ ..., onUploadCompleted })`.
+ * @deprecated Callback wiring for presigned uploads is merged into {@link PresignUrlOptions}
+ * by {@link handleUploadPresigned} after `getSignedToken` returns; you no longer receive this
+ * object as a separate argument.
  */
 export interface HandleUploadPresignedIssuanceContext {
   onUploadCompleted?: {
@@ -885,9 +884,9 @@ export interface HandleUploadPresignedOptions {
    * Produce signed-token material (e.g. via `issueSignedToken`) for {@link presignUrl}.
    * Presigned writes (single `PUT` or multipart `POST /mpu`) use the same `"upload"` operation.
    *
-   * When `onUploadCompleted` is set on {@link handleUploadPresigned}, the fourth argument is
-   * populated with a resolved `callbackUrl` (and `tokenPayload` from the client payload) so you
-   * can pass them to {@link issueSignedToken}'s `onUploadCompleted`.
+   * When `onUploadCompleted` is set on {@link handleUploadPresigned}, a resolved `callbackUrl`
+   * (same rules as {@link handleUpload}) and `tokenPayload` from the client are merged into
+   * `urlOpts` before {@link presignUrl} adds signed `vercel-blob-*` query params.
    */
   getSignedToken: (
     pathname: string,
@@ -924,9 +923,8 @@ export interface HandleUploadPresignedOptions {
  * matching outbound `webhook_keypair` signing from api-storage when sending the callback.
  *
  * If `onUploadCompleted` is set, the callback target URL is resolved like {@link handleUpload}
- * (same `VERCEL_BLOB_CALLBACK_URL` / Vercel URL rules) and passed as
- * {@link HandleUploadPresignedIssuanceContext} to `getSignedToken` so you can include it in
- * `issueSignedToken`.
+ * (same `VERCEL_BLOB_CALLBACK_URL` / Vercel URL rules) and merged into the options passed to
+ * {@link presignUrl} after `getSignedToken` returns.
  */
 export async function handleUploadPresigned({
   body,

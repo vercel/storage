@@ -9,10 +9,10 @@ import { validateUploadToken } from './validate-upload-token';
 async function auth(
   request: Request,
   _pathname: string,
-): Promise<{ user: { id: string } | null; userCanUpload: boolean }> {
+): Promise<{ user: { id: string } | null; userRole: 'hobby' | 'pro' }> {
   if (!validateUploadToken(request)) {
     return {
-      userCanUpload: false,
+      userRole: 'hobby',
       user: null,
     };
   }
@@ -22,23 +22,23 @@ async function auth(
 
   return {
     user: { id: '12345' },
-    userCanUpload: true,
+    userRole: 'pro',
   };
 }
 
-const getCachedToken = async (
-  pathname: string,
-  clientPayload: string | null,
-) => {
+// Upload button
+
+// { delegationToken }
+
+// Presigned URLs include signed `vercel-blob-*` constraint params + delegation + signature.
+
+const getCachedToken = async () => {
   // fake: get from cache if it's there
   return await issueSignedToken({
-    pathname,
-    allowedContentTypes: ['image/png', 'image/jpeg'],
-    maximumSizeInBytes: 1024 * 1024 * 10, // 10MB
-    validUntil: Date.now() + 1000 * 60 * 60 * 24, // 1 day
-    addRandomSuffix: false,
-    allowOverwrite: false,
-    cacheControlMaxAge: 30 * 24 * 60 * 60, // 30 days
+    pathname: '*',
+    allowedContentTypes: ['image/png', 'image/jpeg', 'video/mp4'],
+    maximumSizeInBytes: 1024 * 1024 * 10, // 10MB,
+    ttlSeconds: 60 * 60, // 1 hour,
     operations: ['upload'],
   });
 };
@@ -48,32 +48,44 @@ export async function handleUploadPresignedHandler(
 ): Promise<NextResponse> {
   const body = (await request.json()) as HandleUploadPresignedBody;
 
-  // Log all headers received
-  console.log('Request headers:');
-  request.headers.forEach((value, key) => {
-    console.log(`${key}: ${value}`);
-  });
-
   try {
     const jsonResponse = await handleUploadPresigned({
       body,
       request,
       webhookPublicKey: process.env.BLOB_WEBHOOK_PUBLIC_KEY,
-      getSignedToken: async (pathname, clientPayload, multipart) => {
-        const { userCanUpload } = await auth(request, pathname);
+      getSignedToken: async (pathname) => {
+        const { user, userRole } = await auth(request, pathname);
 
-        if (!userCanUpload) {
+        if (!user) {
           throw new Error('Not authorized');
         }
 
-        // You can now access headers in the authorization logic
-        const customHeader =
-          request.headers.get('X-Custom-Header') ||
-          request.headers.get('X-Test-Header');
+        const token = await getCachedToken();
 
-        console.log('customHeader', customHeader);
+        // Allow pro to upload image and video, hobby only image
+        const allowedContentTypes =
+          userRole === 'pro'
+            ? ['image/png', 'image/jpeg', 'video/mp4']
+            : ['image/png', 'image/jpeg'];
 
-        return await getCachedToken(pathname, clientPayload);
+        // Allow pro to upload up to 10MB, hobby up to 5MB
+        const maximumSizeInBytes =
+          userRole === 'pro' ? 1024 * 1024 * 10 : 1024 * 1024 * 5;
+
+        return {
+          token,
+          urlOpts: {
+            allowedContentTypes,
+            maximumSizeInBytes,
+            validUntil: Date.now() + 60 * 10 * 1000, // 10 minutes (≤ delegation; may set vercel-blob-valid-until)
+            addRandomSuffix: true,
+            allowOverwrite: false,
+            cacheControlMaxAge: 30 * 24 * 60 * 60, // 30 days
+          },
+        };
+      },
+      onUploadCompleted: async (body) => {
+        console.log('onUploadCompleted', body);
       },
     });
 

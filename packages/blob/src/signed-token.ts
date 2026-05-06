@@ -13,11 +13,8 @@ import {
 /**
  * Operations that may be encoded in a delegation token (e.g. read: `get` / `head`,
  * write: `put` for presigned control-plane writes — both single-object `PUT`
- * ({@link controlPlaneBlobPutUrl}) and multipart `POST` ({@link controlPlaneBlobMpuUrl})).
- * destructive: `delete` for presigned `POST` to {@link controlPlaneBlobDeleteUrl}
- * (same control-plane path as the SDK `del()` helper: `/api/blob/delete`).
  */
-export type DelegationOperation = 'get' | 'head' | 'put' | 'delete';
+export type DelegationOperation = 'get' | 'head' | 'put';
 
 /** Excluded from the string-to-sign; added after signing. @public for CDN / tooling alignment */
 export const BLOB_PRESIGN_QUERY_DELEGATION = 'vercel-blob-delegation' as const;
@@ -65,7 +62,6 @@ export type IssueSignedTokenOptions = BlobCommandOptions & {
   /**
    * Allowed operations (e.g. `get` / `head` for reads to `*.blob.vercel-storage.com`,
    * `put` for presigned control-plane `PUT` and multipart `POST /mpu`,
-   * `delete` for presigned `POST` to `/api/blob/delete` — use {@link controlPlaneBlobDeleteUrl}).
    * When omitted, the API defaults to read (`get`) only.
    */
   operations?: DelegationOperation[];
@@ -217,9 +213,6 @@ function tryDecodePayload(
 /**
  * Builds a blob object URL for `pathname` and store from `delegationToken` for use with
  * {@link presignUrl} for `GET` / `HEAD` only (to `*.public|*.private.blob.vercel-storage.com`).
- * For `PUT` / presigned single uploads, use {@link controlPlaneBlobPutUrl}.
- * For multipart presigned `POST` requests, use {@link controlPlaneBlobMpuUrl}.
- * For presigned deletes, use {@link controlPlaneBlobDeleteUrl} (not this URL).
  */
 export function publicBlobObjectUrl(
   access: 'public' | 'private',
@@ -236,35 +229,6 @@ export function publicBlobObjectUrl(
     .map((segment) => encodeURIComponent(segment))
     .join('/');
   return `https://${storeId}.${access}.blob.vercel-storage.com/${encodedPath}`;
-}
-
-/**
- * The same `PUT` target as `put()` and client uploads: `?pathname=…` on the
- * blob control API (respects `VERCEL_BLOB_API_URL` / `NEXT_PUBLIC_VERCEL_BLOB_API_URL`).
- * Use with {@link presignUrl} and `method: 'PUT'`.
- */
-export function controlPlaneBlobPutUrl(objectPathname: string): string {
-  const params = new URLSearchParams({ pathname: objectPathname });
-  return getApiUrl(`/?${params.toString()}`);
-}
-
-/**
- * Multipart control-plane base URL: `POST /mpu?pathname=…` on the blob API
- * (same shape as the SDK’s multipart create call). Use with {@link presignUrl}
- * and `method: 'POST'`.
- */
-export function controlPlaneBlobMpuUrl(objectPathname: string): string {
-  const params = new URLSearchParams({ pathname: objectPathname });
-  return getApiUrl(`/mpu?${params.toString()}`);
-}
-
-/**
- * Control-plane delete URL: `POST /delete?pathname=…` on the blob API (same route as the SDK
- * `del()` helper, i.e. `…/api/blob/delete` under the default base). Use with {@link presignUrl} and `operation: 'delete'`.
- */
-export function controlPlaneBlobDeleteUrl(objectPathname: string): string {
-  const params = new URLSearchParams({ pathname: objectPathname });
-  return getApiUrl(`/delete?${params.toString()}`);
 }
 
 /**
@@ -370,12 +334,7 @@ export type PresignUrlOptions<
 > = TOperation extends 'put' ? PresignPutUrlOptions : PresignSimpleUrlOptions;
 
 /**
- * Builds a **presigned URL** (read: `GET` / `HEAD` to {@link publicBlobObjectUrl}; write:
- * `PUT` to {@link controlPlaneBlobPutUrl} or multipart `POST` to {@link controlPlaneBlobMpuUrl};
- * delete: `POST` to {@link controlPlaneBlobDeleteUrl} (`/api/blob/delete`, same as `del()`)
- * by HMACing a canonical string with `clientSigningToken` and appending the delegation
- * and signature as query parameters. The CDN re-derives the signing key from
- * `delegationToken` and validates the HMAC, scope, and expiry.
+ * Builds the payload for a presigned URL
  */
 export async function presignUrl<TOperation extends DelegationOperation>(
   pathname: string,
@@ -424,11 +383,6 @@ export async function presignUrl<TOperation extends DelegationOperation>(
   if (operation === 'put' && !scope.operations?.includes('put')) {
     throw new BlobError(
       'The delegation token is not valid for presigned write requests. Include `"put"` in `operations` when calling `issueSignedToken`.',
-    );
-  }
-  if (operation === 'delete' && !scope.operations?.includes('delete')) {
-    throw new BlobError(
-      'The delegation token is not valid for presigned delete (`POST /api/blob/delete`). Include `"delete"` in `operations` when calling `issueSignedToken`.',
     );
   }
 

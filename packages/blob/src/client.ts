@@ -25,8 +25,6 @@ import { createUploadPartMethod } from './multipart/upload';
 import { createPutMethod } from './put';
 import type { PutBlobResult } from './put-helpers';
 import {
-  controlPlaneBlobMpuUrl,
-  controlPlaneBlobPutUrl,
   type IssuedSignedToken,
   type IssueSignedTokenOptions,
   type PresignUrlOptions,
@@ -335,7 +333,7 @@ export const upload = createPutMethod<UploadOptions>({
  *   - clientPayload - (Optional) A string to be sent to your handleUpload server code. Example use-case: attaching the post id an image relates to.
  *   - headers - (Optional) An object containing custom headers to be sent with the request to your handleUpload route. Example use-case: sending Authorization headers.
  *   - contentType - (Optional) A string indicating the media type. By default, it's extracted from the pathname's extension.
- *   - multipart - (Optional) Whether to use multipart upload for large files. When true, your `handleUploadPresigned` route must return a presigned `POST` URL for `/mpu` (e.g. `presignUrl(controlPlaneBlobMpuUrl(pathname), issued, 'POST')` from `@vercel/blob`; use the same `operations: ['put']` delegation as for single-object presigned `PUT`).
+ *   - multipart - (Optional) Whether to use multipart upload for large files. When true, your `handleUploadPresigned` route must return a presigned `POST` URL for `/mpu`.
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
  *   - onUploadProgress - (Optional) Callback to track upload progress: onUploadProgress(\{loaded: number, total: number, percentage: number\})
  * @returns A promise that resolves to the blob information, including pathname, contentType, contentDisposition, url, and downloadUrl.

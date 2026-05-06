@@ -4,12 +4,7 @@ import {
   BLOB_PRESIGN_QUERY_VALID_UNTIL,
   buildPresignCanonicalQueryEntries,
 } from './presign-query-params';
-import {
-  canonicalString,
-  controlPlaneBlobDeleteUrl,
-  controlPlaneBlobMpuUrl,
-  presignUrl,
-} from './signed-token';
+import { canonicalString, presignUrl } from './signed-token';
 import {
   createDelegationToken,
   deriveClientSigningToken,
@@ -130,7 +125,6 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       );
       const client = deriveClientSigningToken(blobSigningSecret, delegation);
       // URLs are only for documentation parity with real uploads; presign is pathname-based.
-      expect(controlPlaneBlobMpuUrl(pathname)).toContain('pathname=');
       await expectSignatureMatches(pathname, delegation, client, 'put', now);
     });
 
@@ -193,47 +187,6 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       );
       const client = deriveClientSigningToken(blobSigningSecret, delegation);
       await expectSignatureMatches(logicalName, delegation, client, 'get', now);
-    });
-
-    it('DELETE: HMACs canonical for delete operation (control-plane pathname)', async () => {
-      const pathname = 'images/a.png';
-      const delegation = createDelegationToken(
-        {
-          storeId: `store_${storeId}`,
-          ownerId: 'owner_1',
-          pathname,
-          operations: ['delete'],
-          validUntil: now + 3600_000,
-          iat: now,
-        },
-        blobSigningSecret,
-      );
-      const client = deriveClientSigningToken(blobSigningSecret, delegation);
-      expect(controlPlaneBlobDeleteUrl(pathname)).toContain('pathname=');
-      await expectSignatureMatches(pathname, delegation, client, 'delete', now);
-    });
-
-    it('rejects DELETE when the delegation does not include `delete`', async () => {
-      const pathname = 'a.png';
-      const delegation = createDelegationToken(
-        {
-          storeId: `store_${storeId}`,
-          ownerId: 'o',
-          pathname,
-          operations: ['get', 'head'],
-          validUntil: now + 3600_000,
-          iat: now,
-        },
-        blobSigningSecret,
-      );
-      const client = deriveClientSigningToken(blobSigningSecret, delegation);
-      await expect(
-        presignUrl(
-          pathname,
-          { delegationToken: delegation, clientSigningToken: client },
-          'delete',
-        ),
-      ).rejects.toThrow(BlobError);
     });
 
     it('rejects path mismatch for scoped non-wildcard tokens', async () => {

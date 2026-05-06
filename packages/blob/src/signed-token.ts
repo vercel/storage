@@ -10,7 +10,8 @@ import {
  * Operations that may be encoded in a delegation token (e.g. read: `get` / `head`,
  * write: `put` for presigned control-plane writes — both single-object `PUT`
  * ({@link controlPlaneBlobPutUrl}) and multipart `POST` ({@link controlPlaneBlobMpuUrl})).
- * destructive: `delete` for presigned `DELETE` against the blob object URL).
+ * destructive: `delete` for presigned `POST` to {@link controlPlaneBlobDeleteUrl}
+ * (same control-plane path as the SDK `del()` helper: `/api/blob/delete`).
  */
 export type DelegationOperation = 'get' | 'head' | 'put' | 'delete';
 
@@ -28,7 +29,8 @@ export const SIGNED_TOKEN_MAX_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 /**
  * Result of `issueSignedToken` — the same values returned from `POST /signed-token` on
  * the Blob API. Use with {@link presignUrl} to build a URL that can authorize GET/HEAD,
- * presigned `PUT`, or presigned multipart `POST` without a bearer token when verified by the CDN.
+ * presigned `PUT`, presigned multipart `POST`, or presigned delete (`POST` to `/api/blob/delete`)
+ * without a bearer token when verified by the CDN.
  */
 export interface IssuedSignedToken {
   /**
@@ -59,7 +61,7 @@ export type IssueSignedTokenOptions = BlobCommandOptions & {
   /**
    * Allowed operations (e.g. `get` / `head` for reads to `*.blob.vercel-storage.com`,
    * `put` for presigned control-plane `PUT` and multipart `POST /mpu`,
-   * `delete` for presigned `DELETE` against `*.blob.vercel-storage.com`).
+   * `delete` for presigned `POST` to `/api/blob/delete` — use {@link controlPlaneBlobDeleteUrl}).
    * When omitted, the API defaults to read (`get`) only.
    */
   operations?: DelegationOperation[];
@@ -242,6 +244,7 @@ function tryDecodePayload(
  * {@link presignUrl} for `GET` / `HEAD` only (to `*.public|*.private.blob.vercel-storage.com`).
  * For `PUT` / presigned single uploads, use {@link controlPlaneBlobPutUrl}.
  * For multipart presigned `POST` requests, use {@link controlPlaneBlobMpuUrl}.
+ * For presigned deletes, use {@link controlPlaneBlobDeleteUrl} (not this URL).
  */
 export function publicBlobObjectUrl(
   access: 'public' | 'private',
@@ -281,6 +284,15 @@ export function controlPlaneBlobMpuUrl(objectPathname: string): string {
 }
 
 /**
+ * Control-plane delete URL: `POST /delete?pathname=…` on the blob API (same route as the SDK
+ * `del()` helper, i.e. `…/api/blob/delete` under the default base). Use with {@link presignUrl} and `operation: 'delete'`.
+ */
+export function controlPlaneBlobDeleteUrl(objectPathname: string): string {
+  const params = new URLSearchParams({ pathname: objectPathname });
+  return getApiUrl(`/delete?${params.toString()}`);
+}
+
+/**
  * @internal
  */
 function isBlobObjectHostName(hostname: string): boolean {
@@ -296,7 +308,7 @@ function isBlobObjectHostName(hostname: string): boolean {
 function assertBlobHost(hostname: string): { storeId: string } {
   if (!isBlobObjectHostName(hostname)) {
     throw new BlobError(
-      'The URL must use a Vercel Blob host (*.public|*.private.blob.vercel-storage.com), or use `controlPlaneBlobPutUrl` for `PUT` presigns.',
+      'The URL must use a Vercel Blob host (*.public|*.private.blob.vercel-storage.com), or use `controlPlaneBlobPutUrl` / `controlPlaneBlobMpuUrl` for `put` presigns or `controlPlaneBlobDeleteUrl` for `delete` presigns.',
     );
   }
   const isPublic = hostname.endsWith('.public.blob.vercel-storage.com');
@@ -399,16 +411,22 @@ function normalizeStoreId(storeId: string): string {
 }
 
 /**
- * Optional settings for {@link presignUrl}.
- * Serialized as individual `vercel-blob-*` query params (see {@link PRESIGN_CANONICAL_QUERY_KEYS}).
+ * Presign URL options for {@link presignUrl} when `operation` is `get`, `head`, or `delete`.
+ * Only `validUntil` is honored for these operations; upload-only fields are rejected at the type level.
  */
-export type PresignUrlOptions = {
+export type PresignSimpleUrlOptions = {
   /**
    * Absolute URL expiry (ms since epoch), capped to the delegation `validUntil`.
    * Omitted on the wire when equal to the delegation ceiling (server defaults to delegation).
    */
   validUntil?: number;
+};
 
+/**
+ * Presign URL options for {@link presignUrl} when `operation` is `put` (single `PUT` or multipart `POST`).
+ * Serialized as individual `vercel-blob-*` query params (see {@link PRESIGN_CANONICAL_QUERY_KEYS}).
+ */
+export type PresignPutUrlOptions = PresignSimpleUrlOptions & {
   allowedContentTypes?: string[];
 
   maximumSizeInBytes?: number;
@@ -428,34 +446,28 @@ export type PresignUrlOptions = {
 };
 
 /**
- * Builds a **presigned URL** (read: `GET` / `HEAD` to `publicBlobObjectUrl`, or write:
- * `PUT` to {@link controlPlaneBlobPutUrl}, or multipart `POST` to {@link controlPlaneBlobMpuUrl},
- * or destructive: `DELETE` to `publicBlobObjectUrl`)
+ * Optional settings for {@link presignUrl}, narrowed by `operation`.
+ */
+export type PresignUrlOptions<
+  TOperation extends DelegationOperation = DelegationOperation,
+> = TOperation extends 'put' ? PresignPutUrlOptions : PresignSimpleUrlOptions;
+
+/**
+ * Builds a **presigned URL** (read: `GET` / `HEAD` to {@link publicBlobObjectUrl}; write:
+ * `PUT` to {@link controlPlaneBlobPutUrl} or multipart `POST` to {@link controlPlaneBlobMpuUrl};
+ * delete: `POST` to {@link controlPlaneBlobDeleteUrl} (`/api/blob/delete`, same as `del()`)
  * by HMACing a canonical string with `clientSigningToken` and appending the delegation
  * and signature as query parameters. The CDN re-derives the signing key from
  * `delegationToken` and validates the HMAC, scope, and expiry.
- *
- * **Canonical string**
- *
- * Sorted newline-separated `key=value` pairs (UTF-8 byte order of whole lines):
- *
- * - `operation=get`, `operation=head`, `operation=put`, or `operation=delete`
- *   (implicit from URL target: object host + GET/HEAD/DELETE vs control-plane
- *   PUT/POST for uploads).
- * - `pathname=<object key>`: from the URL path (reads / deletes) or the
- *   `pathname` query (control-plane `PUT` / `POST` uploads).
- * - Optional `vercel-blob-*` constraint params
- *
- * Delegation and signature are **appended to the final URL** after the HMAC is computed.
  */
-export async function presignUrl(
+export async function presignUrl<TOperation extends DelegationOperation>(
   blobUrl: string,
   signedToken: Pick<
     IssuedSignedToken,
     'clientSigningToken' | 'delegationToken'
   >,
-  operation: DelegationOperation = 'get',
-  options?: PresignUrlOptions,
+  operation: TOperation,
+  options?: PresignUrlOptions<TOperation>,
 ): Promise<string> {
   if (!blobUrl) {
     throw new BlobError('A blob URL is required.');
@@ -488,6 +500,20 @@ export async function presignUrl(
     if (fromQuery === null || fromQuery === '') {
       throw new BlobError(
         'The presigned `put` URL must include a non-empty `pathname` query.',
+      );
+    }
+    opPath = decodeBlobObjectPath(fromQuery);
+  } else if (operation === 'delete') {
+    if (isBlobObjectHostName(url.hostname)) {
+      throw new BlobError(
+        'delete presigning must use the control-plane URL from `controlPlaneBlobDeleteUrl` (`POST /api/blob/delete`), not a `*.blob.vercel-storage.com` object URL.',
+      );
+    }
+
+    const fromQuery = url.searchParams.get('pathname');
+    if (fromQuery === null || fromQuery === '') {
+      throw new BlobError(
+        'The presigned `delete` URL must include a non-empty `pathname` query.',
       );
     }
     opPath = decodeBlobObjectPath(fromQuery);
@@ -536,7 +562,7 @@ export async function presignUrl(
   }
   if (operation === 'delete' && !scope.operations?.includes('delete')) {
     throw new BlobError(
-      'The delegation token is not valid for `DELETE` requests. Include `"delete"` in `operations` when calling `issueSignedToken`.',
+      'The delegation token is not valid for presigned delete (`POST /api/blob/delete`). Include `"delete"` in `operations` when calling `issueSignedToken`.',
     );
   }
 
@@ -583,7 +609,7 @@ export function canonicalStringForUrl(
   operation: DelegationOperation,
 ): string {
   const pathnameValue =
-    operation === 'put'
+    operation === 'put' || operation === 'delete'
       ? decodeBlobObjectPath(url.searchParams.get('pathname') ?? '')
       : decodeBlobObjectPath(objectPathnameFromUrl(url));
   const lines: string[] = [

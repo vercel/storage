@@ -175,10 +175,9 @@ export function parseStoreIdFromReadWriteToken(token: string): string {
 const BLOB_PRESIGN_QUERY_DELEGATION = 'vercel-blob-delegation' as const;
 
 function normalizeDelegationStoreId(storeId: string): string {
-  const lowercase = storeId.toLowerCase();
-  return lowercase.startsWith('store_')
-    ? lowercase.slice('store_'.length)
-    : lowercase;
+  return storeId.startsWith('store_')
+    ? storeId.slice('store_'.length)
+    : storeId;
 }
 
 function base64UrlDecodeDelegationSegment(segment: string): string {

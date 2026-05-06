@@ -242,8 +242,8 @@ export type {
   DelegationOperation,
   IssuedSignedToken,
   IssueSignedTokenOptions,
+  PresignGetUrlOptions,
   PresignPutUrlOptions,
-  PresignSimpleUrlOptions,
   PresignUrlOptions,
 } from './signed-token';
 export {

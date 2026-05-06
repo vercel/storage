@@ -893,6 +893,10 @@ describe('client uploads', () => {
       clientSigningToken: '',
       validUntil: 0,
     };
+    const dummyGetSignedTokenResult = {
+      token: dummyIssuedSignedToken,
+      urlOpts: {} as const,
+    };
 
     it('runs onCompleted when Ed25519 x-vercel-signature verifies against BLOB webhook public key', async () => {
       const spy = jest.fn();
@@ -921,7 +925,7 @@ describe('client uploads', () => {
             },
           } as unknown as IncomingMessage,
           body,
-          getSignedToken: async () => dummyIssuedSignedToken,
+          getSignedToken: async () => dummyGetSignedTokenResult,
           onUploadCompleted: spy,
         }),
       ).resolves.toEqual({
@@ -960,7 +964,7 @@ describe('client uploads', () => {
             headers: { 'x-vercel-signature': wrongSigHex },
           } as unknown as IncomingMessage,
           body,
-          getSignedToken: async () => dummyIssuedSignedToken,
+          getSignedToken: async () => dummyGetSignedTokenResult,
           onUploadCompleted: async () => {
             await Promise.resolve();
           },
@@ -989,7 +993,7 @@ describe('client uploads', () => {
               blob: { pathname: 'x' } as PutBlobResult,
             },
           },
-          getSignedToken: async () => dummyIssuedSignedToken,
+          getSignedToken: async () => dummyGetSignedTokenResult,
           onUploadCompleted: async () => {
             await Promise.resolve();
           },
@@ -997,7 +1001,7 @@ describe('client uploads', () => {
       ).rejects.toThrow(/Invalid callback signature/);
     });
 
-    it('resolves callback URL and passes it to getSignedToken when onUploadCompleted is set', async () => {
+    it('resolves callback URL and passes it to presignUrl when onUploadCompleted is set', async () => {
       const presignSpy = jest
         .spyOn(signedTokenModule, 'presignUrl')
         .mockResolvedValue('https://signed.example/put');
@@ -1008,7 +1012,7 @@ describe('client uploads', () => {
 
       const getSignedToken = jest
         .fn()
-        .mockResolvedValue(dummyIssuedSignedToken);
+        .mockResolvedValue(dummyGetSignedTokenResult);
 
       const result = await handleUploadPresigned({
         webhookPublicKey: 'test-webhook-public-key',
@@ -1034,13 +1038,20 @@ describe('client uploads', () => {
         presignedUrl: 'https://signed.example/put',
       });
 
-      expect(getSignedToken).toHaveBeenCalledWith('a.png', 'cp', false, {
-        onUploadCompleted: {
-          callbackUrl:
-            'https://callback-base.example.com/vercel/blob/api/app/handle-blob-upload-presigned',
-          tokenPayload: 'cp',
-        },
-      });
+      expect(getSignedToken).toHaveBeenCalledWith('a.png', 'cp', false);
+
+      expect(presignSpy).toHaveBeenCalledWith(
+        expect.any(String),
+        dummyIssuedSignedToken,
+        'upload',
+        expect.objectContaining({
+          onUploadCompleted: {
+            callbackUrl:
+              'https://callback-base.example.com/vercel/blob/api/app/handle-blob-upload-presigned',
+            tokenPayload: 'cp',
+          },
+        }),
+      );
 
       presignSpy.mockRestore();
       process.env = originalEnv;

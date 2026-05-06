@@ -1,9 +1,10 @@
 import { createHmac } from 'node:crypto';
 import { BlobError } from './helpers';
+import { BLOB_PRESIGN_QUERY_VALID_UNTIL } from './presign-query-params';
 import {
   BLOB_PRESIGN_QUERY_DELEGATION,
   BLOB_PRESIGN_QUERY_SIGNATURE,
-  BLOB_PRESIGN_QUERY_URL_EXPIRES,
+  canonicalStringForUrl,
   controlPlaneBlobMpuUrl,
   controlPlaneBlobPutUrl,
   presignUrl,
@@ -13,6 +14,13 @@ import {
   deriveClientSigningToken,
   randomBytes,
 } from './signed-token.presignurl.test-helpers';
+
+function stripDelegationAndSig(u: URL): URL {
+  const x = new URL(u.toString());
+  x.searchParams.delete(BLOB_PRESIGN_QUERY_DELEGATION);
+  x.searchParams.delete(BLOB_PRESIGN_QUERY_SIGNATURE);
+  return x;
+}
 
 /**
  * Shared `presignUrl` assertions; run in Node and jsdom to exercise Web Crypto
@@ -55,13 +63,17 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       expect(uPut.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE)).toBe(
         uMpu.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE),
       );
-      const canonical = `operation=upload\npathname=${pathname}`;
+      const canonical = canonicalStringForUrl(
+        stripDelegationAndSig(uPut),
+        'upload',
+      );
       const expected = createHmac('sha256', client)
         .update(canonical, 'utf8')
         .digest('base64url');
       expect(uPut.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE)).toBe(
         expected,
       );
+      expect(uPut.searchParams.get(BLOB_PRESIGN_QUERY_VALID_UNTIL)).toBeNull();
     });
 
     it('POST /mpu: matches PUT canonical for the same pathname', async () => {
@@ -85,7 +97,10 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         'upload',
       );
       const u = new URL(presigned);
-      const canonical = `operation=upload\npathname=${pathname}`;
+      const canonical = canonicalStringForUrl(
+        stripDelegationAndSig(u),
+        'upload',
+      );
       const expected = createHmac('sha256', client)
         .update(canonical, 'utf8')
         .digest('base64url');
@@ -117,7 +132,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       const d = u.searchParams.get(BLOB_PRESIGN_QUERY_DELEGATION) ?? '';
       expect(d).toBe(delegation);
 
-      const canonical = `operation=get\npathname=${pathname}`;
+      const canonical = canonicalStringForUrl(stripDelegationAndSig(u), 'get');
       const expected = createHmac('sha256', client)
         .update(canonical, 'utf8')
         .digest('base64url');
@@ -154,7 +169,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       expect(u1.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE)).toBe(
         u2.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE),
       );
-      const canonical = `operation=get\npathname=${pathname}`;
+      const canonical = canonicalStringForUrl(stripDelegationAndSig(u1), 'get');
       expect(
         createHmac('sha256', client)
           .update(canonical, 'utf8')
@@ -184,7 +199,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         'get',
       );
       const u = new URL(presigned);
-      const canonical = `operation=get\npathname=${logicalName}`;
+      const canonical = canonicalStringForUrl(stripDelegationAndSig(u), 'get');
       const expected = createHmac('sha256', client)
         .update(canonical, 'utf8')
         .digest('base64url');
@@ -237,7 +252,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       ).rejects.toThrow(BlobError);
     });
 
-    it('adds signed `vercel-blob-url-expires` when `ttlSeconds` is set', async () => {
+    it('adds signed `vercel-blob-valid-until` when `validUntil` is before delegation ceiling', async () => {
       const fixedNow = 1_700_000_000_000;
       const spy = jest.spyOn(Date, 'now').mockReturnValue(fixedNow);
       try {
@@ -256,19 +271,21 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         );
         const client = deriveClientSigningToken(blobSigningSecret, delegation);
         const base = `https://store_${storeId}.public.blob.vercel-storage.com/${pathnameTtl}`;
-        const ttlSec = 90;
+        const presignedUntil = fixedNow + 90_000;
         const presigned = await presignUrl(
           base,
           { delegationToken: delegation, clientSigningToken: client },
           'get',
-          { ttlSeconds: ttlSec },
+          { validUntil: presignedUntil },
         );
         const u = new URL(presigned);
-        const expMs = fixedNow + ttlSec * 1000;
-        expect(u.searchParams.get(BLOB_PRESIGN_QUERY_URL_EXPIRES)).toBe(
-          String(Math.trunc(expMs)),
+        expect(u.searchParams.get(BLOB_PRESIGN_QUERY_VALID_UNTIL)).toBe(
+          String(presignedUntil),
         );
-        const canonical = `operation=get\npathname=${pathnameTtl}\nvercel-blob-url-expires=${String(Math.trunc(expMs))}`;
+        const canonical = canonicalStringForUrl(
+          stripDelegationAndSig(u),
+          'get',
+        );
         const expected = createHmac('sha256', client)
           .update(canonical, 'utf8')
           .digest('base64url');
@@ -278,7 +295,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       }
     });
 
-    it('caps `ttlSeconds` to the delegation `validUntil`', async () => {
+    it('omits `vercel-blob-valid-until` when `validUntil` equals delegation ceiling', async () => {
       const fixedNow = 2_000_000_000_000;
       const spy = jest.spyOn(Date, 'now').mockReturnValue(fixedNow);
       try {
@@ -301,13 +318,14 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
             base,
             { delegationToken: delegation, clientSigningToken: client },
             'get',
-            { ttlSeconds: 3600 },
+            { validUntil },
           ),
         );
-        expect(u.searchParams.get(BLOB_PRESIGN_QUERY_URL_EXPIRES)).toBe(
-          String(validUntil),
+        expect(u.searchParams.get(BLOB_PRESIGN_QUERY_VALID_UNTIL)).toBeNull();
+        const canonical = canonicalStringForUrl(
+          stripDelegationAndSig(u),
+          'get',
         );
-        const canonical = `operation=get\npathname=a.png\nvercel-blob-url-expires=${String(validUntil)}`;
         const expected = createHmac('sha256', client)
           .update(canonical, 'utf8')
           .digest('base64url');

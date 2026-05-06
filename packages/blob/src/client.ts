@@ -849,7 +849,7 @@ export async function handleUpload({
 /**
  * Delegation fields accepted by {@link issueSignedToken}, i.e.
  * JSON embedded in `vercel-blob-delegation`. Upload-behavior options belong in
- * {@link PresignUrlOptions} (`urlOpts` from {@link HandleUploadPresignedOptions.getSignedToken}),
+ * {@link PresignUrlOptions} for `put` (`urlOpts` from {@link HandleUploadPresignedOptions.getSignedToken}),
  * not in the delegation body.
  */
 export type HandleUploadPresignedSignedTokenPayload = Pick<
@@ -892,7 +892,7 @@ export interface HandleUploadPresignedOptions {
     pathname: string,
     clientPayload: string | null,
     multipart: boolean,
-  ) => Promise<{ token: IssuedSignedToken; urlOpts: PresignUrlOptions }>;
+  ) => Promise<{ token: IssuedSignedToken; urlOpts: PresignUrlOptions<'put'> }>;
 
   /**
    * Public key for verifying webhook signatures.

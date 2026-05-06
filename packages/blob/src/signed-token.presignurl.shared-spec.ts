@@ -5,6 +5,7 @@ import {
   BLOB_PRESIGN_QUERY_DELEGATION,
   BLOB_PRESIGN_QUERY_SIGNATURE,
   canonicalStringForUrl,
+  controlPlaneBlobDeleteUrl,
   controlPlaneBlobMpuUrl,
   controlPlaneBlobPutUrl,
   presignUrl,
@@ -203,7 +204,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       expect(u.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE)).toBe(expected);
     });
 
-    it('DELETE: HMACs canonical against the blob object URL', async () => {
+    it('DELETE: HMACs canonical for POST /delete?pathname=… (control plane)', async () => {
       const pathname = 'images/a.png';
       const delegation = createDelegationToken(
         {
@@ -217,7 +218,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         blobSigningSecret,
       );
       const client = deriveClientSigningToken(blobSigningSecret, delegation);
-      const base = `https://store_${storeId}.public.blob.vercel-storage.com/${pathname}`;
+      const base = controlPlaneBlobDeleteUrl(pathname);
       const presigned = await presignUrl(
         base,
         { delegationToken: delegation, clientSigningToken: client },
@@ -248,10 +249,34 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         blobSigningSecret,
       );
       const client = deriveClientSigningToken(blobSigningSecret, delegation);
-      const base = `https://store_${storeId}.public.blob.vercel-storage.com/${pathname}`;
+      const base = controlPlaneBlobDeleteUrl(pathname);
       await expect(
         presignUrl(
           base,
+          { delegationToken: delegation, clientSigningToken: client },
+          'delete',
+        ),
+      ).rejects.toThrow(BlobError);
+    });
+
+    it('rejects delete presign when the URL is a `*.blob.vercel-storage.com` object URL', async () => {
+      const pathname = 'a.png';
+      const delegation = createDelegationToken(
+        {
+          storeId: `store_${storeId}`,
+          ownerId: 'o',
+          pathname,
+          operations: ['delete'],
+          validUntil: now + 3600_000,
+          iat: now,
+        },
+        blobSigningSecret,
+      );
+      const client = deriveClientSigningToken(blobSigningSecret, delegation);
+      const objectUrl = `https://store_${storeId}.public.blob.vercel-storage.com/${pathname}`;
+      await expect(
+        presignUrl(
+          objectUrl,
           { delegationToken: delegation, clientSigningToken: client },
           'delete',
         ),
@@ -297,10 +322,14 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       const client = deriveClientSigningToken(blobSigningSecret, delegation);
       const wrongPath = `https://store_${storeId}.public.blob.vercel-storage.com/b.png`;
       await expect(
-        presignUrl(wrongPath, {
-          delegationToken: delegation,
-          clientSigningToken: client,
-        }),
+        presignUrl(
+          wrongPath,
+          {
+            delegationToken: delegation,
+            clientSigningToken: client,
+          },
+          'get',
+        ),
       ).rejects.toThrow(BlobError);
     });
 

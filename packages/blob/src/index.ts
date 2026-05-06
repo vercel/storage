@@ -245,9 +245,12 @@ export type {
   DelegationOperation,
   IssuedSignedToken,
   IssueSignedTokenOptions,
+  PresignPutUrlOptions,
+  PresignSimpleUrlOptions,
   PresignUrlOptions,
 } from './signed-token';
 export {
+  controlPlaneBlobDeleteUrl,
   controlPlaneBlobMpuUrl,
   controlPlaneBlobPutUrl,
   issueSignedToken,

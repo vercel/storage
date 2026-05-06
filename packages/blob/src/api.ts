@@ -5,10 +5,10 @@ import { DOMException } from './dom-exception';
 import type {
   BlobPresignedCommandOptions,
   BlobRequestInit,
-  PresignedUrlPayload,
   WithUploadProgress,
 } from './helpers';
 import {
+  addPresignedParams,
   BlobError,
   computeBodyLength,
   getApiUrl,
@@ -262,25 +262,6 @@ export async function getBlobError(
 
   return { code, error };
 }
-
-const addPresignedParams = (
-  url: string,
-  presignedUrlPayload: PresignedUrlPayload,
-): string => {
-  const urlObj = new URL(url);
-  urlObj.searchParams.set(
-    'vercel-blob-delegation',
-    presignedUrlPayload.delegationToken,
-  );
-  urlObj.searchParams.set(
-    'vercel-blob-signature',
-    presignedUrlPayload.signature,
-  );
-  for (const [key, value] of Object.entries(presignedUrlPayload.options)) {
-    urlObj.searchParams.set(key, value);
-  }
-  return urlObj.toString();
-};
 
 export async function requestApi<TResponse>(
   pathname: string,

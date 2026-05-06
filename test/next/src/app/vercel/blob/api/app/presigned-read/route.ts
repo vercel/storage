@@ -56,10 +56,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     const presignedUrlPayload = await presignUrl(token, {
       operation: 'get',
       pathname: parsed.pathname,
+      validUntil: Date.now() + 30 * 60 * 1000, // 30 minutes
     });
     return NextResponse.json({
-      pathname: parsed.pathname,
-      access: parsed.access,
       presignedUrlPayload,
     });
   } catch (error) {

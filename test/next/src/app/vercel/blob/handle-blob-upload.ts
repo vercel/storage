@@ -1,3 +1,4 @@
+import { del, get, head } from '@vercel/blob';
 import { type HandleUploadBody, handleUpload } from '@vercel/blob/client';
 import { NextResponse } from 'next/server';
 import { validateUploadToken } from './validate-upload-token';

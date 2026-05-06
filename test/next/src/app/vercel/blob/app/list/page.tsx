@@ -1,13 +1,27 @@
 'use client';
 
 import type * as vercelBlob from '@vercel/blob';
+import { get } from '@vercel/blob';
 import { useCallback, useEffect, useState } from 'react';
 import { API_ROOT } from '../../api/app/constants';
+
+type PresignedUrlPayloadWire = {
+  delegationToken: string;
+  signature: string;
+  options: Record<string, string>;
+};
+
+type PresignedReadOk = {
+  pathname: string;
+  access: 'public' | 'private';
+  presignedUrlPayload: PresignedUrlPayloadWire;
+};
 
 type PresignedPreview =
   | {
       pathname: string;
-      presignedUrl: string;
+      /** Blob object URL from `get()` (includes presigned query params). */
+      resolvedBlobUrl: string;
       loading: false;
       fetchError?: string;
       imageError: boolean;
@@ -97,40 +111,70 @@ export default function AppList(): React.JSX.Element {
         body: JSON.stringify({ url: blob.url }),
         headers: { 'Content-Type': 'application/json' },
       });
-      const data = (await res.json()) as {
-        presignedUrl?: string;
+      const data = (await res.json()) as Partial<PresignedReadOk> & {
         error?: string;
       };
       if (!res.ok) {
         setPresignedPreview({
           pathname: blob.pathname,
-          presignedUrl: '',
+          resolvedBlobUrl: '',
           loading: false,
           fetchError: data.error ?? res.statusText,
           imageError: true,
         });
         return;
       }
-      if (typeof data.presignedUrl !== 'string' || data.presignedUrl === '') {
+      if (
+        typeof data.pathname !== 'string' ||
+        (data.access !== 'public' && data.access !== 'private') ||
+        !data.presignedUrlPayload ||
+        typeof data.presignedUrlPayload.delegationToken !== 'string' ||
+        typeof data.presignedUrlPayload.signature !== 'string' ||
+        typeof data.presignedUrlPayload.options !== 'object' ||
+        data.presignedUrlPayload.options === null
+      ) {
         setPresignedPreview({
           pathname: blob.pathname,
-          presignedUrl: '',
+          resolvedBlobUrl: '',
           loading: false,
-          fetchError: 'Missing presignedUrl in response',
+          fetchError: 'Missing pathname, access, or presignedUrlPayload',
           imageError: true,
         });
         return;
       }
+
+      const getResult = await get(data.pathname, {
+        access: data.access,
+        presignedUrlPayload: data.presignedUrlPayload,
+      } as vercelBlob.GetCommandOptions & {
+        presignedUrlPayload: PresignedUrlPayloadWire;
+      });
+
+      if (getResult === null) {
+        setPresignedPreview({
+          pathname: blob.pathname,
+          resolvedBlobUrl: '',
+          loading: false,
+          fetchError: 'Blob not found (get returned null)',
+          imageError: true,
+        });
+        return;
+      }
+
+      if (getResult.statusCode === 200 && getResult.stream) {
+        await getResult.stream.cancel();
+      }
+
       setPresignedPreview({
         pathname: blob.pathname,
-        presignedUrl: data.presignedUrl,
+        resolvedBlobUrl: getResult.blob.url,
         loading: false,
         imageError: false,
       });
     } catch (e) {
       setPresignedPreview({
         pathname: blob.pathname,
-        presignedUrl: '',
+        resolvedBlobUrl: '',
         loading: false,
         fetchError: e instanceof Error ? e.message : String(e),
         imageError: true,
@@ -185,23 +229,23 @@ export default function AppList(): React.JSX.Element {
             </button>
           </div>
           {presignedPreview.loading ? (
-            <p>Issuing token and presigning URL…</p>
+            <p>Issuing presigned payload and resolving URL via get()…</p>
           ) : (
             <>
               {presignedPreview.fetchError ? (
                 <p className="text-red-600">{presignedPreview.fetchError}</p>
               ) : null}
-              {presignedPreview.presignedUrl ? (
+              {presignedPreview.resolvedBlobUrl ? (
                 <>
                   <p className="break-all text-sm">
-                    <span className="font-medium">Presigned URL: </span>
+                    <span className="font-medium">Blob URL (from get): </span>
                     <a
                       className="text-blue-600 underline hover:text-blue-800"
-                      href={presignedPreview.presignedUrl}
+                      href={presignedPreview.resolvedBlobUrl}
                       rel="noopener noreferrer"
                       target="_blank"
                     >
-                      {presignedPreview.presignedUrl}
+                      {presignedPreview.resolvedBlobUrl}
                     </a>
                   </p>
                   {!presignedPreview.fetchError ? (
@@ -209,11 +253,11 @@ export default function AppList(): React.JSX.Element {
                       {presignedPreview.imageError ? (
                         <p className="text-sm text-gray-600">
                           Could not render as an image (non-image blob or load
-                          error). Open the presigned URL above to download or
-                          view in a new tab.
+                          error). Open the URL above to download or view in a
+                          new tab.
                         </p>
                       ) : (
-                        // eslint-disable-next-line @next/next/no-img-element -- presigned blob URL from runtime
+                        // eslint-disable-next-line @next/next/no-img-element -- blob URL from get() (presigned query)
                         <img
                           alt={presignedPreview.pathname}
                           className="max-h-96 max-w-full rounded-sm border border-gray-200 object-contain"
@@ -224,7 +268,7 @@ export default function AppList(): React.JSX.Element {
                                 : prev,
                             );
                           }}
-                          src={presignedPreview.presignedUrl}
+                          src={presignedPreview.resolvedBlobUrl}
                         />
                       )}
                     </div>

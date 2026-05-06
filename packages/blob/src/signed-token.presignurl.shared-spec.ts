@@ -1,13 +1,13 @@
 import { createHmac } from 'node:crypto';
 import { BlobError } from './helpers';
-import { BLOB_PRESIGN_QUERY_VALID_UNTIL } from './presign-query-params';
 import {
-  BLOB_PRESIGN_QUERY_DELEGATION,
-  BLOB_PRESIGN_QUERY_SIGNATURE,
-  canonicalStringForUrl,
+  BLOB_PRESIGN_QUERY_VALID_UNTIL,
+  buildPresignCanonicalQueryEntries,
+} from './presign-query-params';
+import {
+  canonicalString,
   controlPlaneBlobDeleteUrl,
   controlPlaneBlobMpuUrl,
-  controlPlaneBlobPutUrl,
   presignUrl,
 } from './signed-token';
 import {
@@ -16,11 +16,61 @@ import {
   randomBytes,
 } from './signed-token.presignurl.test-helpers';
 
-function stripDelegationAndSig(u: URL): URL {
-  const x = new URL(u.toString());
-  x.searchParams.delete(BLOB_PRESIGN_QUERY_DELEGATION);
-  x.searchParams.delete(BLOB_PRESIGN_QUERY_SIGNATURE);
-  return x;
+type DelegationPayload = {
+  storeId: string;
+  ownerId: string;
+  pathname: string;
+  operations: string[];
+  validUntil: number;
+  iat: number;
+  maximumSizeInBytes?: number;
+  allowedContentTypes?: string[];
+};
+
+function readDelegationPayload(delegationToken: string): DelegationPayload {
+  const seg = delegationToken.split('.')[0]!;
+  return JSON.parse(
+    Buffer.from(seg, 'base64url').toString('utf8'),
+  ) as DelegationPayload;
+}
+
+async function expectSignatureMatches(
+  pathname: string,
+  delegationToken: string,
+  clientSigningToken: string,
+  operation: Parameters<typeof presignUrl>[2],
+  nowMs: number,
+  urlOptions?: Parameters<typeof presignUrl>[3],
+): Promise<void> {
+  const spy = jest.spyOn(Date, 'now').mockReturnValue(nowMs);
+  try {
+    const payload = await presignUrl(
+      pathname,
+      { delegationToken, clientSigningToken },
+      operation,
+      urlOptions,
+    );
+    const scope = readDelegationPayload(delegationToken);
+    const presignEntries = buildPresignCanonicalQueryEntries({
+      operation,
+      delegation: {
+        validUntil: scope.validUntil,
+        maximumSizeInBytes: scope.maximumSizeInBytes,
+        allowedContentTypes: scope.allowedContentTypes,
+      },
+      urlOptions,
+      nowMs,
+    });
+    const canonical = canonicalString(pathname, presignEntries, operation);
+    const expected = createHmac('sha256', clientSigningToken)
+      .update(canonical, 'utf8')
+      .digest('base64url');
+    expect(payload.signature).toBe(expected);
+    expect(payload.delegationToken).toBe(delegationToken);
+    expect(payload.options).toEqual(Object.fromEntries(presignEntries));
+  } finally {
+    spy.mockRestore();
+  }
 }
 
 /**
@@ -33,7 +83,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
     const blobSigningSecret = randomBytes(32).toString('base64');
     const now = Date.now();
 
-    it('PUT: HMACs control-plane URL; same canonical pathname as POST /mpu', async () => {
+    it('PUT: same signature for pathname whether target is PUT / or POST /mpu', async () => {
       const pathname = 'images/a.png';
       const delegation = createDelegationToken(
         {
@@ -47,34 +97,22 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         blobSigningSecret,
       );
       const client = deriveClientSigningToken(blobSigningSecret, delegation);
-      const basePut = controlPlaneBlobPutUrl(pathname);
-      const baseMpu = controlPlaneBlobMpuUrl(pathname);
       const presignedPut = await presignUrl(
-        basePut,
+        pathname,
         { delegationToken: delegation, clientSigningToken: client },
         'put',
       );
       const presignedMpu = await presignUrl(
-        baseMpu,
+        pathname,
         { delegationToken: delegation, clientSigningToken: client },
         'put',
       );
-      const uPut = new URL(presignedPut);
-      const uMpu = new URL(presignedMpu);
-      expect(uPut.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE)).toBe(
-        uMpu.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE),
-      );
-      const canonical = canonicalStringForUrl(
-        stripDelegationAndSig(uPut),
-        'put',
-      );
-      const expected = createHmac('sha256', client)
-        .update(canonical, 'utf8')
-        .digest('base64url');
-      expect(uPut.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE)).toBe(
-        expected,
-      );
-      expect(uPut.searchParams.get(BLOB_PRESIGN_QUERY_VALID_UNTIL)).toBeNull();
+      expect(presignedPut.signature).toBe(presignedMpu.signature);
+      expect(presignedPut.options).toEqual(presignedMpu.options);
+      await expectSignatureMatches(pathname, delegation, client, 'put', now);
+      expect(
+        presignedPut.options[BLOB_PRESIGN_QUERY_VALID_UNTIL],
+      ).toBeUndefined();
     });
 
     it('POST /mpu: matches PUT canonical for the same pathname', async () => {
@@ -91,21 +129,12 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         blobSigningSecret,
       );
       const client = deriveClientSigningToken(blobSigningSecret, delegation);
-      const base = controlPlaneBlobMpuUrl(pathname);
-      const presigned = await presignUrl(
-        base,
-        { delegationToken: delegation, clientSigningToken: client },
-        'put',
-      );
-      const u = new URL(presigned);
-      const canonical = canonicalStringForUrl(stripDelegationAndSig(u), 'put');
-      const expected = createHmac('sha256', client)
-        .update(canonical, 'utf8')
-        .digest('base64url');
-      expect(u.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE)).toBe(expected);
+      // URLs are only for documentation parity with real uploads; presign is pathname-based.
+      expect(controlPlaneBlobMpuUrl(pathname)).toContain('pathname=');
+      await expectSignatureMatches(pathname, delegation, client, 'put', now);
     });
 
-    it('HMACs the documented canonical string and appends query params', async () => {
+    it('HMACs the documented canonical string and returns payload fields', async () => {
       const pathname = 'images/a.png';
       const delegation = createDelegationToken(
         {
@@ -119,25 +148,10 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         blobSigningSecret,
       );
       const client = deriveClientSigningToken(blobSigningSecret, delegation);
-      const base = `https://store_${storeId}.public.blob.vercel-storage.com/${pathname}`;
-      const presigned = await presignUrl(
-        base,
-        { delegationToken: delegation, clientSigningToken: client },
-        'get',
-      );
-      const u = new URL(presigned);
-      const sig = u.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE) ?? '';
-      const d = u.searchParams.get(BLOB_PRESIGN_QUERY_DELEGATION) ?? '';
-      expect(d).toBe(delegation);
-
-      const canonical = canonicalStringForUrl(stripDelegationAndSig(u), 'get');
-      const expected = createHmac('sha256', client)
-        .update(canonical, 'utf8')
-        .digest('base64url');
-      expect(sig).toBe(expected);
+      await expectSignatureMatches(pathname, delegation, client, 'get', now);
     });
 
-    it('ignores unrelated query parameters for signing (order-independent)', async () => {
+    it('same pathname yields identical presign payloads (deterministic)', async () => {
       const pathname = 'x.txt';
       const delegation = createDelegationToken(
         {
@@ -151,33 +165,21 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         blobSigningSecret,
       );
       const client = deriveClientSigningToken(blobSigningSecret, delegation);
-      const base = `https://store_${storeId}.private.blob.vercel-storage.com/${pathname}?b=2&a=1`;
       const first = await presignUrl(
-        base,
+        pathname,
         { delegationToken: delegation, clientSigningToken: client },
         'get',
       );
       const second = await presignUrl(
-        `https://store_${storeId}.private.blob.vercel-storage.com/${pathname}?a=1&b=2`,
+        pathname,
         { delegationToken: delegation, clientSigningToken: client },
         'get',
       );
-      const u1 = new URL(first);
-      const u2 = new URL(second);
-      expect(u1.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE)).toBe(
-        u2.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE),
-      );
-      const canonical = canonicalStringForUrl(stripDelegationAndSig(u1), 'get');
-      expect(
-        createHmac('sha256', client)
-          .update(canonical, 'utf8')
-          .digest('base64url'),
-      ).toBe(u1.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE));
+      expect(first).toEqual(second);
     });
 
-    it('accepts a percent-encoded URL path when the token scope is the decoded object key', async () => {
+    it('accepts logical pathname when the object URL would use percent-encoded segments', async () => {
       const logicalName = 'Image Background Removed (1).png';
-      const encodedSegment = encodeURIComponent(logicalName);
       const delegation = createDelegationToken(
         {
           storeId: `store_${storeId}`,
@@ -190,21 +192,10 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         blobSigningSecret,
       );
       const client = deriveClientSigningToken(blobSigningSecret, delegation);
-      const base = `https://store_${storeId}.public.blob.vercel-storage.com/${encodedSegment}`;
-      const presigned = await presignUrl(
-        base,
-        { delegationToken: delegation, clientSigningToken: client },
-        'get',
-      );
-      const u = new URL(presigned);
-      const canonical = canonicalStringForUrl(stripDelegationAndSig(u), 'get');
-      const expected = createHmac('sha256', client)
-        .update(canonical, 'utf8')
-        .digest('base64url');
-      expect(u.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE)).toBe(expected);
+      await expectSignatureMatches(logicalName, delegation, client, 'get', now);
     });
 
-    it('DELETE: HMACs canonical for POST /delete?pathname=… (control plane)', async () => {
+    it('DELETE: HMACs canonical for delete operation (control-plane pathname)', async () => {
       const pathname = 'images/a.png';
       const delegation = createDelegationToken(
         {
@@ -218,21 +209,8 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         blobSigningSecret,
       );
       const client = deriveClientSigningToken(blobSigningSecret, delegation);
-      const base = controlPlaneBlobDeleteUrl(pathname);
-      const presigned = await presignUrl(
-        base,
-        { delegationToken: delegation, clientSigningToken: client },
-        'delete',
-      );
-      const u = new URL(presigned);
-      const canonical = `operation=delete\npathname=${pathname}`;
-      const expected = createHmac('sha256', client)
-        .update(canonical, 'utf8')
-        .digest('base64url');
-      expect(u.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE)).toBe(expected);
-      expect(u.searchParams.get(BLOB_PRESIGN_QUERY_DELEGATION)).toBe(
-        delegation,
-      );
+      expect(controlPlaneBlobDeleteUrl(pathname)).toContain('pathname=');
+      await expectSignatureMatches(pathname, delegation, client, 'delete', now);
     });
 
     it('rejects DELETE when the delegation does not include `delete`', async () => {
@@ -249,60 +227,11 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         blobSigningSecret,
       );
       const client = deriveClientSigningToken(blobSigningSecret, delegation);
-      const base = controlPlaneBlobDeleteUrl(pathname);
       await expect(
         presignUrl(
-          base,
+          pathname,
           { delegationToken: delegation, clientSigningToken: client },
           'delete',
-        ),
-      ).rejects.toThrow(BlobError);
-    });
-
-    it('rejects delete presign when the URL is a `*.blob.vercel-storage.com` object URL', async () => {
-      const pathname = 'a.png';
-      const delegation = createDelegationToken(
-        {
-          storeId: `store_${storeId}`,
-          ownerId: 'o',
-          pathname,
-          operations: ['delete'],
-          validUntil: now + 3600_000,
-          iat: now,
-        },
-        blobSigningSecret,
-      );
-      const client = deriveClientSigningToken(blobSigningSecret, delegation);
-      const objectUrl = `https://store_${storeId}.public.blob.vercel-storage.com/${pathname}`;
-      await expect(
-        presignUrl(
-          objectUrl,
-          { delegationToken: delegation, clientSigningToken: client },
-          'delete',
-        ),
-      ).rejects.toThrow(BlobError);
-    });
-
-    it('rejects PUT when the URL is a `*.blob.vercel-storage.com` object URL', async () => {
-      const pathname = 'a.png';
-      const delegation = createDelegationToken(
-        {
-          storeId: `store_${storeId}`,
-          ownerId: 'o',
-          pathname,
-          operations: ['put'],
-          validUntil: now + 3600_000,
-          iat: now,
-        },
-        blobSigningSecret,
-      );
-      const client = deriveClientSigningToken(blobSigningSecret, delegation);
-      const objectUrl = `https://store_${storeId}.public.blob.vercel-storage.com/${pathname}`;
-      await expect(
-        presignUrl(
-          objectUrl,
-          { delegationToken: delegation, clientSigningToken: client },
-          'put',
         ),
       ).rejects.toThrow(BlobError);
     });
@@ -320,10 +249,9 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         blobSigningSecret,
       );
       const client = deriveClientSigningToken(blobSigningSecret, delegation);
-      const wrongPath = `https://store_${storeId}.public.blob.vercel-storage.com/b.png`;
       await expect(
         presignUrl(
-          wrongPath,
+          'b.png',
           {
             delegationToken: delegation,
             clientSigningToken: client,
@@ -335,42 +263,40 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
 
     it('adds signed `vercel-blob-valid-until` when `validUntil` is before delegation ceiling', async () => {
       const fixedNow = 1_700_000_000_000;
+      const pathnameTtl = 'images/a.png';
+      const validUntil = fixedNow + 3_600_000;
+      const delegation = createDelegationToken(
+        {
+          storeId: `store_${storeId}`,
+          ownerId: 'owner_1',
+          pathname: pathnameTtl,
+          operations: ['get', 'head'],
+          validUntil,
+          iat: fixedNow,
+        },
+        blobSigningSecret,
+      );
+      const client = deriveClientSigningToken(blobSigningSecret, delegation);
+      const presignedUntil = fixedNow + 90_000;
       const spy = jest.spyOn(Date, 'now').mockReturnValue(fixedNow);
       try {
-        const pathnameTtl = 'images/a.png';
-        const validUntil = fixedNow + 3_600_000;
-        const delegation = createDelegationToken(
-          {
-            storeId: `store_${storeId}`,
-            ownerId: 'owner_1',
-            pathname: pathnameTtl,
-            operations: ['get', 'head'],
-            validUntil,
-            iat: fixedNow,
-          },
-          blobSigningSecret,
-        );
-        const client = deriveClientSigningToken(blobSigningSecret, delegation);
-        const base = `https://store_${storeId}.public.blob.vercel-storage.com/${pathnameTtl}`;
-        const presignedUntil = fixedNow + 90_000;
-        const presigned = await presignUrl(
-          base,
+        const payload = await presignUrl(
+          pathnameTtl,
           { delegationToken: delegation, clientSigningToken: client },
           'get',
           { validUntil: presignedUntil },
         );
-        const u = new URL(presigned);
-        expect(u.searchParams.get(BLOB_PRESIGN_QUERY_VALID_UNTIL)).toBe(
+        expect(payload.options[BLOB_PRESIGN_QUERY_VALID_UNTIL]).toBe(
           String(presignedUntil),
         );
-        const canonical = canonicalStringForUrl(
-          stripDelegationAndSig(u),
+        await expectSignatureMatches(
+          pathnameTtl,
+          delegation,
+          client,
           'get',
+          fixedNow,
+          { validUntil: presignedUntil },
         );
-        const expected = createHmac('sha256', client)
-          .update(canonical, 'utf8')
-          .digest('base64url');
-        expect(u.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE)).toBe(expected);
       } finally {
         spy.mockRestore();
       }
@@ -378,39 +304,37 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
 
     it('omits `vercel-blob-valid-until` when `validUntil` equals delegation ceiling', async () => {
       const fixedNow = 2_000_000_000_000;
+      const validUntil = fixedNow + 120_000;
+      const pathname = 'a.png';
+      const delegation = createDelegationToken(
+        {
+          storeId: `store_${storeId}`,
+          ownerId: 'o',
+          pathname,
+          operations: ['get'],
+          validUntil,
+          iat: fixedNow,
+        },
+        blobSigningSecret,
+      );
+      const client = deriveClientSigningToken(blobSigningSecret, delegation);
       const spy = jest.spyOn(Date, 'now').mockReturnValue(fixedNow);
       try {
-        const validUntil = fixedNow + 120_000; // 2 min (cap)
-        const delegation = createDelegationToken(
-          {
-            storeId: `store_${storeId}`,
-            ownerId: 'o',
-            pathname: 'a.png',
-            operations: ['get'],
-            validUntil,
-            iat: fixedNow,
-          },
-          blobSigningSecret,
-        );
-        const client = deriveClientSigningToken(blobSigningSecret, delegation);
-        const base = `https://store_${storeId}.public.blob.vercel-storage.com/a.png`;
-        const u = new URL(
-          await presignUrl(
-            base,
-            { delegationToken: delegation, clientSigningToken: client },
-            'get',
-            { validUntil },
-          ),
-        );
-        expect(u.searchParams.get(BLOB_PRESIGN_QUERY_VALID_UNTIL)).toBeNull();
-        const canonical = canonicalStringForUrl(
-          stripDelegationAndSig(u),
+        const payload = await presignUrl(
+          pathname,
+          { delegationToken: delegation, clientSigningToken: client },
           'get',
+          { validUntil },
         );
-        const expected = createHmac('sha256', client)
-          .update(canonical, 'utf8')
-          .digest('base64url');
-        expect(u.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE)).toBe(expected);
+        expect(payload.options[BLOB_PRESIGN_QUERY_VALID_UNTIL]).toBeUndefined();
+        await expectSignatureMatches(
+          pathname,
+          delegation,
+          client,
+          'get',
+          fixedNow,
+          { validUntil },
+        );
       } finally {
         spy.mockRestore();
       }

@@ -1002,9 +1002,14 @@ describe('client uploads', () => {
     });
 
     it('resolves callback URL and passes it to presignUrl when onUploadCompleted is set', async () => {
+      const dummyPresignedUrlPayload = {
+        delegationToken: 'delegation-token',
+        signature: 'signature',
+        options: {} as Record<string, string>,
+      };
       const presignSpy = jest
         .spyOn(signedTokenModule, 'presignUrl')
-        .mockResolvedValue('https://signed.example/put');
+        .mockResolvedValue(dummyPresignedUrlPayload);
 
       const originalEnv = { ...process.env };
       process.env.VERCEL_BLOB_CALLBACK_URL =
@@ -1035,13 +1040,13 @@ describe('client uploads', () => {
 
       expect(result).toEqual({
         type: 'blob.generate-presigned-url',
-        presignedUrl: 'https://signed.example/put',
+        presignedUrlPayload: dummyPresignedUrlPayload,
       });
 
       expect(getSignedToken).toHaveBeenCalledWith('a.png', 'cp', false);
 
       expect(presignSpy).toHaveBeenCalledWith(
-        expect.any(String),
+        'a.png',
         dummyIssuedSignedToken,
         'put',
         expect.objectContaining({

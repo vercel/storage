@@ -473,7 +473,7 @@ export function canonicalString(
   const lines: string[] = [`operation=${operation}`, `pathname=${pathname}`];
   for (const k of PRESIGN_CANONICAL_QUERY_KEYS) {
     const v = presignEntries.find(([key]) => key === k)?.[1];
-    if (v !== null && v !== '') {
+    if (v) {
       lines.push(`${k}=${v}`);
     }
   }

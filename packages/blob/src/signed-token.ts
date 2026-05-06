@@ -291,58 +291,6 @@ function isBlobObjectHostName(hostname: string): boolean {
 /**
  * @internal
  */
-function assertControlPlaneApiUrl(u: URL): void {
-  const ref = new URL(getApiUrl(''));
-  if (u.origin !== ref.origin) {
-    throw new BlobError(
-      'PUT presign URL must use the same origin as the blob control API (see `getApiUrl` / `controlPlaneBlobPutUrl`).',
-    );
-  }
-  const a = u.pathname.replace(/\/$/, '') || '/';
-  const b = ref.pathname.replace(/\/$/, '') || '/';
-  if (a !== b) {
-    throw new BlobError(
-      'PUT presign URL must target the blob API path, like `put()` (e.g. `/api/blob/`), not the blob object host.',
-    );
-  }
-  if (u.searchParams.get('pathname') == null) {
-    throw new BlobError(
-      'The blob API `PUT` URL must include a `pathname` query, like `controlPlaneBlobPutUrl`.',
-    );
-  }
-}
-
-/**
- * @internal
- */
-function assertControlPlaneMpuApiUrl(u: URL): void {
-  const ref = new URL(getApiUrl(''));
-  if (u.origin !== ref.origin) {
-    throw new BlobError(
-      'POST MPU presign URL must use the same origin as the blob control API (see `getApiUrl` / `controlPlaneBlobMpuUrl`).',
-    );
-  }
-  const normalize = (p: string) => p.replace(/\/$/, '') || '/';
-  const refBase = normalize(ref.pathname);
-  const expectedMpuPath = refBase === '/' ? '/mpu' : `${refBase}/mpu`;
-  if (normalize(u.pathname) !== normalize(expectedMpuPath)) {
-    throw new BlobError(
-      `POST MPU presign URL must target the blob API \`/mpu\` path (expected \`${expectedMpuPath}\`, got \`${u.pathname}\`).`,
-    );
-  }
-  if (
-    u.searchParams.get('pathname') == null ||
-    u.searchParams.get('pathname') === ''
-  ) {
-    throw new BlobError(
-      'The MPU URL must include a non-empty `pathname` query, like `controlPlaneBlobMpuUrl`.',
-    );
-  }
-}
-
-/**
- * @internal
- */
 function assertBlobHost(hostname: string): { storeId: string } {
   if (!isBlobObjectHostName(hostname)) {
     throw new BlobError(

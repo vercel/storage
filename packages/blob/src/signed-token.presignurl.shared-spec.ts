@@ -206,6 +206,61 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       expect(u.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE)).toBe(expected);
     });
 
+    it('DELETE: HMACs canonical against the blob object URL', async () => {
+      const pathname = 'images/a.png';
+      const delegation = createDelegationToken(
+        {
+          storeId: `store_${storeId}`,
+          ownerId: 'owner_1',
+          pathname,
+          operations: ['delete'],
+          validUntil: now + 3600_000,
+          iat: now,
+        },
+        blobSigningSecret,
+      );
+      const client = deriveClientSigningToken(blobSigningSecret, delegation);
+      const base = `https://store_${storeId}.public.blob.vercel-storage.com/${pathname}`;
+      const presigned = await presignUrl(
+        base,
+        { delegationToken: delegation, clientSigningToken: client },
+        'delete',
+      );
+      const u = new URL(presigned);
+      const canonical = `operation=delete\npathname=${pathname}`;
+      const expected = createHmac('sha256', client)
+        .update(canonical, 'utf8')
+        .digest('base64url');
+      expect(u.searchParams.get(BLOB_PRESIGN_QUERY_SIGNATURE)).toBe(expected);
+      expect(u.searchParams.get(BLOB_PRESIGN_QUERY_DELEGATION)).toBe(
+        delegation,
+      );
+    });
+
+    it('rejects DELETE when the delegation does not include `delete`', async () => {
+      const pathname = 'a.png';
+      const delegation = createDelegationToken(
+        {
+          storeId: `store_${storeId}`,
+          ownerId: 'o',
+          pathname,
+          operations: ['get', 'head'],
+          validUntil: now + 3600_000,
+          iat: now,
+        },
+        blobSigningSecret,
+      );
+      const client = deriveClientSigningToken(blobSigningSecret, delegation);
+      const base = `https://store_${storeId}.public.blob.vercel-storage.com/${pathname}`;
+      await expect(
+        presignUrl(
+          base,
+          { delegationToken: delegation, clientSigningToken: client },
+          'delete',
+        ),
+      ).rejects.toThrow(BlobError);
+    });
+
     it('rejects PUT when the URL is a `*.blob.vercel-storage.com` object URL', async () => {
       const pathname = 'a.png';
       const delegation = createDelegationToken(

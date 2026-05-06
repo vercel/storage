@@ -9,9 +9,10 @@ import {
 /**
  * Operations that may be encoded in a delegation token (e.g. read: `get` / `head`,
  * write: `upload` for presigned control-plane writes — both single-object `PUT`
- * ({@link controlPlaneBlobPutUrl}) and multipart `POST` ({@link controlPlaneBlobMpuUrl})).
+ * ({@link controlPlaneBlobPutUrl}) and multipart `POST` ({@link controlPlaneBlobMpuUrl}),
+ * destructive: `delete` for presigned `DELETE` against the blob object URL).
  */
-export type DelegationOperation = 'get' | 'head' | 'upload';
+export type DelegationOperation = 'get' | 'head' | 'upload' | 'delete';
 
 /** Excluded from the string-to-sign; added after signing. @public for CDN / tooling alignment */
 export const BLOB_PRESIGN_QUERY_DELEGATION = 'vercel-blob-delegation' as const;
@@ -57,7 +58,8 @@ export type IssueSignedTokenOptions = BlobCommandOptions & {
   pathname?: string;
   /**
    * Allowed operations (e.g. `get` / `head` for reads to `*.blob.vercel-storage.com`,
-   * `upload` for presigned control-plane `PUT` and multipart `POST /mpu`).
+   * `upload` for presigned control-plane `PUT` and multipart `POST /mpu`,
+   * `delete` for presigned `DELETE` against `*.blob.vercel-storage.com`).
    * When omitted, the API defaults to read (`get`) only.
    */
   operations?: DelegationOperation[];
@@ -427,7 +429,8 @@ export type PresignUrlOptions = {
 
 /**
  * Builds a **presigned URL** (read: `GET` / `HEAD` to `publicBlobObjectUrl`, or write:
- * `PUT` to {@link controlPlaneBlobPutUrl}, or multipart `POST` to {@link controlPlaneBlobMpuUrl})
+ * `PUT` to {@link controlPlaneBlobPutUrl}, or multipart `POST` to {@link controlPlaneBlobMpuUrl},
+ * or destructive: `DELETE` to `publicBlobObjectUrl`)
  * by HMACing a canonical string with `clientSigningToken` and appending the delegation
  * and signature as query parameters. The CDN re-derives the signing key from
  * `delegationToken` and validates the HMAC, scope, and expiry.
@@ -436,10 +439,11 @@ export type PresignUrlOptions = {
  *
  * Sorted newline-separated `key=value` pairs (UTF-8 byte order of whole lines):
  *
- * - `operation=get`, `operation=head`, or `operation=upload` (implicit from URL
- *   target: object host + GET/HEAD vs control-plane PUT/POST for uploads).
- * - `pathname=<object key>`: from the URL path (reads) or the `pathname` query
- *   (control-plane `PUT` / `POST` uploads).
+ * - `operation=get`, `operation=head`, `operation=upload`, or `operation=delete`
+ *   (implicit from URL target: object host + GET/HEAD/DELETE vs control-plane
+ *   PUT/POST for uploads).
+ * - `pathname=<object key>`: from the URL path (reads / deletes) or the
+ *   `pathname` query (control-plane `PUT` / `POST` uploads).
  * - Optional `vercel-blob-*` constraint params
  *
  * Delegation and signature are **appended to the final URL** after the HMAC is computed.
@@ -528,6 +532,11 @@ export async function presignUrl(
   if (operation === 'upload' && !scope.operations?.includes('upload')) {
     throw new BlobError(
       'The delegation token is not valid for presigned write requests. Include `"upload"` in `operations` when calling `issueSignedToken`.',
+    );
+  }
+  if (operation === 'delete' && !scope.operations?.includes('delete')) {
+    throw new BlobError(
+      'The delegation token is not valid for `DELETE` requests. Include `"delete"` in `operations` when calling `issueSignedToken`.',
     );
   }
 

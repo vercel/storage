@@ -271,7 +271,7 @@ export function resolvePresignUrlValidUntilMs(args: {
  * defaults to delegation expiry).
  */
 export function buildPresignCanonicalQueryEntries(args: {
-  operation: 'get' | 'head' | 'upload';
+  operation: 'get' | 'head' | 'upload' | 'delete';
   delegation: DelegationScopeForPresign;
   urlOptions?: {
     validUntil?: number;

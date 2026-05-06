@@ -484,8 +484,7 @@ export type PresignUrlOptions = {
  * and signature as query parameters. The CDN re-derives the signing key from
  * `delegationToken` and validates the HMAC, scope, and expiry.
  *
- * **Canonical string** (must match the verification service on the edge/Go; no
- * host or scheme in the sign input):
+ * **Canonical string**
  *
  * Sorted newline-separated `key=value` pairs (UTF-8 byte order of whole lines):
  *
@@ -493,24 +492,23 @@ export type PresignUrlOptions = {
  *   target: object host + GET/HEAD vs control-plane PUT/POST for uploads).
  * - `pathname=<object key>`: from the URL path (reads) or the `pathname` query
  *   (control-plane `PUT` / `POST` uploads).
- * - Optional `vercel-blob-*` constraint params (see `@vercel/blob` / proxy): each present
- *   param becomes one `key=value` line. URL expiry uses optional
- *   `vercel-blob-valid-until` (ms); when omitted, the server treats the URL as expiring
- *   with the delegation. Callback wiring uses `vercel-blob-callback-url` and optional
- *   `vercel-blob-callback-token-payload`.
+ * - Optional `vercel-blob-*` constraint params
  *
  * Delegation and signature are **appended to the final URL** after the HMAC is computed.
  */
 export async function presignUrl(
   blobUrl: string,
-  issued: Pick<IssuedSignedToken, 'clientSigningToken' | 'delegationToken'>,
+  signedToken: Pick<
+    IssuedSignedToken,
+    'clientSigningToken' | 'delegationToken'
+  >,
   operation: DelegationOperation = 'get',
   options?: PresignUrlOptions,
 ): Promise<string> {
   if (!blobUrl) {
     throw new BlobError('A blob URL is required.');
   }
-  if (!issued?.clientSigningToken || !issued?.delegationToken) {
+  if (!signedToken?.clientSigningToken || !signedToken?.delegationToken) {
     throw new BlobError(
       '`clientSigningToken` and `delegationToken` from `issueSignedToken` are required.',
     );
@@ -521,7 +519,7 @@ export async function presignUrl(
   url.searchParams.delete(BLOB_PRESIGN_QUERY_SIGNATURE);
   deletePresignCanonicalParams(url);
 
-  const scope = tryDecodePayload(issued.delegationToken);
+  const scope = tryDecodePayload(signedToken.delegationToken);
   if (!scope) {
     throw new BlobError('Invalid or unreadable `delegationToken` payload.');
   }
@@ -609,12 +607,15 @@ export async function presignUrl(
 
   const canonical = canonicalStringForUrl(url, operation);
   const signature = await hmacSha256Base64Url(
-    issued.clientSigningToken,
+    signedToken.clientSigningToken,
     canonical,
   );
 
   const out = new URL(url.toString());
-  out.searchParams.set(BLOB_PRESIGN_QUERY_DELEGATION, issued.delegationToken);
+  out.searchParams.set(
+    BLOB_PRESIGN_QUERY_DELEGATION,
+    signedToken.delegationToken,
+  );
   out.searchParams.set(BLOB_PRESIGN_QUERY_SIGNATURE, signature);
   return out.toString();
 }

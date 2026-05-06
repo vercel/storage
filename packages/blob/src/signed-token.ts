@@ -11,10 +11,10 @@ import {
 } from './presign-query-params';
 
 /**
- * Operations that may be encoded in a delegation token (e.g. read: `get` / `head`,
+ * Operations that may be encoded in a delegation token (e.g. read: `get`,
  * write: `put` for presigned control-plane writes — both single-object `PUT`
  */
-export type DelegationOperation = 'get' | 'head' | 'put';
+export type DelegationOperation = 'get' | 'put';
 
 /** Excluded from the string-to-sign; added after signing. @public for CDN / tooling alignment */
 export const BLOB_PRESIGN_QUERY_DELEGATION = 'vercel-blob-delegation' as const;
@@ -30,7 +30,7 @@ export const SIGNED_TOKEN_MAX_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 /**
  * Result of `issueSignedToken` — the same values returned from `POST /signed-token` on
  * the Blob API. Use with {@link presignUrl} to build a URL that can authorize GET/HEAD,
- * presigned `PUT`, presigned multipart `POST`, or presigned delete (`POST` to `/api/blob/delete`)
+ * presigned `PUT`, presigned multipart `POST`
  * without a bearer token when verified by the CDN.
  */
 export interface IssuedSignedToken {
@@ -292,11 +292,11 @@ function normalizeStoreId(storeId: string): string {
 }
 
 /**
- * Presign URL options for {@link presignUrl} when `operation` is `get`, `head`, or `delete`.
+ * Presign URL options for {@link presignUrl} when `operation` is `get`.
  * Only `validUntil` is honored for these operations; upload-only fields are rejected at the type level.
  */
 export type PresignGetUrlOptions = {
-  operation: 'get' | 'head';
+  operation: 'get';
 
   pathname: string;
   /**
@@ -305,9 +305,6 @@ export type PresignGetUrlOptions = {
    */
   validUntil?: number;
 };
-
-/** @public Alias for {@link PresignGetUrlOptions} (read / `HEAD` presign). */
-export type PresignSimpleUrlOptions = PresignGetUrlOptions;
 
 /**
  * Presign URL options for {@link presignUrl} when `operation` is `put` (single `PUT` or multipart `POST`).
@@ -375,11 +372,6 @@ export async function presignUrl(
     );
   }
 
-  if (options.operation === 'head' && !scope.operations?.includes('head')) {
-    throw new BlobError(
-      'The delegation token is not valid for `HEAD` requests. Include `"head"` in `operations` when calling `issueSignedToken`.',
-    );
-  }
   if (options.operation === 'get' && !scope.operations?.includes('get')) {
     throw new BlobError(
       'The delegation token is not valid for `GET` requests. Include `"get"` in `operations` when calling `issueSignedToken`.',

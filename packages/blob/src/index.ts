@@ -245,9 +245,6 @@ export type {
   PresignUrlOptions,
 } from './signed-token';
 export {
-  controlPlaneBlobDeleteUrl,
-  controlPlaneBlobMpuUrl,
-  controlPlaneBlobPutUrl,
   issueSignedToken,
   presignUrl,
   publicBlobObjectUrl,

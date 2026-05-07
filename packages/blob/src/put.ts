@@ -54,10 +54,20 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
       options,
     );
 
+    const optionsWithPresignedUrlPayload = {
+      ...options,
+      presignedUrlPayload,
+    };
+
     const headers = createPutHeaders(allowedOptions, options);
 
     if (options.multipart === true) {
-      return uncontrolledMultipartUpload(pathname, body, headers, options);
+      return uncontrolledMultipartUpload(
+        pathname,
+        body,
+        headers,
+        optionsWithPresignedUrlPayload,
+      );
     }
 
     const onUploadProgress = options.onUploadProgress
@@ -75,8 +85,7 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
         signal: options.abortSignal,
       },
       {
-        ...options,
-        presignedUrlPayload,
+        ...optionsWithPresignedUrlPayload,
         onUploadProgress,
       },
     );

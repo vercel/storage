@@ -253,5 +253,4 @@ export type {
 export {
   issueSignedToken,
   presignUrl,
-  publicBlobObjectUrl,
 } from './signed-token';

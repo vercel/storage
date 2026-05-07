@@ -8,7 +8,7 @@ import { API_ROOT } from '../../api/app/constants';
 type PresignedUrlPayloadWire = {
   delegationToken: string;
   signature: string;
-  options: Record<string, string>;
+  params: Record<string, string>;
 };
 
 type PresignedReadOk = {

@@ -4,9 +4,11 @@ import * as crypto from 'crypto';
 // the `undici` module will be replaced with https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
 // for browser contexts. See ./undici-browser.js and ./package.json
 import { fetch } from 'undici';
+import type { BlobClientTokenConstraintOptions } from './client-token-constraints';
 import type {
   BlobAccessType,
   BlobCommandOptions,
+  PresignedUrlPayload,
   WithUploadProgress,
 } from './helpers';
 import {
@@ -22,6 +24,12 @@ import type { CommonMultipartUploadOptions } from './multipart/upload';
 import { createUploadPartMethod } from './multipart/upload';
 import { createPutMethod } from './put';
 import type { PutBlobResult } from './put-helpers';
+import {
+  type IssuedSignedToken,
+  type IssueSignedTokenOptions,
+  type PresignPutUrlOptions,
+  presign,
+} from './signed-token';
 
 /**
  * Interface for put, upload and multipart upload operations.
@@ -312,6 +320,60 @@ export const upload = createPutMethod<UploadOptions>({
 });
 
 /**
+ * Uploads a blob into your store from the client using a presigned URL.
+ * Detailed documentation can be found here: https://vercel.com/docs/vercel-blob/using-blob-sdk#client-uploads
+ *
+ * If you want to upload from your server instead, check out the documentation for the put operation: https://vercel.com/docs/vercel-blob/using-blob-sdk#upload-a-blob
+ *
+ * @param pathname - The pathname to upload the blob to. This includes the filename and extension.
+ * @param body - The contents of your blob. This has to be a supported fetch body type (string, Blob, File, ArrayBuffer, etc).
+ * @param options - Configuration options including:
+ *   - access - (Required) Must be 'public' or 'private'. Public blobs are accessible via URL, private blobs require authentication.
+ *   - handleUploadUrl - (Required) A string specifying the route to call for generating client tokens for client uploads.
+ *   - clientPayload - (Optional) A string to be sent to your handleUpload server code. Example use-case: attaching the post id an image relates to.
+ *   - headers - (Optional) An object containing custom headers to be sent with the request to your handleUpload route. Example use-case: sending Authorization headers.
+ *   - contentType - (Optional) A string indicating the media type. By default, it's extracted from the pathname's extension.
+ *   - multipart - (Optional) Whether to use multipart upload for large files. When true, your `handleUploadPresigned` route must return a presigned `POST` URL for `/mpu`.
+ *   - abortSignal - (Optional) AbortSignal to cancel the operation.
+ *   - onUploadProgress - (Optional) Callback to track upload progress: onUploadProgress(\{loaded: number, total: number, percentage: number\})
+ * @returns A promise that resolves to the blob information, including pathname, contentType, contentDisposition, url, and downloadUrl.
+ */
+export const uploadPresigned = createPutMethod<UploadOptions>({
+  allowedOptions: ['contentType'],
+  extraChecks(options) {
+    if (options.handleUploadUrl === undefined) {
+      throw new BlobError(
+        "client/`upload` requires the 'handleUploadUrl' parameter",
+      );
+    }
+
+    if (
+      // @ts-expect-error -- Runtime check for DX.
+      options.addRandomSuffix !== undefined ||
+      // @ts-expect-error -- Runtime check for DX.
+      options.createPutExtraChecks !== undefined ||
+      // @ts-expect-error -- Runtime check for DX.
+      options.cacheControlMaxAge !== undefined ||
+      // @ts-expect-error -- Runtime check for DX.
+      options.ifMatch !== undefined
+    ) {
+      throw new BlobError(
+        "client/`upload` doesn't allow `addRandomSuffix`, `cacheControlMaxAge`, `allowOverwrite` or `ifMatch`. Configure these options at the server side when generating client tokens.",
+      );
+    }
+  },
+  async getPresignedUrlPayload(pathname, options) {
+    return retrievePresignedUrlPayload({
+      pathname,
+      handleUploadUrl: options.handleUploadUrl,
+      clientPayload: options.clientPayload ?? null,
+      multipart: options.multipart ?? false,
+      headers: options.headers,
+    });
+  },
+});
+
+/**
  * @internal Internal function to import a crypto key.
  */
 async function importKey(token: string): Promise<CryptoKey> {
@@ -341,6 +403,88 @@ async function signPayload(
     new TextEncoder().encode(payload),
   );
   return Buffer.from(new Uint8Array(signature)).toString('hex');
+}
+
+/**
+ * Decodes PEM `-----BEGIN PUBLIC KEY----- …` (SPKI) to DER bytes.
+ */
+function publicKeyDerFromPem(pem: string): Buffer | undefined {
+  const match = pem
+    .trim()
+    .match(/-----BEGIN PUBLIC KEY-----([^-]*)-----END PUBLIC KEY-----/s);
+  const b64 = match?.[1]?.replace(/\s+/g, '');
+  if (!b64) {
+    return undefined;
+  }
+  try {
+    return Buffer.from(b64, 'base64');
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * @internal Internal function to verify a callback signature for presigned uploads.
+ */
+async function verifyCallbackSignaturePresigned({
+  webhookPublicKey,
+  signature,
+  body,
+}: {
+  webhookPublicKey: string;
+  signature: string;
+  body: string;
+}): Promise<boolean> {
+  if (
+    typeof signature !== 'string' ||
+    !/^[0-9a-fA-F]+$/.test(signature) ||
+    signature.length !== 128
+  ) {
+    return false;
+  }
+
+  const signatureBuf = Buffer.from(signature, 'hex');
+
+  const bodyBuf = Buffer.from(body, 'utf8');
+
+  const der = publicKeyDerFromPem(webhookPublicKey);
+
+  // Prefer Web Crypto when available so browser bundles (which replace `crypto`
+  // with a small shim) never take the Node `createPublicKey` branch.
+  if (globalThis.crypto?.subtle && der) {
+    try {
+      const derCopy = Uint8Array.from(der);
+      const verifyKey = await globalThis.crypto.subtle.importKey(
+        'spki',
+        derCopy,
+        { name: 'Ed25519' },
+        false,
+        ['verify'],
+      );
+      const sigBytes = new Uint8Array(64);
+      sigBytes.set(signatureBuf.subarray(0, 64), 0);
+      const ok = await globalThis.crypto.subtle.verify(
+        'Ed25519',
+        verifyKey,
+        sigBytes,
+        new TextEncoder().encode(body),
+      );
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+
+  if (typeof crypto.createPublicKey === 'function') {
+    try {
+      const key = crypto.createPublicKey(webhookPublicKey.trim());
+      return crypto.verify(null, bodyBuf, key, signatureBuf);
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -435,6 +579,7 @@ export function getPayloadFromClientToken(
  */
 const EventTypes = {
   generateClientToken: 'blob.generate-client-token',
+  generatePresignedUrl: 'blob.generate-presigned-url',
   uploadCompleted: 'blob.upload-completed',
 } as const;
 
@@ -450,6 +595,33 @@ interface GenerateClientTokenEvent {
 
   /**
    * Payload containing information needed to generate a client token.
+   */
+  payload: {
+    /**
+     * The destination path for the blob.
+     */
+    pathname: string;
+
+    /**
+     * Whether the upload will use multipart uploading.
+     */
+    multipart: boolean;
+
+    /**
+     * Additional data from the client which will be available in onBeforeGenerateToken.
+     */
+    clientPayload: string | null;
+  };
+}
+
+export interface GeneratePresignedUrlEvent {
+  /**
+   * Type identifier for the generate presigned url event.
+   */
+  type: (typeof EventTypes)['generatePresignedUrl'];
+
+  /**
+   * Payload containing information needed to generate a presigned url.
    */
   payload: {
     /**
@@ -499,6 +671,13 @@ interface UploadCompletedEvent {
  * Union type representing either a request to generate a client token or a notification that an upload completed.
  */
 export type HandleUploadBody = GenerateClientTokenEvent | UploadCompletedEvent;
+
+/**
+ * Request body for {@link handleUploadPresigned}: presigned `PUT` URL issuance or upload completion callback.
+ */
+export type HandleUploadPresignedBody =
+  | GeneratePresignedUrlEvent
+  | UploadCompletedEvent;
 
 /**
  * Type representing either a Node.js IncomingMessage or a web standard Request object.
@@ -667,6 +846,187 @@ export async function handleUpload({
 }
 
 /**
+ * Delegation fields accepted by {@link issueSignedToken}, i.e.
+ * JSON embedded in `vercel-blob-delegation`. Upload-behavior options belong in
+ * {@link PresignUrlOptions} for `put` (`urlOptions` from {@link HandleUploadPresignedOptions.getSignedToken}),
+ * not in the delegation body.
+ */
+export type HandleUploadPresignedSignedTokenPayload = Pick<
+  IssueSignedTokenOptions,
+  | 'allowedContentTypes'
+  | 'maximumSizeInBytes'
+  | 'operations'
+  | 'pathname'
+  | 'validUntil'
+>;
+
+/**
+ * @deprecated Callback wiring for presigned uploads is merged into {@link PresignUrlOptions}
+ * by {@link handleUploadPresigned} after `getSignedToken` returns; you no longer receive this
+ * object as a separate argument.
+ */
+export interface HandleUploadPresignedIssuanceContext {
+  onUploadCompleted?: {
+    callbackUrl: string;
+    tokenPayload?: string | null;
+  };
+}
+
+/**
+ * Options for {@link handleUploadPresigned} — same upload-completion flow as {@link handleUpload},
+ * but `blob.generate-presigned-url` returns a presigned control-plane URL: `PUT` to `/?pathname=…`
+ * for single upload, or `POST` to `/mpu?pathname=…` when the client requested multipart.
+ */
+export interface HandleUploadPresignedOptions {
+  body: HandleUploadPresignedBody;
+  /**
+   * Produce signed token (e.g. via `issueSignedToken`) for {@link presign}.
+   * This must be a token with 'put' priveleges and access to the pathname
+   */
+  getSignedToken: (
+    pathname: string,
+    clientPayload: string | null,
+    multipart: boolean,
+  ) => Promise<{
+    token: IssuedSignedToken;
+    urlOptions?: Omit<
+      PresignPutUrlOptions,
+      'operation' | 'pathname' | 'onUploadCompleted'
+    > & {
+      callbackUrl?: string;
+      tokenPayload?: string | null;
+    };
+  }>;
+
+  /**
+   * Public key for verifying webhook signatures.
+   * This is used to verify the signature of the webhook request.
+   *
+   * @default process.env.BLOB_WEBHOOK_PUBLIC_KEY
+   */
+  webhookPublicKey?: string;
+
+  /**
+   * Function called by Vercel Blob when the client upload finishes.
+   * This is useful to update your database with the blob URL that was uploaded.
+   *
+   * @param body - Contains information about the completed upload including the blob details
+   */
+  onUploadCompleted?: HandleUploadOptions['onUploadCompleted'];
+
+  /**
+   * An IncomingMessage or Request object to be used to determine the action to take.
+   */
+  request: RequestType;
+}
+
+/**
+ * Server route helper for **presigned** client uploads: returns a presigned control-plane
+ * `PUT` URL for single-object uploads, or a presigned `POST` URL for `/mpu` when multipart.
+ * Verifies upload-completed callbacks with Ed25519 (`BLOB_WEBHOOK_PUBLIC_KEY`) over `x-vercel-signature`,
+ * matching outbound `webhook_keypair` signing from api-storage when sending the callback.
+ *
+ * If `onUploadCompleted` is set, the callback target URL is resolved like {@link handleUpload}
+ * (same `VERCEL_BLOB_CALLBACK_URL` / Vercel URL rules) and merged into the options passed to
+ * {@link presignUrl} after `getSignedToken` returns.
+ */
+export async function handleUploadPresigned({
+  body,
+  request,
+  webhookPublicKey,
+  getSignedToken,
+  onUploadCompleted,
+}: HandleUploadPresignedOptions): Promise<
+  | {
+      type: 'blob.generate-presigned-url';
+      presignedUrlPayload: PresignedUrlPayload;
+    }
+  | { type: 'blob.upload-completed'; response: 'ok' }
+> {
+  const resolvedWebhookPublicKey =
+    webhookPublicKey ?? process.env.BLOB_WEBHOOK_PUBLIC_KEY;
+
+  if (!resolvedWebhookPublicKey) {
+    throw new BlobError('Missing webhook public key');
+  }
+
+  const type = body.type;
+  switch (type) {
+    case 'blob.generate-presigned-url': {
+      const { pathname, clientPayload, multipart } = body.payload;
+
+      const { token, urlOptions = {} } = await getSignedToken(
+        pathname,
+        clientPayload,
+        multipart,
+      );
+
+      const tokenPayload =
+        urlOptions?.tokenPayload ?? clientPayload ?? undefined;
+      const { callbackUrl: providedCallbackUrl } = urlOptions;
+      let callbackUrl = providedCallbackUrl;
+
+      if (onUploadCompleted && !callbackUrl) {
+        callbackUrl = getCallbackUrl(request);
+      }
+
+      // If no onUploadCompleted but callbackUrl was provided, warn about it
+      if (!onUploadCompleted && callbackUrl) {
+        console.warn(
+          'callbackUrl was provided but onUploadCompleted is not defined. The callback will not be handled.',
+        );
+      }
+
+      const urlOptionsWithCallback = {
+        ...urlOptions,
+        onUploadCompleted: callbackUrl
+          ? {
+              callbackUrl,
+              tokenPayload,
+            }
+          : undefined,
+      };
+
+      const presignedUrlPayload = await presign(token, {
+        ...urlOptionsWithCallback,
+        operation: 'put',
+        pathname,
+      });
+      return { type, presignedUrlPayload };
+    }
+    case 'blob.upload-completed': {
+      const signatureHeader = 'x-vercel-signature';
+      const signature = (
+        'credentials' in request
+          ? (request.headers.get(signatureHeader) ?? '')
+          : (request.headers[signatureHeader] ?? '')
+      ) as string;
+
+      if (!signature) {
+        throw new BlobError('Missing callback signature');
+      }
+
+      const isVerified = await verifyCallbackSignaturePresigned({
+        webhookPublicKey: resolvedWebhookPublicKey,
+        signature,
+        body: JSON.stringify(body),
+      });
+
+      if (!isVerified) {
+        throw new BlobError('Invalid callback signature');
+      }
+
+      if (onUploadCompleted) {
+        await onUploadCompleted(body.payload);
+      }
+      return { type, response: 'ok' };
+    }
+    default:
+      throw new BlobError('Invalid event type');
+  }
+}
+
+/**
  * @internal Internal function to retrieve a client token from server.
  */
 async function retrieveClientToken(options: {
@@ -710,6 +1070,61 @@ async function retrieveClientToken(options: {
     return clientToken;
   } catch {
     throw new BlobError('Failed to retrieve the client token');
+  }
+}
+
+/**
+ * @internal Internal function to retrieve a presigned URL from server.
+ */
+async function retrievePresignedUrlPayload(options: {
+  pathname: string;
+  handleUploadUrl: string;
+  clientPayload: string | null;
+  multipart: boolean;
+  abortSignal?: AbortSignal;
+  headers?: Record<string, string>;
+}): Promise<PresignedUrlPayload> {
+  const { handleUploadUrl, pathname } = options;
+  const url = isAbsoluteUrl(handleUploadUrl)
+    ? handleUploadUrl
+    : toAbsoluteUrl(handleUploadUrl);
+
+  const event: GeneratePresignedUrlEvent = {
+    type: EventTypes.generatePresignedUrl,
+    payload: {
+      pathname,
+      clientPayload: options.clientPayload,
+      multipart: options.multipart,
+    },
+  };
+
+  const res = await fetch(url, {
+    method: 'POST',
+    body: JSON.stringify(event),
+    headers: {
+      'content-type': 'application/json',
+      ...options.headers,
+    },
+    signal: options.abortSignal,
+  });
+
+  if (!res.ok) {
+    throw new BlobError('Failed to retrieve the presigned URL');
+  }
+
+  try {
+    const { presignedUrlPayload } = (await res.json()) as {
+      presignedUrlPayload: PresignedUrlPayload;
+    };
+    if (presignedUrlPayload) {
+      return presignedUrlPayload;
+    }
+    throw new BlobError('Missing presignedUrlPayload');
+  } catch (error) {
+    if (error instanceof BlobError) {
+      throw error;
+    }
+    throw new BlobError('Failed to retrieve the presigned URL');
   }
 }
 
@@ -809,61 +1224,13 @@ export async function generateClientTokenFromReadWriteToken({
 /**
  * Options for generating a client token.
  */
-export interface GenerateClientTokenOptions extends BlobCommandOptions {
+export interface GenerateClientTokenOptions
+  extends BlobCommandOptions,
+    BlobClientTokenConstraintOptions {
   /**
    * The destination path for the blob
    */
   pathname: string;
-
-  /**
-   * Configuration for upload completion callback
-   */
-  onUploadCompleted?: {
-    callbackUrl: string;
-    tokenPayload?: string | null;
-  };
-
-  /**
-   * A number specifying the maximum size in bytes that can be uploaded. The maximum is 5TB.
-   */
-  maximumSizeInBytes?: number;
-
-  /**
-   * An array of strings specifying the media type that are allowed to be uploaded.
-   * By default, it's all content types. Wildcards are supported (text/*)
-   */
-  allowedContentTypes?: string[];
-
-  /**
-   * A number specifying the timestamp in ms when the token will expire.
-   * By default, it's now + 1 hour.
-   */
-  validUntil?: number;
-
-  /**
-   * Adds a random suffix to the filename.
-   * @defaultvalue false
-   */
-  addRandomSuffix?: boolean;
-
-  /**
-   * Allow overwriting an existing blob. By default this is set to false and will throw an error if the blob already exists.
-   * @defaultvalue false
-   */
-  allowOverwrite?: boolean;
-
-  /**
-   * Number in seconds to configure how long Blobs are cached. Defaults to one month. Cannot be set to a value lower than 1 minute.
-   * @defaultvalue 30 * 24 * 60 * 60 (1 Month)
-   */
-  cacheControlMaxAge?: number;
-
-  /**
-   * Only write if the ETag matches (optimistic concurrency control).
-   * Use this for conditional writes to prevent overwriting changes made by others.
-   * If the ETag doesn't match, a `BlobPreconditionFailedError` will be thrown.
-   */
-  ifMatch?: string;
 }
 
 /**

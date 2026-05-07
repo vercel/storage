@@ -30,6 +30,9 @@ export {
   BlobError,
   getDownloadUrl,
   type OnUploadProgressCallback,
+  type PresignedUrlPayload,
+  parseStoreIdFromDelegationToken,
+  parseStoreIdFromPresignedUrl,
   type UploadProgressEvent,
 } from './helpers';
 
@@ -59,7 +62,9 @@ export type { PutCommandOptions };
  *   - onUploadProgress - (Optional) Callback to track upload progress: onUploadProgress(\{loaded: number, total: number, percentage: number\})
  * @returns A promise that resolves to the blob information, including pathname, contentType, contentDisposition, url, and downloadUrl.
  */
-export const put = createPutMethod<PutCommandOptions>({
+export const put = createPutMethod<
+  Omit<PutCommandOptions, 'presignedUrlPayload'>
+>({
   allowedOptions: [
     'cacheControlMaxAge',
     'addRandomSuffix',
@@ -82,7 +87,7 @@ export { head } from './head';
 // vercelBlob.get()
 
 export type { GetBlobResult, GetCommandOptions } from './get';
-export { get } from './get';
+export { buildPresignedGetUrl, get } from './get';
 
 // vercelBlob.list()
 
@@ -226,9 +231,23 @@ export const completeMultipartUpload =
     ],
   });
 
+export type { BlobClientTokenConstraintOptions } from './client-token-constraints';
 export type {
   CreateFolderCommandOptions,
   CreateFolderResult,
 } from './create-folder';
 export { createFolder } from './create-folder';
 export type { Part, PartInput } from './multipart/helpers';
+export type {
+  DelegationOperation,
+  IssuedSignedToken,
+  IssueSignedTokenOptions,
+  PresignGetUrlOptions,
+  PresignPutUrlOptions,
+  PresignUrlOptions,
+} from './signed-token';
+export {
+  issueSignedToken,
+  presign,
+  publicBlobObjectUrl,
+} from './signed-token';

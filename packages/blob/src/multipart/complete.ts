@@ -1,6 +1,6 @@
 import { BlobServiceNotAvailable, requestApi } from '../api';
 import { debug } from '../debug';
-import type { BlobCommandOptions, CommonCreateBlobOptions } from '../helpers';
+import type { CommonCreateBlobOptions } from '../helpers';
 import type {
   CreatePutMethodOptions,
   PutBlobApiResponse,
@@ -67,7 +67,7 @@ export async function completeMultipartUpload({
   pathname: string;
   parts: Part[];
   headers: Record<string, string>;
-  options: BlobCommandOptions;
+  options: CommonCreateBlobOptions;
 }): Promise<PutBlobResult> {
   const params = new URLSearchParams({ pathname });
 

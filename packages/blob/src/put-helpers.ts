@@ -5,7 +5,7 @@ import type { Readable } from 'stream';
 import type { File } from 'undici';
 import { MAXIMUM_PATHNAME_LENGTH } from './api';
 import type { ClientCommonCreateBlobOptions } from './client';
-import type { CommonCreateBlobOptions } from './helpers';
+import type { CommonCreateBlobOptions, PresignedUrlPayload } from './helpers';
 import { BlobError, disallowedPathnameCharacters } from './helpers';
 
 export const putOptionHeaderMap = {
@@ -68,6 +68,10 @@ export type CommonPutCommandOptions = CommonCreateBlobOptions &
 export interface CreatePutMethodOptions<TOptions> {
   allowedOptions: (keyof typeof putOptionHeaderMap)[];
   getToken?: (pathname: string, options: TOptions) => Promise<string>;
+  getPresignedUrlPayload?: (
+    pathname: string,
+    options: TOptions,
+  ) => Promise<PresignedUrlPayload>;
   extraChecks?: (options: TOptions) => void;
 }
 
@@ -141,11 +145,13 @@ export async function createPutOptions<
   options,
   extraChecks,
   getToken,
+  getPresignedUrlPayload,
 }: {
   pathname: string;
   options?: TOptions;
   extraChecks?: CreatePutMethodOptions<TOptions>['extraChecks'];
   getToken?: CreatePutMethodOptions<TOptions>['getToken'];
+  getPresignedUrlPayload?: CreatePutMethodOptions<TOptions>['getPresignedUrlPayload'];
 }): Promise<TOptions> {
   if (!pathname) {
     throw new BlobError('pathname is required');
@@ -181,6 +187,13 @@ export async function createPutOptions<
 
   if (getToken) {
     options.token = await getToken(pathname, options);
+  }
+
+  if (getPresignedUrlPayload) {
+    options.presignedUrlPayload = await getPresignedUrlPayload(
+      pathname,
+      options,
+    );
   }
 
   return options;

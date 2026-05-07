@@ -1,11 +1,20 @@
 import { fetch, type Headers } from 'undici';
-import type { BlobAccessType, BlobCommandOptions } from './helpers';
-import { BlobError, resolveBlobAuth } from './helpers';
+import type {
+  BlobAccessType,
+  BlobPresignedCommandOptions,
+  PresignedUrlPayload,
+} from './helpers';
+import {
+  addPresignedParams,
+  BlobError,
+  parseStoreIdFromDelegationToken,
+  resolveBlobAuth,
+} from './helpers';
 
 /**
  * Options for the get method.
  */
-export interface GetCommandOptions extends BlobCommandOptions {
+export interface GetCommandOptions extends BlobPresignedCommandOptions {
   /**
    * Whether the blob is publicly accessible or private.
    * - 'public': The blob is publicly accessible via its URL.
@@ -156,7 +165,7 @@ export async function get(
   }
 
   const auth = resolveBlobAuth(options);
-  const bearerToken = auth.kind === 'readWrite' ? auth.token : auth.oidcToken;
+  const bearerToken = auth.kind === 'presigned' ? undefined : auth.token;
 
   let blobUrl: string;
   let pathname: string;
@@ -186,10 +195,14 @@ export async function get(
     blobUrl = constructBlobUrl(auth.storeId, pathname, access);
   }
 
+  if (options.presignedUrlPayload) {
+    blobUrl = addPresignedParams(blobUrl, options.presignedUrlPayload);
+  }
+
   // Fetch the blob content with authentication headers
   const requestHeaders: HeadersInit = {
     ...(options.ifNoneMatch ? { 'If-None-Match': options.ifNoneMatch } : {}),
-    authorization: `Bearer ${bearerToken}`,
+    ...(bearerToken ? { authorization: `Bearer ${bearerToken}` } : {}),
     ...options.headers, // low-level escape hatch, applied last to override anything
   };
 
@@ -271,4 +284,18 @@ export async function get(
       etag: response.headers.get('etag') || '',
     },
   };
+}
+
+export async function buildPresignedGetUrl(
+  pathnameOrUrl: string,
+  presignedUrlPayload: PresignedUrlPayload,
+  options: Pick<GetCommandOptions, 'access'>,
+): Promise<string> {
+  const storeId = parseStoreIdFromDelegationToken(
+    presignedUrlPayload.delegationToken,
+  );
+  const blobUrl = isUrl(pathnameOrUrl)
+    ? pathnameOrUrl
+    : constructBlobUrl(storeId, pathnameOrUrl, options.access);
+  return addPresignedParams(blobUrl, presignedUrlPayload);
 }

@@ -87,7 +87,7 @@ export { head } from './head';
 // vercelBlob.get()
 
 export type { GetBlobResult, GetCommandOptions } from './get';
-export { get } from './get';
+export { buildPresignedGetUrl, get } from './get';
 
 // vercelBlob.list()
 
@@ -248,6 +248,6 @@ export type {
 } from './signed-token';
 export {
   issueSignedToken,
-  presignUrl,
+  presign,
   publicBlobObjectUrl,
 } from './signed-token';

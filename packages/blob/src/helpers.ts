@@ -33,7 +33,7 @@ export interface BlobCommandOptions {
 export interface PresignedUrlPayload {
   delegationToken: string;
   signature: string;
-  options: Record<string, string>;
+  params: Record<string, string>;
 }
 
 /**
@@ -500,7 +500,7 @@ export const addPresignedParams = (
   presignedUrlPayload: PresignedUrlPayload,
 ): string => {
   const urlObj = new URL(url);
-  for (const [key, value] of Object.entries(presignedUrlPayload.options)) {
+  for (const [key, value] of Object.entries(presignedUrlPayload.params)) {
     urlObj.searchParams.set(key, value);
   }
   urlObj.searchParams.set(

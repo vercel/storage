@@ -4,7 +4,12 @@ import type {
   BlobPresignedCommandOptions,
   PresignedUrlPayload,
 } from './helpers';
-import { addPresignedParams, BlobError, resolveBlobAuth } from './helpers';
+import {
+  addPresignedParams,
+  BlobError,
+  parseStoreIdFromDelegationToken,
+  resolveBlobAuth,
+} from './helpers';
 
 /**
  * Options for the get method.
@@ -279,4 +284,18 @@ export async function get(
       etag: response.headers.get('etag') || '',
     },
   };
+}
+
+export async function buildPresignedGetUrl(
+  pathnameOrUrl: string,
+  presignedUrlPayload: PresignedUrlPayload,
+  options: Pick<GetCommandOptions, 'access'>,
+): Promise<string> {
+  const storeId = parseStoreIdFromDelegationToken(
+    presignedUrlPayload.delegationToken,
+  );
+  const blobUrl = isUrl(pathnameOrUrl)
+    ? pathnameOrUrl
+    : constructBlobUrl(storeId, pathnameOrUrl, options.access);
+  return addPresignedParams(blobUrl, presignedUrlPayload);
 }

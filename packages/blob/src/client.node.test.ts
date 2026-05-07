@@ -1005,10 +1005,10 @@ describe('client uploads', () => {
       const dummyPresignedUrlPayload = {
         delegationToken: 'delegation-token',
         signature: 'signature',
-        options: {} as Record<string, string>,
+        params: {} as Record<string, string>,
       };
       const presignSpy = jest
-        .spyOn(signedTokenModule, 'presignUrl')
+        .spyOn(signedTokenModule, 'presign')
         .mockResolvedValue(dummyPresignedUrlPayload);
 
       const originalEnv = { ...process.env };

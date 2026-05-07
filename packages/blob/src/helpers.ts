@@ -62,7 +62,7 @@ export interface BlobPresignedCommandOptions extends BlobCommandOptions {
 export type BlobAccessType = 'public' | 'private';
 
 // shared interface for put, copy and multipart upload
-export interface CommonCreateBlobOptions extends BlobPresignedCommandOptions {
+export interface CommonCreateBlobOptions extends BlobCommandOptions {
   /**
    * Whether the blob should be publicly accessible.
    * - 'public': The blob will be publicly accessible via its URL.
@@ -519,3 +519,23 @@ export const addPresignedParams = (
   );
   return urlObj.toString();
 };
+
+/**
+ * Checks if the input is a URL (starts with http:// or https://).
+ */
+export function isUrl(urlOrPathname: string): boolean {
+  return (
+    urlOrPathname.startsWith('http://') || urlOrPathname.startsWith('https://')
+  );
+}
+
+/**
+ * Constructs the blob URL from storeId and pathname.
+ */
+export function constructBlobUrl(
+  storeId: string,
+  pathname: string,
+  access: BlobAccessType,
+): string {
+  return `https://${storeId}.${access}.blob.vercel-storage.com/${pathname}`;
+}

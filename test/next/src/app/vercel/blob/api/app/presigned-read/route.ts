@@ -1,4 +1,4 @@
-import { issueSignedToken, presign } from '@vercel/blob';
+import { issueSignedToken, presignUrl } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 
 function parseBlobObjectUrl(
@@ -53,13 +53,14 @@ export async function POST(request: Request): Promise<NextResponse> {
       operations: ['get'],
       validUntil: Date.now() + 60 * 60 * 1000, // 1 hour
     });
-    const presignedUrlPayload = await presign(token, {
+    const { presignedUrl } = await presignUrl(token, {
       operation: 'get',
       pathname: parsed.pathname,
+      access: parsed.access,
       validUntil: Date.now() + 30 * 60 * 1000, // 30 minutes
     });
     return NextResponse.json({
-      presignedUrlPayload,
+      presignedUrl,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

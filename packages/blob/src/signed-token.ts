@@ -1,8 +1,13 @@
 import { requestApi } from './api';
 import {
+  addPresignedParams,
   type BlobCommandOptions,
   BlobError,
+  constructBlobUrl,
+  getApiUrl,
+  isUrl,
   type PresignedUrlPayload,
+  parseStoreIdFromDelegationToken,
 } from './helpers';
 import {
   buildPresignCanonicalQueryEntries,
@@ -28,7 +33,7 @@ export const SIGNED_TOKEN_MAX_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * Result of `issueSignedToken` — the same values returned from `POST /signed-token` on
- * the Blob API. Use with {@link presignUrl} to build a URL that can authorize GET/HEAD,
+ * the Blob API. Use with {@link presignUrl} to obtain `{ presignedUrl }` for GET/HEAD,
  * presigned `PUT`, presigned multipart `POST`
  * without a bearer token when verified by the CDN.
  */
@@ -416,6 +421,62 @@ export async function presign(
     signature,
     params: Object.fromEntries(presignEntries),
   };
+}
+
+function buildPresignedGetUrl(
+  pathnameOrUrl: string,
+  presignedUrlPayload: PresignedUrlPayload,
+  options: {
+    access: 'public' | 'private';
+  },
+): string {
+  const storeId = parseStoreIdFromDelegationToken(
+    presignedUrlPayload.delegationToken,
+  );
+  const blobUrl = isUrl(pathnameOrUrl)
+    ? pathnameOrUrl
+    : constructBlobUrl(storeId, pathnameOrUrl, options.access);
+  return addPresignedParams(blobUrl, presignedUrlPayload);
+}
+
+function buildPresignedPutUrl(
+  pathname: string,
+  presignedUrlPayload: PresignedUrlPayload,
+): string {
+  const params = new URLSearchParams({ pathname });
+  const apiUrl = getApiUrl(`/?${params.toString()}`);
+  return addPresignedParams(apiUrl, presignedUrlPayload);
+}
+
+/** Result of {@link presignUrl}: a ready-to-fetch blob object URL or control-plane upload URL. */
+export type PresignUrlResult = {
+  presignedUrl: string;
+};
+
+/**
+ * Builds a presigned URL for `GET` / `HEAD` (blob object host) or `PUT` / multipart (control API).
+ */
+export async function presignUrl(
+  signedToken: Pick<
+    IssuedSignedToken,
+    'clientSigningToken' | 'delegationToken'
+  >,
+  options: PresignUrlOptions & { access: 'public' | 'private' },
+): Promise<PresignUrlResult> {
+  const payload = await presign(signedToken, options);
+
+  if (options.operation === 'get') {
+    return {
+      presignedUrl: buildPresignedGetUrl(options.pathname, payload, options),
+    };
+  }
+  if (options.operation === 'put') {
+    return {
+      presignedUrl: buildPresignedPutUrl(options.pathname, payload),
+    };
+  }
+
+  throw new BlobError(`Unknown operation`);
 }
 
 /** @internal Exported for presign URL contract tests (must match proxy / api-blob). */

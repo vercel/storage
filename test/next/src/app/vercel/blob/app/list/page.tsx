@@ -1,26 +1,17 @@
 'use client';
 
 import type * as vercelBlob from '@vercel/blob';
-import { get } from '@vercel/blob';
 import { useCallback, useEffect, useState } from 'react';
 import { API_ROOT } from '../../api/app/constants';
 
-type PresignedUrlPayloadWire = {
-  delegationToken: string;
-  signature: string;
-  params: Record<string, string>;
-};
-
 type PresignedReadOk = {
-  pathname: string;
-  access: 'public' | 'private';
-  presignedUrlPayload: PresignedUrlPayloadWire;
+  presignedUrl: string;
 };
 
 type PresignedPreview =
   | {
       pathname: string;
-      /** Blob object URL from `get()` (includes presigned query params). */
+      /** Full blob object URL including presigned query params from `presignUrl`. */
       resolvedBlobUrl: string;
       loading: false;
       fetchError?: string;
@@ -124,44 +115,20 @@ export default function AppList(): React.JSX.Element {
         });
         return;
       }
-      if (!data.presignedUrlPayload) {
+      if (!data.presignedUrl) {
         setPresignedPreview({
           pathname: blob.pathname,
           resolvedBlobUrl: '',
           loading: false,
-          fetchError: 'Missing presignedUrlPayload',
+          fetchError: 'Missing presignedUrl',
           imageError: true,
         });
         return;
-      }
-
-      const access = blob.url.includes('.public.blob.vercel-storage.com')
-        ? 'public'
-        : 'private';
-
-      const getResult = await get(blob.pathname, {
-        access,
-        presignedUrlPayload: data.presignedUrlPayload,
-      });
-
-      if (getResult === null) {
-        setPresignedPreview({
-          pathname: blob.pathname,
-          resolvedBlobUrl: '',
-          loading: false,
-          fetchError: 'Blob not found (get returned null)',
-          imageError: true,
-        });
-        return;
-      }
-
-      if (getResult.statusCode === 200 && getResult.stream) {
-        await getResult.stream.cancel();
       }
 
       setPresignedPreview({
         pathname: blob.pathname,
-        resolvedBlobUrl: getResult.blob.url,
+        resolvedBlobUrl: data.presignedUrl,
         loading: false,
         imageError: false,
       });
@@ -223,7 +190,7 @@ export default function AppList(): React.JSX.Element {
             </button>
           </div>
           {presignedPreview.loading ? (
-            <p>Issuing presigned payload and resolving URL via get()…</p>
+            <p>Issuing presigned read URL…</p>
           ) : (
             <>
               {presignedPreview.fetchError ? (
@@ -232,7 +199,7 @@ export default function AppList(): React.JSX.Element {
               {presignedPreview.resolvedBlobUrl ? (
                 <>
                   <p className="break-all text-sm">
-                    <span className="font-medium">Blob URL (from get): </span>
+                    <span className="font-medium">Presigned read URL: </span>
                     <a
                       className="text-blue-600 underline hover:text-blue-800"
                       href={presignedPreview.resolvedBlobUrl}
@@ -251,7 +218,7 @@ export default function AppList(): React.JSX.Element {
                           new tab.
                         </p>
                       ) : (
-                        // eslint-disable-next-line @next/next/no-img-element -- blob URL from get() (presigned query)
+                        // eslint-disable-next-line @next/next/no-img-element -- presigned blob object URL
                         <img
                           alt={presignedPreview.pathname}
                           className="max-h-96 max-w-full rounded-sm border border-gray-200 object-contain"
@@ -280,7 +247,7 @@ export default function AppList(): React.JSX.Element {
           <p>size</p>
           <p>download</p>
           <p>date</p>
-          <p>presign</p>
+          <p>Presigned GET</p>
           <p>Head</p>
           <p>Delete</p>
         </li>

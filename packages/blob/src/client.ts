@@ -848,7 +848,7 @@ export async function handleUpload({
 /**
  * Delegation fields accepted by {@link issueSignedToken}, i.e.
  * JSON embedded in `vercel-blob-delegation`. Upload-behavior options belong in
- * {@link PresignUrlOptions} for `put` (`urlOpts` from {@link HandleUploadPresignedOptions.getSignedToken}),
+ * {@link PresignUrlOptions} for `put` (`urlOptions` from {@link HandleUploadPresignedOptions.getSignedToken}),
  * not in the delegation body.
  */
 export type HandleUploadPresignedSignedTokenPayload = Pick<
@@ -880,12 +880,8 @@ export interface HandleUploadPresignedIssuanceContext {
 export interface HandleUploadPresignedOptions {
   body: HandleUploadPresignedBody;
   /**
-   * Produce signed-token material (e.g. via `issueSignedToken`) for {@link presignUrl}.
-   * Presigned writes (single `PUT` or multipart `POST /mpu`) use the same `"put"` operation.
-   *
-   * When `onUploadCompleted` is set on {@link handleUploadPresigned}, a resolved `callbackUrl`
-   * (same rules as {@link handleUpload}) and `tokenPayload` from the client are merged into
-   * `urlOpts` before {@link presignUrl} adds signed `vercel-blob-*` query params.
+   * Produce signed token (e.g. via `issueSignedToken`) for {@link presignUrl}.
+   * This must be a token with 'put' priveleges and access to the pathname
    */
   getSignedToken: (
     pathname: string,
@@ -893,7 +889,13 @@ export interface HandleUploadPresignedOptions {
     multipart: boolean,
   ) => Promise<{
     token: IssuedSignedToken;
-    urlOpts: Omit<PresignPutUrlOptions, 'operation' | 'pathname'>;
+    urlOptions?: Omit<
+      PresignPutUrlOptions,
+      'operation' | 'pathname' | 'onUploadCompleted'
+    > & {
+      callbackUrl?: string;
+      tokenPayload?: string | null;
+    };
   }>;
 
   /**
@@ -953,29 +955,40 @@ export async function handleUploadPresigned({
     case 'blob.generate-presigned-url': {
       const { pathname, clientPayload, multipart } = body.payload;
 
-      const { token, urlOpts } = await getSignedToken(
+      const { token, urlOptions = {} } = await getSignedToken(
         pathname,
         clientPayload,
         multipart,
       );
 
-      let callbackUrl: string | undefined;
-      if (onUploadCompleted) {
+      const tokenPayload =
+        urlOptions?.tokenPayload ?? clientPayload ?? undefined;
+      const { callbackUrl: providedCallbackUrl } = urlOptions;
+      let callbackUrl = providedCallbackUrl;
+
+      if (onUploadCompleted && !callbackUrl) {
         callbackUrl = getCallbackUrl(request);
       }
 
-      const urlOptsWithCallback = {
-        ...urlOpts,
+      // If no onUploadCompleted but callbackUrl was provided, warn about it
+      if (!onUploadCompleted && callbackUrl) {
+        console.warn(
+          'callbackUrl was provided but onUploadCompleted is not defined. The callback will not be handled.',
+        );
+      }
+
+      const urlOptionsWithCallback = {
+        ...urlOptions,
         onUploadCompleted: callbackUrl
           ? {
               callbackUrl,
-              tokenPayload: clientPayload,
+              tokenPayload,
             }
           : undefined,
       };
 
       const presignedUrlPayload = await presignUrl(token, {
-        ...urlOptsWithCallback,
+        ...urlOptionsWithCallback,
         operation: 'put',
         pathname,
       });

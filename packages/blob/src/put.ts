@@ -47,8 +47,12 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
       options: optionsInput,
       extraChecks,
       getToken,
-      getPresignedUrlPayload,
     });
+
+    const presignedUrlPayload = await getPresignedUrlPayload?.(
+      pathname,
+      options,
+    );
 
     const headers = createPutHeaders(allowedOptions, options);
 
@@ -72,6 +76,7 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
       },
       {
         ...options,
+        presignedUrlPayload,
         onUploadProgress,
       },
     );

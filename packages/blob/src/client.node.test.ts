@@ -1001,7 +1001,7 @@ describe('client uploads', () => {
       ).rejects.toThrow(/Invalid callback signature/);
     });
 
-    it('resolves callback URL and passes it to presignUrl when onUploadCompleted is set', async () => {
+    it('resolves callback URL and passes it to presign when onUploadCompleted is set', async () => {
       const dummyPresignedUrlPayload = {
         delegationToken: 'delegation-token',
         signature: 'signature',

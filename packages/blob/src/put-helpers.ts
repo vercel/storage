@@ -145,13 +145,11 @@ export async function createPutOptions<
   options,
   extraChecks,
   getToken,
-  getPresignedUrlPayload,
 }: {
   pathname: string;
   options?: TOptions;
   extraChecks?: CreatePutMethodOptions<TOptions>['extraChecks'];
   getToken?: CreatePutMethodOptions<TOptions>['getToken'];
-  getPresignedUrlPayload?: CreatePutMethodOptions<TOptions>['getPresignedUrlPayload'];
 }): Promise<TOptions> {
   if (!pathname) {
     throw new BlobError('pathname is required');
@@ -187,13 +185,6 @@ export async function createPutOptions<
 
   if (getToken) {
     options.token = await getToken(pathname, options);
-  }
-
-  if (getPresignedUrlPayload) {
-    options.presignedUrlPayload = await getPresignedUrlPayload(
-      pathname,
-      options,
-    );
   }
 
   return options;

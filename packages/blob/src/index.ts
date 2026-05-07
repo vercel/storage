@@ -62,9 +62,7 @@ export type { PutCommandOptions };
  *   - onUploadProgress - (Optional) Callback to track upload progress: onUploadProgress(\{loaded: number, total: number, percentage: number\})
  * @returns A promise that resolves to the blob information, including pathname, contentType, contentDisposition, url, and downloadUrl.
  */
-export const put = createPutMethod<
-  Omit<PutCommandOptions, 'presignedUrlPayload'>
->({
+export const put = createPutMethod<PutCommandOptions>({
   allowedOptions: [
     'cacheControlMaxAge',
     'addRandomSuffix',
@@ -87,7 +85,7 @@ export { head } from './head';
 // vercelBlob.get()
 
 export type { GetBlobResult, GetCommandOptions } from './get';
-export { buildPresignedGetUrl, get } from './get';
+export { get } from './get';
 
 // vercelBlob.list()
 
@@ -245,9 +243,10 @@ export type {
   PresignGetUrlOptions,
   PresignPutUrlOptions,
   PresignUrlOptions,
+  PresignUrlResult,
 } from './signed-token';
 export {
   issueSignedToken,
-  presign,
+  presignUrl,
   publicBlobObjectUrl,
 } from './signed-token';

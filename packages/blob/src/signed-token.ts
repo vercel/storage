@@ -2,7 +2,6 @@ import { requestApi } from './api';
 import {
   type BlobCommandOptions,
   BlobError,
-  getApiUrl,
   type PresignedUrlPayload,
 } from './helpers';
 import {
@@ -323,7 +322,7 @@ export type PresignPutUrlOptions = {
 
   onUploadCompleted?: {
     callbackUrl: string;
-    tokenPayload?: string | null;
+    tokenPayload?: string;
   };
 
   allowOverwrite?: boolean;

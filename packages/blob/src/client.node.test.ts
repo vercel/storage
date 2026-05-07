@@ -895,7 +895,7 @@ describe('client uploads', () => {
     };
     const dummyGetSignedTokenResult = {
       token: dummyIssuedSignedToken,
-      urlOpts: {},
+      urlOptions: {},
     };
 
     it('runs onCompleted when Ed25519 x-vercel-signature verifies against BLOB webhook public key', async () => {

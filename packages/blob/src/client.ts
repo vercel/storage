@@ -28,7 +28,7 @@ import {
   type IssuedSignedToken,
   type IssueSignedTokenOptions,
   type PresignPutUrlOptions,
-  presignUrl,
+  presign,
 } from './signed-token';
 
 /**
@@ -880,7 +880,7 @@ export interface HandleUploadPresignedIssuanceContext {
 export interface HandleUploadPresignedOptions {
   body: HandleUploadPresignedBody;
   /**
-   * Produce signed token (e.g. via `issueSignedToken`) for {@link presignUrl}.
+   * Produce signed token (e.g. via `issueSignedToken`) for {@link presign}.
    * This must be a token with 'put' priveleges and access to the pathname
    */
   getSignedToken: (
@@ -987,7 +987,7 @@ export async function handleUploadPresigned({
           : undefined,
       };
 
-      const presignedUrlPayload = await presignUrl(token, {
+      const presignedUrlPayload = await presign(token, {
         ...urlOptionsWithCallback,
         operation: 'put',
         pathname,

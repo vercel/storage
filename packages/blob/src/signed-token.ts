@@ -339,7 +339,7 @@ export type PresignUrlOptions = PresignGetUrlOptions | PresignPutUrlOptions;
 /**
  * Builds the payload for a presigned URL
  */
-export async function presignUrl(
+export async function presign(
   signedToken: Pick<
     IssuedSignedToken,
     'clientSigningToken' | 'delegationToken'
@@ -414,7 +414,7 @@ export async function presignUrl(
   return {
     delegationToken: signedToken.delegationToken,
     signature,
-    options: Object.fromEntries(presignEntries),
+    params: Object.fromEntries(presignEntries),
   };
 }
 

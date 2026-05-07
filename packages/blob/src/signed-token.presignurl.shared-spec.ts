@@ -7,7 +7,7 @@ import {
 import {
   canonicalString,
   type PresignUrlOptions,
-  presignUrl,
+  presign,
 } from './signed-token';
 import {
   createDelegationToken,
@@ -41,7 +41,7 @@ async function expectSignatureMatches(
 ): Promise<void> {
   const spy = jest.spyOn(Date, 'now').mockReturnValue(nowMs);
   try {
-    const payload = await presignUrl(
+    const payload = await presign(
       { delegationToken, clientSigningToken },
       options,
     );
@@ -76,7 +76,7 @@ async function expectSignatureMatches(
       .digest('base64url');
     expect(payload.signature).toBe(expected);
     expect(payload.delegationToken).toBe(delegationToken);
-    expect(payload.options).toEqual(Object.fromEntries(presignEntries));
+    expect(payload.params).toEqual(Object.fromEntries(presignEntries));
   } finally {
     spy.mockRestore();
   }
@@ -106,16 +106,16 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         blobSigningSecret,
       );
       const client = deriveClientSigningToken(blobSigningSecret, delegation);
-      const presignedPut = await presignUrl(
+      const presignedPut = await presign(
         { delegationToken: delegation, clientSigningToken: client },
         { operation: 'put', pathname },
       );
-      const presignedMpu = await presignUrl(
+      const presignedMpu = await presign(
         { delegationToken: delegation, clientSigningToken: client },
         { operation: 'put', pathname },
       );
       expect(presignedPut.signature).toBe(presignedMpu.signature);
-      expect(presignedPut.options).toEqual(presignedMpu.options);
+      expect(presignedPut.params).toEqual(presignedMpu.params);
       await expectSignatureMatches(
         delegation,
         client,
@@ -123,7 +123,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         now,
       );
       expect(
-        presignedPut.options[BLOB_PRESIGN_QUERY_VALID_UNTIL],
+        presignedPut.params[BLOB_PRESIGN_QUERY_VALID_UNTIL],
       ).toBeUndefined();
     });
 
@@ -186,11 +186,11 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         blobSigningSecret,
       );
       const client = deriveClientSigningToken(blobSigningSecret, delegation);
-      const first = await presignUrl(
+      const first = await presign(
         { delegationToken: delegation, clientSigningToken: client },
         { operation: 'get', pathname },
       );
-      const second = await presignUrl(
+      const second = await presign(
         { delegationToken: delegation, clientSigningToken: client },
         { operation: 'get', pathname },
       );
@@ -236,7 +236,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       );
       const client = deriveClientSigningToken(blobSigningSecret, delegation);
       await expect(
-        presignUrl(
+        presign(
           {
             delegationToken: delegation,
             clientSigningToken: client,
@@ -265,7 +265,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       const presignedUntil = fixedNow + 90_000;
       const spy = jest.spyOn(Date, 'now').mockReturnValue(fixedNow);
       try {
-        const payload = await presignUrl(
+        const payload = await presign(
           { delegationToken: delegation, clientSigningToken: client },
           {
             operation: 'get',
@@ -273,7 +273,7 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
             validUntil: presignedUntil,
           },
         );
-        expect(payload.options[BLOB_PRESIGN_QUERY_VALID_UNTIL]).toBe(
+        expect(payload.params[BLOB_PRESIGN_QUERY_VALID_UNTIL]).toBe(
           String(presignedUntil),
         );
         await expectSignatureMatches(
@@ -309,11 +309,11 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       const client = deriveClientSigningToken(blobSigningSecret, delegation);
       const spy = jest.spyOn(Date, 'now').mockReturnValue(fixedNow);
       try {
-        const payload = await presignUrl(
+        const payload = await presign(
           { delegationToken: delegation, clientSigningToken: client },
           { operation: 'get', pathname, validUntil },
         );
-        expect(payload.options[BLOB_PRESIGN_QUERY_VALID_UNTIL]).toBeUndefined();
+        expect(payload.params[BLOB_PRESIGN_QUERY_VALID_UNTIL]).toBeUndefined();
         await expectSignatureMatches(
           delegation,
           client,

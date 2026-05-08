@@ -1,6 +1,7 @@
 import { MAXIMUM_PATHNAME_LENGTH, requestApi } from './api';
 import type { CommonCreateBlobOptions } from './helpers';
 import { BlobError, disallowedPathnameCharacters } from './helpers';
+import { createPutHeaders } from './put-helpers';
 
 export type CopyCommandOptions = CommonCreateBlobOptions;
 
@@ -22,7 +23,7 @@ export interface CopyBlobResult {
  *
  * @param fromUrlOrPathname - The blob URL (or pathname) to copy. You can only copy blobs that are in the store, that your 'BLOB_READ_WRITE_TOKEN' has access to.
  * @param toPathname - The pathname to copy the blob to. This includes the filename.
- * @param options - Additional options. The copy method will not preserve any metadata configuration (e.g.: 'cacheControlMaxAge') of the source blob. If you want to copy the metadata, you need to define it here again.
+ * @param options - Additional options. The copy method will not preserve any metadata configuration (e.g.: 'cacheControlMaxAge' or 'deleteAfter') of the source blob. If you want to copy the metadata, you need to define it here again.
  */
 export async function copy(
   fromUrlOrPathname: string,
@@ -53,30 +54,17 @@ export async function copy(
     }
   }
 
-  const headers: Record<string, string> = {};
-
-  // access is always required, so always add it to headers
-  headers['x-vercel-blob-access'] = options.access;
-
-  if (options.addRandomSuffix !== undefined) {
-    headers['x-add-random-suffix'] = options.addRandomSuffix ? '1' : '0';
-  }
-
-  if (options.allowOverwrite !== undefined) {
-    headers['x-allow-overwrite'] = options.allowOverwrite ? '1' : '0';
-  }
-
-  if (options.contentType) {
-    headers['x-content-type'] = options.contentType;
-  }
-
-  if (options.cacheControlMaxAge !== undefined) {
-    headers['x-cache-control-max-age'] = options.cacheControlMaxAge.toString();
-  }
-
-  if (options.ifMatch) {
-    headers['x-if-match'] = options.ifMatch;
-  }
+  const headers = createPutHeaders(
+    [
+      'cacheControlMaxAge',
+      'addRandomSuffix',
+      'allowOverwrite',
+      'contentType',
+      'ifMatch',
+      'deleteAfter',
+    ],
+    options,
+  );
 
   const params = new URLSearchParams({
     pathname: toPathname,

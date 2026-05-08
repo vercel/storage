@@ -30,6 +30,8 @@ export interface BlobCommandOptions {
  */
 export type BlobAccessType = 'public' | 'private';
 
+export type BlobDeleteAfter = '1 day' | '7 days' | '30 days';
+
 // shared interface for put, copy and multipart upload
 export interface CommonCreateBlobOptions extends BlobCommandOptions {
   /**
@@ -72,6 +74,10 @@ export interface CommonCreateBlobOptions extends BlobCommandOptions {
    * The maximum allowed value is 5TB.
    */
   maximumSizeInBytes?: number;
+  /**
+   * Automatically delete the blob after the configured duration.
+   */
+  deleteAfter?: BlobDeleteAfter;
 }
 
 /**
@@ -146,6 +152,24 @@ export class BlobError extends Error {
   constructor(message: string) {
     super(`Vercel Blob: ${message}`);
   }
+}
+
+const supportedDeleteAfterValues = ['1 day', '7 days', '30 days'];
+
+export function serializeBlobDeleteAfter(
+  deleteAfter: BlobDeleteAfter | undefined,
+): string | undefined {
+  if (!deleteAfter) {
+    return undefined;
+  }
+
+  if (!supportedDeleteAfterValues.includes(deleteAfter)) {
+    throw new BlobError(
+      '`deleteAfter` must be one of "1 day", "7 days", or "30 days".',
+    );
+  }
+
+  return deleteAfter;
 }
 
 /**

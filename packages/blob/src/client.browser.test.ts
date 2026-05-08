@@ -604,7 +604,7 @@ describe('client', () => {
         }),
       ).rejects.toThrow(
         new Error(
-          "Vercel Blob: client/`upload` doesn't allow `addRandomSuffix`, `cacheControlMaxAge`, `allowOverwrite` or `ifMatch`. Configure these options at the server side when generating client tokens.",
+          "Vercel Blob: client/`upload` doesn't allow `addRandomSuffix`, `cacheControlMaxAge`, `allowOverwrite`, `ifMatch` or `deleteAfter`. Configure these options at the server side when generating client tokens.",
         ),
       );
     });

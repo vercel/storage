@@ -25,6 +25,7 @@ export {
 } from './api';
 // expose generic BlobError and download url util
 export {
+  type BlobDeleteAfter,
   BlobError,
   getDownloadUrl,
   type OnUploadProgressCallback,
@@ -50,6 +51,7 @@ export type { PutCommandOptions };
  *   - allowOverwrite - (Optional) A boolean to allow overwriting blobs. By default an error will be thrown if you try to overwrite a blob by using the same pathname for multiple blobs.
  *   - contentType - (Optional) A string indicating the media type. By default, it's extracted from the pathname's extension.
  *   - cacheControlMaxAge - (Optional) A number in seconds to configure how long Blobs are cached. Defaults to one month. Cannot be set to a value lower than 1 minute.
+ *   - deleteAfter - (Optional) Automatically delete the blob after "1 day", "7 days", or "30 days".
  *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel.
  *   - multipart - (Optional) Whether to use multipart upload for large files. It will split the file into multiple parts, upload them in parallel and retry failed parts.
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
@@ -62,6 +64,7 @@ export const put = createPutMethod<PutCommandOptions>({
     'addRandomSuffix',
     'allowOverwrite',
     'contentType',
+    'deleteAfter',
   ],
 });
 
@@ -104,6 +107,7 @@ export { copy } from './copy';
  *   - allowOverwrite - (Optional) A boolean to allow overwriting blobs. By default an error will be thrown if you try to overwrite a blob by using the same pathname for multiple blobs.
  *   - contentType - (Optional) The media type for the file. If not specified, it's derived from the file extension. Falls back to application/octet-stream when no extension exists or can't be matched.
  *   - cacheControlMaxAge - (Optional) A number in seconds to configure the edge and browser cache. Defaults to one year.
+ *   - deleteAfter - (Optional) Automatically delete the blob after "1 day", "7 days", or "30 days".
  *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel.
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
  * @returns A promise that resolves to an object containing:
@@ -117,6 +121,7 @@ export const createMultipartUpload =
       'addRandomSuffix',
       'allowOverwrite',
       'contentType',
+      'deleteAfter',
     ],
   });
 
@@ -131,6 +136,7 @@ export const createMultipartUpload =
  *   - allowOverwrite - (Optional) A boolean to allow overwriting blobs. By default an error will be thrown if you try to overwrite a blob by using the same pathname for multiple blobs.
  *   - contentType - (Optional) The media type for the file. If not specified, it's derived from the file extension. Falls back to application/octet-stream when no extension exists or can't be matched.
  *   - cacheControlMaxAge - (Optional) A number in seconds to configure the edge and browser cache. Defaults to one year.
+ *   - deleteAfter - (Optional) Automatically delete the blob after "1 day", "7 days", or "30 days".
  *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel.
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
  * @returns A promise that resolves to an uploader object with the following properties and methods:
@@ -146,6 +152,7 @@ export const createMultipartUploader =
       'addRandomSuffix',
       'allowOverwrite',
       'contentType',
+      'deleteAfter',
     ],
   });
 
@@ -167,6 +174,7 @@ export type { UploadPartCommandOptions };
  *   - addRandomSuffix - (Optional) A boolean specifying whether to add a random suffix to the pathname.
  *   - allowOverwrite - (Optional) A boolean to allow overwriting blobs.
  *   - cacheControlMaxAge - (Optional) A number in seconds to configure how long Blobs are cached.
+ *   - deleteAfter - (Optional) Automatically delete the blob after "1 day", "7 days", or "30 days".
  *   - abortSignal - (Optional) AbortSignal to cancel the running request.
  *   - onUploadProgress - (Optional) Callback to track upload progress: onUploadProgress(\{loaded: number, total: number, percentage: number\})
  * @returns A promise that resolves to the uploaded part information containing etag and partNumber, which will be needed for the completeMultipartUpload call.
@@ -177,6 +185,7 @@ export const uploadPart = createUploadPartMethod<UploadPartCommandOptions>({
     'addRandomSuffix',
     'allowOverwrite',
     'contentType',
+    'deleteAfter',
   ],
 });
 
@@ -197,6 +206,7 @@ export type { CompleteMultipartUploadCommandOptions };
  *   - addRandomSuffix - (Optional) A boolean specifying whether to add a random suffix to the pathname. It defaults to true.
  *   - allowOverwrite - (Optional) A boolean to allow overwriting blobs.
  *   - cacheControlMaxAge - (Optional) A number in seconds to configure the edge and browser cache. Defaults to one year.
+ *   - deleteAfter - (Optional) Automatically delete the blob after "1 day", "7 days", or "30 days".
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
  * @returns A promise that resolves to the finalized blob information, including pathname, contentType, contentDisposition, url, and downloadUrl.
  */
@@ -207,6 +217,7 @@ export const completeMultipartUpload =
       'addRandomSuffix',
       'allowOverwrite',
       'contentType',
+      'deleteAfter',
     ],
   });
 

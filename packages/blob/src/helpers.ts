@@ -23,6 +23,8 @@ export interface BlobCommandOptions {
   abortSignal?: AbortSignal;
 }
 
+export type BlobDeleteAfter = '1 day' | '7 days' | '30 days';
+
 // shared interface for put, copy and multipart upload
 export interface CommonCreateBlobOptions extends BlobCommandOptions {
   /**
@@ -49,6 +51,10 @@ export interface CommonCreateBlobOptions extends BlobCommandOptions {
    * @defaultvalue 30 * 24 * 60 * 60 (1 Month)
    */
   cacheControlMaxAge?: number;
+  /**
+   * Automatically delete the blob after the configured duration.
+   */
+  deleteAfter?: BlobDeleteAfter;
 }
 
 /**
@@ -123,6 +129,24 @@ export class BlobError extends Error {
   constructor(message: string) {
     super(`Vercel Blob: ${message}`);
   }
+}
+
+const supportedDeleteAfterValues = ['1 day', '7 days', '30 days'];
+
+export function serializeBlobDeleteAfter(
+  deleteAfter: BlobDeleteAfter | undefined,
+): string | undefined {
+  if (!deleteAfter) {
+    return undefined;
+  }
+
+  if (!supportedDeleteAfterValues.includes(deleteAfter)) {
+    throw new BlobError(
+      '`deleteAfter` must be one of "1 day", "7 days", or "30 days".',
+    );
+  }
+
+  return deleteAfter;
 }
 
 /**

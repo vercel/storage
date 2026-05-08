@@ -62,6 +62,20 @@ describe('client uploads', () => {
         validUntil: 1672531230000,
       });
     });
+
+    it('includes deleteAfter in the client token payload', async () => {
+      const uploadToken = await generateClientTokenFromReadWriteToken({
+        pathname: 'foo.txt',
+        deleteAfter: '1 day',
+        token: 'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678',
+      });
+
+      expect(getPayloadFromClientToken(uploadToken)).toEqual({
+        pathname: 'foo.txt',
+        deleteAfter: '1 day',
+        validUntil: 1672531230000,
+      });
+    });
   });
 
   describe('handleUpload', () => {
@@ -246,6 +260,40 @@ describe('client uploads', () => {
           await Promise.resolve();
         },
       });
+    });
+
+    it('allows deleteAfter from onBeforeGenerateToken', async () => {
+      const token =
+        'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
+      const jsonResponse = await handleUpload({
+        token,
+        request: {
+          headers: { 'x-vercel-signature': '123' },
+        } as unknown as IncomingMessage,
+        body: {
+          type: 'blob.generate-client-token',
+          payload: {
+            pathname: 'newfile.txt',
+            clientPayload: null,
+            multipart: false,
+          },
+        },
+        onBeforeGenerateToken: async () => {
+          return {
+            deleteAfter: '7 days',
+          };
+        },
+      });
+
+      expect(jsonResponse.type).toEqual('blob.generate-client-token');
+
+      const decodedPayload = getPayloadFromClientToken(
+        (jsonResponse.type === 'blob.generate-client-token' &&
+          jsonResponse.clientToken) ||
+          '',
+      );
+
+      expect(decodedPayload.deleteAfter).toEqual('7 days');
     });
 
     it('ignores client callbackUrl when server provides one', async () => {

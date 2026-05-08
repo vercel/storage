@@ -608,6 +608,40 @@ describe('blob client', () => {
       expect(headers['x-cache-control-max-age']).toEqual('60');
     });
 
+    it('sets the correct header when using deleteAfter', async () => {
+      let headers: Record<string, string> = {};
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'PUT',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedFileMetaPut;
+        });
+
+      await put('foo.txt', 'Test Body', {
+        access: 'public',
+        deleteAfter: '7 days',
+      });
+      expect(headers['x-vercel-blob-deletion-lifecycle']).toEqual('7 days');
+    });
+
+    it('throws when using an unsupported deleteAfter value', async () => {
+      await expect(
+        put('foo.txt', 'Test Body', {
+          access: 'public',
+          // @ts-expect-error: Runtime check for DX
+          deleteAfter: '2 days',
+        }),
+      ).rejects.toThrow(
+        new Error(
+          'Vercel Blob: `deleteAfter` must be one of "1 day", "7 days", or "30 days".',
+        ),
+      );
+    });
+
     it('throws when filepath is too long', async () => {
       await expect(
         put('a'.repeat(951), 'Test Body', {
@@ -757,6 +791,27 @@ describe('blob client', () => {
   });
 
   describe('copy', () => {
+    it('sets the correct header when using deleteAfter', async () => {
+      let headers: Record<string, string> = {};
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'PUT',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedFileMeta;
+        });
+
+      await copy('source.txt', 'destination.txt', {
+        access: 'public',
+        deleteAfter: '30 days',
+      });
+
+      expect(headers['x-vercel-blob-deletion-lifecycle']).toEqual('30 days');
+    });
+
     it('throws when filepath is too long', async () => {
       await expect(
         copy('source', 'a'.repeat(951), {

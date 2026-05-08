@@ -6,13 +6,18 @@ import type { File } from 'undici';
 import { MAXIMUM_PATHNAME_LENGTH } from './api';
 import type { ClientCommonCreateBlobOptions } from './client';
 import type { CommonCreateBlobOptions } from './helpers';
-import { BlobError, disallowedPathnameCharacters } from './helpers';
+import {
+  BlobError,
+  disallowedPathnameCharacters,
+  serializeBlobDeleteAfter,
+} from './helpers';
 
 export const putOptionHeaderMap = {
   cacheControlMaxAge: 'x-cache-control-max-age',
   addRandomSuffix: 'x-add-random-suffix',
   allowOverwrite: 'x-allow-overwrite',
   contentType: 'x-content-type',
+  deleteAfter: 'x-vercel-blob-deletion-lifecycle',
 };
 
 /**
@@ -99,6 +104,13 @@ export function createPutHeaders<TOptions extends CommonPutCommandOptions>(
   ) {
     headers[putOptionHeaderMap.cacheControlMaxAge] =
       options.cacheControlMaxAge.toString();
+  }
+
+  if (allowedOptions.includes('deleteAfter')) {
+    const deleteAfter = serializeBlobDeleteAfter(options.deleteAfter);
+    if (deleteAfter) {
+      headers[putOptionHeaderMap.deleteAfter] = deleteAfter;
+    }
   }
 
   return headers;

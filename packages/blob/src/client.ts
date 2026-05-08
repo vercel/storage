@@ -4,8 +4,16 @@ import * as crypto from 'crypto';
 // the `undici` module will be replaced with https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
 // for browser contexts. See ./undici-browser.js and ./package.json
 import { fetch } from 'undici';
-import type { BlobCommandOptions, WithUploadProgress } from './helpers';
-import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
+import type {
+  BlobCommandOptions,
+  BlobDeleteAfter,
+  WithUploadProgress,
+} from './helpers';
+import {
+  BlobError,
+  getTokenFromOptionsOrEnv,
+  serializeBlobDeleteAfter,
+} from './helpers';
 import type { CommonCompleteMultipartUploadOptions } from './multipart/complete';
 import { createCompleteMultipartUploadMethod } from './multipart/complete';
 import { createCreateMultipartUploadMethod } from './multipart/create';
@@ -14,6 +22,8 @@ import type { CommonMultipartUploadOptions } from './multipart/upload';
 import { createUploadPartMethod } from './multipart/upload';
 import { createPutMethod } from './put';
 import type { PutBlobResult } from './put-helpers';
+
+export type { BlobDeleteAfter } from './helpers';
 
 /**
  * Interface for put, upload and multipart upload operations.
@@ -76,10 +86,12 @@ function createPutExtraChecks<
       // @ts-expect-error -- Runtime check for DX.
       options.allowOverwrite !== undefined ||
       // @ts-expect-error -- Runtime check for DX.
-      options.cacheControlMaxAge !== undefined
+      options.cacheControlMaxAge !== undefined ||
+      // @ts-expect-error -- Runtime check for DX.
+      options.deleteAfter !== undefined
     ) {
       throw new BlobError(
-        `${methodName} doesn't allow \`addRandomSuffix\`, \`cacheControlMaxAge\` or \`allowOverwrite\`. Configure these options at the server side when generating client tokens.`,
+        `${methodName} doesn't allow \`addRandomSuffix\`, \`cacheControlMaxAge\`, \`allowOverwrite\` or \`deleteAfter\`. Configure these options at the server side when generating client tokens.`,
       );
     }
   };
@@ -281,10 +293,12 @@ export const upload = createPutMethod<UploadOptions>({
       // @ts-expect-error -- Runtime check for DX.
       options.createPutExtraChecks !== undefined ||
       // @ts-expect-error -- Runtime check for DX.
-      options.cacheControlMaxAge !== undefined
+      options.cacheControlMaxAge !== undefined ||
+      // @ts-expect-error -- Runtime check for DX.
+      options.deleteAfter !== undefined
     ) {
       throw new BlobError(
-        "client/`upload` doesn't allow `addRandomSuffix`, `cacheControlMaxAge` or `allowOverwrite`. Configure these options at the server side when generating client tokens.",
+        "client/`upload` doesn't allow `addRandomSuffix`, `cacheControlMaxAge`, `allowOverwrite` or `deleteAfter`. Configure these options at the server side when generating client tokens.",
       );
     }
   },
@@ -524,6 +538,7 @@ export interface HandleUploadOptions {
       | 'addRandomSuffix'
       | 'allowOverwrite'
       | 'cacheControlMaxAge'
+      | 'deleteAfter'
     > & { tokenPayload?: string | null; callbackUrl?: string }
   >;
 
@@ -732,6 +747,7 @@ function isAbsoluteUrl(url: string): boolean {
  *   - addRandomSuffix - (Optional) Whether to add a random suffix to the filename. Defaults to false.
  *   - allowOverwrite - (Optional) Whether to allow overwriting existing blobs. Defaults to false.
  *   - cacheControlMaxAge - (Optional) Number of seconds to configure cache duration. Defaults to one month.
+ *   - deleteAfter - (Optional) Automatically delete the blob after "1 day", "7 days", or "30 days".
  * @returns A promise that resolves to the generated client token string which can be used in client-side upload operations.
  */
 export async function generateClientTokenFromReadWriteToken({
@@ -755,6 +771,8 @@ export async function generateClientTokenFromReadWriteToken({
       token ? 'Invalid `token` parameter' : 'Invalid `BLOB_READ_WRITE_TOKEN`',
     );
   }
+
+  serializeBlobDeleteAfter(argsWithoutToken.deleteAfter);
 
   const payload = Buffer.from(
     JSON.stringify({
@@ -824,6 +842,11 @@ export interface GenerateClientTokenOptions extends BlobCommandOptions {
    * @defaultvalue 30 * 24 * 60 * 60 (1 Month)
    */
   cacheControlMaxAge?: number;
+
+  /**
+   * Automatically delete the blob after the configured duration.
+   */
+  deleteAfter?: BlobDeleteAfter;
 }
 
 /**

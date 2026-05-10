@@ -458,6 +458,13 @@ describe('blob client', () => {
       contentDisposition: mockedFileMeta.contentDisposition,
       etag: mockedFileMeta.etag,
     };
+    const mockedProgressFileMetaPut = {
+      ...mockedFileMetaPut,
+      url: `${BLOB_STORE_BASE_URL}/progress-id.txt`,
+      downloadUrl: `${BLOB_STORE_BASE_URL}/progress-id.txt?download=1`,
+      pathname: 'progress.txt',
+      contentDisposition: 'attachment; filename="progress.txt"',
+    };
 
     it('has an onUploadProgress option', async () => {
       mockClient
@@ -466,7 +473,7 @@ describe('blob client', () => {
           method: 'PUT',
         })
         .reply(200, () => {
-          return mockedFileMetaPut;
+          return mockedProgressFileMetaPut;
         });
 
       const onUploadProgress = jest.fn();
@@ -478,12 +485,12 @@ describe('blob client', () => {
         }),
       ).resolves.toMatchInlineSnapshot(`
         {
-          "contentDisposition": "attachment; filename="foo.txt"",
+          "contentDisposition": "attachment; filename="progress.txt"",
           "contentType": "text/plain",
-          "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo-id.txt?download=1",
+          "downloadUrl": "https://storeId.public.blob.vercel-storage.com/progress-id.txt?download=1",
           "etag": ""abc123"",
-          "pathname": "foo.txt",
-          "url": "https://storeId.public.blob.vercel-storage.com/foo-id.txt",
+          "pathname": "progress.txt",
+          "url": "https://storeId.public.blob.vercel-storage.com/progress-id.txt",
         }
       `);
       expect(onUploadProgress).toHaveBeenCalledTimes(1);
@@ -709,6 +716,64 @@ describe('blob client', () => {
         addRandomSuffix: false,
       });
       expect(headers['x-add-random-suffix']).toEqual('0');
+    });
+
+    it('normalizes contentDisposition to use original filename when API adds random suffix', async () => {
+      mockClient.intercept({ path: () => true, method: 'PUT' }).reply(200, {
+        url: `${BLOB_STORE_BASE_URL}/foo-abc123.txt`,
+        downloadUrl: `${BLOB_STORE_BASE_URL}/foo-abc123.txt?download=1`,
+        pathname: 'foo-abc123.txt',
+        contentType: 'text/plain',
+        contentDisposition: 'attachment; filename="foo-abc123.txt"',
+        etag: '"abc123"',
+      });
+
+      const result = await put('foo.txt', 'Test Body', {
+        access: 'public',
+        addRandomSuffix: true,
+      });
+
+      expect(result.contentDisposition).toBe('attachment; filename="foo.txt"');
+      expect(result.pathname).toBe('foo-abc123.txt');
+    });
+
+    it('does not modify contentDisposition when pathname is unchanged', async () => {
+      mockClient
+        .intercept({ path: () => true, method: 'PUT' })
+        .reply(200, mockedFileMetaPut);
+
+      const result = await put('foo.txt', 'Test Body', {
+        access: 'public',
+        addRandomSuffix: false,
+      });
+
+      expect(result.contentDisposition).toBe('attachment; filename="foo.txt"');
+    });
+
+    it('normalizes contentDisposition for multipart put when completion returns a suffixed pathname', async () => {
+      mockClient.intercept({ path: () => true, method: 'POST' }).reply(200, {
+        uploadId: 'upload-123',
+        key: 'foo.txt',
+      });
+      mockClient.intercept({ path: () => true, method: 'POST' }).reply(200, {
+        etag: 'etag-123',
+      });
+      mockClient.intercept({ path: () => true, method: 'POST' }).reply(200, {
+        url: `${BLOB_STORE_BASE_URL}/foo-abc123.txt`,
+        downloadUrl: `${BLOB_STORE_BASE_URL}/foo-abc123.txt?download=1`,
+        pathname: 'foo-abc123.txt',
+        contentType: 'text/plain',
+        contentDisposition: 'attachment; filename="foo-abc123.txt"',
+      });
+
+      const result = await put('foo.txt', 'Test Body', {
+        access: 'public',
+        multipart: true,
+        addRandomSuffix: true,
+      });
+
+      expect(result.contentDisposition).toBe('attachment; filename="foo.txt"');
+      expect(result.pathname).toBe('foo-abc123.txt');
     });
 
     it('sets the correct header when using the cacheControlMaxAge option', async () => {
@@ -1148,6 +1213,29 @@ describe('blob client', () => {
         },
       );
       expect(headers['x-vercel-blob-access']).toEqual('public');
+    });
+
+    it('normalizes contentDisposition when multipart completion returns a suffixed pathname', async () => {
+      mockClient.intercept({ path: () => true, method: 'POST' }).reply(200, {
+        url: `${BLOB_STORE_BASE_URL}/foo-abc123.txt`,
+        downloadUrl: `${BLOB_STORE_BASE_URL}/foo-abc123.txt?download=1`,
+        pathname: 'foo-abc123.txt',
+        contentType: 'text/plain',
+        contentDisposition: 'attachment; filename="foo-abc123.txt"',
+      });
+
+      const result = await completeMultipartUpload(
+        'foo.txt',
+        [{ partNumber: 1, etag: 'etag-123' }],
+        {
+          access: 'public',
+          key: 'foo.txt',
+          uploadId: 'upload-123',
+        },
+      );
+
+      expect(result.contentDisposition).toBe('attachment; filename="foo.txt"');
+      expect(result.pathname).toBe('foo-abc123.txt');
     });
 
     it('should throw when using an invalid access value', async () => {

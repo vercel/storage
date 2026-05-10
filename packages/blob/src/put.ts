@@ -9,7 +9,11 @@ import type {
   PutBlobResult,
   PutBody,
 } from './put-helpers';
-import { createPutHeaders, createPutOptions } from './put-helpers';
+import {
+  createPutHeaders,
+  createPutOptions,
+  normalizeContentDisposition,
+} from './put-helpers';
 
 export interface PutCommandOptions
   extends CommonCreateBlobOptions,
@@ -51,7 +55,20 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
     const headers = createPutHeaders(allowedOptions, options);
 
     if (options.multipart === true) {
-      return uncontrolledMultipartUpload(pathname, body, headers, options);
+      const result = await uncontrolledMultipartUpload(
+        pathname,
+        body,
+        headers,
+        options,
+      );
+      return {
+        ...result,
+        contentDisposition: normalizeContentDisposition(
+          result.contentDisposition,
+          pathname,
+          result.pathname,
+        ),
+      };
     }
 
     const onUploadProgress = options.onUploadProgress
@@ -79,7 +96,11 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
       downloadUrl: response.downloadUrl,
       pathname: response.pathname,
       contentType: response.contentType,
-      contentDisposition: response.contentDisposition,
+      contentDisposition: normalizeContentDisposition(
+        response.contentDisposition,
+        pathname,
+        response.pathname,
+      ),
       etag: response.etag,
     };
   };

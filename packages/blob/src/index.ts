@@ -240,6 +240,7 @@ export type {
   DelegationOperation,
   IssuedSignedToken,
   IssueSignedTokenOptions,
+  PresignDeleteUrlOptions,
   PresignGetUrlOptions,
   PresignPutUrlOptions,
   PresignUrlOptions,

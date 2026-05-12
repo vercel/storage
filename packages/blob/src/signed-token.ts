@@ -16,9 +16,10 @@ import {
 
 /**
  * Operations that may be encoded in a delegation token (e.g. read: `get`,
- * write: `put` for presigned control-plane writes — both single-object `PUT`
+ * write: `put` for presigned control-plane writes — both single-object `PUT`,
+ * destructive: `delete` for presigned control-plane `DELETE /?pathname=…`).
  */
-export type DelegationOperation = 'get' | 'put';
+export type DelegationOperation = 'get' | 'put' | 'delete';
 
 /** Excluded from the string-to-sign; added after signing. @public for CDN / tooling alignment */
 export const BLOB_PRESIGN_QUERY_DELEGATION = 'vercel-blob-delegation' as const;
@@ -339,7 +340,27 @@ export type PresignPutUrlOptions = {
   ifMatch?: string;
 };
 
-export type PresignUrlOptions = PresignGetUrlOptions | PresignPutUrlOptions;
+/**
+ * Presign URL options for {@link presignUrl} when `operation` is `delete`.
+ * Targets the control-plane `DELETE /?pathname=…` route — mirrors the PUT
+ * presign URL shape, signed with `operation=delete` so the HTTP method
+ * differentiates without changing the URL path. Only `validUntil` and
+ * `ifMatch` are honored; upload-only fields are rejected at the type level.
+ */
+export type PresignDeleteUrlOptions = {
+  operation: 'delete';
+
+  pathname: string;
+
+  validUntil?: number;
+
+  ifMatch?: string;
+};
+
+export type PresignUrlOptions =
+  | PresignGetUrlOptions
+  | PresignPutUrlOptions
+  | PresignDeleteUrlOptions;
 
 /**
  * Builds the payload for a presigned URL
@@ -384,6 +405,11 @@ export async function presign(
   if (options.operation === 'put' && !scope.operations?.includes('put')) {
     throw new BlobError(
       'The delegation token is not valid for presigned write requests. Include `"put"` in `operations` when calling `issueSignedToken`.',
+    );
+  }
+  if (options.operation === 'delete' && !scope.operations?.includes('delete')) {
+    throw new BlobError(
+      'The delegation token is not valid for presigned delete requests. Include `"delete"` in `operations` when calling `issueSignedToken`.',
     );
   }
 
@@ -448,13 +474,24 @@ function buildPresignedPutUrl(
   return addPresignedParams(apiUrl, presignedUrlPayload);
 }
 
+function buildPresignedDeleteUrl(
+  pathname: string,
+  presignedUrlPayload: PresignedUrlPayload,
+): string {
+  const params = new URLSearchParams({ pathname });
+  const apiUrl = getApiUrl(`/?${params.toString()}`);
+  return addPresignedParams(apiUrl, presignedUrlPayload);
+}
+
 /** Result of {@link presignUrl}: a ready-to-fetch blob object URL or control-plane upload URL. */
 export type PresignUrlResult = {
   presignedUrl: string;
 };
 
 /**
- * Builds a presigned URL for `GET` / `HEAD` (blob object host) or `PUT` / multipart (control API).
+ * Builds a presigned URL for `GET` / `HEAD` (blob object host), `PUT` / multipart (control API),
+ * or `DELETE` (`DELETE /?pathname=…` on the control API — mirrors the PUT URL shape; the
+ * HTTP method discriminates, and the canonical signing string includes `operation=delete`).
  */
 export async function presignUrl(
   signedToken: Pick<
@@ -473,6 +510,11 @@ export async function presignUrl(
   if (options.operation === 'put') {
     return {
       presignedUrl: buildPresignedPutUrl(options.pathname, payload),
+    };
+  }
+  if (options.operation === 'delete') {
+    return {
+      presignedUrl: buildPresignedDeleteUrl(options.pathname, payload),
     };
   }
 

@@ -13,8 +13,45 @@ export default function AppPresignedUpload(): React.JSX.Element {
   const [presignedGetError, setPresignedGetError] = useState<string | null>(
     null,
   );
+  const [deleteStatus, setDeleteStatus] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [progressEvents, setProgressEvents] = useState<string[]>([]);
   const searchParams = useSearchParams();
+
+  const handlePresignedDelete = async (blobUrl: string): Promise<void> => {
+    setDeleteStatus(null);
+    setDeleteError(null);
+    try {
+      const issueRes = await fetch(`${API_ROOT}/presigned-delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: blobUrl }),
+      });
+      const issueJson = (await issueRes.json()) as {
+        presignedUrl?: string;
+        error?: string;
+      };
+      if (!issueRes.ok || !issueJson.presignedUrl) {
+        setDeleteError(
+          issueJson.error ?? issueRes.statusText ?? 'presigned-delete failed',
+        );
+        return;
+      }
+      const delRes = await fetch(issueJson.presignedUrl, {
+        method: 'DELETE',
+      });
+      if (!delRes.ok) {
+        const text = await delRes.text();
+        setDeleteError(`HTTP ${delRes.status}: ${text || delRes.statusText}`);
+        return;
+      }
+      setDeleteStatus('Deleted via presigned URL');
+      setBlob(null);
+      setPresignedGetUrl(null);
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : String(err));
+    }
+  };
 
   return (
     <>
@@ -154,7 +191,34 @@ export default function AppPresignedUpload(): React.JSX.Element {
               <source src={presignedGetUrl ?? blob.url} type="video/mp4" />
             </video>
           ) : null}
+          <button
+            className="mt-2 bg-red-300 hover:bg-red-400 text-gray-800 font-bold py-2 px-4 rounded-sm inline-flex items-center"
+            data-testid="presigned-delete-button"
+            onClick={() => {
+              void handlePresignedDelete(blob.url);
+            }}
+            type="button"
+          >
+            Delete (presigned)
+          </button>
         </div>
+      ) : null}
+
+      {deleteStatus ? (
+        <p
+          className="mt-2 text-sm text-green-700"
+          data-testid="presigned-delete-status"
+        >
+          {deleteStatus}
+        </p>
+      ) : null}
+      {deleteError ? (
+        <p
+          className="mt-2 text-sm text-red-700"
+          data-testid="presigned-delete-error"
+        >
+          Presigned delete failed: {deleteError}
+        </p>
       ) : null}
     </>
   );

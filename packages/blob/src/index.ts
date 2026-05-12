@@ -242,6 +242,7 @@ export type {
   IssueSignedTokenOptions,
   PresignDeleteUrlOptions,
   PresignGetUrlOptions,
+  PresignHeadUrlOptions,
   PresignPutUrlOptions,
   PresignUrlOptions,
   PresignUrlResult,

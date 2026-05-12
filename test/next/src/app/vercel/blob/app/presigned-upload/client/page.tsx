@@ -15,8 +15,45 @@ export default function AppPresignedUpload(): React.JSX.Element {
   );
   const [deleteStatus, setDeleteStatus] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [headStatus, setHeadStatus] = useState<string | null>(null);
+  const [headError, setHeadError] = useState<string | null>(null);
   const [progressEvents, setProgressEvents] = useState<string[]>([]);
   const searchParams = useSearchParams();
+
+  const handlePresignedHead = async (blobUrl: string): Promise<void> => {
+    setHeadStatus(null);
+    setHeadError(null);
+    try {
+      const issueRes = await fetch(`${API_ROOT}/presigned-head`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: blobUrl }),
+      });
+      const issueJson = (await issueRes.json()) as {
+        presignedUrl?: string;
+        error?: string;
+      };
+      if (!issueRes.ok || !issueJson.presignedUrl) {
+        setHeadError(
+          issueJson.error ?? issueRes.statusText ?? 'presigned-head failed',
+        );
+        return;
+      }
+      const headRes = await fetch(issueJson.presignedUrl, { method: 'HEAD' });
+      if (!headRes.ok) {
+        setHeadError(`HTTP ${headRes.status}: ${headRes.statusText}`);
+        return;
+      }
+      const summary = [
+        `status=${headRes.status}`,
+        `content-type=${headRes.headers.get('content-type') ?? '-'}`,
+        `content-length=${headRes.headers.get('content-length') ?? '-'}`,
+      ].join(' • ');
+      setHeadStatus(summary);
+    } catch (err) {
+      setHeadError(err instanceof Error ? err.message : String(err));
+    }
+  };
 
   const handlePresignedDelete = async (blobUrl: string): Promise<void> => {
     setDeleteStatus(null);
@@ -192,6 +229,16 @@ export default function AppPresignedUpload(): React.JSX.Element {
             </video>
           ) : null}
           <button
+            className="mt-2 mr-2 bg-blue-300 hover:bg-blue-400 text-gray-800 font-bold py-2 px-4 rounded-sm inline-flex items-center"
+            data-testid="presigned-head-button"
+            onClick={() => {
+              void handlePresignedHead(blob.url);
+            }}
+            type="button"
+          >
+            HEAD (presigned)
+          </button>
+          <button
             className="mt-2 bg-red-300 hover:bg-red-400 text-gray-800 font-bold py-2 px-4 rounded-sm inline-flex items-center"
             data-testid="presigned-delete-button"
             onClick={() => {
@@ -202,6 +249,23 @@ export default function AppPresignedUpload(): React.JSX.Element {
             Delete (presigned)
           </button>
         </div>
+      ) : null}
+
+      {headStatus ? (
+        <p
+          className="mt-2 text-sm text-green-700"
+          data-testid="presigned-head-status"
+        >
+          {headStatus}
+        </p>
+      ) : null}
+      {headError ? (
+        <p
+          className="mt-2 text-sm text-red-700"
+          data-testid="presigned-head-error"
+        >
+          Presigned HEAD failed: {headError}
+        </p>
       ) : null}
 
       {deleteStatus ? (

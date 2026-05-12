@@ -15,11 +15,14 @@ import {
 } from './presign-query-params';
 
 /**
- * Operations that may be encoded in a delegation token (e.g. read: `get`,
- * write: `put` for presigned control-plane writes — both single-object `PUT`,
- * destructive: `delete` for presigned control-plane `DELETE /?pathname=…`).
+ * Operations that may be encoded in a delegation token (e.g. read: `get` /
+ * `head` for blob object reads, write: `put` for presigned control-plane writes
+ * — both single-object `PUT`, destructive: `delete` for presigned control-plane
+ * `DELETE /?pathname=…`). `head` shares the GET URL shape (blob object host)
+ * and is distinguished only by the HTTP method and `operation=head` in the
+ * canonical signing string.
  */
-export type DelegationOperation = 'get' | 'put' | 'delete';
+export type DelegationOperation = 'get' | 'head' | 'put' | 'delete';
 
 /** Excluded from the string-to-sign; added after signing. @public for CDN / tooling alignment */
 export const BLOB_PRESIGN_QUERY_DELEGATION = 'vercel-blob-delegation' as const;
@@ -312,6 +315,20 @@ export type PresignGetUrlOptions = {
 };
 
 /**
+ * Presign URL options for {@link presignUrl} when `operation` is `head`.
+ * Mirrors {@link PresignGetUrlOptions}; the CDN URL is identical, the HTTP
+ * method differentiates, and the canonical signing string carries
+ * `operation=head` so a GET-signed URL cannot be replayed for HEAD.
+ */
+export type PresignHeadUrlOptions = {
+  operation: 'head';
+
+  pathname: string;
+
+  validUntil?: number;
+};
+
+/**
  * Presign URL options for {@link presignUrl} when `operation` is `put` (single `PUT` or multipart `POST`).
  * Serialized as individual `vercel-blob-*` query params (see {@link PRESIGN_CANONICAL_QUERY_KEYS}).
  */
@@ -359,6 +376,7 @@ export type PresignDeleteUrlOptions = {
 
 export type PresignUrlOptions =
   | PresignGetUrlOptions
+  | PresignHeadUrlOptions
   | PresignPutUrlOptions
   | PresignDeleteUrlOptions;
 
@@ -400,6 +418,11 @@ export async function presign(
   if (options.operation === 'get' && !scope.operations?.includes('get')) {
     throw new BlobError(
       'The delegation token is not valid for `GET` requests. Include `"get"` in `operations` when calling `issueSignedToken`.',
+    );
+  }
+  if (options.operation === 'head' && !scope.operations?.includes('head')) {
+    throw new BlobError(
+      'The delegation token is not valid for `HEAD` requests. Include `"head"` in `operations` when calling `issueSignedToken`.',
     );
   }
   if (options.operation === 'put' && !scope.operations?.includes('put')) {
@@ -492,6 +515,8 @@ export type PresignUrlResult = {
  * Builds a presigned URL for `GET` / `HEAD` (blob object host), `PUT` / multipart (control API),
  * or `DELETE` (`DELETE /?pathname=…` on the control API — mirrors the PUT URL shape; the
  * HTTP method discriminates, and the canonical signing string includes `operation=delete`).
+ * `HEAD` reuses the GET URL shape against the blob object host; `operation=head` in the
+ * canonical string prevents a GET-signed URL from being replayed as a HEAD.
  */
 export async function presignUrl(
   signedToken: Pick<
@@ -502,7 +527,7 @@ export async function presignUrl(
 ): Promise<PresignUrlResult> {
   const payload = await presign(signedToken, options);
 
-  if (options.operation === 'get') {
+  if (options.operation === 'get' || options.operation === 'head') {
     return {
       presignedUrl: buildPresignedGetUrl(options.pathname, payload, options),
     };

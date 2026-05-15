@@ -22,6 +22,9 @@ on:
         type: string
         required: false
 
+permissions:
+  contents: read
+
 jobs:
   test:
     timeout-minutes: 60

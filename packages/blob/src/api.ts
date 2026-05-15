@@ -29,6 +29,15 @@ export class BlobAccessError extends BlobError {
   }
 }
 
+export class BlobOidcEnvironmentNotAllowedError extends BlobError {
+  constructor(message?: string) {
+    super(
+      message ??
+        "OIDC is enabled for this project, but not for this token's environment.",
+    );
+  }
+}
+
 export class BlobContentTypeNotAllowedError extends BlobError {
   constructor(message: string) {
     super(`Content type mismatch, ${message}.`);
@@ -114,6 +123,7 @@ export class BlobPreconditionFailedError extends BlobError {
 type BlobApiErrorCodes =
   | 'store_suspended'
   | 'forbidden'
+  | 'oidc_environment_not_allowed'
   | 'not_found'
   | 'unknown_error'
   | 'bad_request'
@@ -209,6 +219,13 @@ export async function getBlobError(
     code = 'file_too_large';
   }
 
+  if (
+    message?.startsWith('OIDC is enabled for this project, but not for the') &&
+    message.includes('environment.')
+  ) {
+    code = 'oidc_environment_not_allowed';
+  }
+
   let error: BlobError;
   switch (code) {
     case 'store_suspended':
@@ -216,6 +233,9 @@ export async function getBlobError(
       break;
     case 'forbidden':
       error = new BlobAccessError();
+      break;
+    case 'oidc_environment_not_allowed':
+      error = new BlobOidcEnvironmentNotAllowedError(message);
       break;
     case 'content_type_not_allowed':
       error = new BlobContentTypeNotAllowedError(message!);

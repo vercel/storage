@@ -1,5 +1,6 @@
 import { type Interceptable, MockAgent, setGlobalDispatcher } from 'undici';
 import {
+  BlobOidcEnvironmentNotAllowedError,
   BlobPreconditionFailedError,
   BlobRequestAbortedError,
   BlobServiceNotAvailable,
@@ -422,6 +423,27 @@ describe('blob client', () => {
       await expect(list()).rejects.toThrow(
         new Error(
           'Vercel Blob: Access denied, please provide a valid token for this resource.',
+        ),
+      );
+    });
+
+    it('should throw a specific error when OIDC environment is not enabled for the project', async () => {
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'GET',
+        })
+        .reply(403, {
+          error: {
+            code: 'forbidden',
+            message:
+              'OIDC is enabled for this project, but not for the "production" environment.',
+          },
+        });
+
+      await expect(list()).rejects.toThrow(
+        new BlobOidcEnvironmentNotAllowedError(
+          'OIDC is enabled for this project, but not for the "production" environment.',
         ),
       );
     });

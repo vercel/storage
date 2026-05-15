@@ -157,6 +157,66 @@ describe('api', () => {
       );
     });
 
+    it('should use oidcToken option with storeId for OIDC auth', async () => {
+      const fetchMock = jest.spyOn(undici, 'fetch').mockImplementation(
+        jest.fn().mockResolvedValue({
+          status: 200,
+          ok: true,
+          json: () => Promise.resolve({ success: true }),
+        }),
+      );
+
+      process.env.BLOB_READ_WRITE_TOKEN = undefined;
+      delete process.env.BLOB_STORE_ID;
+      delete process.env.VERCEL_OIDC_TOKEN;
+
+      await requestApi<{ success: boolean }>(
+        '/method',
+        { method: 'POST', body: JSON.stringify({}) },
+        { storeId: 'fromOption', oidcToken: 'oidc-from-option' },
+      );
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const call = fetchMock.mock.calls[0] as [
+        string,
+        { headers: Record<string, string> },
+      ];
+      expect(call[1].headers.authorization).toBe('Bearer oidc-from-option');
+      expect(call[1].headers['x-api-blob-request-id']).toMatch(
+        /^fromOption:\d+:[a-f0-9]+$/,
+      );
+    });
+
+    it('should prefer oidcToken option over VERCEL_OIDC_TOKEN', async () => {
+      const fetchMock = jest.spyOn(undici, 'fetch').mockImplementation(
+        jest.fn().mockResolvedValue({
+          status: 200,
+          ok: true,
+          json: () => Promise.resolve({ success: true }),
+        }),
+      );
+
+      process.env.BLOB_READ_WRITE_TOKEN = undefined;
+      process.env.BLOB_STORE_ID = 'fromEnv';
+      process.env.VERCEL_OIDC_TOKEN = 'oidc-from-env';
+
+      await requestApi<{ success: boolean }>(
+        '/method',
+        { method: 'POST', body: JSON.stringify({}) },
+        { oidcToken: 'oidc-from-option' },
+      );
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const call = fetchMock.mock.calls[0] as [
+        string,
+        { headers: Record<string, string> },
+      ];
+      expect(call[1].headers.authorization).toBe('Bearer oidc-from-option');
+      expect(call[1].headers['x-api-blob-request-id']).toMatch(
+        /^fromEnv:\d+:[a-f0-9]+$/,
+      );
+    });
+
     it('should strip the "store_" prefix from BLOB_STORE_ID for OIDC', async () => {
       const fetchMock = jest.spyOn(undici, 'fetch').mockImplementation(
         jest.fn().mockResolvedValue({

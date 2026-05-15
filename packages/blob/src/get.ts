@@ -131,6 +131,7 @@ function constructBlobUrl(
  * @param options - Configuration options including:
  *   - access - (Required) Must be 'public' or 'private'. Determines the access level of the blob.
  *   - useCache - (Optional) When false, fetches directly from origin storage instead of CDN cache. Only effective for private blobs. Defaults to true.
+ *   - oidcToken - (Optional) Vercel OIDC token for authentication with `storeId` (or `BLOB_STORE_ID`); overrides `VERCEL_OIDC_TOKEN`.
  *   - storeId - (Optional) Store id when using Vercel OIDC token for authentication; overrides `BLOB_STORE_ID`.
  *   - token - (Optional) Read-write token when not using Vercel OIDC token for authentication, or set `BLOB_READ_WRITE_TOKEN`.
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.

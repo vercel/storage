@@ -53,6 +53,7 @@ export type { PutCommandOptions };
  *   - contentType - (Optional) A string indicating the media type. By default, it's extracted from the pathname's extension.
  *   - cacheControlMaxAge - (Optional) A number in seconds to configure how long Blobs are cached. Defaults to one month. Cannot be set to a value lower than 1 minute.
  *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel. Ignored when Vercel OIDC token is available and either process.env.BLOB_STORE_ID or options.storeId is set.
+ *   - oidcToken - (Optional) Vercel OIDC token for authentication with `storeId` (or `BLOB_STORE_ID`); overrides `VERCEL_OIDC_TOKEN`.
  *   - storeId - (Optional) Blob store id. Used to override process.env.BLOB_STORE_ID when Vercel OIDC token is available.
  *   - multipart - (Optional) Whether to use multipart upload for large files. It will split the file into multiple parts, upload them in parallel and retry failed parts.
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
@@ -115,6 +116,7 @@ export { copy } from './copy';
  *   - contentType - (Optional) The media type for the file. If not specified, it's derived from the file extension. Falls back to application/octet-stream when no extension exists or can't be matched.
  *   - cacheControlMaxAge - (Optional) A number in seconds to configure the edge and browser cache. Defaults to one month.
  *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel. Ignored when Vercel OIDC token is available and either process.env.BLOB_STORE_ID or options.storeId is set.
+ *   - oidcToken - (Optional) Vercel OIDC token for authentication with `storeId` (or `BLOB_STORE_ID`); overrides `VERCEL_OIDC_TOKEN`.
  *   - storeId - (Optional) Blob store id. Used to override process.env.BLOB_STORE_ID when Vercel OIDC token is available.
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
  * @returns A promise that resolves to an object containing:
@@ -144,6 +146,7 @@ export const createMultipartUpload =
  *   - contentType - (Optional) The media type for the file. If not specified, it's derived from the file extension. Falls back to application/octet-stream when no extension exists or can't be matched.
  *   - cacheControlMaxAge - (Optional) A number in seconds to configure the edge and browser cache. Defaults to one month.
  *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel. Ignored when Vercel OIDC token is available and either process.env.BLOB_STORE_ID or options.storeId is set.
+ *   - oidcToken - (Optional) Vercel OIDC token for authentication with `storeId` (or `BLOB_STORE_ID`); overrides `VERCEL_OIDC_TOKEN`.
  *   - storeId - (Optional) Blob store id. Used to override process.env.BLOB_STORE_ID when Vercel OIDC token is available.
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
  * @returns A promise that resolves to an uploader object with the following properties and methods:
@@ -178,6 +181,7 @@ export type { UploadPartCommandOptions };
  *   - partNumber - (Required) A number identifying which part is uploaded (1-based index).
  *   - contentType - (Optional) The media type for the blob. By default, it's derived from the pathname.
  *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel. Ignored when Vercel OIDC token is available and either process.env.BLOB_STORE_ID or options.storeId is set.
+ *   - oidcToken - (Optional) Vercel OIDC token for authentication with `storeId` (or `BLOB_STORE_ID`); overrides `VERCEL_OIDC_TOKEN`.
  *   - storeId - (Optional) Blob store id. Used to override process.env.BLOB_STORE_ID when Vercel OIDC token is available.
  *   - addRandomSuffix - (Optional) A boolean specifying whether to add a random suffix to the pathname.
  *   - allowOverwrite - (Optional) A boolean to allow overwriting blobs.
@@ -209,6 +213,7 @@ export type { CompleteMultipartUploadCommandOptions };
  *   - key - (Required) A string returned from createMultipartUpload which identifies the blob object.
  *   - contentType - (Optional) The media type for the file. If not specified, it's derived from the file extension.
  *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel. Ignored when Vercel OIDC token is available and either process.env.BLOB_STORE_ID or options.storeId is set.
+ *   - oidcToken - (Optional) Vercel OIDC token for authentication with `storeId` (or `BLOB_STORE_ID`); overrides `VERCEL_OIDC_TOKEN`.
  *   - storeId - (Optional) Blob store id. Used to override process.env.BLOB_STORE_ID when Vercel OIDC token is available.
  *   - addRandomSuffix - (Optional) A boolean specifying whether to add a random suffix to the pathname. It defaults to true.
  *   - allowOverwrite - (Optional) A boolean to allow overwriting blobs.

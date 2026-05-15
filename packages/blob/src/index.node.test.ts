@@ -85,6 +85,35 @@ describe('blob client', () => {
       );
     });
 
+    it('should use oidcToken and storeId options when calling `head()`', async () => {
+      let headers: Record<string, string> = {};
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'GET',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedFileMeta;
+        });
+
+      process.env.BLOB_READ_WRITE_TOKEN = '';
+      delete process.env.BLOB_STORE_ID;
+      delete process.env.VERCEL_OIDC_TOKEN;
+
+      await expect(
+        head(`${BLOB_STORE_BASE_URL}/foo-id.txt`, {
+          storeId: 'store_customStore',
+          oidcToken: 'oidc-from-option',
+        }),
+      ).resolves.toMatchObject({
+        url: `${BLOB_STORE_BASE_URL}/foo-id.txt`,
+      });
+
+      expect(headers.authorization).toEqual('Bearer oidc-from-option');
+      expect(headers['x-vercel-blob-store-id']).toEqual('customStore');
+    });
+
     it('should return null when calling `head()` with an url that does not exist', async () => {
       mockClient
         .intercept({
@@ -135,7 +164,7 @@ describe('blob client', () => {
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
-          'Vercel Blob: No blob credentials found. Pass a `token` option, set `BLOB_READ_WRITE_TOKEN`, or use `VERCEL_OIDC_TOKEN` with `storeId` or `BLOB_STORE_ID`.',
+          'Vercel Blob: No blob credentials found. Pass a `token` option, set `BLOB_READ_WRITE_TOKEN`, or use `oidcToken` (or `VERCEL_OIDC_TOKEN`) with `storeId` or `BLOB_STORE_ID`.',
         ),
       );
     });
@@ -1303,7 +1332,7 @@ describe('blob client', () => {
         }),
       ).rejects.toThrow(
         new Error(
-          'Vercel Blob: No blob credentials found. Pass a `token` option, set `BLOB_READ_WRITE_TOKEN`, or use `VERCEL_OIDC_TOKEN` with `storeId` or `BLOB_STORE_ID`.',
+          'Vercel Blob: No blob credentials found. Pass a `token` option, set `BLOB_READ_WRITE_TOKEN`, or use `oidcToken` (or `VERCEL_OIDC_TOKEN`) with `storeId` or `BLOB_STORE_ID`.',
         ),
       );
     });

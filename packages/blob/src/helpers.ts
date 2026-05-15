@@ -20,6 +20,12 @@ export interface BlobCommandOptions {
    */
   token?: string;
   /**
+   * Define your Vercel OIDC token for store-scoped blob operations.
+   * Use this together with `storeId` (or `BLOB_STORE_ID`) when you want to pass OIDC credentials explicitly.
+   * @defaultvalue process.env.VERCEL_OIDC_TOKEN
+   */
+  oidcToken?: string;
+  /**
    * Blob store id. Used to override process.env.BLOB_STORE_ID when Vercel OIDC token is available.
    * @defaultvalue process.env.BLOB_STORE_ID
    */
@@ -171,7 +177,7 @@ export function normalizeStoreId(storeId: string): string {
 /**
  * Resolves credentials in the following priority order:
  * 1. An explicit read-write `token` passed via options.
- * 2. `VERCEL_OIDC_TOKEN` paired with `storeId` option (or `BLOB_STORE_ID`).
+ * 2. An explicit `oidcToken` (or `VERCEL_OIDC_TOKEN`) paired with `storeId` option (or `BLOB_STORE_ID`).
  * 3. `BLOB_READ_WRITE_TOKEN` from the environment.
  */
 export function resolveBlobAuth(
@@ -183,7 +189,7 @@ export function resolveBlobAuth(
     return { kind: 'readWrite', token: options.token, storeId };
   }
 
-  const oidcToken = getVercelOidcToken();
+  const oidcToken = options?.oidcToken?.trim() || getVercelOidcToken();
   if (oidcToken) {
     // Try to get storeId from the supplied options
     const manualStoreId = options?.storeId?.trim();
@@ -213,7 +219,7 @@ export function resolveBlobAuth(
   }
 
   throw new BlobError(
-    'No blob credentials found. Pass a `token` option, set `BLOB_READ_WRITE_TOKEN`, or use `VERCEL_OIDC_TOKEN` with `storeId` or `BLOB_STORE_ID`.',
+    'No blob credentials found. Pass a `token` option, set `BLOB_READ_WRITE_TOKEN`, or use `oidcToken` (or `VERCEL_OIDC_TOKEN`) with `storeId` or `BLOB_STORE_ID`.',
   );
 }
 

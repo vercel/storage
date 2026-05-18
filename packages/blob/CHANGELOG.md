@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 2.4.0
+
+### Minor Changes
+
+- 20eeaff: Add Vercel OIDC auth and presigned URLs
+
 ## 2.3.3
 
 ### Patch Changes

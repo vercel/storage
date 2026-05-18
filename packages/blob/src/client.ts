@@ -351,14 +351,14 @@ export const uploadPresigned = createPutMethod<UploadOptions>({
       // @ts-expect-error -- Runtime check for DX.
       options.addRandomSuffix !== undefined ||
       // @ts-expect-error -- Runtime check for DX.
-      options.createPutExtraChecks !== undefined ||
+      options.allowOverwrite !== undefined ||
       // @ts-expect-error -- Runtime check for DX.
       options.cacheControlMaxAge !== undefined ||
       // @ts-expect-error -- Runtime check for DX.
       options.ifMatch !== undefined
     ) {
       throw new BlobError(
-        "client/`upload` doesn't allow `addRandomSuffix`, `cacheControlMaxAge`, `allowOverwrite` or `ifMatch`. Configure these options at the server side when generating presigned URLs.",
+        "client/`uploadPresigned` doesn't allow `addRandomSuffix`, `cacheControlMaxAge`, `allowOverwrite` or `ifMatch`. Configure these options at the server side when generating presigned URLs.",
       );
     }
   },

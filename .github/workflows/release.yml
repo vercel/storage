@@ -98,6 +98,8 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
+          # Use GitHub API commits so release PR commits are verified/signed.
+          commitMode: github-api
           # This expects you to have a script called release which does a build for your packages and calls changeset publish
           publish: pnpm release
           version: pnpm version-packages

@@ -1,5 +1,6 @@
 import { type Interceptable, MockAgent, setGlobalDispatcher } from 'undici';
 import {
+  BlobOidcEnvironmentNotAllowedError,
   BlobPreconditionFailedError,
   BlobRequestAbortedError,
   BlobServiceNotAvailable,
@@ -34,6 +35,8 @@ describe('blob client', () => {
   let mockClient: Interceptable;
 
   beforeEach(() => {
+    delete process.env.BLOB_STORE_ID;
+    delete process.env.VERCEL_OIDC_TOKEN;
     process.env.BLOB_READ_WRITE_TOKEN =
       'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
     const mockAgent = new MockAgent();
@@ -83,6 +86,35 @@ describe('blob client', () => {
       );
     });
 
+    it('should use oidcToken and storeId options when calling `head()`', async () => {
+      let headers: Record<string, string> = {};
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'GET',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedFileMeta;
+        });
+
+      process.env.BLOB_READ_WRITE_TOKEN = '';
+      delete process.env.BLOB_STORE_ID;
+      delete process.env.VERCEL_OIDC_TOKEN;
+
+      await expect(
+        head(`${BLOB_STORE_BASE_URL}/foo-id.txt`, {
+          storeId: 'store_customStore',
+          oidcToken: 'oidc-from-option',
+        }),
+      ).resolves.toMatchObject({
+        url: `${BLOB_STORE_BASE_URL}/foo-id.txt`,
+      });
+
+      expect(headers.authorization).toEqual('Bearer oidc-from-option');
+      expect(headers['x-vercel-blob-store-id']).toEqual('customStore');
+    });
+
     it('should return null when calling `head()` with an url that does not exist', async () => {
       mockClient
         .intercept({
@@ -128,10 +160,12 @@ describe('blob client', () => {
 
     it('should throw when the token is not set', async () => {
       process.env.BLOB_READ_WRITE_TOKEN = '';
+      delete process.env.BLOB_STORE_ID;
+      delete process.env.VERCEL_OIDC_TOKEN;
 
       await expect(head(`${BLOB_STORE_BASE_URL}/foo-id.txt`)).rejects.toThrow(
         new Error(
-          'Vercel Blob: No token found. Either configure the `BLOB_READ_WRITE_TOKEN` environment variable, or pass a `token` option to your calls.',
+          'Vercel Blob: No blob credentials found. Pass a `token` option, set `BLOB_READ_WRITE_TOKEN`, or use `oidcToken` (or `VERCEL_OIDC_TOKEN`) with `storeId` or `BLOB_STORE_ID`.',
         ),
       );
     });
@@ -389,6 +423,27 @@ describe('blob client', () => {
       await expect(list()).rejects.toThrow(
         new Error(
           'Vercel Blob: Access denied, please provide a valid token for this resource.',
+        ),
+      );
+    });
+
+    it('should throw a specific error when OIDC environment is not enabled for the project', async () => {
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'GET',
+        })
+        .reply(403, {
+          error: {
+            code: 'forbidden',
+            message:
+              'OIDC is enabled for this project, but not for the "production" environment.',
+          },
+        });
+
+      await expect(list()).rejects.toThrow(
+        new BlobOidcEnvironmentNotAllowedError(
+          'OIDC is enabled for this project, but not for the "production" environment.',
         ),
       );
     });
@@ -1290,6 +1345,8 @@ describe('blob client', () => {
 
     it('should throw when token is not set', async () => {
       process.env.BLOB_READ_WRITE_TOKEN = '';
+      delete process.env.BLOB_STORE_ID;
+      delete process.env.VERCEL_OIDC_TOKEN;
 
       await expect(
         get('foo.txt', {
@@ -1297,7 +1354,7 @@ describe('blob client', () => {
         }),
       ).rejects.toThrow(
         new Error(
-          'Vercel Blob: No token found. Either configure the `BLOB_READ_WRITE_TOKEN` environment variable, or pass a `token` option to your calls.',
+          'Vercel Blob: No blob credentials found. Pass a `token` option, set `BLOB_READ_WRITE_TOKEN`, or use `oidcToken` (or `VERCEL_OIDC_TOKEN`) with `storeId` or `BLOB_STORE_ID`.',
         ),
       );
     });

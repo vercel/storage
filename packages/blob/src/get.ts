@@ -1,6 +1,6 @@
 import { fetch, type Headers } from 'undici';
 import type { BlobAccessType, BlobCommandOptions } from './helpers';
-import { BlobError, getTokenFromOptionsOrEnv } from './helpers';
+import { BlobError, constructBlobUrl, isUrl, resolveBlobAuth } from './helpers';
 
 /**
  * Options for the get method.
@@ -77,15 +77,6 @@ export type GetBlobResult =
     };
 
 /**
- * Checks if the input is a URL (starts with http:// or https://).
- */
-function isUrl(urlOrPathname: string): boolean {
-  return (
-    urlOrPathname.startsWith('http://') || urlOrPathname.startsWith('https://')
-  );
-}
-
-/**
  * Extracts the pathname from a blob URL.
  */
 function extractPathnameFromUrl(url: string): string {
@@ -99,29 +90,9 @@ function extractPathnameFromUrl(url: string): string {
 }
 
 /**
- * Extracts the store ID from a blob token.
- * Token format: vercel_blob_rw_<storeId>_<rest>
- */
-function getStoreIdFromToken(token: string): string {
-  const [, , , storeId = ''] = token.split('_');
-  return storeId;
-}
-
-/**
- * Constructs the blob URL from storeId and pathname.
- */
-function constructBlobUrl(
-  storeId: string,
-  pathname: string,
-  access: BlobAccessType,
-): string {
-  return `https://${storeId}.${access}.blob.vercel-storage.com/${pathname}`;
-}
-
-/**
  * Fetches blob content by URL or pathname.
  * - If a URL is provided, fetches the blob directly.
- * - If a pathname is provided, constructs the URL from the token's store ID.
+ * - If a pathname is provided, constructs the URL from the resolved store ID (from the read-write token or `BLOB_STORE_ID`).
  *
  * Returns a stream (no automatic buffering) and blob metadata.
  *
@@ -140,7 +111,9 @@ function constructBlobUrl(
  * @param options - Configuration options including:
  *   - access - (Required) Must be 'public' or 'private'. Determines the access level of the blob.
  *   - useCache - (Optional) When false, fetches directly from origin storage instead of CDN cache. Only effective for private blobs. Defaults to true.
- *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel.
+ *   - oidcToken - (Optional) Vercel OIDC token for authentication with `storeId` (or `BLOB_STORE_ID`); overrides `VERCEL_OIDC_TOKEN`.
+ *   - storeId - (Optional) Store id when using Vercel OIDC token for authentication; overrides `BLOB_STORE_ID`.
+ *   - token - (Optional) Read-write token when not using Vercel OIDC token for authentication, or set `BLOB_READ_WRITE_TOKEN`.
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
  *   - headers - (Optional, advanced) Additional headers to include in the fetch request. You probably don't need this.
  * @returns A promise that resolves to { stream, blob } or null if not found.
@@ -163,7 +136,11 @@ export async function get(
     );
   }
 
-  const token = getTokenFromOptionsOrEnv(options);
+  const auth = resolveBlobAuth(options);
+
+  if (auth.kind === 'presigned') {
+    throw new BlobError('Presigned URLs are not supported for the get method');
+  }
 
   let blobUrl: string;
   let pathname: string;
@@ -186,19 +163,17 @@ export async function get(
       throw new BlobError('Invalid URL: unable to parse the provided URL');
     }
   } else {
-    // Construct the URL from the token's storeId and the pathname
-    const storeId = getStoreIdFromToken(token);
-    if (!storeId) {
+    if (!auth.storeId) {
       throw new BlobError('Invalid token: unable to extract store ID');
     }
     pathname = urlOrPathname;
-    blobUrl = constructBlobUrl(storeId, pathname, access);
+    blobUrl = constructBlobUrl(auth.storeId, pathname, access);
   }
 
   // Fetch the blob content with authentication headers
   const requestHeaders: HeadersInit = {
     ...(options.ifNoneMatch ? { 'If-None-Match': options.ifNoneMatch } : {}),
-    authorization: `Bearer ${token}`,
+    authorization: `Bearer ${auth.token}`,
     ...options.headers, // low-level escape hatch, applied last to override anything
   };
 

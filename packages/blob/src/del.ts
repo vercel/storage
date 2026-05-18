@@ -13,7 +13,7 @@ export interface DeleteCommandOptions extends BlobCommandOptions {
 }
 
 /**
- * Deletes one or multiple blobs from your store.
+ * Deletes one or multiple blobs from your store (`POST /api/blob/delete` on the Blob API).
  * Detailed documentation can be found here: https://vercel.com/docs/vercel-blob/using-blob-sdk#delete-a-blob
  *
  * @param urlOrPathname - Blob url (or pathname) to delete. You can pass either a single value or an array of values. You can only delete blobs that are located in a store, that your 'BLOB_READ_WRITE_TOKEN' has access to.

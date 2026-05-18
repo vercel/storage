@@ -6,6 +6,7 @@ import { isNodeProcess } from 'is-node-process';
 import type { RequestInit, Response } from 'undici';
 import { isNodeJsReadableStream } from './multipart/helpers';
 import type { PutBody } from './put-helpers';
+import { getVercelOidcToken } from './vercel-oidc-token';
 
 export { bytes } from './bytes';
 
@@ -14,13 +15,43 @@ const defaultVercelBlobApiUrl = 'https://vercel.com/api/blob';
 export interface BlobCommandOptions {
   /**
    * Define your blob API token.
+   * When supplied, this takes priority over process.env.VERCEL_OIDC_TOKEN and process.env.BLOB_READ_WRITE_TOKEN.
    * @defaultvalue process.env.BLOB_READ_WRITE_TOKEN
    */
   token?: string;
   /**
+   * Define your Vercel OIDC token for store-scoped blob operations.
+   * Use this together with `storeId` (or `BLOB_STORE_ID`) when you want to pass OIDC credentials explicitly.
+   * @defaultvalue process.env.VERCEL_OIDC_TOKEN
+   */
+  oidcToken?: string;
+  /**
+   * Blob store id. Used to override process.env.BLOB_STORE_ID when Vercel OIDC token is available.
+   * @defaultvalue process.env.BLOB_STORE_ID
+   */
+  storeId?: string;
+  /**
    * `AbortSignal` to cancel the running request. See https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal
    */
   abortSignal?: AbortSignal;
+}
+
+export interface PresignedUrlPayload {
+  delegationToken: string;
+  signature: string;
+  params: Record<string, string>;
+}
+
+/**
+ * Presigned control-plane URL for writes (`put`, `copy`, multipart) and other
+ * methods built on {@link CommonCreateBlobOptions}. When set, it is used as the
+ * fetch target instead of composing `getApiUrl` with a bearer token.
+ */
+export interface BlobPresignedCommandOptions extends BlobCommandOptions {
+  /**
+   * Takes precedence over `token` and store credentials for supported calls.
+   */
+  presignedUrlPayload?: PresignedUrlPayload;
 }
 
 /**
@@ -128,17 +159,177 @@ export interface WithUploadProgress {
   onUploadProgress?: OnUploadProgressCallback;
 }
 
-export function getTokenFromOptionsOrEnv(options?: BlobCommandOptions): string {
+function readEnv(name: string): string | undefined {
+  try {
+    const value = process.env[name];
+    return typeof value === 'string' && value.trim() !== ''
+      ? value.trim()
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export type ResolvedBlobAuth =
+  | { kind: 'readWrite' | 'oidc'; token: string; storeId: string }
+  | { kind: 'presigned'; storeId: string };
+
+export function parseStoreIdFromReadWriteToken(token: string): string {
+  const [, , , storeId = ''] = token.split('_');
+  return storeId;
+}
+
+function base64UrlDecodeDelegationSegment(segment: string): string {
+  let base64 = segment.replace(/-/g, '+').replace(/_/g, '/');
+  const padding = 4 - (base64.length % 4);
+  if (padding !== 4) {
+    base64 += '='.repeat(padding);
+  }
+  if (typeof atob === 'function') {
+    return atob(base64);
+  }
+  if (typeof Buffer !== 'undefined') {
+    // eslint-disable-next-line no-restricted-globals
+    return Buffer.from(base64, 'base64').toString('utf8');
+  }
+  throw new BlobError('Cannot decode base64: no atob or Buffer available.');
+}
+
+/**
+ * Reads `storeId` from the delegation JWT embedded in a presigned blob URL’s
+ * `vercel-blob-delegation` query parameter (same payload shape as `issueSignedToken` delegations).
+ */
+/**
+ * Reads `storeId` from a delegation JWT’s payload segment (same format as
+ * embedded in a presigned URL’s `vercel-blob-delegation` query parameter).
+ */
+export function parseStoreIdFromDelegationToken(
+  delegationToken: string,
+): string {
+  const dot = delegationToken.indexOf('.');
+  if (dot < 0) {
+    throw new BlobError('Invalid delegation token format.');
+  }
+
+  const payloadSeg = delegationToken.slice(0, dot);
+  let parsed: { storeId?: unknown };
+  try {
+    parsed = JSON.parse(base64UrlDecodeDelegationSegment(payloadSeg)) as {
+      storeId?: unknown;
+    };
+  } catch {
+    throw new BlobError('Invalid delegation token payload.');
+  }
+
+  if (!parsed.storeId || typeof parsed.storeId !== 'string') {
+    throw new BlobError('Delegation token payload is missing `storeId`.');
+  }
+
+  return normalizeStoreId(parsed.storeId);
+}
+
+export function parseStoreIdFromPresignedUrl(
+  presignedUrlPayload: PresignedUrlPayload,
+): string {
+  const delegation = presignedUrlPayload.delegationToken;
+  return parseStoreIdFromDelegationToken(delegation);
+}
+
+/**
+ * Strips the optional `store_` prefix from a store id. `BLOB_STORE_ID` (what
+ * `vercel env pull` writes) and the `storeId` option are accepted in either
+ * `store_<id>` or `<id>` form; downstream consumers (CDN host subdomain,
+ * `x-vercel-blob-store-id` header) want the bare form. Case is preserved
+ * because the API is case-sensitive on this value.
+ */
+export function normalizeStoreId(storeId: string): string {
+  return storeId.startsWith('store_')
+    ? storeId.slice('store_'.length)
+    : storeId;
+}
+
+/**
+ * Resolves credentials in the following priority order:
+ * 1. An explicit read-write `token` passed via options.
+ * 2. An explicit `oidcToken` (or `VERCEL_OIDC_TOKEN`) paired with `storeId` option (or `BLOB_STORE_ID`).
+ * 3. `BLOB_READ_WRITE_TOKEN` from the environment.
+ */
+export function resolveBlobAuth(
+  options?: BlobCommandOptions & BlobPresignedCommandOptions,
+): ResolvedBlobAuth {
+  if (options?.presignedUrlPayload) {
+    const storeId = parseStoreIdFromDelegationToken(
+      options.presignedUrlPayload.delegationToken,
+    );
+    return { kind: 'presigned', storeId };
+  }
+  // An explicitly supplied token always wins over OIDC and env-based tokens.
+  if (options?.token) {
+    const storeId = parseStoreIdFromReadWriteToken(options.token);
+    return { kind: 'readWrite', token: options.token, storeId };
+  }
+
+  const manualOidcToken = options?.oidcToken?.trim();
+  const oidcToken = manualOidcToken || getVercelOidcToken();
+  if (oidcToken) {
+    // Try to get storeId from the supplied options
+    const manualStoreId = options?.storeId?.trim();
+    if (manualStoreId) {
+      return {
+        kind: 'oidc',
+        token: oidcToken,
+        storeId: normalizeStoreId(manualStoreId),
+      };
+    }
+
+    // If not supplied manually, try to get storeId from the environment variable
+    const blobStoreId = readEnv('BLOB_STORE_ID');
+    if (blobStoreId) {
+      return {
+        kind: 'oidc',
+        token: oidcToken,
+        storeId: normalizeStoreId(blobStoreId),
+      };
+    }
+
+    // User passed an OIDC token explicitly, but we couldn't resolve the storeId
+    // So throw an error. If the oidcToken is from the environment, fall back to rw token
+    if (manualOidcToken) {
+      throw new BlobError(
+        'oidcToken was passed, but no storeId was found. Pass a `storeId` option or set `BLOB_STORE_ID` to use OIDC auth',
+      );
+    }
+  }
+
+  const readWrite = readEnv('BLOB_READ_WRITE_TOKEN');
+  if (readWrite) {
+    const storeId = parseStoreIdFromReadWriteToken(readWrite);
+    return { kind: 'readWrite', token: readWrite, storeId };
+  }
+
+  throw new BlobError(
+    'No blob credentials found. Pass a `token` option, set `BLOB_READ_WRITE_TOKEN`, or use `oidcToken` (or `VERCEL_OIDC_TOKEN`) with `storeId` or `BLOB_STORE_ID`.',
+  );
+}
+
+/**
+ * Returns the read-write token for signing and callback verification.
+ * OIDC-only configuration is not sufficient; pass `token` or set `BLOB_READ_WRITE_TOKEN`.
+ */
+export function getReadWriteBlobTokenFromOptionsOrEnv(
+  options?: Pick<BlobCommandOptions, 'token'>,
+): string {
   if (options?.token) {
     return options.token;
   }
 
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    return process.env.BLOB_READ_WRITE_TOKEN;
+  const readWrite = readEnv('BLOB_READ_WRITE_TOKEN');
+  if (readWrite) {
+    return readWrite;
   }
 
   throw new BlobError(
-    'No token found. Either configure the `BLOB_READ_WRITE_TOKEN` environment variable, or pass a `token` option to your calls.',
+    'No read-write token found. Either configure the `BLOB_READ_WRITE_TOKEN` environment variable, or pass a `token` option to your calls.',
   );
 }
 
@@ -311,4 +502,43 @@ export function isStream(value: PutBody): value is ReadableStream | Readable {
   }
 
   return false;
+}
+
+export const addPresignedParams = (
+  url: string,
+  presignedUrlPayload: PresignedUrlPayload,
+): string => {
+  const urlObj = new URL(url);
+  for (const [key, value] of Object.entries(presignedUrlPayload.params)) {
+    urlObj.searchParams.set(key, value);
+  }
+  urlObj.searchParams.set(
+    'vercel-blob-delegation',
+    presignedUrlPayload.delegationToken,
+  );
+  urlObj.searchParams.set(
+    'vercel-blob-signature',
+    presignedUrlPayload.signature,
+  );
+  return urlObj.toString();
+};
+
+/**
+ * Checks if the input is a URL (starts with http:// or https://).
+ */
+export function isUrl(urlOrPathname: string): boolean {
+  return (
+    urlOrPathname.startsWith('http://') || urlOrPathname.startsWith('https://')
+  );
+}
+
+/**
+ * Constructs the blob URL from storeId and pathname.
+ */
+export function constructBlobUrl(
+  storeId: string,
+  pathname: string,
+  access: BlobAccessType,
+): string {
+  return `https://${storeId}.${access}.blob.vercel-storage.com/${pathname}`;
 }

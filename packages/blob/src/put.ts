@@ -24,6 +24,7 @@ export interface PutCommandOptions
 export function createPutMethod<TOptions extends PutCommandOptions>({
   allowedOptions,
   getToken,
+  getPresignedUrlPayload,
   extraChecks,
 }: CreatePutMethodOptions<TOptions>) {
   return async function put(
@@ -48,10 +49,25 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
       getToken,
     });
 
+    const presignedUrlPayload = await getPresignedUrlPayload?.(
+      pathname,
+      options,
+    );
+
+    const optionsWithPresignedUrlPayload = {
+      ...options,
+      presignedUrlPayload,
+    };
+
     const headers = createPutHeaders(allowedOptions, options);
 
     if (options.multipart === true) {
-      return uncontrolledMultipartUpload(pathname, body, headers, options);
+      return uncontrolledMultipartUpload(
+        pathname,
+        body,
+        headers,
+        optionsWithPresignedUrlPayload,
+      );
     }
 
     const onUploadProgress = options.onUploadProgress
@@ -69,7 +85,7 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
         signal: options.abortSignal,
       },
       {
-        ...options,
+        ...optionsWithPresignedUrlPayload,
         onUploadProgress,
       },
     );

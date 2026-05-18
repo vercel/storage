@@ -1,5 +1,5 @@
 ---
-"@vercel/blob": patch
+"@vercel/blob": minor
 ---
 
-Add Vercel OIDC auth
+Add Vercel OIDC auth and presigned URLs

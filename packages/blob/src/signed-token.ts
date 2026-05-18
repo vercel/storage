@@ -193,27 +193,6 @@ function tryDecodePayload(
 }
 
 /**
- * Builds a blob object URL for `pathname` and store from `delegationToken` for use with
- * {@link presignUrl} for `GET` / `HEAD` only (to `*.public|*.private.blob.vercel-storage.com`).
- */
-export function publicBlobObjectUrl(
-  access: 'public' | 'private',
-  objectPathname: string,
-  delegationToken: string,
-): string {
-  const scope = tryDecodePayload(delegationToken);
-  if (!scope) {
-    throw new BlobError('Invalid or unreadable `delegationToken` payload.');
-  }
-  const storeId = normalizeStoreId(scope.storeId);
-  const encodedPath = objectPathname
-    .split('/')
-    .map((segment) => encodeURIComponent(segment))
-    .join('/');
-  return `https://${storeId}.${access}.blob.vercel-storage.com/${encodedPath}`;
-}
-
-/**
  * @internal
  */
 function uint8ToBase64(bytes: Uint8Array): string {

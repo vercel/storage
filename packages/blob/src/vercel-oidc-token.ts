@@ -1,16 +1,5 @@
-import { createRequire } from 'node:module';
-import { isNodeProcess } from 'is-node-process';
-
-type MutateResponseHeadersBeforeFlushHandler = (headers: Headers) => void;
-
 type Context = {
-  waitUntil?: (promise: Promise<unknown>) => void;
-  // TODO change this to __unstable_
-  mutateResponseHeadersBeforeFlush?: (
-    callback: MutateResponseHeadersBeforeFlushHandler,
-  ) => void;
-  headers?: Record<string, string>;
-  url?: string;
+  headers?: Record<string, string | undefined>;
 };
 
 const SYMBOL_FOR_REQ_CONTEXT = Symbol.for('@vercel/request-context');
@@ -23,27 +12,25 @@ const getContext = (): Context => {
   return fromSymbol[SYMBOL_FOR_REQ_CONTEXT]?.get?.() ?? {};
 };
 
+function readEnv(name: string): string | undefined {
+  try {
+    const value = process.env[name];
+    return typeof value === 'string' && value.trim() !== ''
+      ? value.trim()
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
- * Gets the current OIDC token from the request context or the environment variable.
- *
- * Do not cache this value, as it is subject to change in production!
- *
- * This function is used to retrieve the OIDC token from the request context or the environment variable.
- * It checks for the `x-vercel-oidc-token` header in the request context and falls back to the `VERCEL_OIDC_TOKEN` environment variable if the header is not present.
- *
- * @returns {string} The OIDC token, or undefined if not found
- *
- * @example
- *
- * ```js
- * // Using the OIDC token
- * const token = getVercelOidcToken();
- * console.log('OIDC Token:', token);
- * ```
+ * Gets the current OIDC token from request context headers or environment.
  */
 export function getVercelOidcToken(): string | undefined {
-  return (
-    getContext().headers?.['x-vercel-oidc-token'] ??
-    process.env.VERCEL_OIDC_TOKEN
-  );
+  const tokenFromContext = getContext().headers?.['x-vercel-oidc-token'];
+  if (typeof tokenFromContext === 'string' && tokenFromContext.trim() !== '') {
+    return tokenFromContext.trim();
+  }
+
+  return readEnv('VERCEL_OIDC_TOKEN');
 }

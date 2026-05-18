@@ -1,8 +1,9 @@
 # This workflow handles two flows:
 #
 # 1. Normal release (default)
-#    Triggered by pushes to `main`. Uses changesets/action to either open a
-#    "Version Packages" PR or, when such a PR is merged, publish to npm.
+#    Triggered only by pushes to `main` (not by manual workflow runs).
+#    Uses changesets/action to either open a "Version Packages" PR or, when such
+#    a PR is merged, publish to npm.
 #
 # 2. Snapshot release (manual, opt-in)
 #    Triggered by running this workflow via workflow_dispatch with the
@@ -54,7 +55,7 @@ on:
   workflow_dispatch:
     inputs:
       snapshot:
-        description: "Publish a snapshot release from the selected branch (under the `snapshot` dist-tag) instead of running the normal release flow. Requires a changeset on the branch."
+        description: "Manual runs must enable this to publish (snapshot dist-tag from the selected branch); otherwise the workflow fails. Stable versioning/publish runs only on push to main. Requires a changeset on the branch."
         type: boolean
         default: false
 
@@ -85,9 +86,15 @@ jobs:
       - name: Install Dependencies
         run: pnpm install
 
-      # ----- Normal release (push to main, or manual run without snapshot) -----
+      - name: Disallow manual non-snapshot release
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.snapshot != true }}
+        run: |
+          echo "::error::Stable releases (changesets version/publish) run only on push to main. For a manual run, enable the snapshot input."
+          exit 1
+
+      # ----- Normal release (push to main only) -----
       - name: Create Release Pull Request or Publish to npm
-        if: ${{ inputs.snapshot != true }}
+        if: ${{ github.event_name == 'push' }}
         id: changesets
         uses: changesets/action@v1
         with:

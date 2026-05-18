@@ -297,7 +297,7 @@ export const upload = createPutMethod<UploadOptions>({
       // @ts-expect-error -- Runtime check for DX.
       options.addRandomSuffix !== undefined ||
       // @ts-expect-error -- Runtime check for DX.
-      options.createPutExtraChecks !== undefined ||
+      options.allowOverwrite !== undefined ||
       // @ts-expect-error -- Runtime check for DX.
       options.cacheControlMaxAge !== undefined ||
       // @ts-expect-error -- Runtime check for DX.
@@ -358,7 +358,7 @@ export const uploadPresigned = createPutMethod<UploadOptions>({
       options.ifMatch !== undefined
     ) {
       throw new BlobError(
-        "client/`upload` doesn't allow `addRandomSuffix`, `cacheControlMaxAge`, `allowOverwrite` or `ifMatch`. Configure these options at the server side when generating client tokens.",
+        "client/`upload` doesn't allow `addRandomSuffix`, `cacheControlMaxAge`, `allowOverwrite` or `ifMatch`. Configure these options at the server side when generating presigned URLs.",
       );
     }
   },

@@ -3,11 +3,12 @@ import type { Response } from 'undici';
 import { debug } from './debug';
 import { DOMException } from './dom-exception';
 import type {
-  BlobCommandOptions,
+  BlobPresignedCommandOptions,
   BlobRequestInit,
   WithUploadProgress,
 } from './helpers';
 import {
+  addPresignedParams,
   BlobError,
   computeBodyLength,
   getApiUrl,
@@ -25,6 +26,15 @@ export const MAXIMUM_PATHNAME_LENGTH = 950;
 export class BlobAccessError extends BlobError {
   constructor() {
     super('Access denied, please provide a valid token for this resource.');
+  }
+}
+
+export class BlobOidcEnvironmentNotAllowedError extends BlobError {
+  constructor(message?: string) {
+    super(
+      message ??
+        "OIDC is enabled for this project, but not for this token's environment.",
+    );
   }
 }
 
@@ -113,11 +123,13 @@ export class BlobPreconditionFailedError extends BlobError {
 type BlobApiErrorCodes =
   | 'store_suspended'
   | 'forbidden'
+  | 'oidc_environment_not_allowed'
   | 'not_found'
   | 'unknown_error'
   | 'bad_request'
   | 'store_not_found'
   | 'not_allowed'
+  | 'client_token_not_allowed'
   | 'service_unavailable'
   | 'rate_limited'
   | 'content_type_not_allowed'
@@ -171,7 +183,7 @@ function createBlobServiceRateLimited(
 }
 
 // reads the body of a error response
-async function getBlobError(
+export async function getBlobError(
   response: Response,
 ): Promise<{ code: string; error: BlobError }> {
   let code: BlobApiErrorCodes;
@@ -207,6 +219,13 @@ async function getBlobError(
     code = 'file_too_large';
   }
 
+  if (
+    message?.startsWith('OIDC is enabled for this project, but not for the') &&
+    message.includes('environment.')
+  ) {
+    code = 'oidc_environment_not_allowed';
+  }
+
   let error: BlobError;
   switch (code) {
     case 'store_suspended':
@@ -214,6 +233,9 @@ async function getBlobError(
       break;
     case 'forbidden':
       error = new BlobAccessError();
+      break;
+    case 'oidc_environment_not_allowed':
+      error = new BlobOidcEnvironmentNotAllowedError(message);
       break;
     case 'content_type_not_allowed':
       error = new BlobContentTypeNotAllowedError(message!);
@@ -229,6 +251,12 @@ async function getBlobError(
       break;
     case 'not_found':
       error = new BlobNotFoundError();
+      break;
+    case 'client_token_not_allowed':
+      error = new BlobError(
+        message ??
+          'This operation is not available when using a client token. Use a read–write or OIDC token on the server.',
+      );
       break;
     case 'store_not_found':
       error = new BlobStoreNotFoundError();
@@ -258,12 +286,22 @@ async function getBlobError(
 export async function requestApi<TResponse>(
   pathname: string,
   init: BlobRequestInit,
-  commandOptions: (BlobCommandOptions & WithUploadProgress) | undefined,
+  commandOptions:
+    | (BlobPresignedCommandOptions & WithUploadProgress)
+    | undefined,
 ): Promise<TResponse> {
   const apiVersion = getApiVersion();
   const auth = resolveBlobAuth(commandOptions);
-  const bearerToken = auth.kind === 'readWrite' ? auth.token : auth.oidcToken;
+  const bearerToken = auth.kind === 'presigned' ? undefined : auth.token;
   const extraHeaders = getProxyThroughAlternativeApiHeaderFromEnv();
+
+  let requestInput = getApiUrl(pathname);
+  if (commandOptions?.presignedUrlPayload) {
+    requestInput = addPresignedParams(
+      requestInput,
+      commandOptions.presignedUrlPayload,
+    );
+  }
 
   const requestId = `${auth.storeId}:${Date.now()}:${Math.random().toString(16).slice(2)}`;
   let retryCount = 0;
@@ -296,7 +334,7 @@ export async function requestApi<TResponse>(
       // try/catch here to treat certain errors as not-retryable
       try {
         res = await blobRequest({
-          input: getApiUrl(pathname),
+          input: requestInput,
           init: {
             ...init,
             headers: {
@@ -308,7 +346,9 @@ export async function requestApi<TResponse>(
               ...(sendBodyLength
                 ? { 'x-content-length': String(bodyLength) }
                 : {}),
-              authorization: `Bearer ${bearerToken}`,
+              ...(bearerToken !== undefined
+                ? { authorization: `Bearer ${bearerToken}` }
+                : {}),
               ...extraHeaders,
               ...init.headers,
             },

@@ -30,6 +30,9 @@ export {
   BlobError,
   getDownloadUrl,
   type OnUploadProgressCallback,
+  type PresignedUrlPayload,
+  parseStoreIdFromDelegationToken,
+  parseStoreIdFromPresignedUrl,
   type UploadProgressEvent,
 } from './helpers';
 
@@ -231,9 +234,25 @@ export const completeMultipartUpload =
     ],
   });
 
+export type { BlobClientTokenConstraintOptions } from './client-token-constraints';
 export type {
   CreateFolderCommandOptions,
   CreateFolderResult,
 } from './create-folder';
 export { createFolder } from './create-folder';
 export type { Part, PartInput } from './multipart/helpers';
+export type {
+  DelegationOperation,
+  IssuedSignedToken,
+  IssueSignedTokenOptions,
+  PresignDeleteUrlOptions,
+  PresignGetUrlOptions,
+  PresignHeadUrlOptions,
+  PresignPutUrlOptions,
+  PresignUrlOptions,
+  PresignUrlResult,
+} from './signed-token';
+export {
+  issueSignedToken,
+  presignUrl,
+} from './signed-token';

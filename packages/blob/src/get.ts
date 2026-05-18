@@ -1,6 +1,6 @@
 import { fetch, type Headers } from 'undici';
 import type { BlobAccessType, BlobCommandOptions } from './helpers';
-import { BlobError, resolveBlobAuth } from './helpers';
+import { BlobError, constructBlobUrl, isUrl, resolveBlobAuth } from './helpers';
 
 /**
  * Options for the get method.
@@ -77,15 +77,6 @@ export type GetBlobResult =
     };
 
 /**
- * Checks if the input is a URL (starts with http:// or https://).
- */
-function isUrl(urlOrPathname: string): boolean {
-  return (
-    urlOrPathname.startsWith('http://') || urlOrPathname.startsWith('https://')
-  );
-}
-
-/**
  * Extracts the pathname from a blob URL.
  */
 function extractPathnameFromUrl(url: string): string {
@@ -96,17 +87,6 @@ function extractPathnameFromUrl(url: string): string {
   } catch {
     return url;
   }
-}
-
-/**
- * Constructs the blob URL from storeId and pathname.
- */
-function constructBlobUrl(
-  storeId: string,
-  pathname: string,
-  access: BlobAccessType,
-): string {
-  return `https://${storeId}.${access}.blob.vercel-storage.com/${pathname}`;
 }
 
 /**
@@ -157,7 +137,10 @@ export async function get(
   }
 
   const auth = resolveBlobAuth(options);
-  const bearerToken = auth.kind === 'readWrite' ? auth.token : auth.oidcToken;
+
+  if (auth.kind === 'presigned') {
+    throw new BlobError('Presigned URLs are not supported for the get method');
+  }
 
   let blobUrl: string;
   let pathname: string;
@@ -190,7 +173,7 @@ export async function get(
   // Fetch the blob content with authentication headers
   const requestHeaders: HeadersInit = {
     ...(options.ifNoneMatch ? { 'If-None-Match': options.ifNoneMatch } : {}),
-    authorization: `Bearer ${bearerToken}`,
+    authorization: `Bearer ${auth.token}`,
     ...options.headers, // low-level escape hatch, applied last to override anything
   };
 

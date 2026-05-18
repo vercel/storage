@@ -24,17 +24,6 @@ import {
  */
 export type DelegationOperation = 'get' | 'head' | 'put' | 'delete';
 
-/** Excluded from the string-to-sign; added after signing. @public for CDN / tooling alignment */
-export const BLOB_PRESIGN_QUERY_DELEGATION = 'vercel-blob-delegation' as const;
-/** @public for CDN / tooling alignment */
-export const BLOB_PRESIGN_QUERY_SIGNATURE = 'vercel-blob-signature' as const;
-
-/**
- * Maximum ms from request time until `validUntil` when the client supplies `validUntil`.
- * Matches the blob API `issue_signed_token` handler.
- */
-export const SIGNED_TOKEN_MAX_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
-
 /**
  * Result of `issueSignedToken` — the same values returned from `POST /signed-token` on
  * the Blob API. Use with {@link presignUrl} to obtain `{ presignedUrl }` for GET/HEAD,
@@ -74,8 +63,7 @@ export type IssueSignedTokenOptions = BlobCommandOptions & {
    */
   operations?: DelegationOperation[];
   /**
-   * Absolute delegation expiry (ms since epoch). Must be after `now` and at most
-   * `now + {@link SIGNED_TOKEN_MAX_DURATION_MS}`. When omitted, the API uses `now + 1 hour`.
+   * Absolute delegation expiry (ms since epoch). Must be after `now`. When omitted, the API uses `now + 1 hour`.
    */
   validUntil?: number;
 
@@ -104,12 +92,6 @@ function assertIssueSignedTokenValidUntilOption(validUntil: number): void {
   if (validUntil <= now) {
     throw new BlobError(
       '`issueSignedToken`: validUntil must be in the future.',
-    );
-  }
-  const maxUntil = now + SIGNED_TOKEN_MAX_DURATION_MS;
-  if (validUntil > maxUntil) {
-    throw new BlobError(
-      '`issueSignedToken`: validUntil cannot be more than 7 days after the current time.',
     );
   }
 }

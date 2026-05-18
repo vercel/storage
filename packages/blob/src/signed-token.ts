@@ -119,14 +119,6 @@ function assertIssueSignedTokenValidUntilOption(validUntil: number): void {
  * (`POST /signed-token`). Use OIDC (`VERCEL_OIDC_TOKEN` + `storeId` / `BLOB_STORE_ID`)
  * or a read–write token like other SDK control-plane calls. Client (browser) tokens
  * are not allowed by the server for this operation.
- *
- * JSON body fields supported by the API (delegation payload / `issue_signed_token`):
- * `pathname`, `operations`, `validUntil`, `maximumSizeInBytes`, `allowedContentTypes`.
- * Optional `maximumSizeInBytes` and `allowedContentTypes` narrow upload scope in the
- * delegation token. Everything else for presigned writes (`addRandomSuffix`, `ifMatch`,
- * `onUploadCompleted`, shorter `validUntil`, …) is **URL query only** — use
- * {@link presignUrl} / {@link PresignUrlOptions} (see `BLOB_PRESIGN_QUERY_*` in
- * `./presign-query-params`).
  */
 export async function issueSignedToken(
   options: IssueSignedTokenOptions,

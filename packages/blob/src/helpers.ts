@@ -179,12 +179,6 @@ export function parseStoreIdFromReadWriteToken(token: string): string {
   return storeId;
 }
 
-function normalizeDelegationStoreId(storeId: string): string {
-  return storeId.startsWith('store_')
-    ? storeId.slice('store_'.length)
-    : storeId;
-}
-
 function base64UrlDecodeDelegationSegment(segment: string): string {
   let base64 = segment.replace(/-/g, '+').replace(/_/g, '/');
   const padding = 4 - (base64.length % 4);
@@ -231,7 +225,7 @@ export function parseStoreIdFromDelegationToken(
     throw new BlobError('Delegation token payload is missing `storeId`.');
   }
 
-  return normalizeDelegationStoreId(parsed.storeId);
+  return normalizeStoreId(parsed.storeId);
 }
 
 export function parseStoreIdFromPresignedUrl(
@@ -275,7 +269,8 @@ export function resolveBlobAuth(
     return { kind: 'readWrite', token: options.token, storeId };
   }
 
-  const oidcToken = options?.oidcToken?.trim() || getVercelOidcToken();
+  const manualOidcToken = options?.oidcToken?.trim();
+  const oidcToken = manualOidcToken || getVercelOidcToken();
   if (oidcToken) {
     // Try to get storeId from the supplied options
     const manualStoreId = options?.storeId?.trim();
@@ -295,6 +290,14 @@ export function resolveBlobAuth(
         token: oidcToken,
         storeId: normalizeStoreId(blobStoreId),
       };
+    }
+
+    // User passed an OIDC token explicitly, but we couldn't resolve the storeId
+    // So throw an error. If the oidcToken is from the environment, fall back to rw token
+    if (manualOidcToken) {
+      throw new BlobError(
+        'oidcToken was passed, but no storeId was found. Pass a `storeId` option or set `BLOB_STORE_ID` to use OIDC auth',
+      );
     }
   }
 

@@ -2,3 +2,5 @@ packages:
   - 'packages/*'
   - 'tooling/*'
   - 'test/*'
+
+minimumReleaseAge: 2880

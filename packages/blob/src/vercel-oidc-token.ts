@@ -1,30 +1,22 @@
-import { getContext } from '@vercel/oidc';
+import { getVercelOidcTokenSync } from '@vercel/oidc';
 
-function readEnv(name: string): string | undefined {
+/**
+ * Gets the current OIDC token from the request context header or the
+ * `VERCEL_OIDC_TOKEN` env var, or `undefined` when none is set.
+ *
+ * Delegates to `@vercel/oidc`'s `getVercelOidcTokenSync`, which reads the
+ * `x-vercel-oidc-token` request-context header (falling back to
+ * `VERCEL_OIDC_TOKEN`) and throws when neither is present. We convert that
+ * throw to `undefined` so callers (see `resolveBlobAuth`) can fall through to
+ * a `BLOB_READ_WRITE_TOKEN`, and treat a blank token as absent.
+ *
+ * Do not cache this value, as it is subject to change in production!
+ */
+export function getVercelOidcToken(): string | undefined {
   try {
-    const value = process.env[name];
-    return typeof value === 'string' && value.trim() !== ''
-      ? value.trim()
-      : undefined;
+    const token = getVercelOidcTokenSync().trim();
+    return token === '' ? undefined : token;
   } catch {
     return undefined;
   }
-}
-
-/**
- * Gets the current OIDC token from request context headers or environment.
- *
- * Uses `@vercel/oidc`'s `getContext` to read the request-context headers
- * (previously inlined here) while keeping Blob's own resolution policy: a
- * blank `x-vercel-oidc-token` header is ignored in favor of
- * `VERCEL_OIDC_TOKEN`, and values are trimmed. `@vercel/oidc`'s own token
- * readers don't trim or fall back on blank headers, so the policy stays here.
- */
-export function getVercelOidcToken(): string | undefined {
-  const tokenFromContext = getContext().headers?.['x-vercel-oidc-token'];
-  if (typeof tokenFromContext === 'string' && tokenFromContext.trim() !== '') {
-    return tokenFromContext.trim();
-  }
-
-  return readEnv('VERCEL_OIDC_TOKEN');
 }

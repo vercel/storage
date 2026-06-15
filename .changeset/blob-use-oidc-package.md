@@ -2,4 +2,4 @@
 '@vercel/blob': patch
 ---
 
-Read the Vercel OIDC request context via the `@vercel/oidc` package instead of an inlined copy. This makes the OIDC dependency explicit (and discoverable) without changing behavior — Blob keeps trimming tokens and ignoring blank `x-vercel-oidc-token` headers in favor of `VERCEL_OIDC_TOKEN`.
+Read the Vercel OIDC token via the `@vercel/oidc` package (`getVercelOidcTokenSync`) instead of an inlined copy. This makes the dependency explicit and discoverable, and matches how other Vercel packages consume OIDC. Behavior is unchanged except for one edge case: a blank `x-vercel-oidc-token` request-context header now resolves to no token rather than falling back to `VERCEL_OIDC_TOKEN`.

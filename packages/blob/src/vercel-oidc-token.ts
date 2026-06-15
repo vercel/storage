@@ -1,36 +1,22 @@
-type Context = {
-  headers?: Record<string, string | undefined>;
-};
+import { getVercelOidcTokenSync } from '@vercel/oidc';
 
-const SYMBOL_FOR_REQ_CONTEXT = Symbol.for('@vercel/request-context');
-
-const getContext = (): Context => {
-  const fromSymbol: typeof globalThis & {
-    [SYMBOL_FOR_REQ_CONTEXT]?: { get?: () => Context };
-  } = globalThis;
-
-  return fromSymbol[SYMBOL_FOR_REQ_CONTEXT]?.get?.() ?? {};
-};
-
-function readEnv(name: string): string | undefined {
+/**
+ * Gets the current OIDC token from the request context header or the
+ * `VERCEL_OIDC_TOKEN` env var, or `undefined` when none is set.
+ *
+ * Delegates to `@vercel/oidc`'s `getVercelOidcTokenSync`, which reads the
+ * `x-vercel-oidc-token` request-context header (falling back to
+ * `VERCEL_OIDC_TOKEN`) and throws when neither is present. We convert that
+ * throw to `undefined` so callers (see `resolveBlobAuth`) can fall through to
+ * a `BLOB_READ_WRITE_TOKEN`, and treat a blank token as absent.
+ *
+ * Do not cache this value, as it is subject to change in production!
+ */
+export function getVercelOidcToken(): string | undefined {
   try {
-    const value = process.env[name];
-    return typeof value === 'string' && value.trim() !== ''
-      ? value.trim()
-      : undefined;
+    const token = getVercelOidcTokenSync().trim();
+    return token === '' ? undefined : token;
   } catch {
     return undefined;
   }
-}
-
-/**
- * Gets the current OIDC token from request context headers or environment.
- */
-export function getVercelOidcToken(): string | undefined {
-  const tokenFromContext = getContext().headers?.['x-vercel-oidc-token'];
-  if (typeof tokenFromContext === 'string' && tokenFromContext.trim() !== '') {
-    return tokenFromContext.trim();
-  }
-
-  return readEnv('VERCEL_OIDC_TOKEN');
 }

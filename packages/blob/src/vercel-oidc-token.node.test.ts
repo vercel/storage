@@ -41,7 +41,10 @@ describe('vercel-oidc-token', () => {
     expect(getVercelOidcToken()).toBe('jwt-from-request-context');
   });
 
-  it('getVercelOidcToken ignores empty request context header values', () => {
+  it('getVercelOidcToken returns undefined for a blank request context header', () => {
+    // @vercel/oidc selects the header over the env var as long as the header
+    // key is present, so a blank header resolves to undefined here (it does
+    // not fall back to VERCEL_OIDC_TOKEN).
     process.env.VERCEL_OIDC_TOKEN = 'jwt-from-env';
     (globalThis as typeof globalThis & Record<symbol, { get: () => unknown }>)[
       REQUEST_CONTEXT_SYMBOL
@@ -53,6 +56,6 @@ describe('vercel-oidc-token', () => {
       }),
     };
 
-    expect(getVercelOidcToken()).toBe('jwt-from-env');
+    expect(getVercelOidcToken()).toBeUndefined();
   });
 });

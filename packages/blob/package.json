@@ -51,13 +51,6 @@
     "test:node": "jest --env node .node.test.ts",
     "type-check": "tsc --noEmit"
   },
-  "jest": {
-    "preset": "ts-jest",
-    "testEnvironment": "node",
-    "testEnvironmentOptions": {
-      "url": "http://localhost:3000"
-    }
-  },
   "dependencies": {
     "@vercel/oidc": "^3.6.1",
     "async-retry": "^1.3.3",

@@ -38,6 +38,12 @@
 # Trusted publishing requires Node >= 22.14.0 and npm >= 11.5.1, which is why
 # we pin `node-version: latest` here. The `id-token: write` permission below
 # is what allows GitHub Actions to mint the OIDC token npm uses to verify us.
+#
+# Provenance: each publishable package sets `publishConfig.provenance: true` in
+# its package.json, so `npm publish` (invoked by `changeset publish`) generates
+# npm provenance attestations. This relies on the `id-token: write` permission
+# and a GitHub-hosted runner. See:
+#   https://docs.npmjs.com/generating-provenance-statements
 
 name: Release
 

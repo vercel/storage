@@ -11,6 +11,7 @@ import {
 } from './helpers';
 import {
   buildPresignCanonicalQueryEntries,
+  hasDisallowedControlChars,
   PRESIGN_CANONICAL_QUERY_KEYS,
 } from './presign-query-params';
 
@@ -352,6 +353,11 @@ export async function presign(
   const scope = tryDecodePayload(signedToken.delegationToken);
   if (!scope) {
     throw new BlobError('Invalid or unreadable `delegationToken` payload.');
+  }
+  if (hasDisallowedControlChars(options.pathname)) {
+    throw new BlobError(
+      'presignUrl: pathname contains disallowed control characters.',
+    );
   }
 
   const p = scope.pathname;

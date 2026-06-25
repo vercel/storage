@@ -291,7 +291,7 @@ export async function requestApi<TResponse>(
     | undefined,
 ): Promise<TResponse> {
   const apiVersion = getApiVersion();
-  const auth = resolveBlobAuth(commandOptions);
+  const auth = await resolveBlobAuth(commandOptions);
   const bearerToken = auth.kind === 'presigned' ? undefined : auth.token;
   const extraHeaders = getProxyThroughAlternativeApiHeaderFromEnv();
 

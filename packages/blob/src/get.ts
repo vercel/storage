@@ -13,10 +13,9 @@ export interface GetCommandOptions extends BlobCommandOptions {
    */
   access: BlobAccessType;
   /**
-   * Whether to allow the blob to be served from CDN cache.
-   * When false, fetches directly from origin storage.
-   * Only effective for private blobs (ignored for public blobs).
-   * @defaultValue true
+   * @deprecated No longer has any effect. The backend no longer supports
+   * bypassing the cache, so this option is ignored. It is kept only to avoid
+   * breaking existing callers and will be removed in a future major version.
    */
   useCache?: boolean;
   /**
@@ -100,9 +99,6 @@ function extractPathnameFromUrl(url: string): string {
  * ```ts
  * // Basic usage
  * const { stream, headers, blob } = await get('user123/avatar.png', { access: 'private' });
- *
- * // Bypass cache for private blobs (always fetch fresh from storage)
- * const { stream, headers, blob } = await get('user123/data.json', { access: 'private', useCache: false });
  * ```
  *
  * Detailed documentation can be found here: https://vercel.com/docs/vercel-blob/using-blob-sdk
@@ -110,7 +106,6 @@ function extractPathnameFromUrl(url: string): string {
  * @param urlOrPathname - The URL or pathname of the blob to fetch.
  * @param options - Configuration options including:
  *   - access - (Required) Must be 'public' or 'private'. Determines the access level of the blob.
- *   - useCache - (Optional) When false, fetches directly from origin storage instead of CDN cache. Only effective for private blobs. Defaults to true.
  *   - oidcToken - (Optional) Vercel OIDC token for authentication with `storeId` (or `BLOB_STORE_ID`); overrides `VERCEL_OIDC_TOKEN`.
  *   - storeId - (Optional) Store id when using Vercel OIDC token for authentication; overrides `BLOB_STORE_ID`.
  *   - token - (Optional) Read-write token when not using Vercel OIDC token for authentication, or set `BLOB_READ_WRITE_TOKEN`.
@@ -177,15 +172,7 @@ export async function get(
     ...options.headers, // low-level escape hatch, applied last to override anything
   };
 
-  // Construct fetch URL with optional cache bypass
-  let fetchUrl = blobUrl;
-  if (options.useCache === false) {
-    const url = new URL(blobUrl);
-    url.searchParams.set('cache', '0');
-    fetchUrl = url.toString();
-  }
-
-  const response = await fetch(fetchUrl, {
+  const response = await fetch(blobUrl, {
     method: 'GET',
     headers: requestHeaders,
     signal: options.abortSignal,

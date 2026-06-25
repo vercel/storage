@@ -1,5 +1,15 @@
 # @vercel/blob
 
+## 2.5.0
+
+### Minor Changes
+
+- 31a8b8f: Deprecate the `useCache` option on `get()`. The backend no longer honors the `cache=0` query parameter it produced, so the option is now a no-op — reads always go through the standard caching path. The option is still accepted (and ignored) to avoid breaking existing callers, and will be removed in a future major version.
+
+### Patch Changes
+
+- 9ac2586: Read the Vercel OIDC token via `@vercel/oidc`'s refreshing `getVercelOidcToken` instead of the non-refreshing `getVercelOidcTokenSync`. This refreshes an expired token in development environments. In production with a valid token, behavior is unchanged. If a refresh is needed but fails, the token is treated as absent so callers still fall back to `BLOB_READ_WRITE_TOKEN`.
+
 ## 2.4.1
 
 ### Patch Changes

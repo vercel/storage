@@ -254,9 +254,9 @@ export function normalizeStoreId(storeId: string): string {
  * 2. An explicit `oidcToken` (or `VERCEL_OIDC_TOKEN`) paired with `storeId` option (or `BLOB_STORE_ID`).
  * 3. `BLOB_READ_WRITE_TOKEN` from the environment.
  */
-export function resolveBlobAuth(
+export async function resolveBlobAuth(
   options?: BlobCommandOptions & BlobPresignedCommandOptions,
-): ResolvedBlobAuth {
+): Promise<ResolvedBlobAuth> {
   if (options?.presignedUrlPayload) {
     const storeId = parseStoreIdFromDelegationToken(
       options.presignedUrlPayload.delegationToken,
@@ -270,7 +270,7 @@ export function resolveBlobAuth(
   }
 
   const manualOidcToken = options?.oidcToken?.trim();
-  const oidcToken = manualOidcToken || getVercelOidcToken();
+  const oidcToken = manualOidcToken || (await getVercelOidcToken());
   if (oidcToken) {
     // Try to get storeId from the supplied options
     const manualStoreId = options?.storeId?.trim();

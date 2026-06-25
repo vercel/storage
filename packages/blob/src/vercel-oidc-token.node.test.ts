@@ -1,5 +1,18 @@
 import { getVercelOidcToken } from './vercel-oidc-token';
 
+// `@vercel/oidc`'s refreshing `getVercelOidcToken` lazily `import()`s its
+// token-refresh helpers, which jest's CJS runner cannot execute (it needs
+// --experimental-vm-modules). Refreshing only matters in dev/prod with an
+// expired token; for these tests we delegate to the synchronous reader, which
+// resolves the token from the same request-context header / env var sources.
+jest.mock('@vercel/oidc', () => {
+  const actual = jest.requireActual('@vercel/oidc');
+  return {
+    ...actual,
+    getVercelOidcToken: () => Promise.resolve(actual.getVercelOidcTokenSync()),
+  };
+});
+
 describe('vercel-oidc-token', () => {
   const OLD_ENV = process.env;
   const REQUEST_CONTEXT_SYMBOL = Symbol.for('@vercel/request-context');
@@ -16,17 +29,17 @@ describe('vercel-oidc-token', () => {
     process.env = OLD_ENV;
   });
 
-  it('getVercelOidcToken returns token from env', () => {
+  it('getVercelOidcToken returns token from env', async () => {
     process.env.VERCEL_OIDC_TOKEN = 'jwt-from-env';
-    expect(getVercelOidcToken()).toBe('jwt-from-env');
+    await expect(getVercelOidcToken()).resolves.toBe('jwt-from-env');
   });
 
-  it('getVercelOidcToken returns undefined when no token is available', () => {
+  it('getVercelOidcToken returns undefined when no token is available', async () => {
     delete process.env.VERCEL_OIDC_TOKEN;
-    expect(getVercelOidcToken()).toBeUndefined();
+    await expect(getVercelOidcToken()).resolves.toBeUndefined();
   });
 
-  it('getVercelOidcToken prioritizes request context headers over env', () => {
+  it('getVercelOidcToken prioritizes request context headers over env', async () => {
     process.env.VERCEL_OIDC_TOKEN = 'jwt-from-env';
     (globalThis as typeof globalThis & Record<symbol, { get: () => unknown }>)[
       REQUEST_CONTEXT_SYMBOL
@@ -38,10 +51,12 @@ describe('vercel-oidc-token', () => {
       }),
     };
 
-    expect(getVercelOidcToken()).toBe('jwt-from-request-context');
+    await expect(getVercelOidcToken()).resolves.toBe(
+      'jwt-from-request-context',
+    );
   });
 
-  it('getVercelOidcToken returns undefined for a blank request context header', () => {
+  it('getVercelOidcToken returns undefined for a blank request context header', async () => {
     // @vercel/oidc selects the header over the env var as long as the header
     // key is present, so a blank header resolves to undefined here (it does
     // not fall back to VERCEL_OIDC_TOKEN).
@@ -56,6 +71,6 @@ describe('vercel-oidc-token', () => {
       }),
     };
 
-    expect(getVercelOidcToken()).toBeUndefined();
+    await expect(getVercelOidcToken()).resolves.toBeUndefined();
   });
 });

@@ -11,9 +11,25 @@ import {
 } from './api';
 import { BlobError, createChunkTransformStream } from './helpers';
 
+// `@vercel/oidc`'s refreshing `getVercelOidcToken` lazily `import()`s its
+// token-refresh helpers, which jest's CJS runner cannot execute (it needs
+// --experimental-vm-modules). Refreshing only matters in dev/prod with an
+// expired token; for these tests we delegate to the synchronous reader, which
+// resolves the token from the same request-context header / env var sources.
+jest.mock('@vercel/oidc', () => {
+  const actual = jest.requireActual('@vercel/oidc');
+  return {
+    ...actual,
+    // A plain function (not jest.fn) so `jest.resetAllMocks()` in beforeEach
+    // doesn't wipe this implementation.
+    getVercelOidcToken: () => Promise.resolve(actual.getVercelOidcTokenSync()),
+  };
+});
+
 describe('api', () => {
   describe('request api', () => {
     const OLD_ENV = process.env;
+    const OIDC_TOKEN = 'oidc-jwt';
 
     beforeEach(() => {
       jest.useFakeTimers({ advanceTimers: true });
@@ -76,7 +92,7 @@ describe('api', () => {
 
       process.env.BLOB_READ_WRITE_TOKEN = undefined;
       process.env.BLOB_STORE_ID = 'oidcStore';
-      process.env.VERCEL_OIDC_TOKEN = 'oidc-jwt';
+      process.env.VERCEL_OIDC_TOKEN = OIDC_TOKEN;
 
       const res = await requestApi<{ success: boolean }>(
         '/method',
@@ -89,7 +105,7 @@ describe('api', () => {
         string,
         { headers: Record<string, string> },
       ];
-      expect(call[1].headers.authorization).toBe('Bearer oidc-jwt');
+      expect(call[1].headers.authorization).toBe(`Bearer ${OIDC_TOKEN}`);
       expect(call[1].headers['x-api-blob-request-id']).toMatch(
         /^oidcStore:\d+:[a-f0-9]+$/,
       );
@@ -108,7 +124,7 @@ describe('api', () => {
       process.env.BLOB_READ_WRITE_TOKEN =
         'vercel_blob_rw_fromRwToken_30FakeRandomCharacters12345678';
       process.env.BLOB_STORE_ID = 'oidcStore';
-      process.env.VERCEL_OIDC_TOKEN = 'oidc-jwt';
+      process.env.VERCEL_OIDC_TOKEN = OIDC_TOKEN;
 
       await requestApi<{ success: boolean }>(
         '/method',
@@ -121,7 +137,7 @@ describe('api', () => {
         string,
         { headers: Record<string, string> },
       ];
-      expect(call[1].headers.authorization).toBe('Bearer oidc-jwt');
+      expect(call[1].headers.authorization).toBe(`Bearer ${OIDC_TOKEN}`);
       expect(call[1].headers['x-api-blob-request-id']).toMatch(
         /^oidcStore:\d+:[a-f0-9]+$/,
       );
@@ -138,7 +154,7 @@ describe('api', () => {
 
       process.env.BLOB_READ_WRITE_TOKEN = undefined;
       process.env.BLOB_STORE_ID = 'fromEnv';
-      process.env.VERCEL_OIDC_TOKEN = 'oidc-jwt';
+      process.env.VERCEL_OIDC_TOKEN = OIDC_TOKEN;
 
       await requestApi<{ success: boolean }>(
         '/method',
@@ -151,7 +167,7 @@ describe('api', () => {
         string,
         { headers: Record<string, string> },
       ];
-      expect(call[1].headers.authorization).toBe('Bearer oidc-jwt');
+      expect(call[1].headers.authorization).toBe(`Bearer ${OIDC_TOKEN}`);
       expect(call[1].headers['x-api-blob-request-id']).toMatch(
         /^fromOption:\d+:[a-f0-9]+$/,
       );
@@ -229,7 +245,7 @@ describe('api', () => {
       process.env.BLOB_READ_WRITE_TOKEN = undefined;
       // What `vercel env pull` writes: prefixed, original case.
       process.env.BLOB_STORE_ID = 'store_WdsHBk1w9fDO4vPW';
-      process.env.VERCEL_OIDC_TOKEN = 'oidc-jwt';
+      process.env.VERCEL_OIDC_TOKEN = OIDC_TOKEN;
 
       await requestApi<{ success: boolean }>(
         '/method',
@@ -262,7 +278,7 @@ describe('api', () => {
 
       process.env.BLOB_READ_WRITE_TOKEN = undefined;
       delete process.env.BLOB_STORE_ID;
-      process.env.VERCEL_OIDC_TOKEN = 'oidc-jwt';
+      process.env.VERCEL_OIDC_TOKEN = OIDC_TOKEN;
 
       await requestApi<{ success: boolean }>(
         '/method',
@@ -290,7 +306,7 @@ describe('api', () => {
       process.env.BLOB_READ_WRITE_TOKEN =
         'vercel_blob_rw_fallbackStore_30FakeRandomCharacters12345678';
       delete process.env.BLOB_STORE_ID;
-      process.env.VERCEL_OIDC_TOKEN = 'orphan-oidc';
+      process.env.VERCEL_OIDC_TOKEN = OIDC_TOKEN;
 
       await requestApi<{ success: boolean }>(
         '/method',

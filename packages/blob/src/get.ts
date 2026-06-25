@@ -131,7 +131,7 @@ export async function get(
     );
   }
 
-  const auth = resolveBlobAuth(options);
+  const auth = await resolveBlobAuth(options);
 
   if (auth.kind === 'presigned') {
     throw new BlobError('Presigned URLs are not supported for the get method');

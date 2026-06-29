@@ -14,15 +14,18 @@ import { BlobError, createChunkTransformStream } from './helpers';
 // `@vercel/oidc`'s refreshing `getVercelOidcToken` lazily `import()`s its
 // token-refresh helpers, which jest's CJS runner cannot execute (it needs
 // --experimental-vm-modules). Refreshing only matters in dev/prod with an
-// expired token; for these tests we delegate to the synchronous reader, which
+// expired token; by default we delegate to the synchronous reader, which
 // resolves the token from the same request-context header / env var sources.
+// Tests can reassign `mockGetVercelOidcTokenImpl` to simulate a refresh.
+let mockGetVercelOidcTokenImpl: () => Promise<string>;
+
 jest.mock('@vercel/oidc', () => {
   const actual = jest.requireActual('@vercel/oidc');
   return {
     ...actual,
     // A plain function (not jest.fn) so `jest.resetAllMocks()` in beforeEach
-    // doesn't wipe this implementation.
-    getVercelOidcToken: () => Promise.resolve(actual.getVercelOidcTokenSync()),
+    // doesn't wipe this implementation; it forwards to the current impl.
+    getVercelOidcToken: () => mockGetVercelOidcTokenImpl(),
   };
 });
 
@@ -39,6 +42,16 @@ describe('api', () => {
       process.env = { ...OLD_ENV };
       delete process.env.BLOB_STORE_ID;
       delete process.env.VERCEL_OIDC_TOKEN;
+
+      // Reset to the default sync-delegating reader for each test.
+      mockGetVercelOidcTokenImpl = () =>
+        Promise.resolve(
+          (
+            jest.requireActual('@vercel/oidc') as {
+              getVercelOidcTokenSync: () => string;
+            }
+          ).getVercelOidcTokenSync(),
+        );
     });
 
     it('should throw if no token is provided', async () => {
@@ -110,6 +123,63 @@ describe('api', () => {
         /^oidcStore:\d+:[a-f0-9]+$/,
       );
       expect(res).toEqual({ success: true });
+    });
+
+    it('refreshes an expired OIDC token between requests via @vercel/oidc', async () => {
+      const fetchMock = jest.spyOn(undici, 'fetch').mockImplementation(
+        jest.fn().mockResolvedValue({
+          status: 200,
+          ok: true,
+          json: () => Promise.resolve({ success: true }),
+        }),
+      );
+
+      process.env.BLOB_READ_WRITE_TOKEN = undefined;
+      process.env.BLOB_STORE_ID = 'oidcStore';
+
+      // Simulate @vercel/oidc handing back a valid token on the first read,
+      // then — once that token has expired — transparently refreshing it and
+      // returning the new token on the next read. Token refresh is owned by
+      // @vercel/oidc; this asserts our wrapper surfaces whichever token it
+      // resolves, so a request after expiry stays authenticated.
+      const tokens = ['oidc-jwt-initial', 'oidc-jwt-refreshed'];
+      mockGetVercelOidcTokenImpl = () =>
+        Promise.resolve(tokens.shift() as string);
+
+      // First access: token is valid, content comes back.
+      const first = await requestApi<{ success: boolean }>(
+        '/method',
+        { method: 'GET' },
+        undefined,
+      );
+      expect(first).toEqual({ success: true });
+
+      // Second access: the original token has expired, but @vercel/oidc
+      // refreshed it under the hood, so we still get the content back.
+      const second = await requestApi<{ success: boolean }>(
+        '/method',
+        { method: 'GET' },
+        undefined,
+      );
+      expect(second).toEqual({ success: true });
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      const firstCall = fetchMock.mock.calls[0] as [
+        string,
+        { headers: Record<string, string> },
+      ];
+      const secondCall = fetchMock.mock.calls[1] as [
+        string,
+        { headers: Record<string, string> },
+      ];
+      // The first request carries the initial token; the second carries the
+      // refreshed token rather than the stale one.
+      expect(firstCall[1].headers.authorization).toBe(
+        'Bearer oidc-jwt-initial',
+      );
+      expect(secondCall[1].headers.authorization).toBe(
+        'Bearer oidc-jwt-refreshed',
+      );
     });
 
     it('should prefer OIDC when store id and VERCEL_OIDC_TOKEN are set, even if BLOB_READ_WRITE_TOKEN is set', async () => {

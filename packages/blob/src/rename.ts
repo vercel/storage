@@ -22,7 +22,7 @@ export interface RenameBlobResult {
  * the copy fails, the source blob is left untouched.
  *
  * @param fromUrlOrPathname - The blob URL (or pathname) to rename. You can only rename blobs that are in the store your token has access to.
- * @param toPathname - The pathname to rename the blob to. This includes the filename.
+ * @param toPathname - The pathname to rename the blob to.
  * @param options - Additional options. The rename method will not preserve any metadata configuration (e.g.: 'cacheControlMaxAge') of the source blob. If you want to keep the metadata, you need to define it here again.
  */
 export async function rename(

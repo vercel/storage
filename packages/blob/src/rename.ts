@@ -1,0 +1,105 @@
+import { MAXIMUM_PATHNAME_LENGTH, requestApi } from './api';
+import type { CommonCreateBlobOptions } from './helpers';
+import { BlobError, disallowedPathnameCharacters } from './helpers';
+
+export type RenameCommandOptions = CommonCreateBlobOptions;
+
+export interface RenameBlobResult {
+  url: string;
+  downloadUrl: string;
+  pathname: string;
+  contentType: string;
+  contentDisposition: string;
+  /**
+   * The ETag of the blob. Can be used with `ifMatch` for conditional writes.
+   */
+  etag: string;
+}
+
+/**
+ * Renames (moves) a blob to another pathname in your store. The blob is
+ * copied to the new pathname and the source blob is deleted afterwards. If
+ * the copy fails, the source blob is left untouched.
+ *
+ * @param fromUrlOrPathname - The blob URL (or pathname) to rename. You can only rename blobs that are in the store, that your 'BLOB_READ_WRITE_TOKEN' has access to.
+ * @param toPathname - The pathname to rename the blob to. This includes the filename.
+ * @param options - Additional options. The rename method will not preserve any metadata configuration (e.g.: 'cacheControlMaxAge') of the source blob. If you want to keep the metadata, you need to define it here again.
+ */
+export async function rename(
+  fromUrlOrPathname: string,
+  toPathname: string,
+  options: RenameCommandOptions,
+): Promise<RenameBlobResult> {
+  if (!options) {
+    throw new BlobError('missing options, see usage');
+  }
+
+  if (options.access !== 'public' && options.access !== 'private') {
+    throw new BlobError(
+      'access must be "private" or "public", see https://vercel.com/docs/vercel-blob',
+    );
+  }
+
+  if (toPathname.length > MAXIMUM_PATHNAME_LENGTH) {
+    throw new BlobError(
+      `pathname is too long, maximum length is ${MAXIMUM_PATHNAME_LENGTH}`,
+    );
+  }
+
+  for (const invalidCharacter of disallowedPathnameCharacters) {
+    if (toPathname.includes(invalidCharacter)) {
+      throw new BlobError(
+        `pathname cannot contain "${invalidCharacter}", please encode it if needed`,
+      );
+    }
+  }
+
+  const headers: Record<string, string> = {};
+
+  // access is always required, so always add it to headers
+  headers['x-vercel-blob-access'] = options.access;
+
+  if (options.addRandomSuffix !== undefined) {
+    headers['x-add-random-suffix'] = options.addRandomSuffix ? '1' : '0';
+  }
+
+  if (options.allowOverwrite !== undefined) {
+    headers['x-allow-overwrite'] = options.allowOverwrite ? '1' : '0';
+  }
+
+  if (options.contentType) {
+    headers['x-content-type'] = options.contentType;
+  }
+
+  if (options.cacheControlMaxAge !== undefined) {
+    headers['x-cache-control-max-age'] = options.cacheControlMaxAge.toString();
+  }
+
+  if (options.ifMatch) {
+    headers['x-if-match'] = options.ifMatch;
+  }
+
+  const params = new URLSearchParams({
+    pathname: toPathname,
+    fromUrl: fromUrlOrPathname,
+  });
+
+  const response = await requestApi<RenameBlobResult>(
+    `/rename?${params.toString()}`,
+    {
+      method: 'POST',
+      headers,
+      signal: options.abortSignal,
+    },
+    options,
+  );
+
+  return {
+    url: response.url,
+    downloadUrl: response.downloadUrl,
+    pathname: response.pathname,
+    contentType: response.contentType,
+    contentDisposition: response.contentDisposition,
+    etag: response.etag,
+  };
+}

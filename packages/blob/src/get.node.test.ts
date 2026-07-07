@@ -108,6 +108,57 @@ describe('presignUrl (get)', () => {
     );
   });
 
+  it('appends cache=0 when useCache is false on a private blob', async () => {
+    const pathname = 'media/photo.png';
+    const token = makeSignedToken(pathname);
+    const { presignedUrl: url } = await presignUrl(token, {
+      operation: 'get',
+      pathname,
+      access: 'private',
+      useCache: false,
+    });
+
+    const parsed = new URL(url);
+    expect(parsed.searchParams.get('cache')).toBe('0');
+
+    // cache is not part of the signed payload: the signature is identical to
+    // a URL presigned without useCache.
+    const { presignedUrl: withoutBypass } = await presignUrl(token, {
+      operation: 'get',
+      pathname,
+      access: 'private',
+    });
+    const withoutBypassParsed = new URL(withoutBypass);
+    expect(withoutBypassParsed.searchParams.get('cache')).toBeNull();
+    expect(parsed.searchParams.get('vercel-blob-signature')).toBe(
+      withoutBypassParsed.searchParams.get('vercel-blob-signature'),
+    );
+  });
+
+  it('does not append cache=0 when useCache is true or omitted', async () => {
+    const pathname = 'media/photo.png';
+    const token = makeSignedToken(pathname);
+    const { presignedUrl: url } = await presignUrl(token, {
+      operation: 'get',
+      pathname,
+      access: 'private',
+      useCache: true,
+    });
+    expect(new URL(url).searchParams.get('cache')).toBeNull();
+  });
+
+  it('ignores useCache: false for public blobs (CDN only supports the bypass for private)', async () => {
+    const pathname = 'a.png';
+    const token = makeSignedToken(pathname);
+    const { presignedUrl: url } = await presignUrl(token, {
+      operation: 'get',
+      pathname,
+      access: 'public',
+      useCache: false,
+    });
+    expect(new URL(url).searchParams.get('cache')).toBeNull();
+  });
+
   it('rejects an invalid delegation token', async () => {
     const token = {
       delegationToken: 'not-a-jwt',

@@ -103,6 +103,11 @@ export { list } from './list';
 export type { CopyBlobResult, CopyCommandOptions } from './copy';
 export { copy } from './copy';
 
+// vercelBlob.rename()
+
+export type { RenameBlobResult, RenameCommandOptions } from './rename';
+export { rename } from './rename';
+
 // vercelBlob. createMultipartUpload()
 // vercelBlob. uploadPart()
 // vercelBlob. completeMultipartUpload()

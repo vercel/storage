@@ -14,6 +14,7 @@ import {
   head,
   list,
   put,
+  rename,
   uploadPart,
 } from './index';
 
@@ -1311,6 +1312,136 @@ describe('blob client', () => {
         access: 'public',
       });
       expect(headers['x-vercel-blob-access']).toEqual('public');
+    });
+  });
+
+  describe('rename', () => {
+    const mockedRenameResult = {
+      url: `${BLOB_STORE_BASE_URL}/destination.txt`,
+      downloadUrl: `${BLOB_STORE_BASE_URL}/destination.txt?download=1`,
+      pathname: 'destination.txt',
+      contentType: 'text/plain',
+      contentDisposition: 'attachment; filename="destination.txt"',
+      etag: '"def456"',
+    };
+
+    it('throws when filepath is too long', async () => {
+      await expect(
+        rename('source', 'a'.repeat(951), {
+          access: 'public',
+        }),
+      ).rejects.toThrow(
+        new Error('Vercel Blob: pathname is too long, maximum length is 950'),
+      );
+    });
+
+    it('should throw when using an invalid access value', async () => {
+      await expect(
+        rename('source', 'destination.txt', {
+          // @ts-expect-error: testing that an invalid value throws
+          access: 'invalid',
+        }),
+      ).rejects.toThrow(
+        new Error(
+          'Vercel Blob: access must be "private" or "public", see https://vercel.com/docs/vercel-blob',
+        ),
+      );
+    });
+
+    it('should rename a file with a POST to /rename', async () => {
+      let path: string | null = null;
+      let headers: Record<string, string> = {};
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          path = req.path;
+          headers = req.headers as Record<string, string>;
+          return mockedRenameResult;
+        });
+
+      await expect(
+        rename('source.txt', 'destination.txt', {
+          access: 'public',
+        }),
+      ).resolves.toMatchInlineSnapshot(`
+        {
+          "contentDisposition": "attachment; filename="destination.txt"",
+          "contentType": "text/plain",
+          "downloadUrl": "https://storeId.public.blob.vercel-storage.com/destination.txt?download=1",
+          "etag": ""def456"",
+          "pathname": "destination.txt",
+          "url": "https://storeId.public.blob.vercel-storage.com/destination.txt",
+        }
+      `);
+      expect(path).toEqual(
+        '/api/blob/rename?pathname=destination.txt&fromUrl=source.txt',
+      );
+      expect(headers['x-vercel-blob-access']).toEqual('public');
+    });
+
+    it('sets the x-vercel-blob-access header for private access on rename', async () => {
+      let headers: Record<string, string> = {};
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedRenameResult;
+        });
+
+      await rename('source.txt', 'destination.txt', {
+        access: 'private',
+      });
+      expect(headers['x-vercel-blob-access']).toEqual('private');
+    });
+
+    it('sets the allowOverwrite and addRandomSuffix headers', async () => {
+      let headers: Record<string, string> = {};
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedRenameResult;
+        });
+
+      await rename('source.txt', 'destination.txt', {
+        access: 'public',
+        allowOverwrite: true,
+        addRandomSuffix: true,
+      });
+      expect(headers['x-allow-overwrite']).toEqual('1');
+      expect(headers['x-add-random-suffix']).toEqual('1');
+    });
+
+    it('should send x-if-match header when ifMatch option is provided', async () => {
+      let headers: Record<string, string> = {};
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedRenameResult;
+        });
+
+      await rename('source.txt', 'destination.txt', {
+        access: 'public',
+        ifMatch: '"source-etag"',
+      });
+      expect(headers['x-if-match']).toEqual('"source-etag"');
     });
   });
 

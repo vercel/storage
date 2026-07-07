@@ -21,7 +21,7 @@ export interface RenameBlobResult {
  * copied to the new pathname and the source blob is deleted afterwards. If
  * the copy fails, the source blob is left untouched.
  *
- * @param fromUrlOrPathname - The blob URL (or pathname) to rename. You can only rename blobs that are in the store, that your 'BLOB_READ_WRITE_TOKEN' has access to.
+ * @param fromUrlOrPathname - The blob URL (or pathname) to rename. You can only rename blobs that are in the store your token has access to.
  * @param toPathname - The pathname to rename the blob to. This includes the filename.
  * @param options - Additional options. The rename method will not preserve any metadata configuration (e.g.: 'cacheControlMaxAge') of the source blob. If you want to keep the metadata, you need to define it here again.
  */

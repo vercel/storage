@@ -455,15 +455,16 @@ export function computeBodyLength(body: PutBody): number {
 export const createChunkTransformStream = (
   chunkSize: number,
   onProgress?: (bytes: number) => void,
-): TransformStream<ArrayBuffer | Uint8Array> => {
+): TransformStream<ArrayBuffer | Uint8Array, Uint8Array> => {
   let buffer = new Uint8Array(0);
 
-  return new TransformStream<ArrayBuffer, Uint8Array>({
+  return new TransformStream<ArrayBuffer | Uint8Array, Uint8Array>({
     transform(chunk, controller) {
       // Combine the new chunk with any leftover data
-      const newBuffer = new Uint8Array(buffer.length + chunk.byteLength);
+      const chunkData = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
+      const newBuffer = new Uint8Array(buffer.length + chunkData.byteLength);
       newBuffer.set(buffer);
-      newBuffer.set(new Uint8Array(chunk), buffer.length);
+      newBuffer.set(chunkData, buffer.length);
       buffer = newBuffer;
 
       // Output complete chunks

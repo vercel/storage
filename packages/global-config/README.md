@@ -10,7 +10,7 @@ npm install @vercel/global-config
 
 ## Examples
 
-You can use the methods below to read your Edge Config given you have its Connection String stored in an Environment Variable called `process.env.EDGE_CONFIG`.
+You can use the methods below to read your Edge Config given you have its Connection String stored in an Environment Variable called `process.env.GLOBAL_CONFIG`.
 
 ### Reading a value
 
@@ -56,7 +56,7 @@ Throws on invalid tokens, deleted edge configs or network errors.
 
 ### Default behaviour
 
-By default `@vercel/global-config` will read from the Edge Config stored in `process.env.EDGE_CONFIG`.
+By default `@vercel/global-config` will read from the Edge Config stored in `process.env.GLOBAL_CONFIG`, falling back to `process.env.EDGE_CONFIG` if `process.env.GLOBAL_CONFIG` is not defined.
 
 The exported `get`, `getAll`, `has` and `digest` functions are bound to this default Edge Config Client.
 
@@ -66,7 +66,7 @@ You can use `createClient(connectionString)` to read values from Edge Configs ot
 
 ```js
 import { createClient } from '@vercel/global-config';
-const edgeConfig = createClient(process.env.ANOTHER_EDGE_CONFIG);
+const edgeConfig = createClient(process.env.ANOTHER_GLOBAL_CONFIG);
 await edgeConfig.get('someKey');
 ```
 
@@ -123,7 +123,7 @@ import { trace } from '@opentelemetry/api';
 setTracerProvider(trace);
 ```
 
-More verbose traces can be enabled by setting the `EDGE_CONFIG_TRACE_VERBOSE` environment variable to `true`.
+More verbose traces can be enabled by setting the `GLOBAL_CONFIG_TRACE_VERBOSE` environment variable to `true`.
 
 ## Frameworks
 
@@ -142,7 +142,7 @@ To use Edge Config with static pages, pass the `force-cache` option:
 ```js
 import { createClient } from '@vercel/global-config';
 
-const edgeConfigClient = createClient(process.env.EDGE_CONFIG, {
+const edgeConfigClient = createClient(process.env.GLOBAL_CONFIG, {
   cache: 'force-cache',
 });
 
@@ -186,10 +186,10 @@ export default defineConfig(({ mode }) => {
 
 ```diff
 import { createClient } from '@vercel/global-config';
-+ import { EDGE_CONFIG } from '$env/static/private';
++ import { GLOBAL_CONFIG } from '$env/static/private';
 
-- const edgeConfig = createClient(process.env.ANOTHER_EDGE_CONFIG);
-+ const edgeConfig = createClient(EDGE_CONFIG);
+- const edgeConfig = createClient(process.env.ANOTHER_GLOBAL_CONFIG);
++ const edgeConfig = createClient(GLOBAL_CONFIG);
 await edgeConfig.get('someKey');
 ```
 

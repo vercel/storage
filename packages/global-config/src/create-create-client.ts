@@ -44,7 +44,7 @@ export function createCreateClient({
    *
    * If you need to programmatically write to an Edge Config, check out the [Update your Edge Config items](https://vercel.com/docs/storage/edge-config/vercel-api#update-your-edge-config-items) section.
    *
-   * @param connectionString - A connection string. Usually you'd pass in `process.env.EDGE_CONFIG` here, which contains a connection string.
+   * @param connectionString - A connection string. Usually you'd pass in `process.env.GLOBAL_CONFIG` here, which contains a connection string.
    * @returns An Edge Config Client instance
    */
   return trace(
@@ -90,7 +90,8 @@ export function createCreateClient({
       const shouldUseDevelopmentCache =
         !options.disableDevelopmentCache &&
         process.env.NODE_ENV === 'development' &&
-        process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
+        (process.env.GLOBAL_CONFIG_DISABLE_DEVELOPMENT_SWR ??
+          process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR) !== '1';
 
       const api: Omit<EdgeConfigClient, 'connection'> = {
         get: trace(

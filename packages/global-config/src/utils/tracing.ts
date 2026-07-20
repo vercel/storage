@@ -33,7 +33,7 @@ export function trace<F extends (...args: any) => any>(
   fn: F,
   options: {
     name: string;
-    /** Defaults to `true`. If set to `false`, it'll trace regardless of `EDGE_CONFIG_TRACE_VERBOSE`. */
+    /** Defaults to `true`. If set to `false`, it'll trace regardless of `GLOBAL_CONFIG_TRACE_VERBOSE`. */
     isVerboseTrace?: boolean;
     attributes?: Attributes;
     attributesSuccess?: (
@@ -49,7 +49,8 @@ export function trace<F extends (...args: any) => any>(
     if (!tracer) return fn.apply(this, args);
 
     const shouldTrace =
-      process.env.EDGE_CONFIG_TRACE_VERBOSE === 'true' ||
+      (process.env.GLOBAL_CONFIG_TRACE_VERBOSE ??
+        process.env.EDGE_CONFIG_TRACE_VERBOSE) === 'true' ||
       options.isVerboseTrace === false;
     if (!shouldTrace) return fn.apply(this, args);
 

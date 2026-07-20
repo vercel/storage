@@ -128,7 +128,7 @@ async function fetchEdgeConfigTraceForNext(
  *
  * If you need to programmatically write to an Edge Config, check out the [Update your Edge Config items](https://vercel.com/docs/storage/edge-config/vercel-api#update-your-edge-config-items) section.
  *
- * @param connectionString - A connection string. Usually you'd pass in `process.env.EDGE_CONFIG` here, which contains a connection string.
+ * @param connectionString - A connection string. Usually you'd pass in `process.env.GLOBAL_CONFIG` here, which contains a connection string.
  * @returns An Edge Config Client instance
  */
 export const createClient = createCreateClient({
@@ -142,11 +142,14 @@ export const createClient = createCreateClient({
 
 let defaultEdgeConfigClient: EdgeConfigClient;
 
-// lazy init fn so the default edge config does not throw in case
-// process.env.EDGE_CONFIG is not defined and its methods are never used.
+// lazy init fn so the default global config does not throw in case
+// process.env.GLOBAL_CONFIG and process.env.EDGE_CONFIG are not defined and
+// its methods are never used.
 function init(): void {
   if (!defaultEdgeConfigClient) {
-    defaultEdgeConfigClient = createClient(process.env.EDGE_CONFIG);
+    defaultEdgeConfigClient = createClient(
+      process.env.GLOBAL_CONFIG ?? process.env.EDGE_CONFIG,
+    );
   }
 }
 
@@ -154,7 +157,7 @@ function init(): void {
  * Reads a single item from the default Edge Config.
  *
  * This is a convenience method which reads the default Edge Config.
- * It is conceptually similar to `createClient(process.env.EDGE_CONFIG).get()`.
+ * It is conceptually similar to `createClient(process.env.GLOBAL_CONFIG).get()`.
  *
  * @see {@link EdgeConfigClient.get}
  * @param key - the key to read
@@ -169,7 +172,7 @@ export const get: EdgeConfigClient['get'] = (...args) => {
  * Reads multiple or all values.
  *
  * This is a convenience method which reads the default Edge Config.
- * It is conceptually similar to `createClient(process.env.EDGE_CONFIG).getAll()`.
+ * It is conceptually similar to `createClient(process.env.GLOBAL_CONFIG).getAll()`.
  *
  * @see {@link EdgeConfigClient.getAll}
  * @param keys - the keys to read
@@ -184,7 +187,7 @@ export const getAll: EdgeConfigClient['getAll'] = (...args) => {
  * Check if a given key exists in the Edge Config.
  *
  * This is a convenience method which reads the default Edge Config.
- * It is conceptually similar to `createClient(process.env.EDGE_CONFIG).has()`.
+ * It is conceptually similar to `createClient(process.env.GLOBAL_CONFIG).has()`.
  *
  * @see {@link EdgeConfigClient.has}
  * @param key - the key to check
@@ -199,7 +202,7 @@ export const has: EdgeConfigClient['has'] = (...args) => {
  * Get the digest of the Edge Config.
  *
  * This is a convenience method which reads the default Edge Config.
- * It is conceptually similar to `createClient(process.env.EDGE_CONFIG).digest()`.
+ * It is conceptually similar to `createClient(process.env.GLOBAL_CONFIG).digest()`.
  *
  * @see {@link EdgeConfigClient.digest}
  * @returns The digest of the Edge Config.

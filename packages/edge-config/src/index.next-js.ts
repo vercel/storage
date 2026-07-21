@@ -136,10 +136,13 @@ export const createClient = createCreateClient({
 let defaultEdgeConfigClient: EdgeConfigClient;
 
 // lazy init fn so the default edge config does not throw in case
-// process.env.EDGE_CONFIG is not defined and its methods are never used.
+// process.env.EDGE_CONFIG and process.env.GLOBAL_CONFIG are not defined and
+// its methods are never used.
 function init(): void {
   if (!defaultEdgeConfigClient) {
-    defaultEdgeConfigClient = createClient(process.env.EDGE_CONFIG);
+    defaultEdgeConfigClient = createClient(
+      process.env.EDGE_CONFIG ?? process.env.GLOBAL_CONFIG,
+    );
   }
 }
 

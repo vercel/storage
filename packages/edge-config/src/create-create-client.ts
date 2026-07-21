@@ -90,7 +90,8 @@ export function createCreateClient({
       const shouldUseDevelopmentCache =
         !options.disableDevelopmentCache &&
         process.env.NODE_ENV === 'development' &&
-        process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR !== '1';
+        (process.env.EDGE_CONFIG_DISABLE_DEVELOPMENT_SWR ??
+          process.env.GLOBAL_CONFIG_DISABLE_DEVELOPMENT_SWR) !== '1';
 
       const api: Omit<EdgeConfigClient, 'connection'> = {
         get: trace(

@@ -56,7 +56,7 @@ Throws on invalid tokens, deleted edge configs or network errors.
 
 ### Default behaviour
 
-By default `@vercel/edge-config` will read from the Edge Config stored in `process.env.EDGE_CONFIG`.
+By default `@vercel/edge-config` will read from the Edge Config stored in `process.env.EDGE_CONFIG`, falling back to `process.env.GLOBAL_CONFIG` if `process.env.EDGE_CONFIG` is not defined.
 
 The exported `get`, `getAll`, `has` and `digest` functions are bound to this default Edge Config Client.
 

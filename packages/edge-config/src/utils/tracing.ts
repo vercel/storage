@@ -49,7 +49,8 @@ export function trace<F extends (...args: any) => any>(
     if (!tracer) return fn.apply(this, args);
 
     const shouldTrace =
-      process.env.EDGE_CONFIG_TRACE_VERBOSE === 'true' ||
+      (process.env.EDGE_CONFIG_TRACE_VERBOSE ??
+        process.env.GLOBAL_CONFIG_TRACE_VERBOSE) === 'true' ||
       options.isVerboseTrace === false;
     if (!shouldTrace) return fn.apply(this, args);
 

@@ -67,17 +67,22 @@ export const clone = trace(
 );
 
 /**
- * Parses internal edge config connection strings
+ * Parses internal global config connection strings
  *
- * Internal edge config connection strings are those which are native to Vercel.
+ * Internal global config connection strings are those which are native to Vercel.
  *
- * Internal Edge Config Connection Strings look like this:
- * https://edge-config.vercel.com/<edgeConfigId>?token=<token>
+ * Internal Global Config Connection Strings look like this:
+ * - https://global-config.vercel.com/<globalConfigId>?token=<token>
+ * - https://edge-config.vercel.com/<globalConfigId>?token=<token>
  */
 function parseVercelConnectionStringFromUrl(text: string): Connection | null {
   try {
     const url = new URL(text);
-    if (url.host !== 'edge-config.vercel.com') return null;
+    if (
+      url.host !== 'global-config.vercel.com' &&
+      url.host !== 'edge-config.vercel.com'
+    )
+      return null;
     if (url.protocol !== 'https:') return null;
     if (!url.pathname.startsWith('/ecfg')) return null;
 
@@ -89,7 +94,7 @@ function parseVercelConnectionStringFromUrl(text: string): Connection | null {
 
     return {
       type: 'vercel',
-      baseUrl: `https://edge-config.vercel.com/${id}`,
+      baseUrl: `https://${url.host}/${id}`,
       id,
       version: '1',
       token,
@@ -140,7 +145,7 @@ function parseConnectionFromQueryParams(text: string): Connection | null {
  * msw.
  *
  * To allow interception we need a custom connection string as the
- * edge-config.vercel.com connection string might not always go over
+ * global-config.vercel.com connection string might not always go over
  * the network, so msw would not have a chance to intercept.
  */
 /**
@@ -186,13 +191,14 @@ function parseExternalConnectionStringFromUrl(
 }
 
 /**
- * Parse the edgeConfigId and token from an Edge Config Connection String.
+ * Parse the globalConfigId and token from a Global Config Connection String.
  *
- * Edge Config Connection Strings usually look like one of the following:
- *  - https://edge-config.vercel.com/<edgeConfigId>?token=<token>
- *  - edge-config:id=<edgeConfigId>&token=<token>
+ * Global Config Connection Strings usually look like one of the following:
+ *  - https://global-config.vercel.com/<globalConfigId>?token=<token>
+ *  - https://edge-config.vercel.com/<globalConfigId>?token=<token>
+ *  - edge-config:id=<globalConfigId>&token=<token>
  *
- * @param text - A potential Edge Config Connection String
+ * @param text - A potential Global Config Connection String
  * @returns The connection parsed from the given Connection String or null.
  */
 export function parseConnectionString(

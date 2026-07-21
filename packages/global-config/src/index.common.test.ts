@@ -49,6 +49,21 @@ describe('parseConnectionString', () => {
     });
   });
 
+  it('should return the id and token when a valid internal global-config.vercel.com Connection String is given', () => {
+    expect(
+      pkg.parseConnectionString(
+        'https://global-config.vercel.com/ecfg_cljia81u2q1gappdgptj881dwwtc?token=00000000-0000-0000-0000-000000000000',
+      ),
+    ).toEqual({
+      baseUrl:
+        'https://global-config.vercel.com/ecfg_cljia81u2q1gappdgptj881dwwtc',
+      id: 'ecfg_cljia81u2q1gappdgptj881dwwtc',
+      token: '00000000-0000-0000-0000-000000000000',
+      type: 'vercel',
+      version: '1',
+    });
+  });
+
   it('should return the id and token when a valid external Connection String is given using pathname', () => {
     expect(
       pkg.parseConnectionString(

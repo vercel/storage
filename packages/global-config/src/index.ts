@@ -33,14 +33,14 @@ export type {
 };
 
 /**
- * Create an Edge Config client.
+ * Create a Global Config client.
  *
- * The client has multiple methods which allow you to read the Edge Config.
+ * The client has multiple methods which allow you to read the Global Config.
  *
- * If you need to programmatically write to an Edge Config, check out the [Update your Edge Config items](https://vercel.com/docs/storage/edge-config/vercel-api#update-your-edge-config-items) section.
+ * If you need to programmatically write to a Global Config, check out the [Update your Global Config items](https://vercel.com/docs/storage/edge-config/vercel-api#update-your-edge-config-items) section.
  *
  * @param connectionString - A connection string. Usually you'd pass in `process.env.GLOBAL_CONFIG` here, which contains a connection string.
- * @returns An Edge Config Client instance
+ * @returns A Global Config Client instance
  */
 export const createClient = createCreateClient({
   getInMemoryEdgeConfig,
@@ -65,9 +65,9 @@ function init(): void {
 }
 
 /**
- * Reads a single item from the default Edge Config.
+ * Reads a single item from the default Global Config.
  *
- * This is a convenience method which reads the default Edge Config.
+ * This is a convenience method which reads the default Global Config.
  * It is conceptually similar to `createClient(process.env.GLOBAL_CONFIG).get()`.
  *
  * @see {@link EdgeConfigClient.get}
@@ -82,7 +82,7 @@ export const get: EdgeConfigClient['get'] = (...args) => {
 /**
  * Reads multiple or all values.
  *
- * This is a convenience method which reads the default Edge Config.
+ * This is a convenience method which reads the default Global Config.
  * It is conceptually similar to `createClient(process.env.GLOBAL_CONFIG).getAll()`.
  *
  * @see {@link EdgeConfigClient.getAll}
@@ -95,14 +95,14 @@ export const getAll: EdgeConfigClient['getAll'] = (...args) => {
 };
 
 /**
- * Check if a given key exists in the Edge Config.
+ * Check if a given key exists in the Global Config.
  *
- * This is a convenience method which reads the default Edge Config.
+ * This is a convenience method which reads the default Global Config.
  * It is conceptually similar to `createClient(process.env.GLOBAL_CONFIG).has()`.
  *
  * @see {@link EdgeConfigClient.has}
  * @param key - the key to check
- * @returns true if the given key exists in the Edge Config.
+ * @returns true if the given key exists in the Global Config.
  */
 export const has: EdgeConfigClient['has'] = (...args) => {
   init();
@@ -110,13 +110,13 @@ export const has: EdgeConfigClient['has'] = (...args) => {
 };
 
 /**
- * Get the digest of the Edge Config.
+ * Get the digest of the Global Config.
  *
- * This is a convenience method which reads the default Edge Config.
+ * This is a convenience method which reads the default Global Config.
  * It is conceptually similar to `createClient(process.env.GLOBAL_CONFIG).digest()`.
  *
  * @see {@link EdgeConfigClient.digest}
- * @returns The digest of the Edge Config.
+ * @returns The digest of the Global Config.
  */
 export const digest: EdgeConfigClient['digest'] = (...args) => {
   init();
@@ -124,7 +124,7 @@ export const digest: EdgeConfigClient['digest'] = (...args) => {
 };
 
 /**
- * Safely clones a read-only Edge Config object and makes it mutable.
+ * Safely clones a read-only Global Config object and makes it mutable.
  */
 export function clone<T = EdgeConfigValue>(edgeConfigValue: T): T {
   // Use JSON.parse and JSON.stringify instead of anything else due to

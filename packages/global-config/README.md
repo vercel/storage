@@ -1,6 +1,8 @@
 # @vercel/global-config
 
-A client that lets you read Edge Config.
+A client that lets you read Global Config (formerly known as Edge Config).
+
+This package is a drop-in replacement for `@vercel/edge-config`.
 
 ## Installation
 
@@ -10,7 +12,7 @@ npm install @vercel/global-config
 
 ## Examples
 
-You can use the methods below to read your Edge Config given you have its Connection String stored in an Environment Variable called `process.env.GLOBAL_CONFIG`.
+You can use the methods below to read your Global Config given you have its Connection String stored in an Environment Variable called `process.env.GLOBAL_CONFIG`.
 
 ### Reading a value
 
@@ -21,7 +23,7 @@ await get('someKey');
 
 Returns the value if the key exists.
 Returns `undefined` if the key does not exist.
-Throws on invalid tokens, deleted edge configs or network errors.
+Throws on invalid tokens, deleted global configs or network errors.
 
 ### Checking if a key exists
 
@@ -32,7 +34,7 @@ await has('someKey');
 
 Returns `true` if the key exists.
 Returns `false` if the key does not exist.
-Throws on invalid tokens, deleted edge configs or network errors.
+Throws on invalid tokens, deleted global configs or network errors.
 
 ### Reading all items
 
@@ -41,8 +43,8 @@ import { getAll } from '@vercel/global-config';
 await getAll();
 ```
 
-Returns all Edge Config items.
-Throws on invalid tokens, deleted edge configs or network errors.
+Returns all Global Config items.
+Throws on invalid tokens, deleted global configs or network errors.
 
 ### Reading items in batch
 
@@ -51,18 +53,18 @@ import { getAll } from '@vercel/global-config';
 await getAll(['keyA', 'keyB']);
 ```
 
-Returns selected Edge Config items.
-Throws on invalid tokens, deleted edge configs or network errors.
+Returns selected Global Config items.
+Throws on invalid tokens, deleted global configs or network errors.
 
 ### Default behaviour
 
-By default `@vercel/global-config` will read from the Edge Config stored in `process.env.GLOBAL_CONFIG`, falling back to `process.env.EDGE_CONFIG` if `process.env.GLOBAL_CONFIG` is not defined.
+By default `@vercel/global-config` will read from the Global Config stored in `process.env.GLOBAL_CONFIG`, falling back to `process.env.EDGE_CONFIG` if `process.env.GLOBAL_CONFIG` is not defined.
 
-The exported `get`, `getAll`, `has` and `digest` functions are bound to this default Edge Config Client.
+The exported `get`, `getAll`, `has` and `digest` functions are bound to this default Global Config Client.
 
-### Reading a value from a specific Edge Config
+### Reading a value from a specific Global Config
 
-You can use `createClient(connectionString)` to read values from Edge Configs other than the default one.
+You can use `createClient(connectionString)` to read values from Global Configs other than the default one.
 
 ```js
 import { createClient } from '@vercel/global-config';
@@ -70,9 +72,9 @@ const edgeConfig = createClient(process.env.ANOTHER_GLOBAL_CONFIG);
 await edgeConfig.get('someKey');
 ```
 
-The `createClient` function connects to a any Edge Config based on the provided Connection String.
+The `createClient` function connects to a any Global Config based on the provided Connection String.
 
-It returns the same `get`, `getAll`, `has` and `digest` functions as the default Edge Config Client exports.
+It returns the same `get`, `getAll`, `has` and `digest` functions as the default Global Config Client exports.
 
 ### Making a value mutable
 
@@ -80,14 +82,14 @@ By default, the value returned by `get` and `getAll` is immutable. Modifying the
 
 In order to make the returned value mutable, you can use the exported function `clone` to safely clone the object and make it mutable.
 
-## Writing Edge Config Items
+## Writing Global Config Items
 
-Edge Config Items can be managed in two ways:
+Global Config Items can be managed in two ways:
 
 - [Using the Dashboard on vercel.com](https://vercel.com/docs/concepts/edge-network/edge-config/edge-config-dashboard#manage-items-in-the-store)
 - [Using the Vercel API](https://vercel.com/docs/concepts/edge-network/edge-config/vercel-api#update-your-edge-config)
 
-Keep in mind that Edge Config is built for very high read volume, but for infrequent writes.
+Keep in mind that Global Config is built for very high read volume, but for infrequent writes.
 
 ## Error Handling
 
@@ -131,13 +133,13 @@ More verbose traces can be enabled by setting the `GLOBAL_CONFIG_TRACE_VERBOSE` 
 
 #### Cache Components
 
-The Edge Config SDK supports [Cache Components](https://nextjs.org/docs/app/getting-started/cache-components) out of the box. Since Edge Config is a dynamic operation it always triggers dynamic mode unless you explicitly opt out as shown in the next section.
+The Global Config SDK supports [Cache Components](https://nextjs.org/docs/app/getting-started/cache-components) out of the box. Since Global Config is a dynamic operation it always triggers dynamic mode unless you explicitly opt out as shown in the next section.
 
 ##### Fetch cache
 
-By default the Edge Config SDK will fetch with `no-store`, which triggers dynamic mode in Next.js ([docs](https://nextjs.org/docs/app/api-reference/functions/fetch#optionscache)).
+By default the Global Config SDK will fetch with `no-store`, which triggers dynamic mode in Next.js ([docs](https://nextjs.org/docs/app/api-reference/functions/fetch#optionscache)).
 
-To use Edge Config with static pages, pass the `force-cache` option:
+To use Global Config with static pages, pass the `force-cache` option:
 
 ```js
 import { createClient } from '@vercel/global-config';
@@ -197,9 +199,9 @@ await edgeConfig.get('someKey');
 
 ### Do not mutate return values
 
-Cloning objects in JavaScript can be slow. That's why the Edge Config SDK uses an optimization which can lead to multiple calls reading the same key all receiving a reference to the same value.
+Cloning objects in JavaScript can be slow. That's why the Global Config SDK uses an optimization which can lead to multiple calls reading the same key all receiving a reference to the same value.
 
-For this reason the value read from Edge Config should never be mutated, otherwise they could affect other parts of the code base reading the same key, or a later request reading the same key.
+For this reason the value read from Global Config should never be mutated, otherwise they could affect other parts of the code base reading the same key, or a later request reading the same key.
 
 If you need to modify, see the `clone` function described [here](#do-not-mutate-return-values).
 

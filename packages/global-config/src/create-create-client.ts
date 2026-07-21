@@ -38,14 +38,14 @@ export function createCreateClient({
   fetchEdgeConfigTrace: typeof deps.fetchEdgeConfigTrace;
 }): CreateClient {
   /**
-   * Create an Edge Config client.
+   * Create a Global Config client.
    *
-   * The client has multiple methods which allow you to read the Edge Config.
+   * The client has multiple methods which allow you to read the Global Config.
    *
-   * If you need to programmatically write to an Edge Config, check out the [Update your Edge Config items](https://vercel.com/docs/storage/edge-config/vercel-api#update-your-edge-config-items) section.
+   * If you need to programmatically write to a Global Config, check out the [Update your Global Config items](https://vercel.com/docs/storage/edge-config/vercel-api#update-your-edge-config-items) section.
    *
    * @param connectionString - A connection string. Usually you'd pass in `process.env.GLOBAL_CONFIG` here, which contains a connection string.
-   * @returns An Edge Config Client instance
+   * @returns A Global Config Client instance
    */
   return trace(
     function createClient(
@@ -67,7 +67,7 @@ export function createCreateClient({
 
       const edgeConfigId = connection.id;
       const baseUrl = connection.baseUrl;
-      const version = connection.version; // version of the edge config read access api we talk to
+      const version = connection.version; // version of the global config read access api we talk to
       const headers: Record<string, string> = {
         Authorization: `Bearer ${connection.token}`,
       };

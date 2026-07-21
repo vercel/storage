@@ -153,7 +153,7 @@ function parseConnectionFromQueryParams(text: string): Connection | null {
  *
  * External edge config connection strings are those which are foreign to Vercel.
  *
- * External Edge Config Connection Strings look like this:
+ * External Global Config Connection Strings look like this:
  * - https://example.com/?id=<edgeConfigId>&token=<token>
  * - https://example.com/<edgeConfigId>?token=<token>
  */

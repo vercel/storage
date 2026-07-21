@@ -45,7 +45,7 @@ const cachedJsonParseTraced = trace(
 );
 
 /**
- * Reads an Edge Config from the local file system.
+ * Reads a Global Config from the local file system.
  * This is used at runtime on serverless functions.
  */
 const getFileSystemEdgeConfig = trace(
@@ -75,7 +75,7 @@ const getFileSystemEdgeConfig = trace(
 );
 
 /**
- * Will return an embedded Edge Config object from memory,
+ * Will return an embedded Global Config object from memory,
  * but only when the `privateEdgeConfigSymbol` is in global scope.
  */
 const getPrivateEdgeConfig = trace(
@@ -106,7 +106,7 @@ const getPrivateEdgeConfig = trace(
 );
 
 /**
- * Reads the Edge Config from a local provider, if available,
+ * Reads the Global Config from a local provider, if available,
  * to avoid Network requests.
  */
 export async function getLocalEdgeConfig(
@@ -150,7 +150,7 @@ function getOrCreateGetInMemoryEdgeConfigByConnection(
     if (X_EDGE_CONFIG_SDK_HEADER)
       headersRecord['x-edge-config-sdk'] = X_EDGE_CONFIG_SDK_HEADER;
 
-    // Functions as cache to keep track of the Edge Config.
+    // Functions as cache to keep track of the Global Config.
     let embeddedEdgeConfigPromise: Promise<EmbeddedEdgeConfig | null> | null =
       null;
 
@@ -233,8 +233,8 @@ function getOrCreateGetInMemoryEdgeConfigByConnection(
 }
 
 /**
- * Returns a function to retrieve the entire Edge Config.
- * It'll keep the fetched Edge Config in memory, making subsequent calls fast,
+ * Returns a function to retrieve the entire Global Config.
+ * It'll keep the fetched Global Config in memory, making subsequent calls fast,
  * while revalidating in the background.
  */
 export async function getInMemoryEdgeConfig(
@@ -274,10 +274,10 @@ export async function fetchEdgeConfigItem<T = EdgeConfigValue>(
     if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
     if (res.status === 404) {
       // if the x-edge-config-digest header is present, it means
-      // the edge config exists, but the item does not
+      // the global config exists, but the item does not
       if (res.headers.has('x-edge-config-digest')) return undefined;
       // if the x-edge-config-digest header is not present, it means
-      // the edge config itself does not exist
+      // the global config itself does not exist
       throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
     }
     if (res.cachedResponseBody !== undefined)
@@ -310,10 +310,10 @@ export async function fetchEdgeConfigHas(
     if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
     if (res.status === 404) {
       // if the x-edge-config-digest header is present, it means
-      // the edge config exists, but the item does not
+      // the global config exists, but the item does not
       if (res.headers.has('x-edge-config-digest')) return false;
       // if the x-edge-config-digest header is not present, it means
-      // the edge config itself does not exist
+      // the global config itself does not exist
       throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
     }
     if (res.ok) return true;
@@ -360,7 +360,7 @@ export async function fetchAllEdgeConfigItem<T = EdgeConfigItems>(
 
     if (res.status === 401) throw new Error(ERRORS.UNAUTHORIZED);
     // the /items endpoint never returns 404, so if we get a 404
-    // it means the edge config itself did not exist
+    // it means the global config itself did not exist
     if (res.status === 404) throw new Error(ERRORS.EDGE_CONFIG_NOT_FOUND);
     if (res.cachedResponseBody !== undefined)
       return res.cachedResponseBody as T;
@@ -442,8 +442,8 @@ export interface EdgeConfigClientOptions {
   /**
    * In development, a stale-while-revalidate cache is employed as the default caching strategy.
    *
-   * This cache aims to deliver speedy Edge Config reads during development, though it comes
-   * at the cost of delayed visibility for updates to Edge Config. Typically, you may need to
+   * This cache aims to deliver speedy Global Config reads during development, though it comes
+   * at the cost of delayed visibility for updates to Global Config. Typically, you may need to
    * refresh twice to observe these changes as the stale value is replaced.
    *
    * This cache is not used in preview or production deployments as superior optimisations are applied there.
@@ -451,9 +451,9 @@ export interface EdgeConfigClientOptions {
   disableDevelopmentCache?: boolean;
 
   /**
-   * Sets a `cache` option on the `fetch` call made by Edge Config.
+   * Sets a `cache` option on the `fetch` call made by Global Config.
    *
-   * Unlike Next.js, this defaults to `no-store`, as you most likely want to use Edge Config dynamically.
+   * Unlike Next.js, this defaults to `no-store`, as you most likely want to use Global Config dynamically.
    */
   cache?: 'no-store' | 'force-cache';
 }

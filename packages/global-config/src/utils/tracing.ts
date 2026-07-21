@@ -7,7 +7,7 @@ const edgeConfigTraceSymbol = Symbol.for('@vercel/global-config:global-trace');
 
 /**
  * Allows setting the `@opentelemetry/api` tracer provider to generate traces
- * for Edge Config related operations.
+ * for Global Config related operations.
  */
 export function setTracerProvider(tracer: TracerProvider): void {
   Reflect.set(globalThis, edgeConfigTraceSymbol, tracer);

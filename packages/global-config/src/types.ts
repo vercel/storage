@@ -23,9 +23,9 @@ export type Connection =
     };
 
 /**
- * An Edge Config Client.
+ * A Global Config Client.
  *
- * You can create new Edge Config clients using createClient().
+ * You can create new Global Config clients using createClient().
  */
 export interface EdgeConfigClient {
   /**
@@ -45,7 +45,7 @@ export interface EdgeConfigClient {
   /**
    * Reads multiple or all values.
    *
-   * Allows you to read all or only selected keys of an Edge Config at once.
+   * Allows you to read all or only selected keys of a Global Config at once.
    *
    * @param keys - the keys to read
    * @returns Returns all entries when called with no arguments or only entries matching the given keys otherwise.
@@ -55,18 +55,18 @@ export interface EdgeConfigClient {
     options?: EdgeConfigFunctionsOptions,
   ) => Promise<T>;
   /**
-   * Check if a given key exists in the Edge Config.
+   * Check if a given key exists in the Global Config.
    *
    * @param key - the key to check
-   * @returns true if the given key exists in the Edge Config.
+   * @returns true if the given key exists in the Global Config.
    */
   has: (key: string, options?: EdgeConfigFunctionsOptions) => Promise<boolean>;
   /**
-   * Get the digest of the Edge Config.
+   * Get the digest of the Global Config.
    *
-   * The digest is a unique hash result based on the contents stored in the Edge Config.
+   * The digest is a unique hash result based on the contents stored in the Global Config.
    *
-   * @returns The digest of the Edge Config.
+   * @returns The digest of the Global Config.
    */
   digest: (options?: EdgeConfigFunctionsOptions) => Promise<string>;
 }
@@ -84,10 +84,10 @@ export interface EdgeConfigFunctionsOptions {
   /**
    * Enabling `consistentRead` will bypass all caches and hit the origin
    * directly. This will make sure to fetch the most recent version of
-   * an Edge Config with the downside of an increased latency.
+   * a Global Config with the downside of an increased latency.
    *
    * We do **not** recommend enabling this option, unless you are reading
-   * Edge Config specifically for generating a page using ISR and you
+   * Global Config specifically for generating a page using ISR and you
    * need to ensure you generate with the latest content.
    */
   consistentRead?: boolean;

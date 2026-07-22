@@ -1,5 +1,7 @@
 # @vercel/edge-config
 
+## 1.5.0
+
 ## 1.4.3
 
 ### Patch Changes
@@ -85,8 +87,8 @@
   It used to be possible to change the returned value as shown in this example:
 
   ```typescript
-  import { get } from '@vercel/edge-config';
-  const countries = await get('allowedCountryCodes');
+  import { get } from "@vercel/edge-config";
+  const countries = await get("allowedCountryCodes");
   countries.DE = true; // Will now cause TypeScript to error
   ```
 
@@ -95,11 +97,11 @@
   If there is a need to modify the value, then the `clone` function can be used to clone the data and make it modifiable.
 
   ```typescript
-  import { get, clone } from '@vercel/edge-config';
+  import { get, clone } from "@vercel/edge-config";
 
-  const myArray = await get('listOfAllowedIPs');
+  const myArray = await get("listOfAllowedIPs");
   const myArrayClone = clone(myArray); // Clones the data to make it modifiable
-  myArrayClone.push('127.0.0.1'); // The `push` operation will work now
+  myArrayClone.push("127.0.0.1"); // The `push` operation will work now
   ```
 
   - **BREAKING CHANGE** SDK now throws underlying errors

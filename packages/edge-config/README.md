@@ -2,6 +2,9 @@
 
 A client that lets you read Edge Config.
 
+> [!NOTE]
+> Edge Config is being renamed to Global Config. This package is now also published as [`@vercel/global-config`](https://www.npmjs.com/package/@vercel/global-config), which is a drop-in replacement.
+
 ## Installation
 
 ```sh

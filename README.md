@@ -2,7 +2,8 @@
 
 ## Packages
 
-- `@vercel/edge-config` Ultra-low latency data reads — [Documentation](https://vercel.com/docs/storage/edge-config) | [Source](./packages/edge-config)
+- `@vercel/global-config` Ultra-low latency data reads — [Documentation](https://vercel.com/docs/storage/edge-config) | [Source](./packages/global-config)
+- `@vercel/edge-config` Former name of `@vercel/global-config` — [Documentation](https://vercel.com/docs/storage/edge-config) | [Source](./packages/edge-config)
 - `@vercel/blob` Fast object storage — [Documentation](https://vercel.com/docs/storage/vercel-blob) | [Source](./packages/blob)
 
 ## Deprecated Packages

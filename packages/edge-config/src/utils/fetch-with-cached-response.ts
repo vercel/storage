@@ -48,7 +48,7 @@ function createHandleStaleIfError(
       case 503:
       case 504:
         return typeof staleIfError === 'number' &&
-          cachedResponseEntry.time < Date.now() + staleIfError * 1000
+          Date.now() < cachedResponseEntry.time + staleIfError * 1000
           ? createResponse(cachedResponseEntry)
           : response;
       default:
@@ -69,7 +69,7 @@ function createHandleStaleIfErrorException(
   ): ResponseWithCachedResponse {
     if (
       typeof staleIfError === 'number' &&
-      cachedResponseEntry.time < Date.now() + staleIfError * 1000
+      Date.now() < cachedResponseEntry.time + staleIfError * 1000
     ) {
       return createResponse(cachedResponseEntry);
     }

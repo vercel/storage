@@ -178,6 +178,28 @@ describe('fetchWithCachedResponse', () => {
     await expect(data2.json()).resolves.toEqual({ name: 'John' });
   });
 
+  it('should NOT serve stale content after stale-if-error window expires', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify({ name: 'John' }), {
+      headers: { ETag: 'abc123', 'content-type': 'application/json' },
+    });
+
+    // First request — populate cache
+    await fetchWithCachedResponse('https://example.com/api/data');
+
+    // Advance past the 10s stale-if-error window (11 seconds)
+    jest.advanceTimersByTime(11000);
+
+    // Second request: network error, but stale-if-error=10 has expired
+    fetchMock.mockAbortOnce();
+
+    // Should throw because stale-if-error window has expired
+    await expect(
+      fetchWithCachedResponse('https://example.com/api/data', {
+        headers: new Headers({ 'Cache-Control': 'stale-if-error=10' }),
+      }),
+    ).rejects.toThrow();
+  });
+
   it('should respect stale-if-error on network faults', async () => {
     fetchMock.mockResponseOnce(JSON.stringify({ name: 'John' }), {
       headers: { ETag: 'abc123', 'content-type': 'application/json' },

@@ -88,6 +88,37 @@ describe('get tool', () => {
     expect(result.inlineTextOmitted).toBeUndefined();
   });
 
+  // A content-type header may carry parameters and is case-insensitive, so the
+  // media type has to be matched on its own rather than compared verbatim.
+  it.each([
+    ['application/json; charset=utf-8', '{"a":1}'],
+    ['application/json;charset=UTF-8', '{"a":1}'],
+    ['text/plain; charset=utf-8', 'hello'],
+    ['Application/JSON', '{"a":1}'],
+    ['TEXT/PLAIN', 'hello'],
+    ['application/ld+json', '{"@id":"x"}'],
+  ])('inlines %s', async (contentType, body) => {
+    replyWith(body, contentType);
+
+    const result = await run();
+
+    expect(result.text).toBe(body);
+    expect(result.inlineTextOmitted).toBeUndefined();
+  });
+
+  it.each([
+    ['image/png'],
+    ['application/octet-stream'],
+    ['application/json-seq'],
+  ])('still omits %s', async (contentType) => {
+    replyWith('not inlined', contentType);
+
+    const result = await run();
+
+    expect(result.text).toBeUndefined();
+    expect(result.inlineTextOmitted).toBe(true);
+  });
+
   it('inlines a text payload sitting exactly on the 64 KiB ceiling', async () => {
     const body = 'a'.repeat(MAX_INLINE_TEXT_BYTES);
     replyWith(body, 'text/plain');

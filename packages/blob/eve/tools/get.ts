@@ -106,9 +106,16 @@ export default defineTool({
       size: blob.size,
     };
 
+    // A content-type header carries optional parameters and is case-insensitive
+    // (`application/json; charset=utf-8`, `Text/Plain`), so match on the bare
+    // media type rather than the raw header value. The `+json` suffix covers
+    // structured JSON types such as `application/ld+json`.
+    const mediaType = blob.contentType.split(';')[0].trim().toLowerCase();
+
     const isInlineableType =
-      blob.contentType.startsWith('text/') ||
-      blob.contentType === 'application/json';
+      mediaType.startsWith('text/') ||
+      mediaType === 'application/json' ||
+      mediaType.endsWith('+json');
 
     // Fast path: when content-length already reports an oversized body, skip
     // the download entirely. Cancel the stream so the connection is released.

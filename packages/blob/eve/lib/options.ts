@@ -9,12 +9,11 @@ import extension from '../extension.js';
  * that cancelling a turn also cancels the in-flight Blob HTTP request.
  */
 export function blobCommandOptions(ctx: ToolContext): BlobCommandOptions {
-  const { token, storeId, oidcToken } = extension.config;
+  const { token, storeId } = extension.config;
 
   return {
     abortSignal: ctx.abortSignal,
     ...(token !== undefined ? { token } : {}),
     ...(storeId !== undefined ? { storeId } : {}),
-    ...(oidcToken !== undefined ? { oidcToken } : {}),
   };
 }

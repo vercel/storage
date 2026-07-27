@@ -15,11 +15,5 @@ export default defineExtension({
       .describe(
         'Blob store id for Vercel OIDC auth. Defaults to BLOB_STORE_ID when omitted.',
       ),
-    oidcToken: z
-      .string()
-      .optional()
-      .describe(
-        'Vercel OIDC token override. Defaults to VERCEL_OIDC_TOKEN when omitted.',
-      ),
   }),
 });

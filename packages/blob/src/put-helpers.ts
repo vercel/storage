@@ -8,6 +8,50 @@ import type { ClientCommonCreateBlobOptions } from './client';
 import type { CommonCreateBlobOptions, PresignedUrlPayload } from './helpers';
 import { BlobError, disallowedPathnameCharacters } from './helpers';
 
+/**
+ * Options to optimize an image through Vercel Image Optimization before
+ * storing it. Requires OIDC authentication.
+ */
+export interface OptimizeImageOptions {
+  /**
+   * The desired width of the optimized image in pixels (1-3840).
+   */
+  width: number;
+  /**
+   * The desired quality of the optimized image (1-100).
+   * @defaultvalue 75
+   */
+  quality?: number;
+  /**
+   * The desired output format. The original format is preserved when omitted.
+   */
+  format?: 'jpeg' | 'png' | 'webp' | 'avif';
+}
+
+const optimizeImageFormatToMimeType = {
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  avif: 'image/avif',
+} as const;
+
+// Query params for the put-optimized/put-from-url endpoints; parameter
+// validation itself is owned by the API.
+export function addOptimizeImageParams(
+  params: URLSearchParams,
+  optimizeImage: OptimizeImageOptions,
+): void {
+  params.set('width', String(optimizeImage.width));
+  params.set('quality', String(optimizeImage.quality ?? 75));
+  if (optimizeImage.format) {
+    params.set(
+      'format',
+      optimizeImageFormatToMimeType[optimizeImage.format] ??
+        optimizeImage.format,
+    );
+  }
+}
+
 export const putOptionHeaderMap = {
   cacheControlMaxAge: 'x-cache-control-max-age',
   addRandomSuffix: 'x-add-random-suffix',

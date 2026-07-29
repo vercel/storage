@@ -5,11 +5,16 @@ import { BlobError, isPlainObject } from './helpers';
 import { uncontrolledMultipartUpload } from './multipart/uncontrolled';
 import type {
   CreatePutMethodOptions,
+  OptimizeImageOptions,
   PutBlobApiResponse,
   PutBlobResult,
   PutBody,
 } from './put-helpers';
-import { createPutHeaders, createPutOptions } from './put-helpers';
+import {
+  addOptimizeImageParams,
+  createPutHeaders,
+  createPutOptions,
+} from './put-helpers';
 
 export interface PutCommandOptions
   extends CommonCreateBlobOptions,
@@ -19,6 +24,12 @@ export interface PutCommandOptions
    * @defaultvalue false
    */
   multipart?: boolean;
+  /**
+   * Optimize the image through Vercel Image Optimization before storing it.
+   * Only the optimized output is stored. Requires OIDC authentication and is
+   * billed as an image transformation plus a regular blob put.
+   */
+  optimizeImage?: OptimizeImageOptions;
 }
 
 export function createPutMethod<TOptions extends PutCommandOptions>({
@@ -60,6 +71,37 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
     };
 
     const headers = createPutHeaders(allowedOptions, options);
+
+    if (options.optimizeImage) {
+      if (options.multipart === true) {
+        throw new BlobError(
+          'optimizeImage cannot be combined with multipart uploads',
+        );
+      }
+
+      const params = new URLSearchParams({ pathname });
+      addOptimizeImageParams(params, options.optimizeImage);
+
+      const response = await requestApi<PutBlobApiResponse>(
+        `/put-optimized?${params.toString()}`,
+        {
+          method: 'POST',
+          body,
+          headers,
+          signal: options.abortSignal,
+        },
+        optionsWithPresignedUrlPayload,
+      );
+
+      return {
+        url: response.url,
+        downloadUrl: response.downloadUrl,
+        pathname: response.pathname,
+        contentType: response.contentType,
+        contentDisposition: response.contentDisposition,
+        etag: response.etag,
+      };
+    }
 
     if (options.multipart === true) {
       return uncontrolledMultipartUpload(

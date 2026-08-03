@@ -35,20 +35,70 @@ const optimizeImageFormatToMimeType = {
   avif: 'image/avif',
 } as const;
 
-// Query params for the put-optimized/put-from-url endpoints; parameter
-// validation itself is owned by the API.
+// Mirrors the server-side limits so invalid values fail fast, before paying
+// for an upload (and a billable transformation) the API would reject.
+export function validateOptimizeImageOptions(
+  optimizeImage: OptimizeImageOptions,
+): void {
+  if (typeof optimizeImage !== 'object' || optimizeImage === null) {
+    throw new BlobError('optimizeImage must be an object, see usage');
+  }
+
+  const { width, quality, format } = optimizeImage;
+
+  if (!Number.isInteger(width) || width < 1 || width > 3840) {
+    throw new BlobError(
+      'optimizeImage.width must be an integer between 1 and 3840',
+    );
+  }
+
+  if (
+    quality !== undefined &&
+    (!Number.isInteger(quality) || quality < 1 || quality > 100)
+  ) {
+    throw new BlobError(
+      'optimizeImage.quality must be an integer between 1 and 100',
+    );
+  }
+
+  if (format !== undefined && !(format in optimizeImageFormatToMimeType)) {
+    throw new BlobError(
+      `optimizeImage.format must be one of: ${Object.keys(
+        optimizeImageFormatToMimeType,
+      ).join(', ')}`,
+    );
+  }
+}
+
+/**
+ * Fail fast when the source is clearly not an image; unknown/absent content
+ * types are left to the server, which detects the actual format from the bytes.
+ */
+export function validateOptimizeImageSourceContentType(
+  contentType: string | undefined,
+): void {
+  if (
+    contentType &&
+    contentType !== 'application/octet-stream' &&
+    !contentType.startsWith('image/')
+  ) {
+    throw new BlobError(
+      `optimizeImage requires an image body, but the content type is "${contentType}"`,
+    );
+  }
+}
+
+// Query params for the put-optimized/put-from-url endpoints. Values are
+// validated here first; the API owns the authoritative validation.
 export function addOptimizeImageParams(
   params: URLSearchParams,
   optimizeImage: OptimizeImageOptions,
 ): void {
+  validateOptimizeImageOptions(optimizeImage);
   params.set('width', String(optimizeImage.width));
   params.set('quality', String(optimizeImage.quality ?? 75));
   if (optimizeImage.format) {
-    params.set(
-      'format',
-      optimizeImageFormatToMimeType[optimizeImage.format] ??
-        optimizeImage.format,
-    );
+    params.set('format', optimizeImageFormatToMimeType[optimizeImage.format]);
   }
 }
 

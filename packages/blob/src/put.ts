@@ -14,6 +14,7 @@ import {
   addOptimizeImageParams,
   createPutHeaders,
   createPutOptions,
+  validateOptimizeImageSourceContentType,
 } from './put-helpers';
 
 export interface PutCommandOptions
@@ -78,6 +79,15 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
           'optimizeImage cannot be combined with multipart uploads',
         );
       }
+
+      // The `contentType` option or a Blob/File `type` reveals a non-image
+      // source without reading the body; File extends Blob.
+      validateOptimizeImageSourceContentType(
+        options.contentType ??
+          (typeof Blob !== 'undefined' && body instanceof Blob
+            ? body.type
+            : undefined),
+      );
 
       const params = new URLSearchParams({ pathname });
       addOptimizeImageParams(params, options.optimizeImage);

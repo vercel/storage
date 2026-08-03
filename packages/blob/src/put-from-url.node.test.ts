@@ -119,6 +119,138 @@ describe('optimizeImage', () => {
     });
   });
 
+  describe('optimizeImage validation', () => {
+    it('throws when quality is greater than 100', async () => {
+      await expect(
+        put('avatar.webp', 'image-bytes', {
+          access: 'public',
+          optimizeImage: { width: 128, quality: 101 },
+        }),
+      ).rejects.toThrow(
+        'Vercel Blob: optimizeImage.quality must be an integer between 1 and 100',
+      );
+    });
+
+    it('throws when quality is 0 or fractional', async () => {
+      await expect(
+        put('avatar.webp', 'image-bytes', {
+          access: 'public',
+          optimizeImage: { width: 128, quality: 0 },
+        }),
+      ).rejects.toThrow('optimizeImage.quality');
+      await expect(
+        put('avatar.webp', 'image-bytes', {
+          access: 'public',
+          optimizeImage: { width: 128, quality: 79.5 },
+        }),
+      ).rejects.toThrow('optimizeImage.quality');
+    });
+
+    it('throws when width is missing, out of range, or fractional', async () => {
+      await expect(
+        put('avatar.webp', 'image-bytes', {
+          access: 'public',
+          optimizeImage: {} as { width: number },
+        }),
+      ).rejects.toThrow(
+        'Vercel Blob: optimizeImage.width must be an integer between 1 and 3840',
+      );
+      await expect(
+        put('avatar.webp', 'image-bytes', {
+          access: 'public',
+          optimizeImage: { width: 3841 },
+        }),
+      ).rejects.toThrow('optimizeImage.width');
+      await expect(
+        put('avatar.webp', 'image-bytes', {
+          access: 'public',
+          optimizeImage: { width: 0 },
+        }),
+      ).rejects.toThrow('optimizeImage.width');
+      await expect(
+        put('avatar.webp', 'image-bytes', {
+          access: 'public',
+          optimizeImage: { width: 128.5 },
+        }),
+      ).rejects.toThrow('optimizeImage.width');
+    });
+
+    it('throws on an unsupported format', async () => {
+      await expect(
+        put('avatar.webp', 'image-bytes', {
+          access: 'public',
+          optimizeImage: {
+            width: 128,
+            format: 'tiff' as unknown as 'webp',
+          },
+        }),
+      ).rejects.toThrow(
+        'Vercel Blob: optimizeImage.format must be one of: jpeg, png, webp, avif',
+      );
+    });
+
+    it('validates options for putFromUrl too', async () => {
+      await expect(
+        putFromUrl('avatar.webp', 'https://example.com/image.jpg', {
+          access: 'public',
+          optimizeImage: { width: 128, quality: 200 },
+        }),
+      ).rejects.toThrow(
+        'Vercel Blob: optimizeImage.quality must be an integer between 1 and 100',
+      );
+    });
+
+    it('throws when the contentType option is not an image', async () => {
+      await expect(
+        put('avatar.webp', 'not-an-image', {
+          access: 'public',
+          contentType: 'text/plain',
+          optimizeImage: { width: 128 },
+        }),
+      ).rejects.toThrow(
+        'Vercel Blob: optimizeImage requires an image body, but the content type is "text/plain"',
+      );
+    });
+
+    it('throws when a Blob body declares a non-image type', async () => {
+      await expect(
+        put('avatar.webp', new Blob(['<html></html>'], { type: 'text/html' }), {
+          access: 'public',
+          optimizeImage: { width: 128 },
+        }),
+      ).rejects.toThrow(
+        'Vercel Blob: optimizeImage requires an image body, but the content type is "text/html"',
+      );
+    });
+
+    it('accepts a Blob body with an image type', async () => {
+      mockClient
+        .intercept({ path: () => true, method: 'POST' })
+        .reply(200, mockedOptimizedBlob);
+
+      await expect(
+        put('avatar.webp', new Blob(['bytes'], { type: 'image/png' }), {
+          access: 'public',
+          optimizeImage: { width: 128 },
+        }),
+      ).resolves.toEqual(mockedOptimizedBlob);
+    });
+
+    it('leaves bodies without a content-type signal to the server', async () => {
+      mockClient
+        .intercept({ path: () => true, method: 'POST' })
+        .reply(200, mockedOptimizedBlob);
+
+      // A string body carries no type information, so no client-side check.
+      await expect(
+        put('avatar.webp', 'maybe-image-bytes', {
+          access: 'public',
+          optimizeImage: { width: 128 },
+        }),
+      ).resolves.toEqual(mockedOptimizedBlob);
+    });
+  });
+
   describe('putFromUrl', () => {
     it('sends a POST to /put-from-url with the source url and optimize params', async () => {
       let path: string | null = null;

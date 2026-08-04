@@ -17,6 +17,7 @@ import {
   rename,
   uploadPart,
 } from './index';
+import { getPartSizeInBytes, uploadAllParts } from './multipart/upload';
 
 const BLOB_API_URL_AGENT = 'https://vercel.com';
 const BLOB_STORE_BASE_URL = 'https://storeId.public.blob.vercel-storage.com';
@@ -1223,6 +1224,110 @@ describe('blob client', () => {
           'Vercel Blob: access must be "private" or "public", see https://vercel.com/docs/vercel-blob',
         ),
       );
+    });
+  });
+
+  describe('multipart part size scaling', () => {
+    const mebibyte = 1024 * 1024;
+    const gibibyte = 1024 * mebibyte;
+    const tebibyte = 1024 * gibibyte;
+    // Vercel Blob enforces a maximum of 10,000 parts per multipart upload
+    const maxParts = 10_000;
+
+    it('keeps the 8 MiB default part size for bodies at or under the 80 GiB ceiling', () => {
+      expect(getPartSizeInBytes(0)).toBe(8 * mebibyte);
+      expect(getPartSizeInBytes(1 * gibibyte)).toBe(8 * mebibyte);
+      expect(getPartSizeInBytes(maxParts * 8 * mebibyte)).toBe(8 * mebibyte);
+    });
+
+    it('scales the part size up for bodies above 80 GiB so the part count stays under the 10,000 limit', () => {
+      const totalToLoad = 100 * gibibyte;
+      const partSize = getPartSizeInBytes(totalToLoad);
+
+      expect(partSize).toBeGreaterThan(8 * mebibyte);
+      expect(Math.ceil(totalToLoad / partSize)).toBeLessThanOrEqual(maxParts);
+
+      // 5 TB is the maximum supported by the changelog (5TB file transfers)
+      const fiveTebibyte = 5 * tebibyte;
+      const fiveTebibytePartSize = getPartSizeInBytes(fiveTebibyte);
+      expect(
+        Math.ceil(fiveTebibyte / fiveTebibytePartSize),
+      ).toBeLessThanOrEqual(maxParts);
+    });
+
+    it('uploads one scaled part instead of many 8 MiB parts for a body above 80 GiB', async () => {
+      const totalToLoad = 100 * gibibyte;
+      const partSize = getPartSizeInBytes(totalToLoad);
+      const uploadedPartNumbers: number[] = [];
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          uploadedPartNumbers.push(
+            Number(
+              (req.headers as Record<string, string>)['x-mpu-part-number'],
+            ),
+          );
+          return { etag: `etag-${uploadedPartNumbers.length}` };
+        })
+        .persist();
+
+      const stream = new Blob([
+        new Uint8Array(partSize),
+      ]).stream() as unknown as ReadableStream<ArrayBuffer>;
+
+      const parts = await uploadAllParts({
+        uploadId: 'upload-123',
+        key: 'big.bin',
+        pathname: 'big.bin',
+        stream,
+        headers: {},
+        options: { access: 'public' },
+        totalToLoad,
+      });
+
+      expect(parts).toHaveLength(1);
+      expect(uploadedPartNumbers).toEqual([1]);
+    });
+
+    it('keeps splitting small bodies into 8 MiB parts', async () => {
+      const totalToLoad = 16 * mebibyte;
+      const uploadedPartNumbers: number[] = [];
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          uploadedPartNumbers.push(
+            Number(
+              (req.headers as Record<string, string>)['x-mpu-part-number'],
+            ),
+          );
+          return { etag: `etag-${uploadedPartNumbers.length}` };
+        })
+        .persist();
+
+      const stream = new Blob([
+        new Uint8Array(totalToLoad),
+      ]).stream() as unknown as ReadableStream<ArrayBuffer>;
+
+      const parts = await uploadAllParts({
+        uploadId: 'upload-123',
+        key: 'small.bin',
+        pathname: 'small.bin',
+        stream,
+        headers: {},
+        options: { access: 'public' },
+        totalToLoad,
+      });
+
+      expect(parts).toHaveLength(2);
+      expect(uploadedPartNumbers).toEqual([1, 2]);
     });
   });
 

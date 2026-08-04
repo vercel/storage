@@ -135,9 +135,36 @@ export async function uploadPart({
 const maxConcurrentUploads = typeof window !== 'undefined' ? 6 : 8;
 
 // 5MB is the minimum part size accepted by Vercel Blob, but we set our default part size to 8mb like the aws cli
-const partSizeInBytes = 8 * 1024 * 1024;
+const defaultPartSizeInBytes = 8 * 1024 * 1024;
 
-const maxBytesInMemory = maxConcurrentUploads * partSizeInBytes * 2;
+// Vercel Blob enforces a maximum of 10,000 parts per multipart upload
+const maxPartsPerUpload = 10_000;
+
+// With the default part size, 10,000 parts cap uploads at 80 GiB. Bodies larger
+// than that need bigger parts to stay within the part limit.
+const maxDefaultPartSizeUploadBytes =
+  maxPartsPerUpload * defaultPartSizeInBytes;
+
+/**
+ * Returns the part size to use for a multipart upload of `totalToLoad` bytes.
+ *
+ * The Vercel Blob API rejects uploads with more than 10,000 parts, so bodies
+ * larger than 80 GiB (10,000 × 8 MiB) scale the part size up to keep the part
+ * count within the limit. Bodies with an unknown size (streams) keep the
+ * 8 MiB default.
+ */
+export function getPartSizeInBytes(totalToLoad: number): number {
+  if (totalToLoad <= maxDefaultPartSizeUploadBytes) {
+    return defaultPartSizeInBytes;
+  }
+
+  return Math.ceil(totalToLoad / maxPartsPerUpload);
+}
+
+// Bound read-ahead memory regardless of part size. Tying this to part size
+// (as it used to be) would buffer gigabytes in memory for very large uploads
+// whose part size is scaled up.
+const maxBytesInMemory = maxConcurrentUploads * defaultPartSizeInBytes * 2;
 
 interface UploadPartApiResponse {
   etag: string;
@@ -168,6 +195,7 @@ export function uploadAllParts({
 }): Promise<Part[]> {
   debug('mpu: upload init', 'key:', key);
   const internalAbortController = new AbortController();
+  const partSizeInBytes = getPartSizeInBytes(totalToLoad);
 
   return new Promise((resolve, reject) => {
     const partsToUpload: BlobUploadPart[] = [];

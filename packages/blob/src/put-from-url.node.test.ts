@@ -153,12 +153,12 @@ describe('optimizeImage', () => {
           optimizeImage: {} as { width: number },
         }),
       ).rejects.toThrow(
-        'Vercel Blob: optimizeImage.width must be an integer between 1 and 3840',
+        'Vercel Blob: optimizeImage.width must be an integer between 1 and 8192',
       );
       await expect(
         put('avatar.webp', 'image-bytes', {
           access: 'public',
-          optimizeImage: { width: 3841 },
+          optimizeImage: { width: 8193 },
         }),
       ).rejects.toThrow('optimizeImage.width');
       await expect(

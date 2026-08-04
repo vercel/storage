@@ -14,7 +14,7 @@ import { BlobError, disallowedPathnameCharacters } from './helpers';
  */
 export interface OptimizeImageOptions {
   /**
-   * The desired width of the optimized image in pixels (1-3840).
+   * The desired width of the optimized image in pixels (1-8192).
    */
   width: number;
   /**
@@ -46,9 +46,9 @@ export function validateOptimizeImageOptions(
 
   const { width, quality, format } = optimizeImage;
 
-  if (!Number.isInteger(width) || width < 1 || width > 3840) {
+  if (!Number.isInteger(width) || width < 1 || width > 8192) {
     throw new BlobError(
-      'optimizeImage.width must be an integer between 1 and 3840',
+      'optimizeImage.width must be an integer between 1 and 8192',
     );
   }
 

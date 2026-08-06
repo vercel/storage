@@ -1,4 +1,4 @@
-import { readFile } from '@vercel/edge-config-fs';
+import { readFile } from '@vercel/global-config-fs';
 import fetchMock from 'jest-fetch-mock';
 import { version as pkgVersion } from '../package.json';
 import { createClient, digest, get, getAll, has } from './index';
@@ -14,7 +14,7 @@ beforeEach(() => {
 });
 
 // mock fs for test
-jest.mock('@vercel/edge-config-fs', () => {
+jest.mock('@vercel/global-config-fs', () => {
   const embeddedEdgeConfig: EmbeddedEdgeConfig = {
     digest: 'awe1',
     items: { foo: 'bar', someArray: [] },

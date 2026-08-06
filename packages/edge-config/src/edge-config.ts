@@ -1,4 +1,4 @@
-import { readFile } from '@vercel/edge-config-fs';
+import { readFile } from '@vercel/global-config-fs';
 import { name as sdkName, version as sdkVersion } from '../package.json';
 import type {
   Connection,

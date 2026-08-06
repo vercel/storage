@@ -49,7 +49,7 @@
     "testEnvironment": "node"
   },
   "dependencies": {
-    "@vercel/edge-config-fs": "workspace:*"
+    "@vercel/global-config-fs": "workspace:*"
   },
   "devDependencies": {
     "@changesets/cli": "2.31.0",

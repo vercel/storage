@@ -1,12 +1,12 @@
 {
-  "name": "@vercel/edge-config-fs",
+  "name": "@vercel/global-config-fs",
   "version": "0.1.0",
-  "description": "Use @vercel/edge-config instead.",
+  "description": "Use @vercel/global-config instead.",
   "homepage": "https://vercel.com",
   "repository": {
     "type": "git",
     "url": "https://github.com/vercel/storage.git",
-    "directory": "packages/edge-config-fs"
+    "directory": "packages/global-config-fs"
   },
   "publishConfig": {
     "provenance": true

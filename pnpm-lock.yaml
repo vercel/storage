@@ -93,9 +93,9 @@ importers:
       '@opentelemetry/api':
         specifier: ^1.7.0
         version: 1.7.0
-      '@vercel/edge-config-fs':
+      '@vercel/global-config-fs':
         specifier: workspace:*
-        version: link:../edge-config-fs
+        version: link:../global-config-fs
     devDependencies:
       '@changesets/cli':
         specifier: 2.31.0
@@ -136,17 +136,15 @@ importers:
       typescript:
         specifier: 5.9.3
         version: 5.9.3
-
-  packages/edge-config-fs: {}
 
   packages/global-config:
     dependencies:
       '@opentelemetry/api':
         specifier: ^1.7.0
         version: 1.7.0
-      '@vercel/edge-config-fs':
+      '@vercel/global-config-fs':
         specifier: workspace:*
-        version: link:../edge-config-fs
+        version: link:../global-config-fs
     devDependencies:
       '@changesets/cli':
         specifier: 2.31.0
@@ -187,6 +185,8 @@ importers:
       typescript:
         specifier: 5.9.3
         version: 5.9.3
+
+  packages/global-config-fs: {}
 
   test/next:
     dependencies:

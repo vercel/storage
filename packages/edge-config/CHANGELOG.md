@@ -1,5 +1,11 @@
 # @vercel/edge-config
 
+## 1.5.1
+
+### Patch Changes
+
+- 59b9bf5: Rename the internal `@vercel/edge-config-fs` package to `@vercel/global-config-fs`
+
 ## 1.5.0
 
 ## 1.4.3

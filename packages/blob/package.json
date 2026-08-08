@@ -22,6 +22,14 @@
     "./client": {
       "import": "./dist/client.js",
       "require": "./dist/client.cjs"
+    },
+    "./eve": {
+      "types": "./dist/eve/index.d.ts",
+      "default": "./dist/eve/index.mjs"
+    },
+    "./eve/tools": {
+      "types": "./dist/eve/tools/index.d.ts",
+      "default": "./dist/eve/tools/index.mjs"
     }
   },
   "main": "./dist/index.cjs",
@@ -35,6 +43,12 @@
     "*": {
       "client": [
         "dist/client.d.ts"
+      ],
+      "eve": [
+        "dist/eve/index.d.ts"
+      ],
+      "eve/tools": [
+        "dist/eve/tools/index.d.ts"
       ]
     }
   },
@@ -42,11 +56,12 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup && pnpm run copy-shims",
+    "build": "tsup && pnpm run copy-shims && pnpm run build:eve",
+    "build:eve": "node scripts/restore-package-exports.mjs",
     "copy-shims": "cp src/*-browser.js dist/",
     "dev": "pnpm run copy-shims && tsup --watch --clean=false",
     "check": "biome check",
-    "prepublishOnly": "pnpm run build",
+    "prepublishOnly": "tsup && pnpm run copy-shims && node scripts/restore-package-exports.mjs --require-eve",
     "publint": "npx publint",
     "test": "pnpm run test:node && pnpm run test:edge && pnpm run test:browser",
     "test:browser": "jest --env jsdom .browser.test.ts --setupFilesAfterEnv ./jest/setup.js",
@@ -62,17 +77,37 @@
     "throttleit": "^2.1.0",
     "undici": "^6.23.0"
   },
+  "peerDependencies": {
+    "eve": "*",
+    "zod": "^4"
+  },
+  "peerDependenciesMeta": {
+    "eve": {
+      "optional": true
+    },
+    "zod": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@edge-runtime/jest-environment": "4.0.0",
     "@edge-runtime/types": "4.0.0",
     "@types/async-retry": "1.4.9",
     "@types/jest": "30.0.0",
     "@types/node": "24.12.2",
+    "eve": "0.27.1",
     "jest": "30.3.0",
     "jest-environment-jsdom": "30.3.0",
     "ts-jest": "29.4.9",
     "tsconfig": "workspace:*",
-    "tsup": "8.5.1"
+    "tsup": "8.5.1",
+    "zod": "4.4.3"
+  },
+  "eve": {
+    "extension": {
+      "source": "./eve",
+      "dist": "./dist/eve/extension"
+    }
   },
   "engines": {
     "node": ">=20.0.0"

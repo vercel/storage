@@ -68,9 +68,13 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v5
 
+      # Pinned ahead of `.node-version` (lts/iron) on purpose: publint validates
+      # the published artifact, and building `@vercel/blob`'s `./eve` extension
+      # entry points requires Node >=24. On older versions that build is skipped,
+      # which would leave publint checking exports that were never emitted.
       - uses: actions/setup-node@v6
         with:
-          node-version-file: ".node-version"
+          node-version: 24
           cache: "pnpm"
 
       - name: Install dependencies

@@ -1,11 +1,17 @@
+import { requestApi } from './api';
 import type { CommonCreateBlobOptions, WithUploadProgress } from './helpers';
-import { BlobError } from './helpers';
-import { createPutMethod } from './put';
-import { putImageFromUrl } from './put-from-url';
+import { BlobError, isPlainObject } from './helpers';
 import type {
   OptimizeImageOptions,
+  PutBlobApiResponse,
   PutBlobResult,
   PutBody,
+} from './put-helpers';
+import {
+  addOptimizeImageParams,
+  createPutHeaders,
+  createPutOptions,
+  validateOptimizeImageSourceContentType,
 } from './put-helpers';
 
 export interface PutImageCommandOptions
@@ -21,18 +27,19 @@ export interface PutImageCommandOptions
 
 export type PutImageBlobResult = PutBlobResult;
 
-const putOptimized = createPutMethod<PutImageCommandOptions>({
-  allowedOptions: [
-    'cacheControlMaxAge',
-    'addRandomSuffix',
-    'allowOverwrite',
-    'contentType',
-    'ifMatch',
-  ],
-});
-
 function isSourceUrl(bodyOrUrl: PutBody): bodyOrUrl is string {
   return typeof bodyOrUrl === 'string' && /^https?:\/\//i.test(bodyOrUrl);
+}
+
+function toPutBlobResult(response: PutBlobApiResponse): PutBlobResult {
+  return {
+    url: response.url,
+    downloadUrl: response.downloadUrl,
+    pathname: response.pathname,
+    contentType: response.contentType,
+    contentDisposition: response.contentDisposition,
+    etag: response.etag,
+  };
 }
 
 /**
@@ -64,21 +71,85 @@ export async function putImage(
   bodyOrUrl: PutBody,
   options: PutImageCommandOptions,
 ): Promise<PutImageBlobResult> {
-  // Without this, an untyped caller omitting optimizeImage would fall through
-  // to a regular, unoptimized put.
   if (!options?.optimizeImage) {
     throw new BlobError('optimizeImage is required, see usage');
   }
 
   if (isSourceUrl(bodyOrUrl)) {
-    if (options?.contentType) {
+    if (options.contentType) {
       throw new BlobError(
         'contentType is not supported when the source is a URL',
       );
     }
 
-    return putImageFromUrl(pathname, bodyOrUrl, options);
+    const putOptions = await createPutOptions({ pathname, options });
+
+    const headers = createPutHeaders(
+      ['cacheControlMaxAge', 'addRandomSuffix', 'allowOverwrite', 'ifMatch'],
+      putOptions,
+    );
+
+    const params = new URLSearchParams({ pathname, url: bodyOrUrl });
+    addOptimizeImageParams(params, putOptions.optimizeImage);
+
+    const response = await requestApi<PutBlobApiResponse>(
+      `/put-from-url?${params.toString()}`,
+      {
+        method: 'POST',
+        headers,
+        signal: putOptions.abortSignal,
+      },
+      putOptions,
+    );
+
+    return toPutBlobResult(response);
   }
 
-  return putOptimized(pathname, bodyOrUrl, options);
+  if (!bodyOrUrl) {
+    throw new BlobError('body is required');
+  }
+
+  if (isPlainObject(bodyOrUrl)) {
+    throw new BlobError(
+      "Body must be a string, buffer or stream. You sent a plain JavaScript object, double check what you're trying to upload.",
+    );
+  }
+
+  const putOptions = await createPutOptions({ pathname, options });
+
+  const headers = createPutHeaders(
+    [
+      'cacheControlMaxAge',
+      'addRandomSuffix',
+      'allowOverwrite',
+      'contentType',
+      'ifMatch',
+    ],
+    putOptions,
+  );
+
+  // The `contentType` option or a Blob/File `type` reveals a non-image
+  // source without reading the body; File extends Blob.
+  validateOptimizeImageSourceContentType(
+    putOptions.contentType ??
+      (typeof Blob !== 'undefined' && bodyOrUrl instanceof Blob
+        ? bodyOrUrl.type
+        : undefined),
+  );
+
+  const params = new URLSearchParams({ pathname });
+  addOptimizeImageParams(params, putOptions.optimizeImage);
+
+  const response = await requestApi<PutBlobApiResponse>(
+    `/put-optimized?${params.toString()}`,
+    {
+      method: 'POST',
+      body: bodyOrUrl,
+      headers,
+      signal: putOptions.abortSignal,
+    },
+    putOptions,
+  );
+
+  return toPutBlobResult(response);
 }

@@ -14,6 +14,7 @@ import {
 
 // `contentType` is omitted because the stored content type always comes from
 // the optimizer output, not from the caller.
+/** @deprecated Use `putImage` and `PutImageCommandOptions` instead. */
 export interface PutFromUrlCommandOptions
   extends Omit<CommonCreateBlobOptions, 'contentType'> {
   /**
@@ -23,6 +24,7 @@ export interface PutFromUrlCommandOptions
   optimizeImage: OptimizeImageOptions;
 }
 
+/** @deprecated Use `putImage` and `PutImageBlobResult` instead. */
 export type PutFromUrlBlobResult = PutBlobResult;
 
 /**

@@ -53,7 +53,7 @@ function toPutBlobResult(response: PutBlobApiResponse): PutBlobResult {
  *   - optimizeImage - (Required) Image optimization parameters (\{width: number, quality?: number, format?: 'jpeg' | 'png' | 'webp' | 'avif'\}).
  *   - addRandomSuffix - (Optional) A boolean specifying whether to add a random suffix to the pathname. It defaults to false.
  *   - allowOverwrite - (Optional) A boolean to allow overwriting blobs. By default an error will be thrown if the destination blob already exists.
- *   - contentType - (Optional) The media type of a body source. Not supported when the source is a URL. By default, it's extracted from the pathname's extension.
+ *   - contentType - (Optional) Declares the media type of a body source, used to reject non-image uploads early. Not supported when the source is a URL. The stored content type always comes from the optimizer output.
  *   - cacheControlMaxAge - (Optional) A number in seconds to configure how long Blobs are cached.
  *   - ifMatch - (Optional) Only perform the operation if the blob's current ETag matches this value. Implies allowOverwrite.
  *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel. Ignored when Vercel OIDC token is available and either process.env.BLOB_STORE_ID or options.storeId is set.

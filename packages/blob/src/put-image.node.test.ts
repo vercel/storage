@@ -50,9 +50,7 @@ describe('putImage', () => {
       await expect(
         putImage('avatar.webp', 'image-bytes', {
           access: 'public',
-          width: 128,
-          quality: 80,
-          format: 'webp',
+          optimizeImage: { width: 128, quality: 80, format: 'webp' },
         }),
       ).resolves.toEqual(mockedOptimizedBlob);
 
@@ -79,7 +77,7 @@ describe('putImage', () => {
 
       await putImage('avatar.webp', 'https://example.com/image.jpg', {
         access: 'public',
-        width: 128,
+        optimizeImage: { width: 128 },
       });
 
       expect(path).toBe(
@@ -104,7 +102,7 @@ describe('putImage', () => {
         access: 'public',
         addRandomSuffix: true,
         cacheControlMaxAge: 60,
-        width: 128,
+        optimizeImage: { width: 128 },
       });
 
       expect(headers['x-add-random-suffix']).toBe('1');
@@ -116,10 +114,10 @@ describe('putImage', () => {
         putImage('avatar.webp', 'not-an-image', {
           access: 'public',
           contentType: 'text/plain',
-          width: 128,
+          optimizeImage: { width: 128 },
         }),
       ).rejects.toThrow(
-        'Vercel Blob: putImage requires an image body, but the content type is "text/plain"',
+        'Vercel Blob: optimizeImage requires an image body, but the content type is "text/plain"',
       );
     });
   });
@@ -142,9 +140,7 @@ describe('putImage', () => {
       await expect(
         putImage('avatar.webp', new URL('https://example.com/image.jpg'), {
           access: 'public',
-          width: 128,
-          quality: 80,
-          format: 'webp',
+          optimizeImage: { width: 128, quality: 80, format: 'webp' },
         }),
       ).resolves.toEqual(mockedOptimizedBlob);
 
@@ -158,7 +154,7 @@ describe('putImage', () => {
       await expect(
         putImage('avatar.webp', new URL('ftp://example.com/image.jpg'), {
           access: 'public',
-          width: 128,
+          optimizeImage: { width: 128 },
         }),
       ).rejects.toThrow(
         'Vercel Blob: the source URL must use the http(s) protocol',
@@ -170,7 +166,7 @@ describe('putImage', () => {
         putImage('avatar.webp', new URL('https://example.com/image.jpg'), {
           access: 'public',
           contentType: 'image/jpeg',
-          width: 128,
+          optimizeImage: { width: 128 },
         }),
       ).rejects.toThrow(
         'Vercel Blob: contentType is not supported when the source is a URL',
@@ -179,7 +175,7 @@ describe('putImage', () => {
   });
 
   describe('validation', () => {
-    it('throws when width is missing', async () => {
+    it('throws when optimizeImage is missing', async () => {
       await expect(
         putImage(
           'avatar.webp',
@@ -187,36 +183,34 @@ describe('putImage', () => {
           // @ts-expect-error -- exercising the runtime guard for JS callers
           { access: 'public' },
         ),
-      ).rejects.toThrow(
-        'Vercel Blob: width must be an integer between 1 and 8192',
-      );
+      ).rejects.toThrow('Vercel Blob: optimizeImage is required, see usage');
     });
 
     it('validates optimize params for both source kinds', async () => {
       await expect(
         putImage('avatar.webp', 'image-bytes', {
           access: 'public',
-          width: 8193,
+          optimizeImage: { width: 8193 },
         }),
       ).rejects.toThrow(
-        'Vercel Blob: width must be an integer between 1 and 8192',
+        'Vercel Blob: optimizeImage.width must be an integer between 1 and 8192',
       );
       await expect(
         putImage('avatar.webp', new URL('https://example.com/image.jpg'), {
           access: 'public',
-          width: 128,
-          quality: 200,
+          optimizeImage: { width: 128, quality: 200 },
         }),
       ).rejects.toThrow(
-        'Vercel Blob: quality must be an integer between 1 and 100',
+        'Vercel Blob: optimizeImage.quality must be an integer between 1 and 100',
       );
       await expect(
         putImage('avatar.webp', 'image-bytes', {
           access: 'public',
-          width: 128,
-          format: 'tiff' as unknown as 'webp',
+          optimizeImage: { width: 128, format: 'tiff' as unknown as 'webp' },
         }),
-      ).rejects.toThrow('Vercel Blob: format must be one of: jpeg, png, webp');
+      ).rejects.toThrow(
+        'Vercel Blob: optimizeImage.format must be one of: jpeg, png, webp',
+      );
     });
   });
 });

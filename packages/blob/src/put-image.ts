@@ -11,7 +11,6 @@ import {
   addOptimizeImageParams,
   createPutHeaders,
   createPutOptions,
-  validateOptimizeImageOptions,
   validateOptimizeImageSourceContentType,
 } from './put-helpers';
 
@@ -19,18 +18,11 @@ export interface PutImageCommandOptions
   extends CommonCreateBlobOptions,
     WithUploadProgress {
   /**
-   * The desired width of the optimized image in pixels (1-8192).
+   * How to optimize the image before storing it: desired width in pixels
+   * (required, 1-8192), quality (1-100, defaults to 75) and output format
+   * (defaults to the source format).
    */
-  width: number;
-  /**
-   * The desired quality of the optimized image (1-100).
-   * @defaultvalue 75
-   */
-  quality?: number;
-  /**
-   * The desired output format. The source format is preserved when omitted.
-   */
-  format?: OptimizeImageOptions['format'];
+  optimizeImage: OptimizeImageOptions;
 }
 
 export type PutImageBlobResult = PutBlobResult;
@@ -58,9 +50,7 @@ function toPutBlobResult(response: PutBlobApiResponse): PutBlobResult {
  * @param bodyOrUrl - The image content (string, File, Blob, Buffer or Stream), or a URL instance pointing at the public http(s) source image.
  * @param options - Configuration options including:
  *   - access - (Required) Must be 'public' or 'private'.
- *   - width - (Required) The desired width of the optimized image in pixels (1-8192).
- *   - quality - (Optional) The desired quality of the optimized image (1-100). Defaults to 75.
- *   - format - (Optional) The desired output format: 'jpeg', 'png', 'webp' or 'avif'. The source format is preserved when omitted.
+ *   - optimizeImage - (Required) Image optimization parameters (\{width: number, quality?: number, format?: 'jpeg' | 'png' | 'webp' | 'avif'\}).
  *   - addRandomSuffix - (Optional) A boolean specifying whether to add a random suffix to the pathname. It defaults to false.
  *   - allowOverwrite - (Optional) A boolean to allow overwriting blobs. By default an error will be thrown if the destination blob already exists.
  *   - contentType - (Optional) The media type of a body source. Not supported when the source is a URL. By default, it's extracted from the pathname's extension.
@@ -78,12 +68,12 @@ export async function putImage(
   bodyOrUrl: PutBody | URL,
   options: PutImageCommandOptions,
 ): Promise<PutImageBlobResult> {
-  const optimizeImage: OptimizeImageOptions = {
-    width: options?.width,
-    quality: options?.quality,
-    format: options?.format,
-  };
-  validateOptimizeImageOptions(optimizeImage, '');
+  // Without this, an untyped caller omitting optimizeImage would fall through
+  // to a regular, unoptimized upload on the server.
+  if (!options?.optimizeImage) {
+    throw new BlobError('optimizeImage is required, see usage');
+  }
+  const { optimizeImage } = options;
 
   if (bodyOrUrl instanceof URL) {
     if (bodyOrUrl.protocol !== 'http:' && bodyOrUrl.protocol !== 'https:') {
@@ -152,7 +142,6 @@ export async function putImage(
       (typeof Blob !== 'undefined' && bodyOrUrl instanceof Blob
         ? bodyOrUrl.type
         : undefined),
-    'putImage',
   );
 
   const params = new URLSearchParams({ pathname });

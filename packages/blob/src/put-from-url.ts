@@ -47,7 +47,7 @@ export type PutFromUrlBlobResult = PutBlobResult;
  *   - storeId - (Optional) Blob store id. Used to override process.env.BLOB_STORE_ID when Vercel OIDC token is available.
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
  * @returns A promise that resolves to the stored blob information, including pathname, contentType, contentDisposition, url, and downloadUrl.
- * @deprecated Use `putImage` instead, which accepts both a body and a URL source.
+ * @deprecated Use `putImage` instead, which accepts either a body or a URL source.
  */
 export async function putFromUrl(
   pathname: string,

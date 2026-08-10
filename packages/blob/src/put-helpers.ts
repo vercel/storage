@@ -39,6 +39,9 @@ const optimizeImageFormatToMimeType = {
 // for an upload (and a billable transformation) the API would reject.
 export function validateOptimizeImageOptions(
   optimizeImage: OptimizeImageOptions,
+  // putImage takes width/quality/format as top-level options, so its
+  // messages drop the `optimizeImage.` prefix.
+  messagePrefix = 'optimizeImage.',
 ): void {
   if (typeof optimizeImage !== 'object' || optimizeImage === null) {
     throw new BlobError('optimizeImage must be an object, see usage');
@@ -48,7 +51,7 @@ export function validateOptimizeImageOptions(
 
   if (!Number.isInteger(width) || width < 1 || width > 8192) {
     throw new BlobError(
-      'optimizeImage.width must be an integer between 1 and 8192',
+      `${messagePrefix}width must be an integer between 1 and 8192`,
     );
   }
 
@@ -57,13 +60,13 @@ export function validateOptimizeImageOptions(
     (!Number.isInteger(quality) || quality < 1 || quality > 100)
   ) {
     throw new BlobError(
-      'optimizeImage.quality must be an integer between 1 and 100',
+      `${messagePrefix}quality must be an integer between 1 and 100`,
     );
   }
 
   if (format !== undefined && !(format in optimizeImageFormatToMimeType)) {
     throw new BlobError(
-      `optimizeImage.format must be one of: ${Object.keys(
+      `${messagePrefix}format must be one of: ${Object.keys(
         optimizeImageFormatToMimeType,
       ).join(', ')}`,
     );
@@ -76,6 +79,7 @@ export function validateOptimizeImageOptions(
  */
 export function validateOptimizeImageSourceContentType(
   contentType: string | undefined,
+  subject = 'optimizeImage',
 ): void {
   if (
     contentType &&
@@ -83,7 +87,7 @@ export function validateOptimizeImageSourceContentType(
     !contentType.startsWith('image/')
   ) {
     throw new BlobError(
-      `optimizeImage requires an image body, but the content type is "${contentType}"`,
+      `${subject} requires an image body, but the content type is "${contentType}"`,
     );
   }
 }

@@ -11,6 +11,7 @@ import {
   addOptimizeImageParams,
   createPutHeaders,
   createPutOptions,
+  validateOptimizeImageOptions,
   validateOptimizeImageSourceContentType,
 } from './put-helpers';
 
@@ -18,18 +19,21 @@ export interface PutImageCommandOptions
   extends CommonCreateBlobOptions,
     WithUploadProgress {
   /**
-   * How to optimize the image before storing it: desired width in pixels
-   * (required, 1-8192), quality (1-100, defaults to 75) and output format
-   * (defaults to the source format).
+   * The desired width of the optimized image in pixels (1-8192).
    */
-  optimizeImage: OptimizeImageOptions;
+  width: number;
+  /**
+   * The desired quality of the optimized image (1-100).
+   * @defaultvalue 75
+   */
+  quality?: number;
+  /**
+   * The desired output format. The source format is preserved when omitted.
+   */
+  format?: OptimizeImageOptions['format'];
 }
 
 export type PutImageBlobResult = PutBlobResult;
-
-function isSourceUrl(bodyOrUrl: PutBody): bodyOrUrl is string {
-  return typeof bodyOrUrl === 'string' && /^https?:\/\//i.test(bodyOrUrl);
-}
 
 function toPutBlobResult(response: PutBlobApiResponse): PutBlobResult {
   return {
@@ -45,15 +49,18 @@ function toPutBlobResult(response: PutBlobApiResponse): PutBlobResult {
 /**
  * Optimizes an image through Vercel Image Optimization and stores the
  * optimized output in your store. The source can be the image content itself
- * (string, File, Blob, Buffer or Stream) or a public http(s) URL, which is
- * fetched server-side. Only the optimized result is stored. Requires OIDC
- * authentication. Billed as an image transformation plus a regular blob put.
+ * (string, File, Blob, Buffer or Stream) or a URL instance pointing at a
+ * public http(s) image, which is fetched server-side. Only the optimized
+ * result is stored. Requires OIDC authentication. Billed as an image
+ * transformation plus a regular blob put.
  *
  * @param pathname - The pathname to store the optimized image at, including the extension.
- * @param bodyOrUrl - The image content (string, File, Blob, Buffer or Stream), or the public http(s) URL of the source image.
+ * @param bodyOrUrl - The image content (string, File, Blob, Buffer or Stream), or a URL instance pointing at the public http(s) source image.
  * @param options - Configuration options including:
  *   - access - (Required) Must be 'public' or 'private'.
- *   - optimizeImage - (Required) Image optimization parameters (\{width: number, quality?: number, format?: 'jpeg' | 'png' | 'webp' | 'avif'\}).
+ *   - width - (Required) The desired width of the optimized image in pixels (1-8192).
+ *   - quality - (Optional) The desired quality of the optimized image (1-100). Defaults to 75.
+ *   - format - (Optional) The desired output format: 'jpeg', 'png', 'webp' or 'avif'. The source format is preserved when omitted.
  *   - addRandomSuffix - (Optional) A boolean specifying whether to add a random suffix to the pathname. It defaults to false.
  *   - allowOverwrite - (Optional) A boolean to allow overwriting blobs. By default an error will be thrown if the destination blob already exists.
  *   - contentType - (Optional) The media type of a body source. Not supported when the source is a URL. By default, it's extracted from the pathname's extension.
@@ -68,14 +75,21 @@ function toPutBlobResult(response: PutBlobApiResponse): PutBlobResult {
  */
 export async function putImage(
   pathname: string,
-  bodyOrUrl: PutBody,
+  bodyOrUrl: PutBody | URL,
   options: PutImageCommandOptions,
 ): Promise<PutImageBlobResult> {
-  if (!options?.optimizeImage) {
-    throw new BlobError('optimizeImage is required, see usage');
-  }
+  const optimizeImage: OptimizeImageOptions = {
+    width: options?.width,
+    quality: options?.quality,
+    format: options?.format,
+  };
+  validateOptimizeImageOptions(optimizeImage, '');
 
-  if (isSourceUrl(bodyOrUrl)) {
+  if (bodyOrUrl instanceof URL) {
+    if (bodyOrUrl.protocol !== 'http:' && bodyOrUrl.protocol !== 'https:') {
+      throw new BlobError('the source URL must use the http(s) protocol');
+    }
+
     if (options.contentType) {
       throw new BlobError(
         'contentType is not supported when the source is a URL',
@@ -89,8 +103,11 @@ export async function putImage(
       putOptions,
     );
 
-    const params = new URLSearchParams({ pathname, url: bodyOrUrl });
-    addOptimizeImageParams(params, putOptions.optimizeImage);
+    const params = new URLSearchParams({
+      pathname,
+      url: bodyOrUrl.toString(),
+    });
+    addOptimizeImageParams(params, optimizeImage);
 
     const response = await requestApi<PutBlobApiResponse>(
       `/put-from-url?${params.toString()}`,
@@ -135,10 +152,11 @@ export async function putImage(
       (typeof Blob !== 'undefined' && bodyOrUrl instanceof Blob
         ? bodyOrUrl.type
         : undefined),
+    'putImage',
   );
 
   const params = new URLSearchParams({ pathname });
-  addOptimizeImageParams(params, putOptions.optimizeImage);
+  addOptimizeImageParams(params, optimizeImage);
 
   const response = await requestApi<PutBlobApiResponse>(
     `/put-optimized?${params.toString()}`,

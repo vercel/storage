@@ -29,6 +29,7 @@ export interface PutCommandOptions
    * Optimize the image through Vercel Image Optimization before storing it.
    * Only the optimized output is stored. Requires OIDC authentication and is
    * billed as an image transformation plus a regular blob put.
+   * @deprecated Use `putImage` instead.
    */
   optimizeImage?: OptimizeImageOptions;
 }

@@ -14,6 +14,7 @@ import {
 
 // `contentType` is omitted because the stored content type always comes from
 // the optimizer output, not from the caller.
+/** @deprecated Use `putImage` and `PutImageCommandOptions` instead. */
 export interface PutFromUrlCommandOptions
   extends Omit<CommonCreateBlobOptions, 'contentType'> {
   /**
@@ -23,6 +24,7 @@ export interface PutFromUrlCommandOptions
   optimizeImage: OptimizeImageOptions;
 }
 
+/** @deprecated Use `putImage` and `PutImageBlobResult` instead. */
 export type PutFromUrlBlobResult = PutBlobResult;
 
 /**
@@ -45,6 +47,7 @@ export type PutFromUrlBlobResult = PutBlobResult;
  *   - storeId - (Optional) Blob store id. Used to override process.env.BLOB_STORE_ID when Vercel OIDC token is available.
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
  * @returns A promise that resolves to the stored blob information, including pathname, contentType, contentDisposition, url, and downloadUrl.
+ * @deprecated Use `putImage` instead, which accepts either a body or a URL source.
  */
 export async function putFromUrl(
   pathname: string,

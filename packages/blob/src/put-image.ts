@@ -1,7 +1,7 @@
 import type { CommonCreateBlobOptions, WithUploadProgress } from './helpers';
 import { BlobError } from './helpers';
 import { createPutMethod } from './put';
-import { putFromUrl } from './put-from-url';
+import { putImageFromUrl } from './put-from-url';
 import type {
   OptimizeImageOptions,
   PutBlobResult,
@@ -77,7 +77,7 @@ export async function putImage(
       );
     }
 
-    return putFromUrl(pathname, bodyOrUrl, options);
+    return putImageFromUrl(pathname, bodyOrUrl, options);
   }
 
   return putOptimized(pathname, bodyOrUrl, options);

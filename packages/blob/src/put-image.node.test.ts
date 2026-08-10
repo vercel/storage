@@ -109,15 +109,18 @@ describe('putImage', () => {
       expect(headers['x-cache-control-max-age']).toBe('60');
     });
 
-    it('throws when the contentType option is not an image', async () => {
+    it('throws when a Blob body declares a non-image type', async () => {
       await expect(
-        putImage('avatar.webp', 'not-an-image', {
-          access: 'public',
-          contentType: 'text/plain',
-          optimizeImage: { width: 128 },
-        }),
+        putImage(
+          'avatar.webp',
+          new Blob(['<html></html>'], { type: 'text/html' }),
+          {
+            access: 'public',
+            optimizeImage: { width: 128 },
+          },
+        ),
       ).rejects.toThrow(
-        'Vercel Blob: optimizeImage requires an image body, but the content type is "text/plain"',
+        'Vercel Blob: optimizeImage requires an image body, but the content type is "text/html"',
       );
     });
   });
@@ -161,16 +164,18 @@ describe('putImage', () => {
       );
     });
 
-    it('throws when contentType is combined with a URL source', async () => {
-      await expect(
-        putImage('avatar.webp', new URL('https://example.com/image.jpg'), {
+    it('rejects the contentType option at the type level', () => {
+      // The stored content type always comes from the optimizer output, so
+      // putImage does not accept contentType at all. Never invoked: this
+      // test only pins the compile-time rejection.
+      const invalid = () =>
+        putImage('avatar.webp', 'image-bytes', {
           access: 'public',
+          // @ts-expect-error -- contentType is not part of PutImageCommandOptions
           contentType: 'image/jpeg',
           optimizeImage: { width: 128 },
-        }),
-      ).rejects.toThrow(
-        'Vercel Blob: contentType is not supported when the source is a URL',
-      );
+        });
+      expect(typeof invalid).toBe('function');
     });
   });
 

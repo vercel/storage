@@ -14,8 +14,10 @@ import {
   validateOptimizeImageSourceContentType,
 } from './put-helpers';
 
+// `contentType` is omitted because the optimizer output decides the stored
+// content type, and the source format is detected from the bytes.
 export interface PutImageCommandOptions
-  extends CommonCreateBlobOptions,
+  extends Omit<CommonCreateBlobOptions, 'contentType'>,
     WithUploadProgress {
   /**
    * How to optimize the image before storing it: desired width in pixels
@@ -53,7 +55,6 @@ function toPutBlobResult(response: PutBlobApiResponse): PutBlobResult {
  *   - optimizeImage - (Required) Image optimization parameters (\{width: number, quality?: number, format?: 'jpeg' | 'png' | 'webp' | 'avif'\}).
  *   - addRandomSuffix - (Optional) A boolean specifying whether to add a random suffix to the pathname. It defaults to false.
  *   - allowOverwrite - (Optional) A boolean to allow overwriting blobs. By default an error will be thrown if the destination blob already exists.
- *   - contentType - (Optional) Declares the media type of a body source, used to reject non-image uploads early. Not supported when the source is a URL. The stored content type always comes from the optimizer output.
  *   - cacheControlMaxAge - (Optional) A number in seconds to configure how long Blobs are cached.
  *   - ifMatch - (Optional) Only perform the operation if the blob's current ETag matches this value. Implies allowOverwrite.
  *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel. Ignored when Vercel OIDC token is available and either process.env.BLOB_STORE_ID or options.storeId is set.
@@ -78,12 +79,6 @@ export async function putImage(
   if (bodyOrUrl instanceof URL) {
     if (bodyOrUrl.protocol !== 'http:' && bodyOrUrl.protocol !== 'https:') {
       throw new BlobError('the source URL must use the http(s) protocol');
-    }
-
-    if (options.contentType) {
-      throw new BlobError(
-        'contentType is not supported when the source is a URL',
-      );
     }
 
     const putOptions = await createPutOptions({ pathname, options });
@@ -125,23 +120,16 @@ export async function putImage(
   const putOptions = await createPutOptions({ pathname, options });
 
   const headers = createPutHeaders(
-    [
-      'cacheControlMaxAge',
-      'addRandomSuffix',
-      'allowOverwrite',
-      'contentType',
-      'ifMatch',
-    ],
+    ['cacheControlMaxAge', 'addRandomSuffix', 'allowOverwrite', 'ifMatch'],
     putOptions,
   );
 
-  // The `contentType` option or a Blob/File `type` reveals a non-image
-  // source without reading the body; File extends Blob.
+  // A Blob/File `type` reveals a non-image source without reading the body;
+  // File extends Blob.
   validateOptimizeImageSourceContentType(
-    putOptions.contentType ??
-      (typeof Blob !== 'undefined' && bodyOrUrl instanceof Blob
-        ? bodyOrUrl.type
-        : undefined),
+    typeof Blob !== 'undefined' && bodyOrUrl instanceof Blob
+      ? bodyOrUrl.type
+      : undefined,
   );
 
   const params = new URLSearchParams({ pathname });

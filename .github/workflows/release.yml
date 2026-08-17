@@ -102,21 +102,26 @@ jobs:
       - name: Create Release Pull Request or Publish to npm
         if: ${{ github.event_name == 'push' }}
         id: changesets
-        uses: changesets/action@v1
+        uses: changesets/action@v2
         with:
-          # Use GitHub API commits so release PR commits are verified/signed.
-          commitMode: github-api
+          # The token has to be passed as an input: changesets/action@v2 no longer
+          # reads it from the GITHUB_TOKEN environment variable. It is also what
+          # signs the release commits, because v2 pushes commits and tags through
+          # the GitHub API by default (this used to be `commitMode: github-api`).
+          # `push-with-git-cli: true` opts back into the Git CLI.
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           # This expects you to have a script called release which does a build for your packages and calls changeset publish
-          publish: pnpm release
-          version: pnpm version-packages
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          publish-script: pnpm release
+          version-script: pnpm version-packages
 
       # ----- Snapshot release (manual, when `snapshot` input is true) -----
       - name: Add SHORT_SHA env property with commit short sha
         if: ${{ inputs.snapshot == true }}
         run: echo "SHORT_SHA=`echo ${{ github.sha }} | cut -c1-7`" >> $GITHUB_ENV
 
+      # `changeset version` exits with code 1 when there is nothing to release, so
+      # a snapshot run without a changeset on the branch fails here instead of
+      # publishing packages under versions that were never bumped.
       - name: Version Packages (snapshot)
         if: ${{ inputs.snapshot == true }}
         run: pnpm changeset version --snapshot ${SHORT_SHA}

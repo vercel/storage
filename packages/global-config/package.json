@@ -52,7 +52,7 @@
     "@vercel/global-config-fs": "workspace:*"
   },
   "devDependencies": {
-    "@changesets/cli": "2.31.0",
+    "@changesets/cli": "3.0.0",
     "@edge-runtime/jest-environment": "4.0.0",
     "@edge-runtime/types": "4.0.0",
     "@types/jest": "30.0.0",

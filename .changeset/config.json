@@ -1,5 +1,5 @@
 {
-  "$schema": "https://unpkg.com/@changesets/config@2.2.0/schema.json",
+  "$schema": "https://unpkg.com/@changesets/config@4.0.0/schema.json",
   "changelog": "@changesets/cli/changelog",
   "commit": false,
   "fixed": [["@vercel/edge-config", "@vercel/global-config"]],
@@ -8,6 +8,10 @@
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
   "ignore": [],
+  "privatePackages": {
+    "version": true,
+    "tag": false
+  },
   "snapshot": {
     "useCalculatedVersion": true
   }

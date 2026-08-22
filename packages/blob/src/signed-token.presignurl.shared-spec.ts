@@ -1,5 +1,5 @@
 import { createHmac } from 'node:crypto';
-import { BlobError } from './helpers';
+import { BlobError, parseStoreIdFromDelegationToken } from './helpers';
 import {
   BLOB_PRESIGN_QUERY_VALID_UNTIL,
   buildPresignCanonicalQueryEntries,
@@ -220,6 +220,72 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
         },
         now,
       );
+    });
+
+    it('accepts non-ASCII pathnames that match the token scope', async () => {
+      for (const pathname of [
+        'uploads/plain-ascii.png',
+        'uploads/Skærmbillede.png',
+        'uploads/Снимок.png',
+        'uploads/スクリーンショット.png',
+        'uploads/😀.png',
+      ]) {
+        const delegation = createDelegationToken(
+          {
+            storeId: `store_${storeId}`,
+            ownerId: 'owner_1',
+            pathname,
+            operations: ['put'],
+            validUntil: now + 3600_000,
+            iat: now,
+          },
+          blobSigningSecret,
+        );
+        const client = deriveClientSigningToken(blobSigningSecret, delegation);
+        await expectSignatureMatches(
+          delegation,
+          client,
+          { operation: 'put', pathname },
+          now,
+        );
+      }
+    });
+
+    it('falls back to the raw atob string when TextDecoder is unavailable', async () => {
+      // React Native (Hermes) ships `atob` but not `TextDecoder`; ASCII
+      // payloads must keep decoding there.
+      const descriptor = Object.getOwnPropertyDescriptor(
+        globalThis,
+        'TextDecoder',
+      );
+      Reflect.deleteProperty(globalThis, 'TextDecoder');
+      try {
+        expect(typeof TextDecoder).toBe('undefined');
+        const pathname = 'uploads/plain-ascii.png';
+        const delegation = createDelegationToken(
+          {
+            storeId: `store_${storeId}`,
+            ownerId: 'owner_1',
+            pathname,
+            operations: ['put'],
+            validUntil: now + 3600_000,
+            iat: now,
+          },
+          blobSigningSecret,
+        );
+        const client = deriveClientSigningToken(blobSigningSecret, delegation);
+        await expectSignatureMatches(
+          delegation,
+          client,
+          { operation: 'put', pathname },
+          now,
+        );
+        expect(parseStoreIdFromDelegationToken(delegation)).toBe(storeId);
+      } finally {
+        if (descriptor) {
+          Object.defineProperty(globalThis, 'TextDecoder', descriptor);
+        }
+      }
     });
 
     it('rejects path mismatch for scoped non-wildcard tokens', async () => {

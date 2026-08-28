@@ -14,6 +14,7 @@ import {
   head,
   list,
   put,
+  rename,
   uploadPart,
 } from './index';
 
@@ -1314,6 +1315,136 @@ describe('blob client', () => {
     });
   });
 
+  describe('rename', () => {
+    const mockedRenameResult = {
+      url: `${BLOB_STORE_BASE_URL}/destination.txt`,
+      downloadUrl: `${BLOB_STORE_BASE_URL}/destination.txt?download=1`,
+      pathname: 'destination.txt',
+      contentType: 'text/plain',
+      contentDisposition: 'attachment; filename="destination.txt"',
+      etag: '"def456"',
+    };
+
+    it('throws when filepath is too long', async () => {
+      await expect(
+        rename('source', 'a'.repeat(951), {
+          access: 'public',
+        }),
+      ).rejects.toThrow(
+        new Error('Vercel Blob: pathname is too long, maximum length is 950'),
+      );
+    });
+
+    it('should throw when using an invalid access value', async () => {
+      await expect(
+        rename('source', 'destination.txt', {
+          // @ts-expect-error: testing that an invalid value throws
+          access: 'invalid',
+        }),
+      ).rejects.toThrow(
+        new Error(
+          'Vercel Blob: access must be "private" or "public", see https://vercel.com/docs/vercel-blob',
+        ),
+      );
+    });
+
+    it('should rename a file with a POST to /rename', async () => {
+      let path: string | null = null;
+      let headers: Record<string, string> = {};
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          path = req.path;
+          headers = req.headers as Record<string, string>;
+          return mockedRenameResult;
+        });
+
+      await expect(
+        rename('source.txt', 'destination.txt', {
+          access: 'public',
+        }),
+      ).resolves.toMatchInlineSnapshot(`
+        {
+          "contentDisposition": "attachment; filename="destination.txt"",
+          "contentType": "text/plain",
+          "downloadUrl": "https://storeId.public.blob.vercel-storage.com/destination.txt?download=1",
+          "etag": ""def456"",
+          "pathname": "destination.txt",
+          "url": "https://storeId.public.blob.vercel-storage.com/destination.txt",
+        }
+      `);
+      expect(path).toEqual(
+        '/api/blob/rename?pathname=destination.txt&fromUrl=source.txt',
+      );
+      expect(headers['x-vercel-blob-access']).toEqual('public');
+    });
+
+    it('sets the x-vercel-blob-access header for private access on rename', async () => {
+      let headers: Record<string, string> = {};
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedRenameResult;
+        });
+
+      await rename('source.txt', 'destination.txt', {
+        access: 'private',
+      });
+      expect(headers['x-vercel-blob-access']).toEqual('private');
+    });
+
+    it('sets the allowOverwrite and addRandomSuffix headers', async () => {
+      let headers: Record<string, string> = {};
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedRenameResult;
+        });
+
+      await rename('source.txt', 'destination.txt', {
+        access: 'public',
+        allowOverwrite: true,
+        addRandomSuffix: true,
+      });
+      expect(headers['x-allow-overwrite']).toEqual('1');
+      expect(headers['x-add-random-suffix']).toEqual('1');
+    });
+
+    it('should send x-if-match header when ifMatch option is provided', async () => {
+      let headers: Record<string, string> = {};
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedRenameResult;
+        });
+
+      await rename('source.txt', 'destination.txt', {
+        access: 'public',
+        ifMatch: '"source-etag"',
+      });
+      expect(headers['x-if-match']).toEqual('"source-etag"');
+    });
+  });
+
   describe('get', () => {
     it('should throw when url or pathname is missing', async () => {
       await expect(
@@ -1515,6 +1646,201 @@ describe('blob client', () => {
 
       expect(result).not.toBeNull();
       expect(result?.blob.pathname).toEqual('file.txt');
+    });
+
+    describe('useCache option', () => {
+      // undici normalizes hostnames to lowercase
+      const PRIVATE_BLOB_STORE_BASE_URL_LOWERCASE =
+        'https://12345fakestoreid.private.blob.vercel-storage.com';
+
+      it('should append cache=0 to fetch URL when useCache is false', async () => {
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        const blobStoreMockClient = mockAgent.get(
+          PRIVATE_BLOB_STORE_BASE_URL_LOWERCASE,
+        );
+
+        // Mock the exact path with cache=0 query param
+        blobStoreMockClient
+          .intercept({
+            path: '/foo.txt?cache=0',
+            method: 'GET',
+          })
+          .reply(200, 'blob content', {
+            headers: {
+              'content-type': 'text/plain',
+              'content-length': '12',
+            },
+          });
+
+        const result = await get('foo.txt', {
+          access: 'private',
+          useCache: false,
+        });
+
+        // If the path didn't include ?cache=0, the mock wouldn't match and test would fail
+        expect(result).not.toBeNull();
+        expect(result?.blob.pathname).toEqual('foo.txt');
+      });
+
+      it('should not append cache=0 when useCache is true', async () => {
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        const blobStoreMockClient = mockAgent.get(
+          PRIVATE_BLOB_STORE_BASE_URL_LOWERCASE,
+        );
+
+        // Mock the exact path without cache=0
+        blobStoreMockClient
+          .intercept({
+            path: '/foo.txt',
+            method: 'GET',
+          })
+          .reply(200, 'blob content', {
+            headers: {
+              'content-type': 'text/plain',
+              'content-length': '12',
+            },
+          });
+
+        const result = await get('foo.txt', {
+          access: 'private',
+          useCache: true,
+        });
+
+        // If the path included ?cache=0, the mock wouldn't match and test would fail
+        expect(result).not.toBeNull();
+        expect(result?.blob.pathname).toEqual('foo.txt');
+      });
+
+      it('should not append cache=0 when useCache is omitted', async () => {
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        const blobStoreMockClient = mockAgent.get(
+          PRIVATE_BLOB_STORE_BASE_URL_LOWERCASE,
+        );
+
+        // Mock the exact path without cache=0
+        blobStoreMockClient
+          .intercept({
+            path: '/foo.txt',
+            method: 'GET',
+          })
+          .reply(200, 'blob content', {
+            headers: {
+              'content-type': 'text/plain',
+              'content-length': '12',
+            },
+          });
+
+        const result = await get('foo.txt', {
+          access: 'private',
+        });
+
+        // If the path included ?cache=0, the mock wouldn't match and test would fail
+        expect(result).not.toBeNull();
+        expect(result?.blob.pathname).toEqual('foo.txt');
+      });
+
+      it('should not append cache=0 when useCache is false with public access', async () => {
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        const blobStoreMockClient = mockAgent.get(
+          'https://12345fakestoreid.public.blob.vercel-storage.com',
+        );
+
+        // Mock the exact path without cache=0
+        blobStoreMockClient
+          .intercept({
+            path: '/foo.txt',
+            method: 'GET',
+          })
+          .reply(200, 'blob content', {
+            headers: {
+              'content-type': 'text/plain',
+              'content-length': '12',
+            },
+          });
+
+        const result = await get('foo.txt', {
+          access: 'public',
+          useCache: false,
+        });
+
+        // If the path included ?cache=0, the mock wouldn't match and test would fail
+        expect(result).not.toBeNull();
+        expect(result?.blob.pathname).toEqual('foo.txt');
+      });
+
+      it('should not include cache=0 in returned url or downloadUrl', async () => {
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        const blobStoreMockClient = mockAgent.get(
+          PRIVATE_BLOB_STORE_BASE_URL_LOWERCASE,
+        );
+
+        blobStoreMockClient
+          .intercept({
+            path: '/foo.txt?cache=0',
+            method: 'GET',
+          })
+          .reply(200, 'blob content', {
+            headers: {
+              'content-type': 'text/plain',
+              'content-length': '12',
+            },
+          });
+
+        const result = await get('foo.txt', {
+          access: 'private',
+          useCache: false,
+        });
+
+        expect(result?.blob.downloadUrl).toEqual(
+          'https://12345fakestoreid.private.blob.vercel-storage.com/foo.txt?download=1',
+        );
+        expect(result?.blob.url).toEqual(
+          'https://12345fakeStoreId.private.blob.vercel-storage.com/foo.txt',
+        );
+      });
+
+      it('should work with URL input and useCache false', async () => {
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        // Use lowercase since undici normalizes hostnames
+        const storeMock = mockAgent.get(
+          'https://storeid.private.blob.vercel-storage.com',
+        );
+
+        storeMock
+          .intercept({
+            path: '/foo.txt?cache=0',
+            method: 'GET',
+          })
+          .reply(200, 'blob content', {
+            headers: {
+              'content-type': 'text/plain',
+              'content-length': '12',
+            },
+          });
+
+        const result = await get(
+          'https://storeId.private.blob.vercel-storage.com/foo.txt',
+          {
+            access: 'private',
+            useCache: false,
+          },
+        );
+
+        // If the path didn't include ?cache=0, the mock wouldn't match and test would fail
+        expect(result).not.toBeNull();
+      });
     });
 
     describe('conditional requests (304 Not Modified)', () => {

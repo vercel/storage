@@ -13,9 +13,10 @@ export interface GetCommandOptions extends BlobCommandOptions {
    */
   access: BlobAccessType;
   /**
-   * @deprecated No longer has any effect. The backend no longer supports
-   * bypassing the cache, so this option is ignored. It is kept only to avoid
-   * breaking existing callers and will be removed in a future major version.
+   * Whether to allow the blob to be served from CDN cache.
+   * When false, fetches directly from origin storage, guaranteeing the
+   * latest content at the cost of slower reads.
+   * @defaultValue true
    */
   useCache?: boolean;
   /**
@@ -99,6 +100,9 @@ function extractPathnameFromUrl(url: string): string {
  * ```ts
  * // Basic usage
  * const { stream, headers, blob } = await get('user123/avatar.png', { access: 'private' });
+ *
+ * // Bypass the CDN cache and read the latest content from origin storage
+ * const { stream, headers, blob } = await get('user123/data.json', { access: 'private', useCache: false });
  * ```
  *
  * Detailed documentation can be found here: https://vercel.com/docs/vercel-blob/using-blob-sdk
@@ -106,6 +110,7 @@ function extractPathnameFromUrl(url: string): string {
  * @param urlOrPathname - The URL or pathname of the blob to fetch.
  * @param options - Configuration options including:
  *   - access - (Required) Must be 'public' or 'private'. Determines the access level of the blob.
+ *   - useCache - (Optional) When false, bypasses the CDN cache and reads the latest content directly from origin storage. Defaults to true.
  *   - oidcToken - (Optional) Vercel OIDC token for authentication with `storeId` (or `BLOB_STORE_ID`); overrides `VERCEL_OIDC_TOKEN`.
  *   - storeId - (Optional) Store id when using Vercel OIDC token for authentication; overrides `BLOB_STORE_ID`.
  *   - token - (Optional) Read-write token when not using Vercel OIDC token for authentication, or set `BLOB_READ_WRITE_TOKEN`.
@@ -172,7 +177,17 @@ export async function get(
     ...options.headers, // low-level escape hatch, applied last to override anything
   };
 
-  const response = await fetch(blobUrl, {
+  // useCache: false bypasses the CDN cache so the content is served
+  // directly from origin storage (cache=0 query param). The backend only
+  // supports the bypass for private blobs, so it's ignored for public ones.
+  let fetchUrl = blobUrl;
+  if (options.useCache === false && access === 'private') {
+    const url = new URL(blobUrl);
+    url.searchParams.set('cache', '0');
+    fetchUrl = url.toString();
+  }
+
+  const response = await fetch(fetchUrl, {
     method: 'GET',
     headers: requestHeaders,
     signal: options.abortSignal,

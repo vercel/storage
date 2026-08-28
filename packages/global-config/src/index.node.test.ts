@@ -46,7 +46,7 @@ describe('default Edge Config', () => {
       headers: new Headers({
         Authorization: 'Bearer token-1',
         'x-edge-config-vercel-env': 'test',
-        'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+        'x-edge-config-sdk': `@vercel/global-config@${sdkVersion}`,
         'cache-control': 'stale-if-error=604800',
       }),
       cache: 'no-store',
@@ -67,7 +67,7 @@ describe('default Edge Config', () => {
             headers: new Headers({
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
-              'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'x-edge-config-sdk': `@vercel/global-config@${sdkVersion}`,
               'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
@@ -103,7 +103,7 @@ describe('default Edge Config', () => {
             headers: new Headers({
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
-              'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'x-edge-config-sdk': `@vercel/global-config@${sdkVersion}`,
               'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
@@ -125,7 +125,7 @@ describe('default Edge Config', () => {
         );
 
         await expect(get('foo')).rejects.toThrow(
-          '@vercel/edge-config: Edge Config not found',
+          '@vercel/global-config: Global Config not found',
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -135,7 +135,7 @@ describe('default Edge Config', () => {
             headers: new Headers({
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
-              'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'x-edge-config-sdk': `@vercel/global-config@${sdkVersion}`,
               'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
@@ -157,7 +157,7 @@ describe('default Edge Config', () => {
             headers: new Headers({
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
-              'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'x-edge-config-sdk': `@vercel/global-config@${sdkVersion}`,
               'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
@@ -171,7 +171,7 @@ describe('default Edge Config', () => {
         fetchMock.mockResponse('', { status: 500 });
 
         await expect(get('foo')).rejects.toThrow(
-          '@vercel/edge-config: Unexpected error due to response with status code 500',
+          '@vercel/global-config: Unexpected error due to response with status code 500',
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -181,7 +181,7 @@ describe('default Edge Config', () => {
             headers: new Headers({
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
-              'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'x-edge-config-sdk': `@vercel/global-config@${sdkVersion}`,
               'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
@@ -203,7 +203,7 @@ describe('default Edge Config', () => {
           headers: new Headers({
             Authorization: 'Bearer token-1',
             'x-edge-config-vercel-env': 'test',
-            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'x-edge-config-sdk': `@vercel/global-config@${sdkVersion}`,
             'cache-control': 'stale-if-error=604800',
           }),
           cache: 'no-store',
@@ -227,7 +227,7 @@ describe('default Edge Config', () => {
             headers: new Headers({
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
-              'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'x-edge-config-sdk': `@vercel/global-config@${sdkVersion}`,
               'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
@@ -264,7 +264,7 @@ describe('default Edge Config', () => {
         );
 
         await expect(getAll(['foo', 'bar'])).rejects.toThrow(
-          '@vercel/edge-config: Edge Config not found',
+          '@vercel/global-config: Global Config not found',
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -274,7 +274,7 @@ describe('default Edge Config', () => {
             headers: new Headers({
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
-              'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'x-edge-config-sdk': `@vercel/global-config@${sdkVersion}`,
               'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
@@ -294,7 +294,7 @@ describe('default Edge Config', () => {
           headers: new Headers({
             Authorization: 'Bearer token-1',
             'x-edge-config-vercel-env': 'test',
-            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'x-edge-config-sdk': `@vercel/global-config@${sdkVersion}`,
             'cache-control': 'stale-if-error=604800',
           }),
           cache: 'no-store',
@@ -307,7 +307,7 @@ describe('default Edge Config', () => {
         fetchMock.mockResponse('', { status: 500 });
 
         await expect(getAll()).rejects.toThrow(
-          '@vercel/edge-config: Unexpected error due to response with status code 500',
+          '@vercel/global-config: Unexpected error due to response with status code 500',
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -315,7 +315,7 @@ describe('default Edge Config', () => {
           headers: new Headers({
             Authorization: 'Bearer token-1',
             'x-edge-config-vercel-env': 'test',
-            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'x-edge-config-sdk': `@vercel/global-config@${sdkVersion}`,
             'cache-control': 'stale-if-error=604800',
           }),
           cache: 'no-store',
@@ -339,7 +339,7 @@ describe('default Edge Config', () => {
             headers: new Headers({
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
-              'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'x-edge-config-sdk': `@vercel/global-config@${sdkVersion}`,
               'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
@@ -376,7 +376,7 @@ describe('default Edge Config', () => {
             headers: new Headers({
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
-              'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'x-edge-config-sdk': `@vercel/global-config@${sdkVersion}`,
               'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
@@ -398,7 +398,7 @@ describe('default Edge Config', () => {
         );
 
         await expect(has('foo')).rejects.toThrow(
-          '@vercel/edge-config: Edge Config not found',
+          '@vercel/global-config: Global Config not found',
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -409,7 +409,7 @@ describe('default Edge Config', () => {
             headers: new Headers({
               Authorization: 'Bearer token-1',
               'x-edge-config-vercel-env': 'test',
-              'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+              'x-edge-config-sdk': `@vercel/global-config@${sdkVersion}`,
               'cache-control': 'stale-if-error=604800',
             }),
             cache: 'no-store',
@@ -431,7 +431,7 @@ describe('default Edge Config', () => {
           headers: new Headers({
             Authorization: 'Bearer token-1',
             'x-edge-config-vercel-env': 'test',
-            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'x-edge-config-sdk': `@vercel/global-config@${sdkVersion}`,
             'cache-control': 'stale-if-error=604800',
           }),
           cache: 'no-store',
@@ -444,7 +444,7 @@ describe('default Edge Config', () => {
         fetchMock.mockResponse('', { status: 500 });
 
         await expect(digest()).rejects.toThrow(
-          '@vercel/edge-config: Unexpected error due to response with status code 500',
+          '@vercel/global-config: Unexpected error due to response with status code 500',
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -452,7 +452,7 @@ describe('default Edge Config', () => {
           headers: new Headers({
             Authorization: 'Bearer token-1',
             'x-edge-config-vercel-env': 'test',
-            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'x-edge-config-sdk': `@vercel/global-config@${sdkVersion}`,
             'cache-control': 'stale-if-error=604800',
           }),
           cache: 'no-store',
@@ -463,7 +463,7 @@ describe('default Edge Config', () => {
         fetchMock.mockResponse('', { status: 404 });
 
         await expect(digest()).rejects.toThrow(
-          '@vercel/edge-config: Unexpected error due to response with status code 404',
+          '@vercel/global-config: Unexpected error due to response with status code 404',
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -471,7 +471,7 @@ describe('default Edge Config', () => {
           headers: new Headers({
             Authorization: 'Bearer token-1',
             'x-edge-config-vercel-env': 'test',
-            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'x-edge-config-sdk': `@vercel/global-config@${sdkVersion}`,
             'cache-control': 'stale-if-error=604800',
           }),
           cache: 'no-store',
@@ -490,7 +490,7 @@ describe('default Edge Config', () => {
           headers: new Headers({
             Authorization: 'Bearer token-1',
             'x-edge-config-vercel-env': 'test',
-            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'x-edge-config-sdk': `@vercel/global-config@${sdkVersion}`,
             'cache-control': 'stale-if-error=604800',
           }),
           cache: 'no-store',
@@ -634,7 +634,7 @@ describe('createClient', () => {
           cache: 'force-cache',
           headers: new Headers({
             Authorization: 'Bearer token-1',
-            'x-edge-config-sdk': `@vercel/edge-config@${sdkVersion}`,
+            'x-edge-config-sdk': `@vercel/global-config@${sdkVersion}`,
             'x-edge-config-vercel-env': 'test',
           }),
         },

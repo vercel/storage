@@ -11,6 +11,8 @@ on:
           - "@vercel/blob"
           - "@vercel/edge-config"
           - "@vercel/edge-config-fs"
+          - "@vercel/global-config-fs"
+          - "@vercel/global-config"
           - "@vercel/kv"
           - "@vercel/postgres"
           - "@vercel/postgres-kysely"

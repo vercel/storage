@@ -265,6 +265,15 @@ export type PresignGetUrlOptions = {
    * Omitted on the wire when equal to the delegation ceiling (server defaults to delegation).
    */
   validUntil?: number;
+  /**
+   * Whether the presigned URL may be served from CDN cache. When false, a
+   * `cache=0` query param is appended so fetches read the latest content
+   * directly from origin storage. The CDN only supports the bypass for
+   * private blobs, so it's ignored for public ones. The param is not part
+   * of the signed payload: whoever holds the URL can add or remove it.
+   * @defaultValue true
+   */
+  useCache?: boolean;
 };
 
 /**
@@ -430,14 +439,25 @@ function buildPresignedGetUrl(
   presignedUrlPayload: PresignedUrlPayload,
   options: {
     access: 'public' | 'private';
+    useCache?: boolean;
   },
 ): string {
   const storeId = parseStoreIdFromDelegationToken(
     presignedUrlPayload.delegationToken,
   );
-  const blobUrl = isUrl(pathnameOrUrl)
+  let blobUrl = isUrl(pathnameOrUrl)
     ? pathnameOrUrl
     : constructBlobUrl(storeId, pathnameOrUrl, options.access);
+
+  // Same gating as get(): the CDN only supports the cache bypass for private
+  // blobs. The param is deliberately outside the signed payload, so adding it
+  // here doesn't affect signature verification.
+  if (options.useCache === false && options.access === 'private') {
+    const url = new URL(blobUrl);
+    url.searchParams.set('cache', '0');
+    blobUrl = url.toString();
+  }
+
   return addPresignedParams(blobUrl, presignedUrlPayload);
 }
 

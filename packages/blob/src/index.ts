@@ -59,6 +59,7 @@ export type { PutCommandOptions };
  *   - oidcToken - (Optional) Vercel OIDC token for authentication with `storeId` (or `BLOB_STORE_ID`); overrides `VERCEL_OIDC_TOKEN`.
  *   - storeId - (Optional) Blob store id. Used to override process.env.BLOB_STORE_ID when Vercel OIDC token is available.
  *   - multipart - (Optional) Whether to use multipart upload for large files. It will split the file into multiple parts, upload them in parallel and retry failed parts.
+ *   - optimizeImage - (Deprecated, use `putImage` instead) Optimize the image through Vercel Image Optimization before storing it (\{width: number, quality?: number, format?: 'jpeg' | 'png' | 'webp' | 'avif'\}). Only the optimized output is stored. Requires OIDC authentication and cannot be combined with multipart. Billed as an image transformation plus a regular blob put.
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
  *   - onUploadProgress - (Optional) Callback to track upload progress: onUploadProgress(\{loaded: number, total: number, percentage: number\})
  * @returns A promise that resolves to the blob information, including pathname, contentType, contentDisposition, url, and downloadUrl.
@@ -102,6 +103,28 @@ export { list } from './list';
 
 export type { CopyBlobResult, CopyCommandOptions } from './copy';
 export { copy } from './copy';
+
+// vercelBlob.rename()
+
+export type { RenameBlobResult, RenameCommandOptions } from './rename';
+export { rename } from './rename';
+
+// vercelBlob.putImage()
+
+export type {
+  PutImageBlobResult,
+  PutImageCommandOptions,
+} from './put-image';
+export { putImage } from './put-image';
+
+// vercelBlob.putFromUrl()
+
+export type {
+  PutFromUrlBlobResult,
+  PutFromUrlCommandOptions,
+} from './put-from-url';
+export { putFromUrl } from './put-from-url';
+export type { OptimizeImageOptions } from './put-helpers';
 
 // vercelBlob. createMultipartUpload()
 // vercelBlob. uploadPart()

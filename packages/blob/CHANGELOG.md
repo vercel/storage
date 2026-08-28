@@ -1,5 +1,46 @@
 # @vercel/blob
 
+## 2.8.0
+
+### Minor Changes
+
+- 8b49164: Add `putImage(pathname, bodyOrUrl, options)`: optimizes an image through Vercel Image Optimization and stores only the optimized output. The source can be the image content itself (string, File, Blob, Buffer or Stream) or a `URL` instance pointing at a public http(s) image, which is fetched server-side. Options mirror `put` (access, addRandomSuffix, allowOverwrite, cacheControlMaxAge, ifMatch) plus the required `optimizeImage` parameters (`width`, `quality`, `format`); `contentType` is not accepted since the stored content type always comes from the optimizer output. Deprecates the `optimizeImage` option on `put` and the `putFromUrl` function in favor of `putImage`; both keep working.
+
+## 2.7.0
+
+### Minor Changes
+
+- ad5a134: Add image optimization support: a new `optimizeImage` option on `put` and a new `putFromUrl` method. Both optimize the image through Vercel Image Optimization before storing it (only the optimized output is stored) and require OIDC authentication.
+
+  ```ts
+  const result = await put("avatars/foo.webp", body, {
+    access: "public",
+    optimizeImage: { width: 128, quality: 75, format: "webp" },
+  });
+
+  const result = await putFromUrl(
+    "avatars/foo.webp",
+    "https://example.com/photo.jpg",
+    {
+      access: "public",
+      optimizeImage: { width: 128, quality: 75, format: "webp" },
+    }
+  );
+  ```
+
+## 2.6.1
+
+### Patch Changes
+
+- d0118c4: Add a `useCache` option to `presignUrl()` for `get` operations. When `useCache: false`, the presigned URL includes a `cache=0` query param so fetches bypass the CDN cache and read the latest content directly from origin storage. Like `get()`, the bypass only applies to private blobs. The param is not part of the signed payload, so holders of a presigned URL can also add or remove it manually.
+
+## 2.6.0
+
+### Minor Changes
+
+- c4976ba: Add `rename(fromUrlOrPathname, toPathname, options)` to move a blob to another pathname. The blob is copied to the new pathname and the source is deleted afterwards; if the copy fails the source is left untouched. By default renaming onto an existing blob throws — pass `allowOverwrite: true` to replace it, or `addRandomSuffix: true` to generate a unique destination. Requires a read-write token (client tokens are not supported).
+- 89d94e9: Restore the `useCache` option on `get()`. Passing `useCache: false` bypasses the CDN cache and serves the blob directly from origin storage (via the `cache=0` query parameter), guaranteeing the latest content at the cost of slower reads. Defaults to `true`.
+
 ## 2.5.0
 
 ### Minor Changes

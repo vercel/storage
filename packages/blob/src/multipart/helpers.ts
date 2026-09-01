@@ -1,6 +1,6 @@
 import type { Buffer } from 'buffer';
 import isBuffer from 'is-buffer';
-import { Readable } from 'stream';
+import type { Readable } from 'stream';
 import type { PutBody } from '../put-helpers';
 
 /**
@@ -72,7 +72,27 @@ export async function toReadableStream(
   }
 
   if (isNodeJsReadableStream(value)) {
-    return Readable.toWeb(value) as ReadableStream<ArrayBuffer>;
+    const iterator = value[Symbol.asyncIterator]();
+
+    return new ReadableStream({
+      async pull(controller) {
+        const result = await iterator.next();
+
+        if (result.done) {
+          controller.close();
+        } else {
+          controller.enqueue(
+            result.value instanceof Uint8Array
+              ? new Uint8Array(result.value)
+              : result.value,
+          );
+        }
+      },
+      async cancel(reason) {
+        value.destroy(reason instanceof Error ? reason : undefined);
+        await iterator.return?.();
+      },
+    });
   }
 
   let streamValue: Uint8Array;

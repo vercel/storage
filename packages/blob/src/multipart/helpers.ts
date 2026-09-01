@@ -89,7 +89,7 @@ export async function toReadableStream(
         }
       },
       async cancel(reason) {
-        value.destroy(reason instanceof Error ? reason : undefined);
+        value.destroy(reason);
         await iterator.return?.();
       },
     });

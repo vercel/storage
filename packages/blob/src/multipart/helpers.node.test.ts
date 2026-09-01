@@ -14,10 +14,22 @@ describe('toReadableStream', () => {
     const source = Readable.from([Buffer.from('hello')]);
     const destroy = jest.spyOn(source, 'destroy');
     const stream = await toReadableStream(source);
-    const reason = new Error('cancelled');
+    const reason = 'cancelled';
 
     await stream.cancel(reason);
 
     expect(destroy).toHaveBeenCalledWith(reason);
+  });
+
+  it('forwards Node.js stream errors to the Web stream', async () => {
+    const error = new Error('failed');
+    const source = new Readable({
+      read() {
+        this.destroy(error);
+      },
+    });
+    const stream = await toReadableStream(source);
+
+    await expect(stream.getReader().read()).rejects.toBe(error);
   });
 });

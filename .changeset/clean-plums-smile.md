@@ -2,4 +2,4 @@
 '@vercel/blob': patch
 ---
 
-Convert Node.js readable streams without retaining a runtime dependency on the Node.js stream module.
+Convert Node.js readable streams without importing the Node.js stream module at runtime.

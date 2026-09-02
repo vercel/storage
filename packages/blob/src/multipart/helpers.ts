@@ -76,17 +76,16 @@ export async function toReadableStream(
 
     return new ReadableStream({
       async pull(controller) {
-        const result = await iterator.next();
+        const { done, value: chunk } = await iterator.next();
 
-        if (result.done) {
+        if (done) {
           controller.close();
-        } else {
-          controller.enqueue(
-            result.value instanceof Uint8Array
-              ? new Uint8Array(result.value)
-              : result.value,
-          );
+          return;
         }
+
+        controller.enqueue(
+          chunk instanceof Uint8Array ? new Uint8Array(chunk) : chunk,
+        );
       },
       async cancel(reason) {
         value.destroy(reason);

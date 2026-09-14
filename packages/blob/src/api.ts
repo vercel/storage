@@ -24,12 +24,16 @@ import { blobRequest } from './request';
 export const MAXIMUM_PATHNAME_LENGTH = 950;
 
 export class BlobAccessError extends BlobError {
+  override name = 'BlobAccessError';
+
   constructor() {
     super('Access denied, please provide a valid token for this resource.');
   }
 }
 
 export class BlobOidcEnvironmentNotAllowedError extends BlobError {
+  override name = 'BlobOidcEnvironmentNotAllowedError';
+
   constructor(message?: string) {
     super(
       message ??
@@ -39,12 +43,16 @@ export class BlobOidcEnvironmentNotAllowedError extends BlobError {
 }
 
 export class BlobContentTypeNotAllowedError extends BlobError {
+  override name = 'BlobContentTypeNotAllowedError';
+
   constructor(message: string) {
     super(`Content type mismatch, ${message}.`);
   }
 }
 
 export class BlobPathnameMismatchError extends BlobError {
+  override name = 'BlobPathnameMismatchError';
+
   constructor(message: string) {
     super(
       `Pathname mismatch, ${message}. Check the pathname used in upload() or put() matches the one from the client token.`,
@@ -53,48 +61,64 @@ export class BlobPathnameMismatchError extends BlobError {
 }
 
 export class BlobClientTokenExpiredError extends BlobError {
+  override name = 'BlobClientTokenExpiredError';
+
   constructor() {
     super('Client token has expired.');
   }
 }
 
 export class BlobFileTooLargeError extends BlobError {
+  override name = 'BlobFileTooLargeError';
+
   constructor(message: string) {
     super(`File is too large, ${message}.`);
   }
 }
 
 export class BlobStoreNotFoundError extends BlobError {
+  override name = 'BlobStoreNotFoundError';
+
   constructor() {
     super('This store does not exist.');
   }
 }
 
 export class BlobStoreSuspendedError extends BlobError {
+  override name = 'BlobStoreSuspendedError';
+
   constructor() {
     super('This store has been suspended.');
   }
 }
 
 export class BlobUnknownError extends BlobError {
+  override name = 'BlobUnknownError';
+
   constructor() {
     super('Unknown error, please visit https://vercel.com/help.');
   }
 }
 
 export class BlobNotFoundError extends BlobError {
+  override name = 'BlobNotFoundError';
+
   constructor() {
     super('The requested blob does not exist');
   }
 }
 
 export class BlobServiceNotAvailable extends BlobError {
+  override name = 'BlobServiceNotAvailable';
+
   constructor() {
     super('The blob service is currently not available. Please try again.');
   }
 }
 
 export class BlobServiceRateLimited extends BlobError {
+  override name = 'BlobServiceRateLimited';
+
   public readonly retryAfter: number;
 
   constructor(seconds?: number) {
@@ -109,12 +133,16 @@ export class BlobServiceRateLimited extends BlobError {
 }
 
 export class BlobRequestAbortedError extends BlobError {
+  override name = 'BlobRequestAbortedError';
+
   constructor() {
     super('The request was aborted.');
   }
 }
 
 export class BlobPreconditionFailedError extends BlobError {
+  override name = 'BlobPreconditionFailedError';
+
   constructor() {
     super('Precondition failed: ETag mismatch.');
   }

@@ -1,9 +1,16 @@
 import undici from 'undici';
 import {
   BlobAccessError,
+  BlobClientTokenExpiredError,
   BlobContentTypeNotAllowedError,
+  BlobFileTooLargeError,
   BlobNotFoundError,
+  BlobOidcEnvironmentNotAllowedError,
+  BlobPathnameMismatchError,
+  BlobPreconditionFailedError,
+  BlobRequestAbortedError,
   BlobServiceNotAvailable,
+  BlobServiceRateLimited,
   BlobStoreNotFoundError,
   BlobStoreSuspendedError,
   BlobUnknownError,
@@ -27,6 +34,37 @@ jest.mock('@vercel/oidc', () => {
     // doesn't wipe this implementation; it forwards to the current impl.
     getVercelOidcToken: () => mockGetVercelOidcTokenImpl(),
   };
+});
+
+describe('blob errors', () => {
+  it.each([
+    [new BlobError('Unknown error.'), 'BlobError'],
+    [new BlobAccessError(), 'BlobAccessError'],
+    [
+      new BlobOidcEnvironmentNotAllowedError(),
+      'BlobOidcEnvironmentNotAllowedError',
+    ],
+    [
+      new BlobContentTypeNotAllowedError('invalid content type'),
+      'BlobContentTypeNotAllowedError',
+    ],
+    [
+      new BlobPathnameMismatchError('invalid pathname'),
+      'BlobPathnameMismatchError',
+    ],
+    [new BlobClientTokenExpiredError(), 'BlobClientTokenExpiredError'],
+    [new BlobFileTooLargeError('file is too large'), 'BlobFileTooLargeError'],
+    [new BlobStoreNotFoundError(), 'BlobStoreNotFoundError'],
+    [new BlobStoreSuspendedError(), 'BlobStoreSuspendedError'],
+    [new BlobUnknownError(), 'BlobUnknownError'],
+    [new BlobNotFoundError(), 'BlobNotFoundError'],
+    [new BlobServiceNotAvailable(), 'BlobServiceNotAvailable'],
+    [new BlobServiceRateLimited(), 'BlobServiceRateLimited'],
+    [new BlobRequestAbortedError(), 'BlobRequestAbortedError'],
+    [new BlobPreconditionFailedError(), 'BlobPreconditionFailedError'],
+  ] as const)('sets %s.name to its public class name', (error, name) => {
+    expect(error.name).toBe(name);
+  });
 });
 
 describe('api', () => {

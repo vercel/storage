@@ -334,6 +334,8 @@ export function getReadWriteBlobTokenFromOptionsOrEnv(
 }
 
 export class BlobError extends Error {
+  override name = 'BlobError';
+
   constructor(message: string) {
     super(`Vercel Blob: ${message}`);
   }

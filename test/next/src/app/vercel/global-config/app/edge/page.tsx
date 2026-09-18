@@ -1,13 +1,13 @@
-import { get } from '@vercel/edge-config';
+import { get } from '@vercel/global-config';
 
-export const runtime = 'nodejs';
+export const runtime = 'edge';
 
 export default async function Page(): Promise<React.JSX.Element> {
   const value = await get('keyForTest');
 
   if (value !== 'valueForTest')
     throw new Error(
-      "Expected Edge Config Item 'keyForTest' to have value 'valueForTest'",
+      "Expected Global Config Item 'keyForTest' to have value 'valueForTest'",
     );
 
   return <pre>{JSON.stringify(value, null, 2)}</pre>;

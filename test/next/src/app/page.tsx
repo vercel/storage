@@ -21,7 +21,7 @@ export default function Page(): React.JSX.Element {
           justifyContent: 'stretch',
         }}
       >
-        <Link href="/vercel/edge-config">Edge Config</Link>
+        <Link href="/vercel/global-config">Global Config</Link>
         <Link href="/vercel/kv">KV</Link>
         <Link href="/vercel/postgres">Postgres</Link>
         <Link href="/vercel/postgres-kysely">Postgres Kysely</Link>

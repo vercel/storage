@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
 
-test.describe('@vercel/edge-config', () => {
+test.describe('@vercel/global-config', () => {
   test.describe('app directory', () => {
     test.describe('client', () => {
       test.describe('page', () => {
         test('edge', async ({ page }) => {
-          await page.goto('vercel/edge-config/app/edge');
+          await page.goto('vercel/global-config/app/edge');
           await expect(page.locator('html#__next_error__')).toHaveCount(0);
           const textContent = await page.locator('pre').textContent();
           expect(textContent).not.toBeNull();
@@ -13,7 +13,7 @@ test.describe('@vercel/edge-config', () => {
           expect(JSON.parse(textContent!)).toEqual('valueForTest');
         });
         test('node', async ({ page }) => {
-          await page.goto('vercel/edge-config/app/node');
+          await page.goto('vercel/global-config/app/node');
           await expect(page.locator('html#__next_error__')).toHaveCount(0);
           const textContent = await page.locator('pre').textContent();
           expect(textContent).not.toBeNull();

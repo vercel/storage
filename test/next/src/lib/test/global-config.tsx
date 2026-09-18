@@ -13,7 +13,7 @@ export interface TestResult {
   url: URL;
 }
 
-export async function EdgeConfigTestRunner({
+export async function GlobalConfigTestRunner({
   apiOrPage,
   directory,
   environment,
@@ -56,7 +56,7 @@ export function getUrl({
   const base = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
     : `http://localhost:${process.env.PORT || 3000}`;
-  const trailingFragment = `vercel/edge-config/${directory}/${environment}`;
+  const trailingFragment = `vercel/global-config/${directory}/${environment}`;
   if (apiOrPage === 'api') {
     return new URL(`${base}/api/${trailingFragment}`, base);
   }

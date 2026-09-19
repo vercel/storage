@@ -317,6 +317,8 @@ export type PresignPutUrlOptions = {
   cacheControlMaxAge?: number;
 
   ifMatch?: string;
+
+  ttlDays?: number;
 };
 
 /**

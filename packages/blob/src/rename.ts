@@ -79,6 +79,10 @@ export async function rename(
     headers['x-if-match'] = options.ifMatch;
   }
 
+  if (options.ttlDays !== undefined) {
+    headers['x-ttl-days'] = options.ttlDays.toString();
+  }
+
   const params = new URLSearchParams({
     pathname: toPathname,
     fromUrl: fromUrlOrPathname,

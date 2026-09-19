@@ -49,10 +49,17 @@ export interface HeadBlobResult {
    * The ETag of the blob. Can be used with `ifMatch` for conditional writes.
    */
   etag: string;
+
+  /**
+   * When the blob will be deleted. Only set for blobs uploaded with `ttlDays`.
+   */
+  expiresAt?: Date;
 }
 
-interface HeadBlobApiResponse extends Omit<HeadBlobResult, 'uploadedAt'> {
+interface HeadBlobApiResponse
+  extends Omit<HeadBlobResult, 'uploadedAt' | 'expiresAt'> {
   uploadedAt: string; // when receiving data from our API, uploadedAt is a string
+  expiresAt?: string;
 }
 
 /**
@@ -88,5 +95,6 @@ export async function head(
     cacheControl: response.cacheControl,
     uploadedAt: new Date(response.uploadedAt),
     etag: response.etag,
+    ...(response.expiresAt && { expiresAt: new Date(response.expiresAt) }),
   };
 }

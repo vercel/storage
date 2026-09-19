@@ -42,6 +42,19 @@ describe('client uploads', () => {
       });
     });
 
+    it('embeds ttlDays in the client token payload', async () => {
+      const uploadToken = await generateClientTokenFromReadWriteToken({
+        pathname: 'foo.txt',
+        ttlDays: 7,
+        token: 'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678',
+      });
+
+      expect(getPayloadFromClientToken(uploadToken)).toMatchObject({
+        pathname: 'foo.txt',
+        ttlDays: 7,
+      });
+    });
+
     it('throws when ifMatch is used with allowOverwrite: false', async () => {
       await expect(
         generateClientTokenFromReadWriteToken({

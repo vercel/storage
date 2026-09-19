@@ -109,6 +109,7 @@ export const putOptionHeaderMap = {
   contentType: 'x-content-type',
   access: 'x-vercel-blob-access',
   ifMatch: 'x-if-match',
+  ttlDays: 'x-ttl-days',
 };
 
 /**
@@ -227,6 +228,10 @@ export function createPutHeaders<TOptions extends CommonPutCommandOptions>(
   ) {
     headers[putOptionHeaderMap.cacheControlMaxAge] =
       options.cacheControlMaxAge.toString();
+  }
+
+  if (allowedOptions.includes('ttlDays') && options.ttlDays !== undefined) {
+    headers[putOptionHeaderMap.ttlDays] = options.ttlDays.toString();
   }
 
   return headers;

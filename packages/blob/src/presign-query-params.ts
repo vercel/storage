@@ -22,6 +22,7 @@ export const BLOB_PRESIGN_QUERY_ALLOW_OVERWRITE =
 export const BLOB_PRESIGN_QUERY_CACHE_CONTROL_MAX_AGE =
   'vercel-blob-cache-control-max-age' as const;
 export const BLOB_PRESIGN_QUERY_IF_MATCH = 'vercel-blob-if-match' as const;
+export const BLOB_PRESIGN_QUERY_TTL_DAYS = 'vercel-blob-ttl-days' as const;
 export const BLOB_PRESIGN_QUERY_CALLBACK_URL =
   'vercel-blob-callback-url' as const;
 export const BLOB_PRESIGN_QUERY_CALLBACK_TOKEN_PAYLOAD =
@@ -38,6 +39,7 @@ export const PRESIGN_QUERY = {
   allowOverwrite: BLOB_PRESIGN_QUERY_ALLOW_OVERWRITE,
   cacheControlMaxAge: BLOB_PRESIGN_QUERY_CACHE_CONTROL_MAX_AGE,
   ifMatch: BLOB_PRESIGN_QUERY_IF_MATCH,
+  ttlDays: BLOB_PRESIGN_QUERY_TTL_DAYS,
   callbackUrl: BLOB_PRESIGN_QUERY_CALLBACK_URL,
   callbackTokenPayload: BLOB_PRESIGN_QUERY_CALLBACK_TOKEN_PAYLOAD,
 } as const;
@@ -52,6 +54,7 @@ export const PRESIGN_CANONICAL_QUERY_KEYS = [
   BLOB_PRESIGN_QUERY_CALLBACK_URL,
   BLOB_PRESIGN_QUERY_IF_MATCH,
   BLOB_PRESIGN_QUERY_MAXIMUM_SIZE,
+  BLOB_PRESIGN_QUERY_TTL_DAYS,
   BLOB_PRESIGN_QUERY_VALID_UNTIL,
 ] as const;
 
@@ -170,6 +173,7 @@ function validatePresignUrlOnUploadCompletedWire(
 }
 
 export const MAX_PRESIGN_CACHE_CONTROL_MAX_AGE_SECONDS = 365 * 24 * 60 * 60;
+export const MAX_PRESIGN_TTL_DAYS = 30;
 const MAX_PRESIGN_IF_MATCH_LENGTH = 256;
 
 // biome-ignore lint/suspicious/noControlCharactersInRegex: intentionally blocking them
@@ -183,6 +187,7 @@ type PresignUrlConstraintOptions = {
   allowOverwrite?: boolean;
   cacheControlMaxAge?: number;
   ifMatch?: string;
+  ttlDays?: number;
   onUploadCompleted?: PresignOptionsOnUploadCompletedWire;
 };
 
@@ -214,6 +219,14 @@ function validateUrlOnlyPresignUploadOptions(
     if (IF_MATCH_CONTROL_CHARS_RE.test(im)) {
       throw new Error(
         `${label}: ifMatch contains disallowed control characters.`,
+      );
+    }
+  }
+  if (urlOptions.ttlDays !== undefined) {
+    const n = urlOptions.ttlDays;
+    if (!Number.isInteger(n) || n < 1 || n > MAX_PRESIGN_TTL_DAYS) {
+      throw new Error(
+        `${label}: ttlDays must be an integer between 1 and ${MAX_PRESIGN_TTL_DAYS}.`,
       );
     }
   }
@@ -281,6 +294,7 @@ export function buildPresignCanonicalQueryEntries(args: {
     allowOverwrite?: boolean;
     cacheControlMaxAge?: number;
     ifMatch?: string;
+    ttlDays?: number;
     onUploadCompleted?: PresignOptionsOnUploadCompletedWire;
   };
   nowMs: number;
@@ -358,6 +372,9 @@ export function buildPresignCanonicalQueryEntries(args: {
   }
   if (urlOptions.ifMatch !== undefined) {
     entries.push([BLOB_PRESIGN_QUERY_IF_MATCH, urlOptions.ifMatch]);
+  }
+  if (urlOptions.ttlDays !== undefined) {
+    entries.push([BLOB_PRESIGN_QUERY_TTL_DAYS, String(urlOptions.ttlDays)]);
   }
   if (urlOptions.onUploadCompleted !== undefined) {
     const { callbackUrl, tokenPayload } = urlOptions.onUploadCompleted;

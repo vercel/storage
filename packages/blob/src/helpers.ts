@@ -96,6 +96,11 @@ export interface CommonCreateBlobOptions extends BlobCommandOptions {
    */
   ifMatch?: string;
   /**
+   * Number of days (1-30) after which the blob is automatically deleted. Expiration is
+   * evaluated daily at UTC midnight, so the blob lives at least this many days.
+   */
+  ttlDays?: number;
+  /**
    * Maximum size in bytes allowed for this upload. Currently only enforced
    * client-side for multipart uploads (`put(..., { multipart: true })`).
    * For bodies with a known size (Blob, File, Buffer, etc.) the check is

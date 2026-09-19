@@ -50,6 +50,21 @@ describe('blob client', () => {
   });
 
   describe('head', () => {
+    it('returns expiresAt as a Date when the blob has a TTL', async () => {
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'GET',
+        })
+        .reply(200, () => ({
+          ...mockedFileMeta,
+          expiresAt: '2030-01-02T00:00:00.000Z',
+        }));
+
+      const result = await head(`${BLOB_STORE_BASE_URL}/foo-id.txt`);
+      expect(result.expiresAt).toEqual(new Date('2030-01-02T00:00:00.000Z'));
+    });
+
     it('should return Blob metadata when calling `head()`', async () => {
       let path: string | null = null;
       let headers: Record<string, string> = {};

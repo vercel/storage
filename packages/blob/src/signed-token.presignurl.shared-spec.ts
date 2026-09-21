@@ -246,6 +246,60 @@ export function registerPresignUrlTests(suiteName = 'presignUrl'): void {
       ).rejects.toThrow(BlobError);
     });
 
+    it('rejects pathnames with control characters, even for wildcard delegation', async () => {
+      const delegation = createDelegationToken(
+        {
+          storeId: `store_${storeId}`,
+          ownerId: 'o',
+          pathname: '*',
+          operations: ['get'],
+          validUntil: now + 3600_000,
+          iat: now,
+        },
+        blobSigningSecret,
+      );
+      const client = deriveClientSigningToken(blobSigningSecret, delegation);
+      await expect(
+        presign(
+          {
+            delegationToken: delegation,
+            clientSigningToken: client,
+          },
+          { operation: 'get', pathname: 'a\nb.png' },
+        ),
+      ).rejects.toThrow(
+        'presignUrl: pathname contains disallowed control characters.',
+      );
+    });
+
+    it('accepts wildcard delegation pathnames when no control characters exist', async () => {
+      const delegation = createDelegationToken(
+        {
+          storeId: `store_${storeId}`,
+          ownerId: 'o',
+          pathname: '*',
+          operations: ['get'],
+          validUntil: now + 3600_000,
+          iat: now,
+        },
+        blobSigningSecret,
+      );
+      const client = deriveClientSigningToken(blobSigningSecret, delegation);
+      await expect(
+        presign(
+          {
+            delegationToken: delegation,
+            clientSigningToken: client,
+          },
+          { operation: 'get', pathname: 'a/b.png' },
+        ),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          delegationToken: delegation,
+        }),
+      );
+    });
+
     it('adds signed `vercel-blob-valid-until` when `validUntil` is before delegation ceiling', async () => {
       const fixedNow = 1_700_000_000_000;
       const pathnameTtl = 'images/a.png';

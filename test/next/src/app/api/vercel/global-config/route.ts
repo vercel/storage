@@ -1,4 +1,4 @@
-import { get } from '@vercel/edge-config';
+import { get } from '@vercel/global-config';
 import { NextResponse } from 'next/server';
 
 export const runtime = 'edge';

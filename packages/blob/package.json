@@ -22,6 +22,10 @@
     "./client": {
       "import": "./dist/client.js",
       "require": "./dist/client.cjs"
+    },
+    "./s3": {
+      "import": "./dist/s3.js",
+      "require": "./dist/s3.cjs"
     }
   },
   "main": "./dist/index.cjs",
@@ -35,6 +39,9 @@
     "*": {
       "client": [
         "dist/client.d.ts"
+      ],
+      "s3": [
+        "dist/s3.d.ts"
       ]
     }
   },

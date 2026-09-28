@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ['src/index.ts', 'src/client.ts'],
+  entry: ['src/index.ts', 'src/client.ts', 'src/s3.ts'],
   format: ['esm', 'cjs'],
   splitting: true,
   target: 'es2019',

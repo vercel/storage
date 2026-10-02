@@ -6,3 +6,10 @@
 // reusing https://github.com/inrupt/universal-fetch
 // or seeing how/if cross-fetch solves https://github.com/lquixada/cross-fetch/issues/69
 export const fetch = globalThis.fetch.bind(globalThis);
+export const Headers = globalThis.Headers;
+
+// Only Node has an undici dispatcher. Callers that want to send a url path
+// unparsed check for one and fall back to fetch when it is missing.
+export function getGlobalDispatcher() {
+  return undefined;
+}

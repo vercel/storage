@@ -87,8 +87,7 @@ function splitBlobUrl(blobUrl: string): { origin: string; path: string } {
   const schemeEnd = blobUrl.indexOf('://');
   const pathStart =
     schemeEnd === -1 ? -1 : blobUrl.indexOf('/', schemeEnd + '://'.length);
-  const rawOrigin =
-    pathStart === -1 ? blobUrl : blobUrl.slice(0, pathStart);
+  const rawOrigin = pathStart === -1 ? blobUrl : blobUrl.slice(0, pathStart);
   const path = pathStart === -1 ? '/' : blobUrl.slice(pathStart);
 
   // The parser lowercases the host and drops any userinfo, which the blob

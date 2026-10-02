@@ -1,4 +1,5 @@
-import { fetch, type Headers } from 'undici';
+import type { Dispatcher } from 'undici';
+import { fetch, getGlobalDispatcher, Headers } from 'undici';
 import type { BlobAccessType, BlobCommandOptions } from './helpers';
 import { BlobError, constructBlobUrl, isUrl, resolveBlobAuth } from './helpers';
 
@@ -76,17 +77,151 @@ export type GetBlobResult =
       };
     };
 
+type UndiciResponse = Dispatcher.ResponseData;
+
+/**
+ * Splits a blob url into the origin and the path exactly as written. `new URL()`
+ * would resolve `.` and `..`, which are valid characters in a blob pathname.
+ */
+function splitBlobUrl(blobUrl: string): { origin: string; path: string } {
+  const schemeEnd = blobUrl.indexOf('://');
+  const pathStart =
+    schemeEnd === -1 ? -1 : blobUrl.indexOf('/', schemeEnd + '://'.length);
+  const rawOrigin = pathStart === -1 ? blobUrl : blobUrl.slice(0, pathStart);
+  const path = pathStart === -1 ? '/' : blobUrl.slice(pathStart);
+
+  // The parser lowercases the host and drops any userinfo, which the blob
+  // vhosts need; it only mangles the path, and that is sliced out above.
+  try {
+    return { origin: new URL(blobUrl).origin, path };
+  } catch {
+    return { origin: rawOrigin.toLowerCase(), path };
+  }
+}
+
+/**
+ * Appends a query parameter without going through `new URL()`, which would
+ * resolve dot segments in the path along the way.
+ */
+function appendQueryParam(url: string, param: string): string {
+  return `${url}${url.includes('?') ? '&' : '?'}${param}`;
+}
+
+/**
+ * Wraps undici's node stream as a web stream, preserving backpressure. Hand
+ * rolled so this module stays free of node builtins.
+ */
+function toWebStream(body: UndiciResponse['body']): ReadableStream<Uint8Array> {
+  const iterator = body[Symbol.asyncIterator]();
+
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      const { value, done } = await iterator.next();
+
+      if (done) {
+        controller.close();
+        return;
+      }
+
+      controller.enqueue(value);
+    },
+    cancel() {
+      body.destroy();
+    },
+  });
+}
+
+interface BlobResponse {
+  statusCode: number;
+  headers: Headers;
+  /** Reads and throws away the body so the connection is released. */
+  discard: () => Promise<void>;
+  /** The body as a web stream. Null when the response carried no body. */
+  toStream: () => ReadableStream<Uint8Array> | null;
+}
+
+/**
+ * GETs a blob with the path sent exactly as written. Only Node has a
+ * dispatcher that allows that; elsewhere this falls back to `fetch`, which
+ * parses the url and so resolves `.` and `..` segments on the way out.
+ */
+async function requestBlob({
+  origin,
+  path,
+  headers,
+  signal,
+}: {
+  origin: string;
+  path: string;
+  headers: Record<string, string>;
+  signal: AbortSignal | undefined;
+}): Promise<BlobResponse> {
+  // The browser shim returns undefined; the node types do not model that.
+  const dispatcher = getGlobalDispatcher() as Dispatcher | undefined;
+
+  if (!dispatcher) {
+    const response = await fetch(`${origin}${path}`, {
+      method: 'GET',
+      headers,
+      signal,
+    });
+
+    return {
+      statusCode: response.status,
+      headers: response.headers,
+      discard: async () => {
+        await response.body?.cancel();
+      },
+      toStream: () => response.body as ReadableStream<Uint8Array> | null,
+    };
+  }
+
+  const response = await dispatcher.request({
+    origin,
+    path,
+    method: 'GET',
+    headers,
+    // `fetch` follows redirects by default; keep that behaviour.
+    maxRedirections: 5,
+    signal,
+  });
+
+  return {
+    statusCode: response.statusCode,
+    headers: toHeaders(response.headers),
+    discard: () => response.body.dump(),
+    toStream: () => toWebStream(response.body),
+  };
+}
+
+/** undici hands back a plain header map; the public API returns `Headers`. */
+function toHeaders(raw: UndiciResponse['headers']): Headers {
+  const headers = new Headers();
+
+  for (const [name, value] of Object.entries(raw)) {
+    if (Array.isArray(value)) {
+      for (const entry of value) {
+        headers.append(name, entry);
+      }
+    } else if (value !== undefined) {
+      headers.set(name, value);
+    }
+  }
+
+  return headers;
+}
+
 /**
  * Extracts the pathname from a blob URL.
  */
 function extractPathnameFromUrl(url: string): string {
-  try {
-    const parsedUrl = new URL(url);
-    // Remove leading slash from pathname
-    return parsedUrl.pathname.slice(1);
-  } catch {
-    return url;
-  }
+  const { path } = splitBlobUrl(url);
+  const end = [path.indexOf('?'), path.indexOf('#')].filter(
+    (index) => index !== -1,
+  );
+
+  // Remove leading slash from pathname
+  return path.slice(1, end.length > 0 ? Math.min(...end) : undefined);
 }
 
 /**
@@ -167,94 +302,101 @@ export async function get(
       throw new BlobError('Invalid token: unable to extract store ID');
     }
     pathname = urlOrPathname;
-    blobUrl = constructBlobUrl(auth.storeId, pathname, access);
+    // undici sends the path as given, so encode here instead of relying on the
+    // url parser to do it. Each segment separately, to keep the `/` separators.
+    blobUrl = constructBlobUrl(
+      auth.storeId,
+      pathname.split('/').map(encodeURIComponent).join('/'),
+      access,
+    );
   }
 
-  // Fetch the blob content with authentication headers
-  const requestHeaders: HeadersInit = {
-    ...(options.ifNoneMatch ? { 'If-None-Match': options.ifNoneMatch } : {}),
+  // Fetch the blob content with authentication headers. `Headers` lowercases
+  // the names, so an override below lands on the same key it replaces.
+  const requestHeaders: Record<string, string> = {
+    ...(options.ifNoneMatch ? { 'if-none-match': options.ifNoneMatch } : {}),
     authorization: `Bearer ${auth.token}`,
-    ...options.headers, // low-level escape hatch, applied last to override anything
+    // low-level escape hatch, applied last to override anything
+    ...Object.fromEntries(new Headers(options.headers).entries()),
   };
 
   // useCache: false bypasses the CDN cache so the content is served
   // directly from origin storage (cache=0 query param). The backend only
   // supports the bypass for private blobs, so it's ignored for public ones.
-  let fetchUrl = blobUrl;
-  if (options.useCache === false && access === 'private') {
-    const url = new URL(blobUrl);
-    url.searchParams.set('cache', '0');
-    fetchUrl = url.toString();
-  }
+  const { origin, path } = splitBlobUrl(blobUrl);
+  const requestPath =
+    options.useCache === false && access === 'private'
+      ? appendQueryParam(path, 'cache=0')
+      : path;
 
-  const response = await fetch(fetchUrl, {
-    method: 'GET',
+  const response = await requestBlob({
+    origin,
+    path: requestPath,
     headers: requestHeaders,
     signal: options.abortSignal,
   });
 
-  // Handle 304 Not Modified (fetch considers this !ok, but it's a valid conditional response)
-  if (response.status === 304) {
-    const downloadUrlObj = new URL(blobUrl);
-    downloadUrlObj.searchParams.set('download', '1');
-    const lastModified = response.headers.get('last-modified');
+  const responseHeaders = response.headers;
+  // Built from the sliced url rather than `new URL()` so dot segments survive.
+  const downloadUrl = appendQueryParam(`${origin}${path}`, 'download=1');
+
+  // Handle 304 Not Modified (a valid conditional response, not an error)
+  if (response.statusCode === 304) {
+    await response.discard();
+    const lastModified = responseHeaders.get('last-modified');
     return {
       statusCode: 304,
       stream: null,
-      headers: response.headers,
+      headers: responseHeaders,
       blob: {
         url: blobUrl,
-        downloadUrl: downloadUrlObj.toString(),
+        downloadUrl,
         pathname,
         contentType: null,
-        contentDisposition: response.headers.get('content-disposition') || '',
-        cacheControl: response.headers.get('cache-control') || '',
+        contentDisposition: responseHeaders.get('content-disposition') || '',
+        cacheControl: responseHeaders.get('cache-control') || '',
         size: null,
         uploadedAt: lastModified ? new Date(lastModified) : new Date(),
-        etag: response.headers.get('etag') || '',
+        etag: responseHeaders.get('etag') || '',
       },
     };
   }
 
-  if (response.status === 404) {
+  if (response.statusCode === 404) {
+    await response.discard();
     return null;
   }
 
-  if (!response.ok) {
-    throw new BlobError(
-      `Failed to fetch blob: ${response.status} ${response.statusText}`,
-    );
+  if (response.statusCode < 200 || response.statusCode >= 300) {
+    await response.discard();
+    throw new BlobError(`Failed to fetch blob: ${response.statusCode}`);
   }
 
-  // Return the stream directly without buffering
-  const stream = response.body as ReadableStream;
+  // Extract metadata from response headers
+  const contentLength = responseHeaders.get('content-length');
+  const lastModified = responseHeaders.get('last-modified');
+
+  // Returned unbuffered; the caller decides when to read it.
+  const stream = response.toStream();
   if (!stream) {
     throw new BlobError('Response body is null');
   }
 
-  // Extract metadata from response headers
-  const contentLength = response.headers.get('content-length');
-  const lastModified = response.headers.get('last-modified');
-
-  // Build download URL by adding download=1 query param
-  const downloadUrl = new URL(blobUrl);
-  downloadUrl.searchParams.set('download', '1');
-
   return {
     statusCode: 200,
     stream,
-    headers: response.headers,
+    headers: responseHeaders,
     blob: {
       url: blobUrl,
-      downloadUrl: downloadUrl.toString(),
+      downloadUrl,
       pathname,
       contentType:
-        response.headers.get('content-type') || 'application/octet-stream',
-      contentDisposition: response.headers.get('content-disposition') || '',
-      cacheControl: response.headers.get('cache-control') || '',
+        responseHeaders.get('content-type') || 'application/octet-stream',
+      contentDisposition: responseHeaders.get('content-disposition') || '',
+      cacheControl: responseHeaders.get('cache-control') || '',
       size: contentLength ? parseInt(contentLength, 10) : 0,
       uploadedAt: lastModified ? new Date(lastModified) : new Date(),
-      etag: response.headers.get('etag') || '',
+      etag: responseHeaders.get('etag') || '',
     },
   };
 }

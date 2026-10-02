@@ -87,17 +87,17 @@ function splitBlobUrl(blobUrl: string): { origin: string; path: string } {
   const schemeEnd = blobUrl.indexOf('://');
   const pathStart =
     schemeEnd === -1 ? -1 : blobUrl.indexOf('/', schemeEnd + '://'.length);
+  const rawOrigin =
+    pathStart === -1 ? blobUrl : blobUrl.slice(0, pathStart);
+  const path = pathStart === -1 ? '/' : blobUrl.slice(pathStart);
 
-  if (pathStart === -1) {
-    return { origin: blobUrl.toLowerCase(), path: '/' };
+  // The parser lowercases the host and drops any userinfo, which the blob
+  // vhosts need; it only mangles the path, and that is sliced out above.
+  try {
+    return { origin: new URL(blobUrl).origin, path };
+  } catch {
+    return { origin: rawOrigin.toLowerCase(), path };
   }
-
-  return {
-    // Hosts are case-insensitive and the blob vhosts only match lowercase
-    // store ids; the url parser used to do this for us.
-    origin: blobUrl.slice(0, pathStart).toLowerCase(),
-    path: blobUrl.slice(pathStart),
-  };
 }
 
 /**
@@ -171,7 +171,7 @@ async function requestBlob({
       statusCode: response.status,
       headers: response.headers,
       discard: async () => {
-        await response.arrayBuffer();
+        await response.body?.cancel();
       },
       toStream: () => response.body as ReadableStream<Uint8Array> | null,
     };

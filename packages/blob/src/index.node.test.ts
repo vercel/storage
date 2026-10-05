@@ -1905,6 +1905,30 @@ describe('blob client', () => {
         expect(result?.blob.pathname).toEqual('folder/./file.txt');
       });
 
+      it('does not mistake a slash in the query string for a path', async () => {
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        const blobStoreMockClient = mockAgent.get(
+          BLOB_STORE_BASE_URL_LOWERCASE,
+        );
+
+        // The url has no path at all, so the request must go to `/` rather
+        // than to the `/b` sitting inside the query string.
+        blobStoreMockClient
+          .intercept({
+            path: (requestPath) => requestPath === '/',
+            method: 'GET',
+          })
+          .reply(404, '');
+
+        const result = await get(`${BLOB_STORE_BASE_URL_LOWERCASE}?foo=a/b`, {
+          access: 'private',
+        });
+
+        expect(result).toBeNull();
+      });
+
       it('percent-encodes a pathname the dispatcher would reject', async () => {
         const mockAgent = new MockAgent();
         mockAgent.disableNetConnect();

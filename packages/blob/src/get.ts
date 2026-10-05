@@ -85,10 +85,16 @@ type UndiciResponse = Dispatcher.ResponseData;
  */
 function splitBlobUrl(blobUrl: string): { origin: string; path: string } {
   const schemeEnd = blobUrl.indexOf('://');
-  const pathStart =
-    schemeEnd === -1 ? -1 : blobUrl.indexOf('/', schemeEnd + '://'.length);
-  const rawOrigin = pathStart === -1 ? blobUrl : blobUrl.slice(0, pathStart);
-  const path = pathStart === -1 ? '/' : blobUrl.slice(pathStart);
+  // The authority ends at the first `/`, `?` or `#`. Looking for the `/` alone
+  // would match one inside a query string on a url that has no path at all.
+  const authorityEnd =
+    schemeEnd === -1
+      ? null
+      : firstIndexOf(blobUrl, ['/', '?', '#'], schemeEnd + '://'.length);
+  const hasPath = authorityEnd !== null && blobUrl[authorityEnd] === '/';
+  const path = hasPath ? blobUrl.slice(authorityEnd) : '/';
+  const rawOrigin =
+    authorityEnd === null ? blobUrl : blobUrl.slice(0, authorityEnd);
 
   // The parser lowercases the host and drops any userinfo, which the blob
   // vhosts need; it only mangles the path, and that is sliced out above.
@@ -97,6 +103,19 @@ function splitBlobUrl(blobUrl: string): { origin: string; path: string } {
   } catch {
     return { origin: rawOrigin.toLowerCase(), path };
   }
+}
+
+/** Index of whichever character comes first at or after `from`, if any. */
+function firstIndexOf(
+  value: string,
+  characters: string[],
+  from: number,
+): number | null {
+  const found = characters
+    .map((character) => value.indexOf(character, from))
+    .filter((index) => index !== -1);
+
+  return found.length > 0 ? Math.min(...found) : null;
 }
 
 /**
@@ -216,12 +235,9 @@ function toHeaders(raw: UndiciResponse['headers']): Headers {
  */
 function extractPathnameFromUrl(url: string): string {
   const { path } = splitBlobUrl(url);
-  const end = [path.indexOf('?'), path.indexOf('#')].filter(
-    (index) => index !== -1,
-  );
 
   // Remove leading slash from pathname
-  return path.slice(1, end.length > 0 ? Math.min(...end) : undefined);
+  return path.slice(1, firstIndexOf(path, ['?', '#'], 0) ?? undefined);
 }
 
 /**

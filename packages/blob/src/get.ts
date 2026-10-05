@@ -91,8 +91,18 @@ function splitBlobUrl(blobUrl: string): { origin: string; path: string } {
     schemeEnd === -1
       ? null
       : firstIndexOf(blobUrl, ['/', '?', '#'], schemeEnd + '://'.length);
-  const hasPath = authorityEnd !== null && blobUrl[authorityEnd] === '/';
-  const path = hasPath ? blobUrl.slice(authorityEnd) : '/';
+  // Everything from there to the fragment, which is never sent on the wire. A
+  // url with no path still requests `/`, and keeps any query string.
+  const afterAuthority =
+    authorityEnd === null || blobUrl[authorityEnd] === '#'
+      ? ''
+      : blobUrl.slice(
+          authorityEnd,
+          firstIndexOf(blobUrl, ['#'], authorityEnd) ?? undefined,
+        );
+  const path = afterAuthority.startsWith('/')
+    ? afterAuthority
+    : `/${afterAuthority}`;
   const rawOrigin =
     authorityEnd === null ? blobUrl : blobUrl.slice(0, authorityEnd);
 
@@ -237,7 +247,7 @@ function extractPathnameFromUrl(url: string): string {
   const { path } = splitBlobUrl(url);
 
   // Remove leading slash from pathname
-  return path.slice(1, firstIndexOf(path, ['?', '#'], 0) ?? undefined);
+  return path.slice(1, firstIndexOf(path, ['?'], 0) ?? undefined);
 }
 
 /**

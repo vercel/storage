@@ -1913,11 +1913,13 @@ describe('blob client', () => {
           BLOB_STORE_BASE_URL_LOWERCASE,
         );
 
-        // The url has no path at all, so the request must go to `/` rather
-        // than to the `/b` sitting inside the query string.
+        // The url has no path at all, so the request must go to `/` with the
+        // query intact, not to the `/b` sitting inside the query string.
+        // MockAgent re-encodes query values before matching, so assert on the
+        // path and the surviving query rather than the exact string.
         blobStoreMockClient
           .intercept({
-            path: (requestPath) => requestPath === '/',
+            path: (requestPath) => requestPath.startsWith('/?foo='),
             method: 'GET',
           })
           .reply(404, '');
@@ -1927,6 +1929,35 @@ describe('blob client', () => {
         });
 
         expect(result).toBeNull();
+      });
+
+      it('leaves the fragment out of the request', async () => {
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        const blobStoreMockClient = mockAgent.get(
+          BLOB_STORE_BASE_URL_LOWERCASE,
+        );
+
+        // A fragment is client-side only; it must not reach the request line.
+        blobStoreMockClient
+          .intercept({
+            path: (requestPath) => requestPath === '/folder/..',
+            method: 'GET',
+          })
+          .reply(200, 'blob content', {
+            headers: { 'content-type': 'text/plain', 'content-length': '12' },
+          });
+
+        const result = await get(
+          `${BLOB_STORE_BASE_URL_LOWERCASE}/folder/..#section`,
+          { access: 'private' },
+        );
+
+        expect(result).not.toBeNull();
+        expect(result?.blob.downloadUrl).toEqual(
+          `${BLOB_STORE_BASE_URL_LOWERCASE}/folder/..?download=1`,
+        );
       });
 
       it('percent-encodes a pathname the dispatcher would reject', async () => {

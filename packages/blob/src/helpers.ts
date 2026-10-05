@@ -407,19 +407,25 @@ export const supportsRequestStreams = (() => {
   return duplexAccessed && !hasContentType;
 })();
 
-export function getApiUrl(pathname = ''): string {
-  let baseUrl = null;
+/**
+ * The API base URL set by the user, or null when talking to production.
+ * Only set when pointing the SDK at an emulator or a staging environment.
+ */
+export function getApiUrlOverride(): string | null {
   try {
     // wrapping this code in a try/catch as this function is used in the browser and Vite doesn't define the process.env.
-    // As this varaible is NOT used in production, it will always default to production endpoint
-    baseUrl =
+    return (
       process.env.VERCEL_BLOB_API_URL ||
-      process.env.NEXT_PUBLIC_VERCEL_BLOB_API_URL;
+      process.env.NEXT_PUBLIC_VERCEL_BLOB_API_URL ||
+      null
+    );
   } catch {
-    // noop
+    return null;
   }
+}
 
-  return `${baseUrl || defaultVercelBlobApiUrl}${pathname}`;
+export function getApiUrl(pathname = ''): string {
+  return `${getApiUrlOverride() ?? defaultVercelBlobApiUrl}${pathname}`;
 }
 
 const TEXT_ENCODER =
@@ -530,6 +536,27 @@ export function isUrl(urlOrPathname: string): boolean {
   return (
     urlOrPathname.startsWith('http://') || urlOrPathname.startsWith('https://')
   );
+}
+
+/**
+ * Blob content lives on `*.blob.vercel-storage.com`. Local emulators serve it
+ * from the host in `VERCEL_BLOB_API_URL`, so that origin is allowed too.
+ */
+export function isAllowedBlobUrl(url: URL): boolean {
+  if (url.hostname.endsWith('.blob.vercel-storage.com')) {
+    return true;
+  }
+
+  const apiUrlOverride = getApiUrlOverride();
+  if (!apiUrlOverride) {
+    return false;
+  }
+
+  try {
+    return new URL(apiUrlOverride).origin === url.origin;
+  } catch {
+    return false;
+  }
 }
 
 /**

@@ -38,6 +38,7 @@ describe('blob client', () => {
   beforeEach(() => {
     delete process.env.BLOB_STORE_ID;
     delete process.env.VERCEL_OIDC_TOKEN;
+    delete process.env.VERCEL_BLOB_API_URL;
     process.env.BLOB_READ_WRITE_TOKEN =
       'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
     const mockAgent = new MockAgent();
@@ -1612,6 +1613,58 @@ describe('blob client', () => {
         get('https://blob.vercel-storage.com.evil.com/f.txt', {
           access: 'private',
         }),
+      ).rejects.toThrow(
+        new Error(
+          'Vercel Blob: Invalid URL: the URL does not point to a Vercel Blob store. Use a pathname instead, see https://vercel.com/docs/vercel-blob',
+        ),
+      );
+    });
+
+    it('should allow a URL on the VERCEL_BLOB_API_URL origin (local emulator)', async () => {
+      process.env.VERCEL_BLOB_API_URL = 'http://localhost:3001/vercel/blob';
+      const mockAgent = new MockAgent();
+      mockAgent.disableNetConnect();
+      setGlobalDispatcher(mockAgent);
+      mockAgent
+        .get('http://localhost:3001')
+        .intercept({
+          path: '/vercel/blob/store_123/foo.txt',
+          method: 'GET',
+        })
+        .reply(200, 'emulated content', {
+          headers: {
+            'content-type': 'text/plain',
+            'content-length': '16',
+          },
+        });
+
+      const result = await get(
+        'http://localhost:3001/vercel/blob/store_123/foo.txt',
+        { access: 'public' },
+      );
+
+      expect(result).not.toBeNull();
+      expect(result?.blob.url).toEqual(
+        'http://localhost:3001/vercel/blob/store_123/foo.txt',
+      );
+      expect(result?.blob.pathname).toEqual('vercel/blob/store_123/foo.txt');
+    });
+
+    it('should throw when the URL origin differs from the VERCEL_BLOB_API_URL origin', async () => {
+      process.env.VERCEL_BLOB_API_URL = 'http://localhost:3001/vercel/blob';
+
+      await expect(
+        get('http://localhost:4000/foo.txt', { access: 'public' }),
+      ).rejects.toThrow(
+        new Error(
+          'Vercel Blob: Invalid URL: the URL does not point to a Vercel Blob store. Use a pathname instead, see https://vercel.com/docs/vercel-blob',
+        ),
+      );
+    });
+
+    it('should throw for a localhost URL when no API URL override is set', async () => {
+      await expect(
+        get('http://localhost:3001/foo.txt', { access: 'public' }),
       ).rejects.toThrow(
         new Error(
           'Vercel Blob: Invalid URL: the URL does not point to a Vercel Blob store. Use a pathname instead, see https://vercel.com/docs/vercel-blob',

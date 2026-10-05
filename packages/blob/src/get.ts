@@ -1,6 +1,12 @@
 import { fetch, type Headers } from 'undici';
 import type { BlobAccessType, BlobCommandOptions } from './helpers';
-import { BlobError, constructBlobUrl, isUrl, resolveBlobAuth } from './helpers';
+import {
+  BlobError,
+  constructBlobUrl,
+  isAllowedBlobUrl,
+  isUrl,
+  resolveBlobAuth,
+} from './helpers';
 
 /**
  * Options for the get method.
@@ -91,7 +97,8 @@ function extractPathnameFromUrl(url: string): string {
 
 /**
  * Fetches blob content by URL or pathname.
- * - If a URL is provided, fetches the blob directly.
+ * - If a URL is provided, fetches the blob directly. It must point at a Vercel Blob
+ *   store, or at the origin of a `VERCEL_BLOB_API_URL` override (local emulators).
  * - If a pathname is provided, constructs the URL from the resolved store ID (from the read-write token or `BLOB_STORE_ID`).
  *
  * Returns a stream (no automatic buffering) and blob metadata.
@@ -152,8 +159,7 @@ export async function get(
     pathname = extractPathnameFromUrl(urlOrPathname);
 
     try {
-      const { hostname } = new URL(blobUrl);
-      if (!hostname.endsWith('.blob.vercel-storage.com')) {
+      if (!isAllowedBlobUrl(new URL(blobUrl))) {
         throw new BlobError(
           'Invalid URL: the URL does not point to a Vercel Blob store. Use a pathname instead, see https://vercel.com/docs/vercel-blob',
         );

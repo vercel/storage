@@ -80,39 +80,37 @@ export type GetBlobResult =
 type UndiciResponse = Dispatcher.ResponseData;
 
 /**
- * Splits a blob url into the origin and the path exactly as written. `new URL()`
- * would resolve `.` and `..`, which are valid characters in a blob pathname.
+ * The path and query exactly as written, or null when the slice cannot be
+ * trusted because the parser read a different authority than it did.
  */
-function splitBlobUrl(blobUrl: string): { origin: string; path: string } {
-  const schemeEnd = blobUrl.indexOf('://');
+function rawPathAndQuery(url: string, host: string): string | null {
+  const schemeEnd = url.indexOf('://');
+  if (schemeEnd === -1) {
+    return null;
+  }
+
   // The authority ends at the first `/`, `?` or `#`. Looking for the `/` alone
   // would match one inside a query string on a url that has no path at all.
-  const authorityEnd =
-    schemeEnd === -1
-      ? null
-      : firstIndexOf(blobUrl, ['/', '?', '#'], schemeEnd + '://'.length);
+  const authorityStart = schemeEnd + '://'.length;
+  const authorityEnd = firstIndexOf(url, ['/', '?', '#'], authorityStart);
+  if (
+    authorityEnd === null ||
+    url.slice(authorityStart, authorityEnd).toLowerCase() !== host
+  ) {
+    return null;
+  }
+
   // Everything from there to the fragment, which is never sent on the wire. A
   // url with no path still requests `/`, and keeps any query string.
   const afterAuthority =
-    authorityEnd === null || blobUrl[authorityEnd] === '#'
+    url[authorityEnd] === '#'
       ? ''
-      : blobUrl.slice(
+      : url.slice(
           authorityEnd,
-          firstIndexOf(blobUrl, ['#'], authorityEnd) ?? undefined,
+          firstIndexOf(url, ['#'], authorityEnd) ?? undefined,
         );
-  const path = afterAuthority.startsWith('/')
-    ? afterAuthority
-    : `/${afterAuthority}`;
-  const rawOrigin =
-    authorityEnd === null ? blobUrl : blobUrl.slice(0, authorityEnd);
 
-  // The parser lowercases the host and drops any userinfo, which the blob
-  // vhosts need; it only mangles the path, and that is sliced out above.
-  try {
-    return { origin: new URL(blobUrl).origin, path };
-  } catch {
-    return { origin: rawOrigin.toLowerCase(), path };
-  }
+  return afterAuthority.startsWith('/') ? afterAuthority : `/${afterAuthority}`;
 }
 
 /** Index of whichever character comes first at or after `from`, if any. */
@@ -126,6 +124,28 @@ function firstIndexOf(
     .filter((index) => index !== -1);
 
   return found.length > 0 ? Math.min(...found) : null;
+}
+
+/**
+ * Splits a blob url into the origin and the path exactly as written. `new URL()`
+ * would resolve `.` and `..`, which are valid characters in a blob pathname.
+ */
+function splitBlobUrl(blobUrl: string): { origin: string; path: string } {
+  let parsed: URL;
+  try {
+    parsed = new URL(blobUrl);
+  } catch {
+    return { origin: blobUrl.toLowerCase(), path: '/' };
+  }
+
+  // The parser lowercases the host and drops any userinfo, which the blob
+  // vhosts need; only its path is unusable, and that is sliced out instead.
+  return {
+    origin: parsed.origin,
+    path:
+      rawPathAndQuery(blobUrl, parsed.host) ??
+      `${parsed.pathname}${parsed.search}`,
+  };
 }
 
 /**

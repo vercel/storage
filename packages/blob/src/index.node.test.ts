@@ -1960,6 +1960,34 @@ describe('blob client', () => {
         );
       });
 
+      it('defers to the url parser when the authority disagrees', async () => {
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        const blobStoreMockClient = mockAgent.get(
+          BLOB_STORE_BASE_URL_LOWERCASE,
+        );
+
+        // The parser reads `\\` as a separator, so the host stops at `.com`
+        // and the path is `/folder/file.txt`; a raw slice would say
+        // `/file.txt`. The slice is only used when both read the same host.
+        blobStoreMockClient
+          .intercept({
+            path: (requestPath) => requestPath === '/folder/file.txt',
+            method: 'GET',
+          })
+          .reply(200, 'blob content', {
+            headers: { 'content-type': 'text/plain', 'content-length': '12' },
+          });
+
+        const result = await get(
+          `${BLOB_STORE_BASE_URL_LOWERCASE}\\folder/file.txt`,
+          { access: 'private' },
+        );
+
+        expect(result).not.toBeNull();
+      });
+
       it('percent-encodes a pathname the dispatcher would reject', async () => {
         const mockAgent = new MockAgent();
         mockAgent.disableNetConnect();

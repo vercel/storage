@@ -1647,6 +1647,7 @@ describe('blob client', () => {
       expect(result?.blob.url).toEqual(
         'http://localhost:3001/vercel/blob/store_123/foo.txt',
       );
+      // pathname comes from the URL, so it keeps the emulator's route prefix
       expect(result?.blob.pathname).toEqual('vercel/blob/store_123/foo.txt');
     });
 

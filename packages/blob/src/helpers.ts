@@ -411,7 +411,7 @@ export const supportsRequestStreams = (() => {
  * The API base URL set by the user, or null when talking to production.
  * Only set when pointing the SDK at an emulator or a staging environment.
  */
-export function getApiUrlOverride(): string | null {
+function getApiUrlOverride(): string | null {
   try {
     // wrapping this code in a try/catch as this function is used in the browser and Vite doesn't define the process.env.
     return (

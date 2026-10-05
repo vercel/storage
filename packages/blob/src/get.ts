@@ -98,7 +98,8 @@ function extractPathnameFromUrl(url: string): string {
 /**
  * Fetches blob content by URL or pathname.
  * - If a URL is provided, fetches the blob directly. It must point at a Vercel Blob
- *   store, or at the origin of a `VERCEL_BLOB_API_URL` override (local emulators).
+ *   store, or at the origin of a `VERCEL_BLOB_API_URL` / `NEXT_PUBLIC_VERCEL_BLOB_API_URL`
+ *   override (local emulators).
  * - If a pathname is provided, constructs the URL from the resolved store ID (from the read-write token or `BLOB_STORE_ID`).
  *
  * Returns a stream (no automatic buffering) and blob metadata.

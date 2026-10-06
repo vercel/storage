@@ -701,7 +701,7 @@ export interface HandleUploadOptions {
    * @param clientPayload - A string payload specified on the client when calling upload()
    * @param multipart - A boolean specifying whether the file is a multipart upload
    *
-   * @returns An object with configuration options for the client token including the optional callbackUrl
+   * @returns An object with configuration options for the client token including optional callbackUrl and pathname overrides
    */
   onBeforeGenerateToken: (
     pathname: string,
@@ -717,6 +717,7 @@ export interface HandleUploadOptions {
       | 'allowOverwrite'
       | 'cacheControlMaxAge'
       | 'ifMatch'
+      | 'pathname'
     > & { tokenPayload?: string | null; callbackUrl?: string }
   >;
 
@@ -775,7 +776,11 @@ export async function handleUpload({
         multipart,
       );
       const tokenPayload = payload.tokenPayload ?? clientPayload;
-      const { callbackUrl: providedCallbackUrl, ...tokenOptions } = payload;
+      const {
+        callbackUrl: providedCallbackUrl,
+        pathname: overriddenPathname,
+        ...tokenOptions
+      } = payload;
       let callbackUrl = providedCallbackUrl;
 
       // If onUploadCompleted is provided but no callbackUrl was provided, try to infer it from environment
@@ -802,7 +807,7 @@ export async function handleUpload({
         clientToken: await generateClientTokenFromReadWriteToken({
           ...tokenOptions,
           token: resolvedToken,
-          pathname,
+          pathname: overriddenPathname ?? pathname,
           onUploadCompleted: callbackUrl
             ? {
                 callbackUrl,

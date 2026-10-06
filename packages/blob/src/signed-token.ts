@@ -245,13 +245,6 @@ function toBase64Url(base64: string): string {
   return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-function normalizeStoreId(storeId: string): string {
-  const lowercase = storeId.toLowerCase();
-  return lowercase.startsWith('store_')
-    ? lowercase.slice('store_'.length)
-    : lowercase;
-}
-
 /**
  * Presign URL options for {@link presignUrl} when `operation` is `get`.
  * Only `validUntil` is honored for these operations; upload-only fields are rejected at the type level.

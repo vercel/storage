@@ -424,7 +424,7 @@ describe('api', () => {
             'x-api-blob-request-attempt': '0',
             'x-api-blob-request-id': expect.any(String) as string,
             'x-vercel-blob-store-id': '',
-            'x-api-version': '12',
+            'x-api-version': '13',
           },
           method: 'POST',
         },

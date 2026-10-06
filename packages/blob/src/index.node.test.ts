@@ -1897,6 +1897,175 @@ describe('blob client', () => {
       });
     });
 
+    describe('dot segments in the pathname', () => {
+      const BLOB_STORE_BASE_URL_LOWERCASE =
+        'https://12345fakestoreid.private.blob.vercel-storage.com';
+
+      it('sends the path as written instead of resolving it', async () => {
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        const blobStoreMockClient = mockAgent.get(
+          BLOB_STORE_BASE_URL_LOWERCASE,
+        );
+
+        // A url parser would turn this into `/folder/`, a different object in
+        // S3. Matched with a function because MockAgent resolves dot segments
+        // in a string intercept path, which is the very thing under test.
+        blobStoreMockClient
+          .intercept({
+            path: (requestPath) => requestPath === '/folder/sub/..',
+            method: 'GET',
+          })
+          .reply(200, 'blob content', {
+            headers: {
+              'content-type': 'text/plain',
+              'content-length': '12',
+            },
+          });
+
+        const result = await get('folder/sub/..', { access: 'private' });
+
+        expect(result).not.toBeNull();
+        expect(result?.blob.pathname).toEqual('folder/sub/..');
+        expect(result?.blob.downloadUrl).toEqual(
+          `${BLOB_STORE_BASE_URL_LOWERCASE}/folder/sub/..?download=1`,
+        );
+      });
+
+      it('keeps dot segments when the input is a url', async () => {
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        const blobStoreMockClient = mockAgent.get(
+          BLOB_STORE_BASE_URL_LOWERCASE,
+        );
+
+        blobStoreMockClient
+          .intercept({
+            path: (requestPath) => requestPath === '/folder/./file.txt',
+            method: 'GET',
+          })
+          .reply(200, 'blob content', {
+            headers: { 'content-type': 'text/plain', 'content-length': '12' },
+          });
+
+        const result = await get(
+          `${BLOB_STORE_BASE_URL_LOWERCASE}/folder/./file.txt`,
+          { access: 'private' },
+        );
+
+        expect(result).not.toBeNull();
+        expect(result?.blob.pathname).toEqual('folder/./file.txt');
+      });
+
+      it('does not mistake a slash in the query string for a path', async () => {
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        const blobStoreMockClient = mockAgent.get(
+          BLOB_STORE_BASE_URL_LOWERCASE,
+        );
+
+        // The url has no path at all, so the request must go to `/` with the
+        // query intact, not to the `/b` sitting inside the query string.
+        // MockAgent re-encodes query values before matching, so assert on the
+        // path and the surviving query rather than the exact string.
+        blobStoreMockClient
+          .intercept({
+            path: (requestPath) => requestPath.startsWith('/?foo='),
+            method: 'GET',
+          })
+          .reply(404, '');
+
+        const result = await get(`${BLOB_STORE_BASE_URL_LOWERCASE}?foo=a/b`, {
+          access: 'private',
+        });
+
+        expect(result).toBeNull();
+      });
+
+      it('leaves the fragment out of the request', async () => {
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        const blobStoreMockClient = mockAgent.get(
+          BLOB_STORE_BASE_URL_LOWERCASE,
+        );
+
+        // A fragment is client-side only; it must not reach the request line.
+        blobStoreMockClient
+          .intercept({
+            path: (requestPath) => requestPath === '/folder/..',
+            method: 'GET',
+          })
+          .reply(200, 'blob content', {
+            headers: { 'content-type': 'text/plain', 'content-length': '12' },
+          });
+
+        const result = await get(
+          `${BLOB_STORE_BASE_URL_LOWERCASE}/folder/..#section`,
+          { access: 'private' },
+        );
+
+        expect(result).not.toBeNull();
+        expect(result?.blob.downloadUrl).toEqual(
+          `${BLOB_STORE_BASE_URL_LOWERCASE}/folder/..?download=1`,
+        );
+      });
+
+      it('defers to the url parser when the authority disagrees', async () => {
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        const blobStoreMockClient = mockAgent.get(
+          BLOB_STORE_BASE_URL_LOWERCASE,
+        );
+
+        // The parser reads `\\` as a separator, so the host stops at `.com`
+        // and the path is `/folder/file.txt`; a raw slice would say
+        // `/file.txt`. The slice is only used when both read the same host.
+        blobStoreMockClient
+          .intercept({
+            path: (requestPath) => requestPath === '/folder/file.txt',
+            method: 'GET',
+          })
+          .reply(200, 'blob content', {
+            headers: { 'content-type': 'text/plain', 'content-length': '12' },
+          });
+
+        const result = await get(
+          `${BLOB_STORE_BASE_URL_LOWERCASE}\\folder/file.txt`,
+          { access: 'private' },
+        );
+
+        expect(result).not.toBeNull();
+      });
+
+      it('percent-encodes a pathname the dispatcher would reject', async () => {
+        const mockAgent = new MockAgent();
+        mockAgent.disableNetConnect();
+        setGlobalDispatcher(mockAgent);
+        const blobStoreMockClient = mockAgent.get(
+          BLOB_STORE_BASE_URL_LOWERCASE,
+        );
+
+        blobStoreMockClient
+          .intercept({
+            path: '/folder/a%20b.txt',
+            method: 'GET',
+          })
+          .reply(200, 'blob content', {
+            headers: { 'content-type': 'text/plain', 'content-length': '12' },
+          });
+
+        const result = await get('folder/a b.txt', { access: 'private' });
+
+        expect(result).not.toBeNull();
+        expect(result?.blob.pathname).toEqual('folder/a b.txt');
+      });
+    });
+
     describe('conditional requests (304 Not Modified)', () => {
       const BLOB_STORE_BASE_URL_LOWERCASE =
         'https://12345fakestoreid.private.blob.vercel-storage.com';
@@ -2251,7 +2420,7 @@ describe('blob client', () => {
     });
 
     describe('API version', () => {
-      it('should send x-api-version header with value 12', async () => {
+      it('should send the current x-api-version header', async () => {
         let headers: Record<string, string> = {};
         mockClient
           .intercept({
@@ -2267,7 +2436,7 @@ describe('blob client', () => {
           access: 'public',
         });
 
-        expect(headers['x-api-version']).toEqual('12');
+        expect(headers['x-api-version']).toEqual('13');
       });
     });
   });

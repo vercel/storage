@@ -70,6 +70,31 @@ describe('client uploads', () => {
       });
     });
 
+    it('bakes `access` into the client token payload', async () => {
+      const uploadToken = await generateClientTokenFromReadWriteToken({
+        pathname: 'foo.txt',
+        access: 'private',
+        token: 'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678',
+      });
+
+      expect(getPayloadFromClientToken(uploadToken)).toEqual({
+        pathname: 'foo.txt',
+        access: 'private',
+        validUntil: 1672531230000,
+      });
+    });
+
+    it('omits `access` from the payload when not provided (unchanged default)', async () => {
+      const uploadToken = await generateClientTokenFromReadWriteToken({
+        pathname: 'foo.txt',
+        token: 'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678',
+      });
+
+      expect(getPayloadFromClientToken(uploadToken)).not.toHaveProperty(
+        'access',
+      );
+    });
+
     it('accepts a tokenPayload property', async () => {
       const uploadToken = await generateClientTokenFromReadWriteToken({
         pathname: 'foo.txt',
@@ -148,6 +173,37 @@ describe('client uploads', () => {
           callbackUrl: 'https://example.com',
           tokenPayload: 'newfile.txt',
         },
+        pathname: 'newfile.txt',
+        validUntil: 1672534800000,
+      });
+    });
+
+    it('threads `access` from onBeforeGenerateToken into the client token', async () => {
+      const token =
+        'vercel_blob_rw_12345fakeStoreId_30FakeRandomCharacters12345678';
+      const jsonResponse = await handleUpload({
+        token,
+        request: {
+          headers: { 'x-vercel-signature': '123' },
+        } as unknown as IncomingMessage,
+        body: {
+          type: 'blob.generate-client-token',
+          payload: {
+            pathname: 'newfile.txt',
+            multipart: false,
+            clientPayload: null,
+          },
+        },
+        onBeforeGenerateToken: async () => {
+          await Promise.resolve();
+          return { access: 'private' };
+        },
+      });
+
+      expect(
+        getPayloadFromClientToken((jsonResponse as any).clientToken),
+      ).toEqual({
+        access: 'private',
         pathname: 'newfile.txt',
         validUntil: 1672534800000,
       });

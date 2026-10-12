@@ -152,6 +152,7 @@ function validatePresignUrlOnUploadCompletedWire(
   if (opt.callbackUrl.length > MAX_PRESIGN_CALLBACK_URL_CHARS) {
     throw new Error(`${label}: onUploadCompleted.callbackUrl is too long.`);
   }
+  assertNoControlChars(opt.callbackUrl, 'onUploadCompleted.callbackUrl', label);
   if (!isPlausibleAbsoluteUrl(opt.callbackUrl)) {
     throw new Error(
       `${label}: onUploadCompleted.callbackUrl must be a valid URL.`,
@@ -163,6 +164,11 @@ function validatePresignUrlOnUploadCompletedWire(
         `${label}: onUploadCompleted.tokenPayload must be a string.`,
       );
     }
+    assertNoControlChars(
+      opt.tokenPayload,
+      'onUploadCompleted.tokenPayload',
+      label,
+    );
     if (opt.tokenPayload.length > MAX_PRESIGN_CALLBACK_TOKEN_PAYLOAD_CHARS) {
       throw new Error(`${label}: onUploadCompleted.tokenPayload is too long.`);
     }
@@ -173,7 +179,23 @@ export const MAX_PRESIGN_CACHE_CONTROL_MAX_AGE_SECONDS = 365 * 24 * 60 * 60;
 const MAX_PRESIGN_IF_MATCH_LENGTH = 256;
 
 // biome-ignore lint/suspicious/noControlCharactersInRegex: intentionally blocking them
-const IF_MATCH_CONTROL_CHARS_RE = /[\x00-\x1f\x7f]/;
+const CONTROL_CHARS_RE = /[\x00-\x1f\x7f]/;
+
+export function hasDisallowedControlChars(value: string): boolean {
+  return CONTROL_CHARS_RE.test(value);
+}
+
+function assertNoControlChars(
+  value: string,
+  fieldName: string,
+  label: string,
+): void {
+  if (hasDisallowedControlChars(value)) {
+    throw new Error(
+      `${label}: ${fieldName} contains disallowed control characters.`,
+    );
+  }
+}
 
 type PresignUrlConstraintOptions = {
   validUntil?: number;
@@ -211,11 +233,7 @@ function validateUrlOnlyPresignUploadOptions(
     if (im.length > MAX_PRESIGN_IF_MATCH_LENGTH) {
       throw new Error(`${label}: ifMatch is too long.`);
     }
-    if (IF_MATCH_CONTROL_CHARS_RE.test(im)) {
-      throw new Error(
-        `${label}: ifMatch contains disallowed control characters.`,
-      );
-    }
+    assertNoControlChars(im, 'ifMatch', label);
   }
 }
 
@@ -326,6 +344,9 @@ export function buildPresignCanonicalQueryEntries(args: {
   validatePresignUrlOnUploadCompletedWire(urlOptions.onUploadCompleted, label);
 
   if (urlOptions.allowedContentTypes !== undefined) {
+    for (const ct of urlOptions.allowedContentTypes) {
+      assertNoControlChars(ct, 'allowedContentTypes', label);
+    }
     const csv = sortedContentTypesCsv(urlOptions.allowedContentTypes);
     if (csv.length > 16_384) {
       throw new Error(`${label}: allowedContentTypes query value is too long.`);

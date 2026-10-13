@@ -1,5 +1,4 @@
-import type { Dispatcher } from 'undici';
-import { fetch, getGlobalDispatcher, Headers } from 'undici';
+import { fetch, type Headers } from 'undici';
 import type { BlobAccessType, BlobCommandOptions } from './helpers';
 import { BlobError, constructBlobUrl, isUrl, resolveBlobAuth } from './helpers';
 
@@ -77,135 +76,17 @@ export type GetBlobResult =
       };
     };
 
-type UndiciResponse = Dispatcher.ResponseData;
-
-/** `?a=b`, or nothing at all when there is no query. */
-function withQuery(query: URLSearchParams): string {
-  const serialized = query.toString();
-
-  return serialized === '' ? '' : `?${serialized}`;
-}
-
 /**
- * Wraps undici's node stream as a web stream, preserving backpressure. Hand
- * rolled so this module stays free of node builtins.
- */
-function toWebStream(body: UndiciResponse['body']): ReadableStream<Uint8Array> {
-  const iterator = body[Symbol.asyncIterator]();
-
-  return new ReadableStream<Uint8Array>({
-    async pull(controller) {
-      const { value, done } = await iterator.next();
-
-      if (done) {
-        controller.close();
-        return;
-      }
-
-      controller.enqueue(value);
-    },
-    cancel() {
-      body.destroy();
-    },
-  });
-}
-
-interface BlobResponse {
-  statusCode: number;
-  headers: Headers;
-  /** Reads and throws away the body so the connection is released. */
-  discard: () => Promise<void>;
-  /** The body as a web stream. Null when the response carried no body. */
-  toStream: () => ReadableStream<Uint8Array> | null;
-}
-
-/**
- * GETs a blob with the path sent exactly as written. Only Node has a
- * dispatcher that allows that; elsewhere this falls back to `fetch`, which
- * parses the url and so resolves `.` and `..` segments on the way out.
- */
-async function requestBlob({
-  origin,
-  path,
-  headers,
-  signal,
-}: {
-  origin: string;
-  path: string;
-  headers: Record<string, string>;
-  signal: AbortSignal | undefined;
-}): Promise<BlobResponse> {
-  // The browser shim returns undefined; the node types do not model that.
-  const dispatcher = getGlobalDispatcher() as Dispatcher | undefined;
-
-  if (!dispatcher) {
-    const response = await fetch(`${origin}${path}`, {
-      method: 'GET',
-      headers,
-      signal,
-    });
-
-    return {
-      statusCode: response.status,
-      headers: response.headers,
-      discard: async () => {
-        await response.body?.cancel();
-      },
-      toStream: () => response.body as ReadableStream<Uint8Array> | null,
-    };
-  }
-
-  const response = await dispatcher.request({
-    origin,
-    path,
-    method: 'GET',
-    headers,
-    // `fetch` follows redirects by default; keep that behaviour.
-    maxRedirections: 5,
-    signal,
-  });
-
-  return {
-    statusCode: response.statusCode,
-    headers: toHeaders(response.headers),
-    discard: () => response.body.dump(),
-    toStream: () => toWebStream(response.body),
-  };
-}
-
-/** undici hands back a plain header map; the public API returns `Headers`. */
-function toHeaders(raw: UndiciResponse['headers']): Headers {
-  const headers = new Headers();
-
-  for (const [name, value] of Object.entries(raw)) {
-    if (Array.isArray(value)) {
-      for (const entry of value) {
-        headers.append(name, entry);
-      }
-    } else if (value !== undefined) {
-      headers.set(name, value);
-    }
-  }
-
-  return headers;
-}
-
-/**
- * The pathname as written in the url, still percent-encoded. The URL parser
- * would resolve `.` and `..`, which are valid in a blob pathname.
+ * Extracts the pathname from a blob URL.
  */
 function extractPathnameFromUrl(url: string): string {
-  const authorityStart = url.indexOf('://') + '://'.length;
-  // The authority ends at the first `/`, `?` or `#`; anything but a `/` there
-  // means the url has no path, and the `/` in e.g. `?a=b/c` is not one.
-  const authorityLength = url.slice(authorityStart).search(/[/?#]/);
-  const pathStart = authorityStart + authorityLength;
-
-  if (authorityLength === -1 || url[pathStart] !== '/') {
-    return '';
+  try {
+    const parsedUrl = new URL(url);
+    // Remove leading slash from pathname
+    return parsedUrl.pathname.slice(1);
+  } catch {
+    return url;
   }
-
-  return url.slice(pathStart + 1).split(/[?#]/)[0] ?? '';
 }
 
 /**
@@ -263,16 +144,12 @@ export async function get(
 
   let blobUrl: string;
   let pathname: string;
-  // What goes on the wire. Separate from `pathname` because a url input is
-  // already percent-encoded and a bare pathname is not.
-  let requestPath: string;
   const access = options.access;
 
   // Check if input is a URL or a pathname
   if (isUrl(urlOrPathname)) {
     blobUrl = urlOrPathname;
     pathname = extractPathnameFromUrl(urlOrPathname);
-    requestPath = `/${pathname}`;
 
     try {
       const { hostname } = new URL(blobUrl);
@@ -290,105 +167,94 @@ export async function get(
       throw new BlobError('Invalid token: unable to extract store ID');
     }
     pathname = urlOrPathname;
-    // Encoded per segment, to keep the `/` separators. undici sends the path
-    // as given, so nothing else will do it for us.
-    const encodedPathname = pathname
-      .split('/')
-      .map(encodeURIComponent)
-      .join('/');
-    requestPath = `/${encodedPathname}`;
-    blobUrl = constructBlobUrl(auth.storeId, encodedPathname, access);
+    blobUrl = constructBlobUrl(auth.storeId, pathname, access);
   }
 
-  // Fetch the blob content with authentication headers. `Headers` lowercases
-  // the names, so an override below lands on the same key it replaces.
-  const requestHeaders: Record<string, string> = {
-    ...(options.ifNoneMatch ? { 'if-none-match': options.ifNoneMatch } : {}),
+  // Fetch the blob content with authentication headers
+  const requestHeaders: HeadersInit = {
+    ...(options.ifNoneMatch ? { 'If-None-Match': options.ifNoneMatch } : {}),
     authorization: `Bearer ${auth.token}`,
-    // low-level escape hatch, applied last to override anything
-    ...Object.fromEntries(new Headers(options.headers).entries()),
+    ...options.headers, // low-level escape hatch, applied last to override anything
   };
 
   // useCache: false bypasses the CDN cache so the content is served
   // directly from origin storage (cache=0 query param). The backend only
   // supports the bypass for private blobs, so it's ignored for public ones.
-  // The parser is fine for the origin and the query; only its path is unusable.
-  const { origin, search } = new URL(blobUrl);
-  const query = new URLSearchParams(search);
-
+  let fetchUrl = blobUrl;
   if (options.useCache === false && access === 'private') {
-    query.set('cache', '0');
+    const url = new URL(blobUrl);
+    url.searchParams.set('cache', '0');
+    fetchUrl = url.toString();
   }
 
-  const response = await requestBlob({
-    origin,
-    path: `${requestPath}${withQuery(query)}`,
+  const response = await fetch(fetchUrl, {
+    method: 'GET',
     headers: requestHeaders,
     signal: options.abortSignal,
   });
 
-  const responseHeaders = response.headers;
-  const downloadQuery = new URLSearchParams(search);
-  downloadQuery.set('download', '1');
-  const downloadUrl = `${origin}${requestPath}${withQuery(downloadQuery)}`;
-
-  // Handle 304 Not Modified (a valid conditional response, not an error)
-  if (response.statusCode === 304) {
-    await response.discard();
-    const lastModified = responseHeaders.get('last-modified');
+  // Handle 304 Not Modified (fetch considers this !ok, but it's a valid conditional response)
+  if (response.status === 304) {
+    const downloadUrlObj = new URL(blobUrl);
+    downloadUrlObj.searchParams.set('download', '1');
+    const lastModified = response.headers.get('last-modified');
     return {
       statusCode: 304,
       stream: null,
-      headers: responseHeaders,
+      headers: response.headers,
       blob: {
         url: blobUrl,
-        downloadUrl,
+        downloadUrl: downloadUrlObj.toString(),
         pathname,
         contentType: null,
-        contentDisposition: responseHeaders.get('content-disposition') || '',
-        cacheControl: responseHeaders.get('cache-control') || '',
+        contentDisposition: response.headers.get('content-disposition') || '',
+        cacheControl: response.headers.get('cache-control') || '',
         size: null,
         uploadedAt: lastModified ? new Date(lastModified) : new Date(),
-        etag: responseHeaders.get('etag') || '',
+        etag: response.headers.get('etag') || '',
       },
     };
   }
 
-  if (response.statusCode === 404) {
-    await response.discard();
+  if (response.status === 404) {
     return null;
   }
 
-  if (response.statusCode < 200 || response.statusCode >= 300) {
-    await response.discard();
-    throw new BlobError(`Failed to fetch blob: ${response.statusCode}`);
+  if (!response.ok) {
+    throw new BlobError(
+      `Failed to fetch blob: ${response.status} ${response.statusText}`,
+    );
   }
 
-  // Extract metadata from response headers
-  const contentLength = responseHeaders.get('content-length');
-  const lastModified = responseHeaders.get('last-modified');
-
-  // Returned unbuffered; the caller decides when to read it.
-  const stream = response.toStream();
+  // Return the stream directly without buffering
+  const stream = response.body as ReadableStream;
   if (!stream) {
     throw new BlobError('Response body is null');
   }
 
+  // Extract metadata from response headers
+  const contentLength = response.headers.get('content-length');
+  const lastModified = response.headers.get('last-modified');
+
+  // Build download URL by adding download=1 query param
+  const downloadUrl = new URL(blobUrl);
+  downloadUrl.searchParams.set('download', '1');
+
   return {
     statusCode: 200,
     stream,
-    headers: responseHeaders,
+    headers: response.headers,
     blob: {
       url: blobUrl,
-      downloadUrl,
+      downloadUrl: downloadUrl.toString(),
       pathname,
       contentType:
-        responseHeaders.get('content-type') || 'application/octet-stream',
-      contentDisposition: responseHeaders.get('content-disposition') || '',
-      cacheControl: responseHeaders.get('cache-control') || '',
+        response.headers.get('content-type') || 'application/octet-stream',
+      contentDisposition: response.headers.get('content-disposition') || '',
+      cacheControl: response.headers.get('cache-control') || '',
       size: contentLength ? parseInt(contentLength, 10) : 0,
       uploadedAt: lastModified ? new Date(lastModified) : new Date(),
-      etag: responseHeaders.get('etag') || '',
+      etag: response.headers.get('etag') || '',
     },
   };
 }

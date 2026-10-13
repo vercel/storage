@@ -79,81 +79,11 @@ export type GetBlobResult =
 
 type UndiciResponse = Dispatcher.ResponseData;
 
-/**
- * The path and query exactly as written, or null when the slice cannot be
- * trusted because the parser read a different authority than it did.
- */
-function rawPathAndQuery(url: string, host: string): string | null {
-  const schemeEnd = url.indexOf('://');
-  if (schemeEnd === -1) {
-    return null;
-  }
+/** `?a=b`, or nothing at all when there is no query. */
+function withQuery(query: URLSearchParams): string {
+  const serialized = query.toString();
 
-  // The authority ends at the first `/`, `?` or `#`. Looking for the `/` alone
-  // would match one inside a query string on a url that has no path at all.
-  const authorityStart = schemeEnd + '://'.length;
-  const authorityEnd = firstIndexOf(url, ['/', '?', '#'], authorityStart);
-  if (
-    authorityEnd === null ||
-    url.slice(authorityStart, authorityEnd).toLowerCase() !== host
-  ) {
-    return null;
-  }
-
-  // Everything from there to the fragment, which is never sent on the wire. A
-  // url with no path still requests `/`, and keeps any query string.
-  const afterAuthority =
-    url[authorityEnd] === '#'
-      ? ''
-      : url.slice(
-          authorityEnd,
-          firstIndexOf(url, ['#'], authorityEnd) ?? undefined,
-        );
-
-  return afterAuthority.startsWith('/') ? afterAuthority : `/${afterAuthority}`;
-}
-
-/** Index of whichever character comes first at or after `from`, if any. */
-function firstIndexOf(
-  value: string,
-  characters: string[],
-  from: number,
-): number | null {
-  const found = characters
-    .map((character) => value.indexOf(character, from))
-    .filter((index) => index !== -1);
-
-  return found.length > 0 ? Math.min(...found) : null;
-}
-
-/**
- * Splits a blob url into the origin and the path exactly as written. `new URL()`
- * would resolve `.` and `..`, which are valid characters in a blob pathname.
- */
-function splitBlobUrl(blobUrl: string): { origin: string; path: string } {
-  let parsed: URL;
-  try {
-    parsed = new URL(blobUrl);
-  } catch {
-    return { origin: blobUrl.toLowerCase(), path: '/' };
-  }
-
-  // The parser lowercases the host and drops any userinfo, which the blob
-  // vhosts need; only its path is unusable, and that is sliced out instead.
-  return {
-    origin: parsed.origin,
-    path:
-      rawPathAndQuery(blobUrl, parsed.host) ??
-      `${parsed.pathname}${parsed.search}`,
-  };
-}
-
-/**
- * Appends a query parameter without going through `new URL()`, which would
- * resolve dot segments in the path along the way.
- */
-function appendQueryParam(url: string, param: string): string {
-  return `${url}${url.includes('?') ? '&' : '?'}${param}`;
+  return serialized === '' ? '' : `?${serialized}`;
 }
 
 /**
@@ -261,13 +191,21 @@ function toHeaders(raw: UndiciResponse['headers']): Headers {
 }
 
 /**
- * Extracts the pathname from a blob URL.
+ * The pathname as written in the url, still percent-encoded. The URL parser
+ * would resolve `.` and `..`, which are valid in a blob pathname.
  */
 function extractPathnameFromUrl(url: string): string {
-  const { path } = splitBlobUrl(url);
+  const authorityStart = url.indexOf('://') + '://'.length;
+  // The authority ends at the first `/`, `?` or `#`; anything but a `/` there
+  // means the url has no path, and the `/` in e.g. `?a=b/c` is not one.
+  const authorityLength = url.slice(authorityStart).search(/[/?#]/);
+  const pathStart = authorityStart + authorityLength;
 
-  // Remove leading slash from pathname
-  return path.slice(1, firstIndexOf(path, ['?'], 0) ?? undefined);
+  if (authorityLength === -1 || url[pathStart] !== '/') {
+    return '';
+  }
+
+  return url.slice(pathStart + 1).split(/[?#]/)[0] ?? '';
 }
 
 /**
@@ -325,12 +263,16 @@ export async function get(
 
   let blobUrl: string;
   let pathname: string;
+  // What goes on the wire. Separate from `pathname` because a url input is
+  // already percent-encoded and a bare pathname is not.
+  let requestPath: string;
   const access = options.access;
 
   // Check if input is a URL or a pathname
   if (isUrl(urlOrPathname)) {
     blobUrl = urlOrPathname;
     pathname = extractPathnameFromUrl(urlOrPathname);
+    requestPath = `/${pathname}`;
 
     try {
       const { hostname } = new URL(blobUrl);
@@ -348,13 +290,14 @@ export async function get(
       throw new BlobError('Invalid token: unable to extract store ID');
     }
     pathname = urlOrPathname;
-    // undici sends the path as given, so encode here instead of relying on the
-    // url parser to do it. Each segment separately, to keep the `/` separators.
-    blobUrl = constructBlobUrl(
-      auth.storeId,
-      pathname.split('/').map(encodeURIComponent).join('/'),
-      access,
-    );
+    // Encoded per segment, to keep the `/` separators. undici sends the path
+    // as given, so nothing else will do it for us.
+    const encodedPathname = pathname
+      .split('/')
+      .map(encodeURIComponent)
+      .join('/');
+    requestPath = `/${encodedPathname}`;
+    blobUrl = constructBlobUrl(auth.storeId, encodedPathname, access);
   }
 
   // Fetch the blob content with authentication headers. `Headers` lowercases
@@ -369,22 +312,25 @@ export async function get(
   // useCache: false bypasses the CDN cache so the content is served
   // directly from origin storage (cache=0 query param). The backend only
   // supports the bypass for private blobs, so it's ignored for public ones.
-  const { origin, path } = splitBlobUrl(blobUrl);
-  const requestPath =
-    options.useCache === false && access === 'private'
-      ? appendQueryParam(path, 'cache=0')
-      : path;
+  // The parser is fine for the origin and the query; only its path is unusable.
+  const { origin, search } = new URL(blobUrl);
+  const query = new URLSearchParams(search);
+
+  if (options.useCache === false && access === 'private') {
+    query.set('cache', '0');
+  }
 
   const response = await requestBlob({
     origin,
-    path: requestPath,
+    path: `${requestPath}${withQuery(query)}`,
     headers: requestHeaders,
     signal: options.abortSignal,
   });
 
   const responseHeaders = response.headers;
-  // Built from the sliced url rather than `new URL()` so dot segments survive.
-  const downloadUrl = appendQueryParam(`${origin}${path}`, 'download=1');
+  const downloadQuery = new URLSearchParams(search);
+  downloadQuery.set('download', '1');
+  const downloadUrl = `${origin}${requestPath}${withQuery(downloadQuery)}`;
 
   // Handle 304 Not Modified (a valid conditional response, not an error)
   if (response.statusCode === 304) {

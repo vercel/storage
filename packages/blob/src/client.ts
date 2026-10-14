@@ -94,10 +94,12 @@ function createPutExtraChecks<
       // @ts-expect-error -- Runtime check for DX.
       options.allowOverwrite !== undefined ||
       // @ts-expect-error -- Runtime check for DX.
-      options.cacheControlMaxAge !== undefined
+      options.cacheControlMaxAge !== undefined ||
+      // @ts-expect-error -- Runtime check for DX.
+      options.ttlDays !== undefined
     ) {
       throw new BlobError(
-        `${methodName} doesn't allow \`addRandomSuffix\`, \`cacheControlMaxAge\` or \`allowOverwrite\`. Configure these options at the server side when generating client tokens.`,
+        `${methodName} doesn't allow \`addRandomSuffix\`, \`cacheControlMaxAge\`, \`allowOverwrite\` or \`ttlDays\`. Configure these options at the server side when generating client tokens.`,
       );
     }
   };
@@ -301,10 +303,12 @@ export const upload = createPutMethod<UploadOptions>({
       // @ts-expect-error -- Runtime check for DX.
       options.cacheControlMaxAge !== undefined ||
       // @ts-expect-error -- Runtime check for DX.
-      options.ifMatch !== undefined
+      options.ifMatch !== undefined ||
+      // @ts-expect-error -- Runtime check for DX.
+      options.ttlDays !== undefined
     ) {
       throw new BlobError(
-        "client/`upload` doesn't allow `addRandomSuffix`, `cacheControlMaxAge`, `allowOverwrite` or `ifMatch`. Configure these options at the server side when generating client tokens.",
+        "client/`upload` doesn't allow `addRandomSuffix`, `cacheControlMaxAge`, `allowOverwrite`, `ifMatch` or `ttlDays`. Configure these options at the server side when generating client tokens.",
       );
     }
   },
@@ -355,10 +359,12 @@ export const uploadPresigned = createPutMethod<UploadOptions>({
       // @ts-expect-error -- Runtime check for DX.
       options.cacheControlMaxAge !== undefined ||
       // @ts-expect-error -- Runtime check for DX.
-      options.ifMatch !== undefined
+      options.ifMatch !== undefined ||
+      // @ts-expect-error -- Runtime check for DX.
+      options.ttlDays !== undefined
     ) {
       throw new BlobError(
-        "client/`uploadPresigned` doesn't allow `addRandomSuffix`, `cacheControlMaxAge`, `allowOverwrite` or `ifMatch`. Configure these options at the server side when generating presigned URLs.",
+        "client/`uploadPresigned` doesn't allow `addRandomSuffix`, `cacheControlMaxAge`, `allowOverwrite`, `ifMatch` or `ttlDays`. Configure these options at the server side when generating presigned URLs.",
       );
     }
   },
@@ -717,6 +723,7 @@ export interface HandleUploadOptions {
       | 'allowOverwrite'
       | 'cacheControlMaxAge'
       | 'ifMatch'
+      | 'ttlDays'
     > & { tokenPayload?: string | null; callbackUrl?: string }
   >;
 

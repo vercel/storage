@@ -65,7 +65,13 @@ export async function putFromUrl(
   }
 
   const headers = createPutHeaders(
-    ['cacheControlMaxAge', 'addRandomSuffix', 'allowOverwrite', 'ifMatch'],
+    [
+      'cacheControlMaxAge',
+      'addRandomSuffix',
+      'allowOverwrite',
+      'ifMatch',
+      'ttlDays',
+    ],
     putOptions,
   );
 

@@ -71,6 +71,7 @@ export const put = createPutMethod<PutCommandOptions>({
     'allowOverwrite',
     'contentType',
     'ifMatch',
+    'ttlDays',
   ],
 });
 
@@ -157,6 +158,7 @@ export const createMultipartUpload =
       'allowOverwrite',
       'contentType',
       'ifMatch',
+      'ttlDays',
     ],
   });
 
@@ -189,6 +191,7 @@ export const createMultipartUploader =
       'allowOverwrite',
       'contentType',
       'ifMatch',
+      'ttlDays',
     ],
   });
 

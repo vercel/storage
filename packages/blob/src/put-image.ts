@@ -84,7 +84,13 @@ export async function putImage(
     const putOptions = await createPutOptions({ pathname, options });
 
     const headers = createPutHeaders(
-      ['cacheControlMaxAge', 'addRandomSuffix', 'allowOverwrite', 'ifMatch'],
+      [
+        'cacheControlMaxAge',
+        'addRandomSuffix',
+        'allowOverwrite',
+        'ifMatch',
+        'ttlDays',
+      ],
       putOptions,
     );
 
@@ -120,7 +126,13 @@ export async function putImage(
   const putOptions = await createPutOptions({ pathname, options });
 
   const headers = createPutHeaders(
-    ['cacheControlMaxAge', 'addRandomSuffix', 'allowOverwrite', 'ifMatch'],
+    [
+      'cacheControlMaxAge',
+      'addRandomSuffix',
+      'allowOverwrite',
+      'ifMatch',
+      'ttlDays',
+    ],
     putOptions,
   );
 

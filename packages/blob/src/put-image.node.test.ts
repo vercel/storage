@@ -109,6 +109,27 @@ describe('putImage', () => {
       expect(headers['x-cache-control-max-age']).toBe('60');
     });
 
+    it('forwards ttlDays as x-ttl-days', async () => {
+      let headers: Record<string, string> = {};
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedOptimizedBlob;
+        });
+
+      await putImage('avatar.webp', 'image-bytes', {
+        access: 'public',
+        ttlDays: 7,
+        optimizeImage: { width: 128 },
+      });
+
+      expect(headers['x-ttl-days']).toBe('7');
+    });
+
     it('throws when a Blob body declares a non-image type', async () => {
       await expect(
         putImage(
@@ -151,6 +172,27 @@ describe('putImage', () => {
         '/api/blob/put-from-url?pathname=avatar.webp&url=https%3A%2F%2Fexample.com%2Fimage.jpg&width=128&quality=80&format=image%2Fwebp',
       );
       expect(headers['x-vercel-blob-access']).toBe('public');
+    });
+
+    it('forwards ttlDays as x-ttl-days', async () => {
+      let headers: Record<string, string> = {};
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedOptimizedBlob;
+        });
+
+      await putImage('avatar.webp', new URL('https://example.com/image.jpg'), {
+        access: 'public',
+        ttlDays: 7,
+        optimizeImage: { width: 128 },
+      });
+
+      expect(headers['x-ttl-days']).toBe('7');
     });
 
     it('rejects a non-http(s) URL', async () => {

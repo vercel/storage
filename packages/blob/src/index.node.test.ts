@@ -2269,6 +2269,33 @@ describe('blob client', () => {
 
         expect(headers['x-if-match']).toEqual('"source-etag"');
       });
+
+      it('should send x-ttl-days header when ttlDays option is provided', async () => {
+        let headers: Record<string, string> = {};
+        mockClient
+          .intercept({
+            path: () => true,
+            method: 'PUT',
+          })
+          .reply(200, (req) => {
+            headers = req.headers as Record<string, string>;
+            return {
+              url: `${BLOB_STORE_BASE_URL}/destination.txt`,
+              downloadUrl: `${BLOB_STORE_BASE_URL}/destination.txt?download=1`,
+              pathname: 'destination.txt',
+              contentType: 'text/plain',
+              contentDisposition: 'attachment; filename="destination.txt"',
+              etag: '"copyetag"',
+            };
+          });
+
+        await copy('source.txt', 'destination.txt', {
+          access: 'public',
+          ttlDays: 4,
+        });
+
+        expect(headers['x-ttl-days']).toEqual('4');
+      });
     });
 
     describe('BlobPreconditionFailedError', () => {

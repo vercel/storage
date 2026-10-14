@@ -1,5 +1,11 @@
 # @vercel/blob
 
+## 2.8.2
+
+### Patch Changes
+
+- f11f653: Send blob API version 13, where the server reads keys containing `.` or `..` path segments exactly as they were written instead of resolving them away. Fixes `head`, `copy`, `rename`, `del` and `list` on blobs whose pathname has a dot segment.
+
 ## 2.8.1
 
 ### Patch Changes

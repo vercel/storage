@@ -2251,7 +2251,7 @@ describe('blob client', () => {
     });
 
     describe('API version', () => {
-      it('should send x-api-version header with value 12', async () => {
+      it('should send the current x-api-version header', async () => {
         let headers: Record<string, string> = {};
         mockClient
           .intercept({
@@ -2267,7 +2267,7 @@ describe('blob client', () => {
           access: 'public',
         });
 
-        expect(headers['x-api-version']).toEqual('12');
+        expect(headers['x-api-version']).toEqual('13');
       });
     });
   });

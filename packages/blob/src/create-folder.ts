@@ -1,6 +1,5 @@
 import { requestApi } from './api';
 import type { BlobAccessType, CommonCreateBlobOptions } from './helpers';
-import { BlobError } from './helpers';
 import { type PutBlobApiResponse, putOptionHeaderMap } from './put-helpers';
 
 export type CreateFolderCommandOptions = Pick<

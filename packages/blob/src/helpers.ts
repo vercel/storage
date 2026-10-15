@@ -186,7 +186,17 @@ function base64UrlDecodeDelegationSegment(segment: string): string {
     base64 += '='.repeat(padding);
   }
   if (typeof atob === 'function') {
-    return atob(base64);
+    const binary = atob(base64);
+    if (typeof TextDecoder === 'function') {
+      // `atob` yields one char per byte, so decode those bytes as UTF-8 rather
+      // than returning them as-is (non-ASCII pathnames would otherwise come
+      // back as mojibake).
+      return new TextDecoder().decode(
+        Uint8Array.from(binary, (c) => c.charCodeAt(0)),
+      );
+    }
+    // React Native (Hermes) has `atob` but not `TextDecoder`
+    return binary;
   }
   if (typeof Buffer !== 'undefined') {
     // eslint-disable-next-line no-restricted-globals

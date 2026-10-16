@@ -1,5 +1,17 @@
 # @vercel/blob
 
+## 2.8.2
+
+### Patch Changes
+
+- f11f653: Send blob API version 13, where the server reads keys containing `.` or `..` path segments exactly as they were written instead of resolving them away. Fixes `head`, `copy`, `rename`, `del` and `list` on blobs whose pathname has a dot segment.
+
+## 2.8.1
+
+### Patch Changes
+
+- 59be092: Allow `get()` to fetch blob URLs from a `VERCEL_BLOB_API_URL` origin. `get()` only accepted URLs on `*.blob.vercel-storage.com`, which blocked local emulators like [`emulate`](https://npmx.dev/package/emulate), since they serve blob content from their own host. When `VERCEL_BLOB_API_URL` (or `NEXT_PUBLIC_VERCEL_BLOB_API_URL`) is set, URLs on that same origin are now accepted as well. With no override set the behavior is unchanged, so arbitrary hosts are still rejected in production.
+
 ## 2.8.0
 
 ### Minor Changes

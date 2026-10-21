@@ -61,7 +61,7 @@ describe('optimizeImage', () => {
       expect(body).toBe('image-bytes');
     });
 
-    it('forwards ttlDays as x-ttl-days', async () => {
+    it('forwards ttlDays as x-ttl-days from put with optimizeImage', async () => {
       let headers: Record<string, string> = {};
       mockClient
         .intercept({

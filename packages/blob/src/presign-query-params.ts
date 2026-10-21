@@ -173,7 +173,7 @@ function validatePresignUrlOnUploadCompletedWire(
 }
 
 export const MAX_PRESIGN_CACHE_CONTROL_MAX_AGE_SECONDS = 365 * 24 * 60 * 60;
-export const MAX_PRESIGN_TTL_DAYS = 30;
+export const MAX_PRESIGN_TTL_DAYS = 365;
 const MAX_PRESIGN_IF_MATCH_LENGTH = 256;
 
 // biome-ignore lint/suspicious/noControlCharactersInRegex: intentionally blocking them

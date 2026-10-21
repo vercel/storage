@@ -17,7 +17,7 @@ describe('buildPresignCanonicalQueryEntries ttlDays', () => {
     expect(entries).toContainEqual([BLOB_PRESIGN_QUERY_TTL_DAYS, '7']);
   });
 
-  it.each([0, 31, 1.5])('rejects ttlDays=%p', (ttlDays) => {
+  it.each([0, 366, 1.5])('rejects ttlDays=%p', (ttlDays) => {
     expect(() =>
       buildPresignCanonicalQueryEntries({
         operation: 'put',
@@ -25,6 +25,6 @@ describe('buildPresignCanonicalQueryEntries ttlDays', () => {
         urlOptions: { ttlDays },
         nowMs,
       }),
-    ).toThrow('ttlDays must be an integer between 1 and 30');
+    ).toThrow('ttlDays must be an integer between 1 and 365');
   });
 });

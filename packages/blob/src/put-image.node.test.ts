@@ -109,7 +109,7 @@ describe('putImage', () => {
       expect(headers['x-cache-control-max-age']).toBe('60');
     });
 
-    it('forwards ttlDays as x-ttl-days', async () => {
+    it('forwards ttlDays as x-ttl-days for a body source', async () => {
       let headers: Record<string, string> = {};
       mockClient
         .intercept({

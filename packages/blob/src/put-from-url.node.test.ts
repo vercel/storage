@@ -61,6 +61,27 @@ describe('optimizeImage', () => {
       expect(body).toBe('image-bytes');
     });
 
+    it('forwards ttlDays as x-ttl-days from put with optimizeImage', async () => {
+      let headers: Record<string, string> = {};
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedOptimizedBlob;
+        });
+
+      await put('avatar.webp', 'image-bytes', {
+        access: 'public',
+        ttlDays: 7,
+        optimizeImage: { width: 128 },
+      });
+
+      expect(headers['x-ttl-days']).toBe('7');
+    });
+
     it('defaults quality to 75 and omits format when not provided', async () => {
       let path: string | null = null;
       mockClient
@@ -252,6 +273,27 @@ describe('optimizeImage', () => {
   });
 
   describe('putFromUrl', () => {
+    it('forwards ttlDays as x-ttl-days', async () => {
+      let headers: Record<string, string> = {};
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedOptimizedBlob;
+        });
+
+      await putFromUrl('avatar.webp', 'https://example.com/photo.jpg', {
+        access: 'public',
+        ttlDays: 7,
+        optimizeImage: { width: 128 },
+      });
+
+      expect(headers['x-ttl-days']).toBe('7');
+    });
+
     it('sends a POST to /put-from-url with the source url and optimize params', async () => {
       let path: string | null = null;
       let headers: Record<string, string> = {};

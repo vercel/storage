@@ -96,7 +96,7 @@ export interface CommonCreateBlobOptions extends BlobCommandOptions {
    */
   ifMatch?: string;
   /**
-   * Number of days (1-365) after which the blob is automatically deleted. Expiration is
+   * Number of days (1-730) after which the blob is automatically deleted. Expiration is
    * evaluated daily at UTC midnight, so the blob lives at least this many days.
    * Each write that sets a TTL counts as one additional Advanced Operation per started 60 days.
    */

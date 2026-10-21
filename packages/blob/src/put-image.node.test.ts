@@ -174,7 +174,7 @@ describe('putImage', () => {
       expect(headers['x-vercel-blob-access']).toBe('public');
     });
 
-    it('forwards ttlDays as x-ttl-days', async () => {
+    it('forwards ttlDays as x-ttl-days for a URL source', async () => {
       let headers: Record<string, string> = {};
       mockClient
         .intercept({

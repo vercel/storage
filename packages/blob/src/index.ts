@@ -110,6 +110,11 @@ export { copy } from './copy';
 export type { RenameBlobResult, RenameCommandOptions } from './rename';
 export { rename } from './rename';
 
+// vercelBlob.setTtl()
+
+export type { SetTtlCommandOptions, SetTtlResult } from './set-ttl';
+export { setTtl } from './set-ttl';
+
 // vercelBlob.putImage()
 
 export type {

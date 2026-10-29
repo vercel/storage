@@ -15,6 +15,7 @@ import {
   list,
   put,
   rename,
+  setTtl,
   uploadPart,
 } from './index';
 
@@ -1348,6 +1349,65 @@ describe('blob client', () => {
         access: 'public',
       });
       expect(headers['x-vercel-blob-access']).toEqual('public');
+    });
+  });
+
+  describe('setTtl', () => {
+    it('posts the url and ttlDays to /set-ttl', async () => {
+      let path: string | null = null;
+      let body: string | null = null;
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          path = req.path;
+          body = req.body as string;
+          return {
+            url: `${BLOB_STORE_BASE_URL}/foo.txt`,
+            pathname: 'foo.txt',
+            ttlDays: 7,
+          };
+        });
+
+      await expect(
+        setTtl(`${BLOB_STORE_BASE_URL}/foo.txt`, { ttlDays: 7 }),
+      ).resolves.toEqual({
+        url: `${BLOB_STORE_BASE_URL}/foo.txt`,
+        pathname: 'foo.txt',
+        ttlDays: 7,
+      });
+      expect(path).toEqual('/api/blob/set-ttl');
+      expect(JSON.parse(body ?? '{}')).toEqual({
+        url: `${BLOB_STORE_BASE_URL}/foo.txt`,
+        ttlDays: 7,
+      });
+    });
+
+    it('sends null to clear a TTL', async () => {
+      let body: string | null = null;
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          body = req.body as string;
+          return {
+            url: `${BLOB_STORE_BASE_URL}/foo.txt`,
+            pathname: 'foo.txt',
+            ttlDays: null,
+          };
+        });
+
+      await setTtl('foo.txt', { ttlDays: null });
+      expect(JSON.parse(body ?? '{}')).toEqual({
+        url: 'foo.txt',
+        ttlDays: null,
+      });
     });
   });
 

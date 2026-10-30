@@ -89,6 +89,12 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           cache: "pnpm"
 
+      # Changesets drives `npm` for registry reads and publishes; npm 12 (now the
+      # default on ubuntu-latest) changed its JSON output and publish reports
+      # success without uploading. See changesets/changesets#2274.
+      - name: Pin npm 11
+        run: npm install -g npm@11
+
       - name: Install Dependencies
         run: pnpm install
 

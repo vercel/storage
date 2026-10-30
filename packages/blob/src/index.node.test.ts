@@ -15,6 +15,7 @@ import {
   list,
   put,
   rename,
+  setTtl,
   uploadPart,
 } from './index';
 
@@ -51,6 +52,21 @@ describe('blob client', () => {
   });
 
   describe('head', () => {
+    it('returns expiresAt as a Date when the blob has a TTL', async () => {
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'GET',
+        })
+        .reply(200, () => ({
+          ...mockedFileMeta,
+          expiresAt: '2030-01-02T00:00:00.000Z',
+        }));
+
+      const result = await head(`${BLOB_STORE_BASE_URL}/foo-id.txt`);
+      expect(result.expiresAt).toEqual(new Date('2030-01-02T00:00:00.000Z'));
+    });
+
     it('should return Blob metadata when calling `head()`', async () => {
       let path: string | null = null;
       let headers: Record<string, string> = {};
@@ -788,6 +804,26 @@ describe('blob client', () => {
       expect(headers['x-cache-control-max-age']).toEqual('60');
     });
 
+    it('sets the correct header when using the ttlDays option', async () => {
+      let headers: Record<string, string> = {};
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'PUT',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedFileMetaPut;
+        });
+
+      await put('foo.txt', 'Test Body', {
+        access: 'public',
+        ttlDays: 7,
+      });
+      expect(headers['x-ttl-days']).toEqual('7');
+    });
+
     it('throws when filepath is too long', async () => {
       await expect(
         put('a'.repeat(951), 'Test Body', {
@@ -1316,6 +1352,65 @@ describe('blob client', () => {
     });
   });
 
+  describe('setTtl', () => {
+    it('posts the url and ttlDays to /set-ttl', async () => {
+      let path: string | null = null;
+      let body: string | null = null;
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          path = req.path;
+          body = req.body as string;
+          return {
+            url: `${BLOB_STORE_BASE_URL}/foo.txt`,
+            pathname: 'foo.txt',
+            ttlDays: 7,
+          };
+        });
+
+      await expect(
+        setTtl(`${BLOB_STORE_BASE_URL}/foo.txt`, { ttlDays: 7 }),
+      ).resolves.toEqual({
+        url: `${BLOB_STORE_BASE_URL}/foo.txt`,
+        pathname: 'foo.txt',
+        ttlDays: 7,
+      });
+      expect(path).toEqual('/api/blob/set-ttl');
+      expect(JSON.parse(body ?? '{}')).toEqual({
+        url: `${BLOB_STORE_BASE_URL}/foo.txt`,
+        ttlDays: 7,
+      });
+    });
+
+    it('sends null to clear a TTL', async () => {
+      let body: string | null = null;
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          body = req.body as string;
+          return {
+            url: `${BLOB_STORE_BASE_URL}/foo.txt`,
+            pathname: 'foo.txt',
+            ttlDays: null,
+          };
+        });
+
+      await setTtl('foo.txt', { ttlDays: null });
+      expect(JSON.parse(body ?? '{}')).toEqual({
+        url: 'foo.txt',
+        ttlDays: null,
+      });
+    });
+  });
+
   describe('rename', () => {
     const mockedRenameResult = {
       url: `${BLOB_STORE_BASE_URL}/destination.txt`,
@@ -1347,6 +1442,26 @@ describe('blob client', () => {
           'Vercel Blob: access must be "private" or "public", see https://vercel.com/docs/vercel-blob',
         ),
       );
+    });
+
+    it('sets x-ttl-days when renaming with ttlDays', async () => {
+      let headers: Record<string, string> = {};
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          headers = req.headers as Record<string, string>;
+          return mockedRenameResult;
+        });
+
+      await rename('source.txt', 'destination.txt', {
+        access: 'public',
+        ttlDays: 7,
+      });
+      expect(headers['x-ttl-days']).toEqual('7');
     });
 
     it('should rename a file with a POST to /rename', async () => {
@@ -2213,6 +2328,33 @@ describe('blob client', () => {
         });
 
         expect(headers['x-if-match']).toEqual('"source-etag"');
+      });
+
+      it('should send x-ttl-days header when ttlDays option is provided', async () => {
+        let headers: Record<string, string> = {};
+        mockClient
+          .intercept({
+            path: () => true,
+            method: 'PUT',
+          })
+          .reply(200, (req) => {
+            headers = req.headers as Record<string, string>;
+            return {
+              url: `${BLOB_STORE_BASE_URL}/destination.txt`,
+              downloadUrl: `${BLOB_STORE_BASE_URL}/destination.txt?download=1`,
+              pathname: 'destination.txt',
+              contentType: 'text/plain',
+              contentDisposition: 'attachment; filename="destination.txt"',
+              etag: '"copyetag"',
+            };
+          });
+
+        await copy('source.txt', 'destination.txt', {
+          access: 'public',
+          ttlDays: 4,
+        });
+
+        expect(headers['x-ttl-days']).toEqual('4');
       });
     });
 

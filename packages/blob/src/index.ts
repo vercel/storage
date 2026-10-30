@@ -71,6 +71,7 @@ export const put = createPutMethod<PutCommandOptions>({
     'allowOverwrite',
     'contentType',
     'ifMatch',
+    'ttlDays',
   ],
 });
 
@@ -108,6 +109,11 @@ export { copy } from './copy';
 
 export type { RenameBlobResult, RenameCommandOptions } from './rename';
 export { rename } from './rename';
+
+// vercelBlob.setTtl()
+
+export type { SetTtlCommandOptions, SetTtlResult } from './set-ttl';
+export { setTtl } from './set-ttl';
 
 // vercelBlob.putImage()
 
@@ -157,6 +163,7 @@ export const createMultipartUpload =
       'allowOverwrite',
       'contentType',
       'ifMatch',
+      'ttlDays',
     ],
   });
 
@@ -189,6 +196,7 @@ export const createMultipartUploader =
       'allowOverwrite',
       'contentType',
       'ifMatch',
+      'ttlDays',
     ],
   });
 

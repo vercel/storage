@@ -18,7 +18,7 @@ export interface SetTtlResult {
 export interface SetTtlFailure {
   url: string;
   pathname: string;
-  error: { code: 'not_found'; message: string };
+  error: { code: 'not_found' | 'bad_request'; message: string };
 }
 
 export type SetTtlBatchResult = SetTtlResult | SetTtlFailure;
@@ -34,9 +34,9 @@ export async function setTtl(
   options: SetTtlCommandOptions,
 ): Promise<SetTtlResult>;
 /**
- * Changes or clears the TTL of up to 1,000 blobs in one request. Blobs that
- * don't exist come back as `{ error: { code: 'not_found' } }` entries instead
- * of failing the whole batch.
+ * Changes or clears the TTL of up to 1,000 blobs in one request. A blob that
+ * couldn't be updated comes back as an `{ error: { code, message } }` entry
+ * (`not_found` when it doesn't exist) instead of failing the whole batch.
  *
  * @param urlsOrPathnames - Blob urls or pathnames.
  * @param options - `ttlDays` plus the usual auth options.

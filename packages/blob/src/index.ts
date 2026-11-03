@@ -112,7 +112,12 @@ export { rename } from './rename';
 
 // vercelBlob.setTtl()
 
-export type { SetTtlCommandOptions, SetTtlResult } from './set-ttl';
+export type {
+  SetTtlBatchResult,
+  SetTtlCommandOptions,
+  SetTtlFailure,
+  SetTtlResult,
+} from './set-ttl';
 export { setTtl } from './set-ttl';
 
 // vercelBlob.putImage()

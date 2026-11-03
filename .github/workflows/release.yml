@@ -85,9 +85,15 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: latest
+          node-version: lts/*
           registry-url: "https://registry.npmjs.org"
           cache: "pnpm"
+
+      # pnpm 10 hands Changesets' registry reads and publishes to npm. npm 12
+      # (bundled with Node 27) breaks `changeset publish` before 3.0.3
+      # (changesets/changesets#2274); the pin guards against the next LTS too.
+      - name: Pin npm 11
+        run: npm install -g npm@11
 
       - name: Install Dependencies
         run: pnpm install

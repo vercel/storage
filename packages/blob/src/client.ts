@@ -710,6 +710,7 @@ export interface HandleUploadOptions {
   ) => Promise<
     Pick<
       GenerateClientTokenOptions,
+      | 'access'
       | 'allowedContentTypes'
       | 'maximumSizeInBytes'
       | 'validUntil'
@@ -1231,6 +1232,16 @@ export interface GenerateClientTokenOptions
    * The destination path for the blob
    */
   pathname: string;
+  /**
+   * The access level the client upload should be created with.
+   * - 'public': The blob will be publicly accessible via its URL.
+   * - 'private': The blob will require authentication to access.
+   *
+   * Baked into the signed client token so `handleUpload` / `onBeforeGenerateToken`
+   * can mint private client uploads, mirroring the server-side `put({ access })`.
+   * When omitted, existing behavior is unchanged (public).
+   */
+  access?: BlobAccessType;
 }
 
 /**

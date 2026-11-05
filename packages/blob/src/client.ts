@@ -1168,6 +1168,7 @@ function isAbsoluteUrl(url: string): boolean {
  *   - addRandomSuffix - (Optional) Whether to add a random suffix to the filename. Defaults to false.
  *   - allowOverwrite - (Optional) Whether to allow overwriting existing blobs. Defaults to false.
  *   - cacheControlMaxAge - (Optional) Number of seconds to configure cache duration. Defaults to one month.
+ *   - ttlDays - (Optional) Number of days (1-730) after which the blob is deleted automatically, counted from the upload. Adds one Advanced Operation per started 60 days.
  *   - ifMatch - (Optional) Only write if the ETag matches (optimistic concurrency control).
  * @returns A promise that resolves to the generated client token string which can be used in client-side upload operations.
  */

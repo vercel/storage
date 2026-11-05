@@ -18,7 +18,8 @@ export interface SetTtlResult {
 export interface SetTtlFailure {
   url: string;
   pathname: string;
-  error: { code: 'not_found' | 'bad_request'; message: string };
+  /** `not_found` when the blob doesn't exist; otherwise the Blob API error code. */
+  error: { code: string; message: string };
 }
 
 export type SetTtlBatchResult = SetTtlResult | SetTtlFailure;

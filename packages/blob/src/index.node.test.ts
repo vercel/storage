@@ -1409,6 +1409,36 @@ describe('blob client', () => {
         ttlDays: null,
       });
     });
+
+    it('sends urls for an array and returns per-blob results', async () => {
+      let body: string | null = null;
+      const results = [
+        { url: `${BLOB_STORE_BASE_URL}/a.txt`, pathname: 'a.txt', ttlDays: 7 },
+        {
+          url: `${BLOB_STORE_BASE_URL}/b.txt`,
+          pathname: 'b.txt',
+          error: { code: 'not_found', message: 'Not found' },
+        },
+      ];
+
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, (req) => {
+          body = req.body as string;
+          return results;
+        });
+
+      await expect(
+        setTtl(['a.txt', `${BLOB_STORE_BASE_URL}/b.txt`], { ttlDays: 7 }),
+      ).resolves.toEqual(results);
+      expect(JSON.parse(body ?? '{}')).toEqual({
+        urls: ['a.txt', `${BLOB_STORE_BASE_URL}/b.txt`],
+        ttlDays: 7,
+      });
+    });
   });
 
   describe('rename', () => {

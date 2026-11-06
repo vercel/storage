@@ -140,9 +140,27 @@ export interface PutBlobResult {
    * The ETag of the blob. Can be used with `ifMatch` for conditional writes.
    */
   etag: string;
+  /**
+   * When the blob will be deleted. Only set for blobs written with `ttlDays`.
+   */
+  expiresAt?: Date;
 }
 
-export type PutBlobApiResponse = PutBlobResult;
+export type PutBlobApiResponse = Omit<PutBlobResult, 'expiresAt'> & {
+  expiresAt?: string;
+};
+
+export function toPutBlobResult(response: PutBlobApiResponse): PutBlobResult {
+  return {
+    url: response.url,
+    downloadUrl: response.downloadUrl,
+    pathname: response.pathname,
+    contentType: response.contentType,
+    contentDisposition: response.contentDisposition,
+    etag: response.etag,
+    ...(response.expiresAt && { expiresAt: new Date(response.expiresAt) }),
+  };
+}
 
 /**
  * Represents the body content for a put operation.

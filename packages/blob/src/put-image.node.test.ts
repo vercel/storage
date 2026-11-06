@@ -130,6 +130,26 @@ describe('putImage', () => {
       expect(headers['x-ttl-days']).toBe('7');
     });
 
+    it('returns expiresAt as a Date when the API sends one', async () => {
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, {
+          ...mockedOptimizedBlob,
+          expiresAt: '2026-01-09T00:00:00.000Z',
+        });
+
+      const result = await putImage('avatar.webp', 'image-bytes', {
+        access: 'public',
+        ttlDays: 7,
+        optimizeImage: { width: 128 },
+      });
+
+      expect(result.expiresAt).toEqual(new Date('2026-01-09T00:00:00.000Z'));
+    });
+
     it('throws when a Blob body declares a non-image type', async () => {
       await expect(
         putImage(

@@ -23,7 +23,8 @@ import { createCreateMultipartUploaderMethod } from './multipart/create-uploader
 import type { CommonMultipartUploadOptions } from './multipart/upload';
 import { createUploadPartMethod } from './multipart/upload';
 import { createPutMethod } from './put';
-import type { PutBlobResult } from './put-helpers';
+import type { PutBlobApiResponse, PutBlobResult } from './put-helpers';
+import { toPutBlobResult } from './put-helpers';
 import {
   type IssuedSignedToken,
   type IssueSignedTokenOptions,
@@ -843,7 +844,12 @@ export async function handleUpload({
       }
 
       if (onUploadCompleted) {
-        await onUploadCompleted(body.payload);
+        await onUploadCompleted({
+          ...body.payload,
+          blob: toPutBlobResult(
+            body.payload.blob as unknown as PutBlobApiResponse,
+          ),
+        });
       }
       return { type, response: 'ok' };
     }
@@ -1024,7 +1030,12 @@ export async function handleUploadPresigned({
       }
 
       if (onUploadCompleted) {
-        await onUploadCompleted(body.payload);
+        await onUploadCompleted({
+          ...body.payload,
+          blob: toPutBlobResult(
+            body.payload.blob as unknown as PutBlobApiResponse,
+          ),
+        });
       }
       return { type, response: 'ok' };
     }

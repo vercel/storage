@@ -14,6 +14,7 @@ import {
   addOptimizeImageParams,
   createPutHeaders,
   createPutOptions,
+  toPutBlobResult,
   validateOptimizeImageSourceContentType,
 } from './put-helpers';
 
@@ -104,14 +105,7 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
         optionsWithPresignedUrlPayload,
       );
 
-      return {
-        url: response.url,
-        downloadUrl: response.downloadUrl,
-        pathname: response.pathname,
-        contentType: response.contentType,
-        contentDisposition: response.contentDisposition,
-        etag: response.etag,
-      };
+      return toPutBlobResult(response);
     }
 
     if (options.multipart === true) {
@@ -143,13 +137,6 @@ export function createPutMethod<TOptions extends PutCommandOptions>({
       },
     );
 
-    return {
-      url: response.url,
-      downloadUrl: response.downloadUrl,
-      pathname: response.pathname,
-      contentType: response.contentType,
-      contentDisposition: response.contentDisposition,
-      etag: response.etag,
-    };
+    return toPutBlobResult(response);
   };
 }

@@ -10,6 +10,7 @@ import {
   addOptimizeImageParams,
   createPutHeaders,
   createPutOptions,
+  toPutBlobResult,
 } from './put-helpers';
 
 // `contentType` is omitted because the stored content type always comes from
@@ -89,12 +90,5 @@ export async function putFromUrl(
     putOptions,
   );
 
-  return {
-    url: response.url,
-    downloadUrl: response.downloadUrl,
-    pathname: response.pathname,
-    contentType: response.contentType,
-    contentDisposition: response.contentDisposition,
-    etag: response.etag,
-  };
+  return toPutBlobResult(response);
 }

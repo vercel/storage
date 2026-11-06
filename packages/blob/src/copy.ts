@@ -14,7 +14,15 @@ export interface CopyBlobResult {
    * The ETag of the blob. Can be used with `ifMatch` for conditional writes.
    */
   etag: string;
+  /**
+   * When the blob will be deleted. Only set for blobs written with `ttlDays`.
+   */
+  expiresAt?: Date;
 }
+
+type CopyApiResponse = Omit<CopyBlobResult, 'expiresAt'> & {
+  expiresAt?: string;
+};
 
 /**
  * Copies a blob to another location in your store.
@@ -87,7 +95,7 @@ export async function copy(
     fromUrl: fromUrlOrPathname,
   });
 
-  const response = await requestApi<CopyBlobResult>(
+  const response = await requestApi<CopyApiResponse>(
     `?${params.toString()}`,
     {
       method: 'PUT',
@@ -104,5 +112,6 @@ export async function copy(
     contentType: response.contentType,
     contentDisposition: response.contentDisposition,
     etag: response.etag,
+    ...(response.expiresAt && { expiresAt: new Date(response.expiresAt) }),
   };
 }

@@ -824,6 +824,36 @@ describe('blob client', () => {
       expect(headers['x-ttl-days']).toEqual('7');
     });
 
+    it('returns expiresAt as a Date when the API sends one', async () => {
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'PUT',
+        })
+        .reply(200, {
+          ...mockedFileMetaPut,
+          expiresAt: '2026-01-09T00:00:00.000Z',
+        });
+
+      const result = await put('foo.txt', 'Test Body', {
+        access: 'public',
+        ttlDays: 7,
+      });
+      expect(result.expiresAt).toEqual(new Date('2026-01-09T00:00:00.000Z'));
+    });
+
+    it('omits expiresAt when the API sends none', async () => {
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'PUT',
+        })
+        .reply(200, mockedFileMetaPut);
+
+      const result = await put('foo.txt', 'Test Body', { access: 'public' });
+      expect(result).not.toHaveProperty('expiresAt');
+    });
+
     it('throws when filepath is too long', async () => {
       await expect(
         put('a'.repeat(951), 'Test Body', {
@@ -1181,7 +1211,28 @@ describe('blob client', () => {
       pathname: 'foo.txt',
       contentType: 'text/plain',
       contentDisposition: 'attachment; filename="foo.txt"',
+      etag: '"etag"',
     };
+
+    it('returns expiresAt as a Date when the upload has a TTL', async () => {
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, {
+          ...mockedCompleteResponse,
+          etag: '"etag"',
+          expiresAt: '2026-01-09T00:00:00.000Z',
+        });
+
+      const result = await completeMultipartUpload(
+        'foo.txt',
+        [{ partNumber: 1, etag: 'etag-123' }],
+        { access: 'private', key: 'foo.txt', uploadId: 'upload-123' },
+      );
+      expect(result.expiresAt).toEqual(new Date('2026-01-09T00:00:00.000Z'));
+    });
 
     it('should complete a multipart upload with private access', async () => {
       let headers: Record<string, string> = {};
@@ -1207,14 +1258,15 @@ describe('blob client', () => {
           },
         ),
       ).resolves.toMatchInlineSnapshot(`
-        {
-          "contentDisposition": "attachment; filename="foo.txt"",
-          "contentType": "text/plain",
-          "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo.txt?download=1",
-          "pathname": "foo.txt",
-          "url": "https://storeId.public.blob.vercel-storage.com/foo.txt",
-        }
-      `);
+{
+  "contentDisposition": "attachment; filename="foo.txt"",
+  "contentType": "text/plain",
+  "downloadUrl": "https://storeId.public.blob.vercel-storage.com/foo.txt?download=1",
+  "etag": ""etag"",
+  "pathname": "foo.txt",
+  "url": "https://storeId.public.blob.vercel-storage.com/foo.txt",
+}
+`);
       expect(headers['x-vercel-blob-access']).toEqual('private');
     });
 
@@ -1285,6 +1337,29 @@ describe('blob client', () => {
           'Vercel Blob: access must be "private" or "public", see https://vercel.com/docs/vercel-blob',
         ),
       );
+    });
+
+    it('returns expiresAt as a Date when the copy has a TTL', async () => {
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'PUT',
+        })
+        .reply(200, {
+          url: `${BLOB_STORE_BASE_URL}/destination.txt`,
+          downloadUrl: `${BLOB_STORE_BASE_URL}/destination.txt?download=1`,
+          pathname: 'destination.txt',
+          contentType: 'text/plain',
+          contentDisposition: 'attachment; filename="destination.txt"',
+          etag: '"def456"',
+          expiresAt: '2026-01-09T00:00:00.000Z',
+        });
+
+      const result = await copy('source.txt', 'destination.txt', {
+        access: 'public',
+        ttlDays: 3,
+      });
+      expect(result.expiresAt).toEqual(new Date('2026-01-09T00:00:00.000Z'));
     });
 
     it('should copy a file with private access', async () => {
@@ -1450,6 +1525,24 @@ describe('blob client', () => {
       contentDisposition: 'attachment; filename="destination.txt"',
       etag: '"def456"',
     };
+
+    it('returns expiresAt as a Date when the rename sets a TTL', async () => {
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, {
+          ...mockedRenameResult,
+          expiresAt: '2026-01-09T00:00:00.000Z',
+        });
+
+      const result = await rename('source.txt', 'destination.txt', {
+        access: 'public',
+        ttlDays: 6,
+      });
+      expect(result.expiresAt).toEqual(new Date('2026-01-09T00:00:00.000Z'));
+    });
 
     it('throws when filepath is too long', async () => {
       await expect(

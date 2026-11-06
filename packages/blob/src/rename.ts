@@ -14,7 +14,15 @@ export interface RenameBlobResult {
    * The ETag of the blob. Can be used with `ifMatch` for conditional writes.
    */
   etag: string;
+  /**
+   * When the blob will be deleted. Only set for blobs written with `ttlDays`.
+   */
+  expiresAt?: Date;
 }
+
+type RenameApiResponse = Omit<RenameBlobResult, 'expiresAt'> & {
+  expiresAt?: string;
+};
 
 /**
  * Renames (moves) a blob to another pathname in your store. The blob is
@@ -88,7 +96,7 @@ export async function rename(
     fromUrl: fromUrlOrPathname,
   });
 
-  const response = await requestApi<RenameBlobResult>(
+  const response = await requestApi<RenameApiResponse>(
     `/rename?${params.toString()}`,
     {
       method: 'POST',
@@ -105,5 +113,6 @@ export async function rename(
     contentType: response.contentType,
     contentDisposition: response.contentDisposition,
     etag: response.etag,
+    ...(response.expiresAt && { expiresAt: new Date(response.expiresAt) }),
   };
 }

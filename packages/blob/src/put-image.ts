@@ -11,6 +11,7 @@ import {
   addOptimizeImageParams,
   createPutHeaders,
   createPutOptions,
+  toPutBlobResult,
   validateOptimizeImageSourceContentType,
 } from './put-helpers';
 
@@ -28,17 +29,6 @@ export interface PutImageCommandOptions
 }
 
 export type PutImageBlobResult = PutBlobResult;
-
-function toPutBlobResult(response: PutBlobApiResponse): PutBlobResult {
-  return {
-    url: response.url,
-    downloadUrl: response.downloadUrl,
-    pathname: response.pathname,
-    contentType: response.contentType,
-    contentDisposition: response.contentDisposition,
-    etag: response.etag,
-  };
-}
 
 /**
  * Optimizes an image through Vercel Image Optimization and stores the

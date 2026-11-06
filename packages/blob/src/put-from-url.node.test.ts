@@ -294,6 +294,26 @@ describe('optimizeImage', () => {
       expect(headers['x-ttl-days']).toBe('7');
     });
 
+    it('returns expiresAt as a Date when the API sends one', async () => {
+      mockClient
+        .intercept({
+          path: () => true,
+          method: 'POST',
+        })
+        .reply(200, {
+          ...mockedOptimizedBlob,
+          expiresAt: '2026-01-09T00:00:00.000Z',
+        });
+
+      const result = await putFromUrl(
+        'avatar.webp',
+        'https://example.com/photo.jpg',
+        { access: 'public', ttlDays: 7, optimizeImage: { width: 128 } },
+      );
+
+      expect(result.expiresAt).toEqual(new Date('2026-01-09T00:00:00.000Z'));
+    });
+
     it('sends a POST to /put-from-url with the source url and optimize params', async () => {
       let path: string | null = null;
       let headers: Record<string, string> = {};

@@ -1,4 +1,8 @@
-import { generateKeyPairSync, sign as nodeCryptoSign } from 'node:crypto';
+import {
+  createHmac,
+  generateKeyPairSync,
+  sign as nodeCryptoSign,
+} from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
 import type { PutBlobResult } from '.';
 import {
@@ -164,6 +168,46 @@ describe('client uploads', () => {
         pathname: 'newfile.txt',
         validUntil: 1672534800000,
       });
+    });
+
+    it('hands onUploadCompleted the blob expiresAt as a Date', async () => {
+      const token = 'vercel_blob_client_123456789_TEST_TOKEN';
+      const spy = jest.fn();
+      const body = {
+        type: 'blob.upload-completed' as const,
+        payload: {
+          blob: {
+            pathname: 'newfile.txt',
+            expiresAt: '2026-01-09T00:00:00.000Z',
+          } as unknown as PutBlobResult,
+          tokenPayload: null,
+        },
+      };
+      const signature = createHmac('sha256', token)
+        .update(JSON.stringify(body))
+        .digest('hex');
+
+      await handleUpload({
+        token,
+        request: {
+          headers: { 'x-vercel-signature': signature },
+        } as unknown as IncomingMessage,
+        body,
+        onBeforeGenerateToken: async () => {
+          await Promise.resolve();
+          return {};
+        },
+        onUploadCompleted: spy,
+      });
+
+      expect(spy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          blob: expect.objectContaining({
+            pathname: 'newfile.txt',
+            expiresAt: new Date('2026-01-09T00:00:00.000Z'),
+          }),
+        }),
+      );
     });
 
     it('should run onCompleted when called with blob.upload-completed', async () => {

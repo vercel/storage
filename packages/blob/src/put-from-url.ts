@@ -10,6 +10,7 @@ import {
   addOptimizeImageParams,
   createPutHeaders,
   createPutOptions,
+  toPutBlobResult,
 } from './put-helpers';
 
 // `contentType` is omitted because the stored content type always comes from
@@ -42,6 +43,7 @@ export type PutFromUrlBlobResult = PutBlobResult;
  *   - addRandomSuffix - (Optional) A boolean specifying whether to add a random suffix to the pathname. It defaults to false.
  *   - allowOverwrite - (Optional) A boolean to allow overwriting blobs. By default an error will be thrown if the destination blob already exists.
  *   - cacheControlMaxAge - (Optional) A number in seconds to configure how long Blobs are cached.
+ *   - ttlDays - (Optional) Number of days (1-730) after which the blob is deleted automatically, counted from the upload. Adds one Advanced Operation per started 60 days.
  *   - ifMatch - (Optional) Only perform the operation if the blob's current ETag matches this value. Implies allowOverwrite.
  *   - oidcToken - (Optional) Vercel OIDC token for authentication with `storeId` (or `BLOB_STORE_ID`); overrides `VERCEL_OIDC_TOKEN`.
  *   - storeId - (Optional) Blob store id. Used to override process.env.BLOB_STORE_ID when Vercel OIDC token is available.
@@ -65,7 +67,13 @@ export async function putFromUrl(
   }
 
   const headers = createPutHeaders(
-    ['cacheControlMaxAge', 'addRandomSuffix', 'allowOverwrite', 'ifMatch'],
+    [
+      'cacheControlMaxAge',
+      'addRandomSuffix',
+      'allowOverwrite',
+      'ifMatch',
+      'ttlDays',
+    ],
     putOptions,
   );
 
@@ -82,12 +90,5 @@ export async function putFromUrl(
     putOptions,
   );
 
-  return {
-    url: response.url,
-    downloadUrl: response.downloadUrl,
-    pathname: response.pathname,
-    contentType: response.contentType,
-    contentDisposition: response.contentDisposition,
-    etag: response.etag,
-  };
+  return toPutBlobResult(response);
 }

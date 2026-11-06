@@ -6,7 +6,11 @@ import type {
   PutBlobApiResponse,
   PutBlobResult,
 } from '../put-helpers';
-import { createPutHeaders, createPutOptions } from '../put-helpers';
+import {
+  createPutHeaders,
+  createPutOptions,
+  toPutBlobResult,
+} from '../put-helpers';
 import type { Part } from './helpers';
 
 /**
@@ -93,7 +97,7 @@ export async function completeMultipartUpload({
 
     debug('mpu: complete', response);
 
-    return response;
+    return toPutBlobResult(response);
   } catch (error: unknown) {
     if (
       error instanceof TypeError &&

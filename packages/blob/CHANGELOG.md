@@ -1,5 +1,13 @@
 # @vercel/blob
 
+## 2.9.0
+
+### Minor Changes
+
+- 3b0e3a9: `put`, `putImage`, `copy`, `rename` and `completeMultipartUpload` now return `expiresAt` (a `Date`) for blobs written with `ttlDays`, so you no longer need a follow-up `head()` to learn when a blob will be deleted.
+- 3b0e3a9: Add `setTtl(urlOrPathname, { ttlDays })` to change or clear a blob's TTL in place. Pass `ttlDays: null` to remove it. Pass an array of up to 1,000 urls to update them in one request; a blob that couldn't be updated comes back as an `error` entry (`not_found` when it doesn't exist) instead of failing the batch. S3 counts the TTL from the blob's upload date, not from this call.
+- 3b0e3a9: Add `ttlDays` option to `put`, `putImage`, `putFromUrl`, `copy`, `rename`, `createMultipartUpload`, client tokens and presigned URLs. Blobs uploaded with a TTL are deleted automatically after that many days; `head()` returns the scheduled `expiresAt`. `ttlDays` is 1 to 730. Each write that sets a TTL counts as one additional Advanced Operation per started 60 days.
+
 ## 2.8.2
 
 ### Patch Changes

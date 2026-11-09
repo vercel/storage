@@ -23,7 +23,8 @@ import { createCreateMultipartUploaderMethod } from './multipart/create-uploader
 import type { CommonMultipartUploadOptions } from './multipart/upload';
 import { createUploadPartMethod } from './multipart/upload';
 import { createPutMethod } from './put';
-import type { PutBlobResult } from './put-helpers';
+import type { PutBlobApiResponse, PutBlobResult } from './put-helpers';
+import { toPutBlobResult } from './put-helpers';
 import {
   type IssuedSignedToken,
   type IssueSignedTokenOptions,
@@ -94,10 +95,12 @@ function createPutExtraChecks<
       // @ts-expect-error -- Runtime check for DX.
       options.allowOverwrite !== undefined ||
       // @ts-expect-error -- Runtime check for DX.
-      options.cacheControlMaxAge !== undefined
+      options.cacheControlMaxAge !== undefined ||
+      // @ts-expect-error -- Runtime check for DX.
+      options.ttlDays !== undefined
     ) {
       throw new BlobError(
-        `${methodName} doesn't allow \`addRandomSuffix\`, \`cacheControlMaxAge\` or \`allowOverwrite\`. Configure these options at the server side when generating client tokens.`,
+        `${methodName} doesn't allow \`addRandomSuffix\`, \`cacheControlMaxAge\`, \`allowOverwrite\` or \`ttlDays\`. Configure these options at the server side when generating client tokens.`,
       );
     }
   };
@@ -301,10 +304,12 @@ export const upload = createPutMethod<UploadOptions>({
       // @ts-expect-error -- Runtime check for DX.
       options.cacheControlMaxAge !== undefined ||
       // @ts-expect-error -- Runtime check for DX.
-      options.ifMatch !== undefined
+      options.ifMatch !== undefined ||
+      // @ts-expect-error -- Runtime check for DX.
+      options.ttlDays !== undefined
     ) {
       throw new BlobError(
-        "client/`upload` doesn't allow `addRandomSuffix`, `cacheControlMaxAge`, `allowOverwrite` or `ifMatch`. Configure these options at the server side when generating client tokens.",
+        "client/`upload` doesn't allow `addRandomSuffix`, `cacheControlMaxAge`, `allowOverwrite`, `ifMatch` or `ttlDays`. Configure these options at the server side when generating client tokens.",
       );
     }
   },
@@ -355,10 +360,12 @@ export const uploadPresigned = createPutMethod<UploadOptions>({
       // @ts-expect-error -- Runtime check for DX.
       options.cacheControlMaxAge !== undefined ||
       // @ts-expect-error -- Runtime check for DX.
-      options.ifMatch !== undefined
+      options.ifMatch !== undefined ||
+      // @ts-expect-error -- Runtime check for DX.
+      options.ttlDays !== undefined
     ) {
       throw new BlobError(
-        "client/`uploadPresigned` doesn't allow `addRandomSuffix`, `cacheControlMaxAge`, `allowOverwrite` or `ifMatch`. Configure these options at the server side when generating presigned URLs.",
+        "client/`uploadPresigned` doesn't allow `addRandomSuffix`, `cacheControlMaxAge`, `allowOverwrite`, `ifMatch` or `ttlDays`. Configure these options at the server side when generating presigned URLs.",
       );
     }
   },
@@ -717,6 +724,7 @@ export interface HandleUploadOptions {
       | 'allowOverwrite'
       | 'cacheControlMaxAge'
       | 'ifMatch'
+      | 'ttlDays'
     > & { tokenPayload?: string | null; callbackUrl?: string }
   >;
 
@@ -836,7 +844,12 @@ export async function handleUpload({
       }
 
       if (onUploadCompleted) {
-        await onUploadCompleted(body.payload);
+        await onUploadCompleted({
+          ...body.payload,
+          blob: toPutBlobResult(
+            body.payload.blob as unknown as PutBlobApiResponse,
+          ),
+        });
       }
       return { type, response: 'ok' };
     }
@@ -1017,7 +1030,12 @@ export async function handleUploadPresigned({
       }
 
       if (onUploadCompleted) {
-        await onUploadCompleted(body.payload);
+        await onUploadCompleted({
+          ...body.payload,
+          blob: toPutBlobResult(
+            body.payload.blob as unknown as PutBlobApiResponse,
+          ),
+        });
       }
       return { type, response: 'ok' };
     }
@@ -1161,6 +1179,7 @@ function isAbsoluteUrl(url: string): boolean {
  *   - addRandomSuffix - (Optional) Whether to add a random suffix to the filename. Defaults to false.
  *   - allowOverwrite - (Optional) Whether to allow overwriting existing blobs. Defaults to false.
  *   - cacheControlMaxAge - (Optional) Number of seconds to configure cache duration. Defaults to one month.
+ *   - ttlDays - (Optional) Number of days (1-730) after which the blob is deleted automatically, counted from the upload. Adds one Advanced Operation per started 60 days.
  *   - ifMatch - (Optional) Only write if the ETag matches (optimistic concurrency control).
  * @returns A promise that resolves to the generated client token string which can be used in client-side upload operations.
  */

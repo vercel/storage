@@ -11,6 +11,7 @@ import {
   addOptimizeImageParams,
   createPutHeaders,
   createPutOptions,
+  toPutBlobResult,
   validateOptimizeImageSourceContentType,
 } from './put-helpers';
 
@@ -29,17 +30,6 @@ export interface PutImageCommandOptions
 
 export type PutImageBlobResult = PutBlobResult;
 
-function toPutBlobResult(response: PutBlobApiResponse): PutBlobResult {
-  return {
-    url: response.url,
-    downloadUrl: response.downloadUrl,
-    pathname: response.pathname,
-    contentType: response.contentType,
-    contentDisposition: response.contentDisposition,
-    etag: response.etag,
-  };
-}
-
 /**
  * Optimizes an image through Vercel Image Optimization and stores the
  * optimized output in your store. The source can be the image content itself
@@ -56,6 +46,7 @@ function toPutBlobResult(response: PutBlobApiResponse): PutBlobResult {
  *   - addRandomSuffix - (Optional) A boolean specifying whether to add a random suffix to the pathname. It defaults to false.
  *   - allowOverwrite - (Optional) A boolean to allow overwriting blobs. By default an error will be thrown if the destination blob already exists.
  *   - cacheControlMaxAge - (Optional) A number in seconds to configure how long Blobs are cached.
+ *   - ttlDays - (Optional) Number of days (1-730) after which the blob is deleted automatically, counted from the upload. Adds one Advanced Operation per started 60 days.
  *   - ifMatch - (Optional) Only perform the operation if the blob's current ETag matches this value. Implies allowOverwrite.
  *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel. Ignored when Vercel OIDC token is available and either process.env.BLOB_STORE_ID or options.storeId is set.
  *   - oidcToken - (Optional) Vercel OIDC token for authentication with `storeId` (or `BLOB_STORE_ID`); overrides `VERCEL_OIDC_TOKEN`.
@@ -84,7 +75,13 @@ export async function putImage(
     const putOptions = await createPutOptions({ pathname, options });
 
     const headers = createPutHeaders(
-      ['cacheControlMaxAge', 'addRandomSuffix', 'allowOverwrite', 'ifMatch'],
+      [
+        'cacheControlMaxAge',
+        'addRandomSuffix',
+        'allowOverwrite',
+        'ifMatch',
+        'ttlDays',
+      ],
       putOptions,
     );
 
@@ -120,7 +117,13 @@ export async function putImage(
   const putOptions = await createPutOptions({ pathname, options });
 
   const headers = createPutHeaders(
-    ['cacheControlMaxAge', 'addRandomSuffix', 'allowOverwrite', 'ifMatch'],
+    [
+      'cacheControlMaxAge',
+      'addRandomSuffix',
+      'allowOverwrite',
+      'ifMatch',
+      'ttlDays',
+    ],
     putOptions,
   );
 

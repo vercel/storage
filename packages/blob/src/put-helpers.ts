@@ -109,6 +109,7 @@ export const putOptionHeaderMap = {
   contentType: 'x-content-type',
   access: 'x-vercel-blob-access',
   ifMatch: 'x-if-match',
+  ttlDays: 'x-ttl-days',
 };
 
 /**
@@ -139,9 +140,27 @@ export interface PutBlobResult {
    * The ETag of the blob. Can be used with `ifMatch` for conditional writes.
    */
   etag: string;
+  /**
+   * When the blob will be deleted. Only set for blobs written with `ttlDays`.
+   */
+  expiresAt?: Date;
 }
 
-export type PutBlobApiResponse = PutBlobResult;
+export type PutBlobApiResponse = Omit<PutBlobResult, 'expiresAt'> & {
+  expiresAt?: string;
+};
+
+export function toPutBlobResult(response: PutBlobApiResponse): PutBlobResult {
+  return {
+    url: response.url,
+    downloadUrl: response.downloadUrl,
+    pathname: response.pathname,
+    contentType: response.contentType,
+    contentDisposition: response.contentDisposition,
+    etag: response.etag,
+    ...(response.expiresAt && { expiresAt: new Date(response.expiresAt) }),
+  };
+}
 
 /**
  * Represents the body content for a put operation.
@@ -227,6 +246,10 @@ export function createPutHeaders<TOptions extends CommonPutCommandOptions>(
   ) {
     headers[putOptionHeaderMap.cacheControlMaxAge] =
       options.cacheControlMaxAge.toString();
+  }
+
+  if (allowedOptions.includes('ttlDays') && options.ttlDays !== undefined) {
+    headers[putOptionHeaderMap.ttlDays] = options.ttlDays.toString();
   }
 
   return headers;

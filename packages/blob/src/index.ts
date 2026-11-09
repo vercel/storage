@@ -55,6 +55,7 @@ export type { PutCommandOptions };
  *   - allowOverwrite - (Optional) A boolean to allow overwriting blobs. By default an error will be thrown if you try to overwrite a blob by using the same pathname for multiple blobs.
  *   - contentType - (Optional) A string indicating the media type. By default, it's extracted from the pathname's extension.
  *   - cacheControlMaxAge - (Optional) A number in seconds to configure how long Blobs are cached. Defaults to one month. Cannot be set to a value lower than 1 minute.
+ *   - ttlDays - (Optional) Number of days (1-730) after which the blob is deleted automatically, counted from the upload. Adds one Advanced Operation per started 60 days.
  *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel. Ignored when Vercel OIDC token is available and either process.env.BLOB_STORE_ID or options.storeId is set.
  *   - oidcToken - (Optional) Vercel OIDC token for authentication with `storeId` (or `BLOB_STORE_ID`); overrides `VERCEL_OIDC_TOKEN`.
  *   - storeId - (Optional) Blob store id. Used to override process.env.BLOB_STORE_ID when Vercel OIDC token is available.
@@ -71,6 +72,7 @@ export const put = createPutMethod<PutCommandOptions>({
     'allowOverwrite',
     'contentType',
     'ifMatch',
+    'ttlDays',
   ],
 });
 
@@ -109,6 +111,16 @@ export { copy } from './copy';
 export type { RenameBlobResult, RenameCommandOptions } from './rename';
 export { rename } from './rename';
 
+// vercelBlob.setTtl()
+
+export type {
+  SetTtlBatchResult,
+  SetTtlCommandOptions,
+  SetTtlFailure,
+  SetTtlResult,
+} from './set-ttl';
+export { setTtl } from './set-ttl';
+
 // vercelBlob.putImage()
 
 export type {
@@ -141,6 +153,7 @@ export type { OptimizeImageOptions } from './put-helpers';
  *   - allowOverwrite - (Optional) A boolean to allow overwriting blobs. By default an error will be thrown if you try to overwrite a blob by using the same pathname for multiple blobs.
  *   - contentType - (Optional) The media type for the file. If not specified, it's derived from the file extension. Falls back to application/octet-stream when no extension exists or can't be matched.
  *   - cacheControlMaxAge - (Optional) A number in seconds to configure the edge and browser cache. Defaults to one month.
+ *   - ttlDays - (Optional) Number of days (1-730) after which the blob is deleted automatically, counted from the upload. Adds one Advanced Operation per started 60 days.
  *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel. Ignored when Vercel OIDC token is available and either process.env.BLOB_STORE_ID or options.storeId is set.
  *   - oidcToken - (Optional) Vercel OIDC token for authentication with `storeId` (or `BLOB_STORE_ID`); overrides `VERCEL_OIDC_TOKEN`.
  *   - storeId - (Optional) Blob store id. Used to override process.env.BLOB_STORE_ID when Vercel OIDC token is available.
@@ -157,6 +170,7 @@ export const createMultipartUpload =
       'allowOverwrite',
       'contentType',
       'ifMatch',
+      'ttlDays',
     ],
   });
 
@@ -171,6 +185,7 @@ export const createMultipartUpload =
  *   - allowOverwrite - (Optional) A boolean to allow overwriting blobs. By default an error will be thrown if you try to overwrite a blob by using the same pathname for multiple blobs.
  *   - contentType - (Optional) The media type for the file. If not specified, it's derived from the file extension. Falls back to application/octet-stream when no extension exists or can't be matched.
  *   - cacheControlMaxAge - (Optional) A number in seconds to configure the edge and browser cache. Defaults to one month.
+ *   - ttlDays - (Optional) Number of days (1-730) after which the blob is deleted automatically, counted from the upload. Adds one Advanced Operation per started 60 days.
  *   - token - (Optional) A string specifying the token to use when making requests. It defaults to process.env.BLOB_READ_WRITE_TOKEN when deployed on Vercel. Ignored when Vercel OIDC token is available and either process.env.BLOB_STORE_ID or options.storeId is set.
  *   - oidcToken - (Optional) Vercel OIDC token for authentication with `storeId` (or `BLOB_STORE_ID`); overrides `VERCEL_OIDC_TOKEN`.
  *   - storeId - (Optional) Blob store id. Used to override process.env.BLOB_STORE_ID when Vercel OIDC token is available.
@@ -189,6 +204,7 @@ export const createMultipartUploader =
       'allowOverwrite',
       'contentType',
       'ifMatch',
+      'ttlDays',
     ],
   });
 
@@ -212,6 +228,7 @@ export type { UploadPartCommandOptions };
  *   - addRandomSuffix - (Optional) A boolean specifying whether to add a random suffix to the pathname.
  *   - allowOverwrite - (Optional) A boolean to allow overwriting blobs.
  *   - cacheControlMaxAge - (Optional) A number in seconds to configure how long Blobs are cached.
+ *   - ttlDays - (Optional) Number of days (1-730) after which the blob is deleted automatically, counted from the upload. Adds one Advanced Operation per started 60 days.
  *   - abortSignal - (Optional) AbortSignal to cancel the running request.
  *   - onUploadProgress - (Optional) Callback to track upload progress: onUploadProgress(\{loaded: number, total: number, percentage: number\})
  * @returns A promise that resolves to the uploaded part information containing etag and partNumber, which will be needed for the completeMultipartUpload call.
@@ -244,6 +261,7 @@ export type { CompleteMultipartUploadCommandOptions };
  *   - addRandomSuffix - (Optional) A boolean specifying whether to add a random suffix to the pathname. It defaults to true.
  *   - allowOverwrite - (Optional) A boolean to allow overwriting blobs.
  *   - cacheControlMaxAge - (Optional) A number in seconds to configure the edge and browser cache. Defaults to one month.
+ *   - ttlDays - (Optional) Number of days (1-730) after which the blob is deleted automatically, counted from the upload. Adds one Advanced Operation per started 60 days.
  *   - abortSignal - (Optional) AbortSignal to cancel the operation.
  * @returns A promise that resolves to the finalized blob information, including pathname, contentType, contentDisposition, url, and downloadUrl.
  */
